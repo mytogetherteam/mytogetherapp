@@ -1,0 +1,7 @@
+{
+  "name": "mytogether",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
