@@ -1,0 +1,46 @@
+/* QuickServices.css */
+
+.quick-services-container {
+  padding: 0 10px 16px 10px;
+}
+
+.category-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--app-text-color);
+    margin-left: 10px;
+    margin-bottom: var(--section-title-margin-bottom);
+}
+
+.quick-services-grid {
+  --ion-grid-padding: 0;
+  --ion-grid-column-padding: 8px;
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 12px 4px;
+  height: 150px;
+  cursor: pointer;
+}
+
+.service-icon-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.service-label {
+  font-size: 12px;
+  font-weight: 600; /* Bold text */
+  text-align: center;
+  color: var(--app-text-color);
+  line-height: 1.2;
+  white-space: pre-wrap; /* Allow newlines from translation */
+}

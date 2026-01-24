@@ -1,0 +1,102 @@
+.famous-places-container {
+  padding: 0 16px 16px 16px;
+  margin-top: 16px;
+}
+
+.fp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--section-title-margin-bottom);
+}
+
+.fp-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-text-color);
+  margin-left: 10px;
+}
+
+.fp-see-more {
+  font-size: 14px;
+  font-weight: 500;
+  color: #EF4982;
+  text-decoration: none;
+  margin-right: var(--view-all-margin-right);
+}
+
+.fp-swiper {
+  padding-bottom: 4px;
+}
+
+.fp-card {
+  position: relative; /* Context for absolute positioning */
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Slightly stronger shadow */
+  height: 220px; /* Fixed height for consistency */
+  display: flex;
+  flex-direction: column;
+}
+
+.fp-image-wrapper {
+  position: absolute; /* Cover the card */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.fp-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fp-content {
+  position: absolute; /* Overlay at bottom */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 2;
+  padding: 32px 16px 16px; /* Extra top padding to extend gradient upwards */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* Stronger, smoother gradient shade */
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.4) 70%, transparent 100%);
+  color: white;
+}
+
+.fp-name {
+  font-size: 18px; 
+  font-weight: 700;
+  color: white; /* White text */
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.fp-location {
+  font-size: 13px;
+  color: #ff80ab; /* Lighter pink for contrast on dark bg */
+  margin-bottom: 6px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.fp-description {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9); /* Off-white for description */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}

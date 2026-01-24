@@ -1,2 +1,19 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+:root {
+  --ion-font-family: 'Poppins', sans-serif;
+  font-family: 'Poppins', sans-serif;
+  --app-text-color: #262626;
+  --section-title-margin-bottom: 10px;
+  --view-all-margin-right: 5px;
+  --ion-text-color: #262626;
+  color: var(--app-text-color);
+  /** primary **/
+  --ion-color-primary: #EF4982;
+  --ion-color-primary-rgb: 239, 73, 130;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #d24072;
+  --ion-color-primary-tint: #f15b8e;
+
+  --primary-gradient: linear-gradient(135deg, #EF4982 0%, #FFA413 100%);
+  --tab-selected-bg: #fff0f5; /* Light pink background */
+}

@@ -1,0 +1,69 @@
+
+ion-tab-bar {
+  --background: #ffffff;
+  border-top: none;
+  box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.05);
+  height: auto; /* Allow height to expand for safe area */
+  min-height: 60px;
+  padding-bottom: calc(5px + var(--ion-safe-area-bottom));
+  padding-top: 5px;
+}
+
+ion-tab-button {
+  --color: #92949c;
+  --color-selected: #EF4982;
+  --padding-start: 0;
+  --padding-end: 0;
+  --ripple-color: transparent;
+}
+
+/* Label styling */
+ion-tab-button ion-label {
+  font-weight: 500;
+  font-size: 11px; /* Slightly smaller for cleaner look */
+  margin-top: 4px;
+}
+
+ion-tab-button.tab-selected ion-label {
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 700;
+}
+
+/* Icon styling */
+ion-tab-button ion-icon {
+  font-size: 26px; /* Slightly larger icon */
+  padding: 0; /* Remove padding */
+  margin-bottom: 2px;
+  transition: 0.2s ease-in-out;
+  position: relative;
+  z-index: 2;
+  overflow: visible; 
+}
+
+/* Selected Tab Icon */
+ion-tab-button.tab-selected ion-icon {
+  color: #EF4982; 
+  /* Removed background color and shadow as requested */
+  transform: scale(1.1); /* Subtle pop effect */
+}
+
+/* Hover fixes */
+ion-tab-button:hover ion-icon,
+ion-tab-button:hover ion-label {
+  opacity: 1 !important;
+}
+
+/* Ensure selected state persistence on hover */
+ion-tab-button.tab-selected:hover ion-label {
+  -webkit-text-fill-color: transparent;
+}
+
+/* Fix for invisible text/icon on some devices */
+ion-tab-button::part(native) {
+  overflow: visible;
+}
+

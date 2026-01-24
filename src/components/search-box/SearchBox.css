@@ -1,0 +1,53 @@
+.search-box-container {
+    background: white;
+    border-radius: 20px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    overflow: hidden;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Added slight shadow for better standalone visibility */
+}
+
+@keyframes slideUpIn {
+    0% { transform: translateY(15px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideUpOut { /* Added slideUpOut keyframes which were missing/implied in original css but useful here */
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-15px); opacity: 0; }
+}
+
+.search-box-icon {
+    font-size: 20px;
+    color: #333;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.search-box-placeholder {
+    font-size: 13px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-box-placeholder.fade-out {
+    animation: slideUpOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.search-box-placeholder.fade-in {
+    animation: slideUpIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Myanmar Font Alignment Fix */
+.search-box-placeholder.lang-mm {
+    padding-top: 3px; /* Push text down to correct "minus position" high alignment */
+    line-height: 1.6; /* Adjust line-height for safer vertical centering */
+}

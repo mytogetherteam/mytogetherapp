@@ -1,0 +1,218 @@
+
+.shop-menu-container {
+    padding: 16px;
+    background: #f9f9f9;
+    min-height: 100%;
+}
+
+/* Sticky Header Area for Menu */
+.menu-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #f9f9f9;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+/* Search Bar */
+.menu-search-bar {
+    padding: 0;
+    --background: white;
+    --box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    --border-radius: 12px;
+    /* margin-bottom: 12px; Removed as it's handled in flex container now */
+}
+
+/* Filter Dropdown */
+.filter-dropdown-wrapper {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-filter-select {
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* Hide the actual select but keep it clickable */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+}
+
+.filter-icon-overlay {
+    pointer-events: none;
+    font-size: 20px;
+    color: #333;
+    display: flex;
+}
+
+/* Categories */
+.menu-categories-wrapper {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.menu-categories-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.menu-category-chip {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: white;
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-right: 8px;
+    border: 1px solid #eee;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-category-chip.active {
+    background: linear-gradient(90deg, #FF6B6B 0%, #FF8E53 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Grid Reused Styles - Scoped to menu */
+.menu-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.1s ease;
+    animation: slideUpFade 0.4s ease forwards;
+}
+
+.menu-card:active {
+    transform: scale(0.98);
+}
+
+.menu-image-wrapper {
+    width: 100%;
+    height: 140px;
+    overflow: hidden;
+    position: relative;
+}
+
+.menu-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.menu-heart-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 16px;
+    z-index: 10;
+}
+
+.menu-best-seller {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #F59E0B;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.menu-content {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+}
+
+.menu-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--app-text-color);
+    margin-bottom: 8px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.menu-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-item-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #EF4982;
+}
+
+.add-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.95); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,372 @@
+
+.menu-detail-modal {
+    --background: #f9f9f9;
+}
+
+.menu-detail-image-container {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    background-color: #eee;
+}
+
+.menu-detail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.menu-detail-header-btn {
+    position: fixed;
+    top: 16px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #333;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.menu-detail-header-btn.back {
+    left: 16px;
+}
+
+.menu-detail-header-btn.fav {
+    right: 16px;
+}
+
+.menu-detail-content {
+    padding: 16px;
+    padding-bottom: 100px; /* Space for footer */
+}
+
+/* Info Section */
+.menu-detail-info-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.menu-detail-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.menu-detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--app-text-color);
+    margin: 0;
+    flex: 1;
+}
+
+.menu-detail-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #EF4982;
+    margin-left: 12px;
+}
+
+.menu-detail-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-detail-rating {
+    display: flex;
+    align-items: center;
+    color: var(--app-text-color);
+    font-weight: 600;
+}
+
+.menu-detail-rating ion-icon {
+    color: #F59E0B;
+    margin-right: 4px;
+}
+
+.menu-detail-description {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.menu-detail-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.menu-detail-tag {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.menu-detail-tag.high-protein {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.menu-detail-tag.vegetarian {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.menu-detail-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--app-text-color);
+    margin-bottom: 12px;
+    margin-top: 24px;
+}
+
+/* Size Selector */
+.size-selector-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.size-option-card {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    background: white;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.size-option-card.selected {
+    border-color: #EF4982;
+    background: #FDF2F6;
+    color: #EF4982;
+}
+
+.size-name {
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.size-price {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Add-ons */
+.addons-container {
+    background: white;
+    border-radius: 16px;
+    padding: 8px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.addon-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.addon-item:last-child {
+    border-bottom: none;
+}
+
+.addon-label {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+}
+
+.addon-price {
+    font-size: 14px;
+    color: #EF4982;
+    font-weight: 600;
+}
+
+/* Spice Level */
+.spice-level-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.spice-option-card {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 4px;
+    text-align: center;
+    background: white;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.spice-option-card.selected {
+    border-color: #EF4982;
+    background: #FDF2F6;
+    color: #EF4982;
+}
+
+.spice-icon-row {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+    justify-content: center;
+}
+
+.spice-icon {
+    font-size: 14px;
+    color: #dc2626;
+}
+
+/* Special Instructions */
+.instructions-input-wrapper {
+    margin-bottom: 24px;
+}
+
+.custom-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    background-color: white;
+}
+
+.custom-textarea:focus {
+    border-color: #EF4982;
+}
+
+/* Frequent Items */
+.frequent-items-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+}
+
+.frequent-item-card {
+    min-width: 140px;
+    width: 140px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.frequent-item-image {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+}
+
+.frequent-item-info {
+    padding: 8px;
+}
+
+.frequent-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.frequent-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.frequent-item-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: #EF4982;
+}
+
+/* Sticky Footer */
+.menu-detail-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 16px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+}
+
+.quantity-stepper {
+    display: flex;
+    align-items: center;
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.qty-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #374151;
+}
+
+.qty-value {
+    width: 32px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.add-to-cart-large-btn {
+    flex: 1;
+    height: 48px;
+    background: linear-gradient(90deg, #FF6B6B 0%, #FF8E53 100%);
+    border-radius: 24px;
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-transform: none;
+    box-shadow: 0 4px 12px rgba(239, 73, 130, 0.4);
+}
