@@ -1,0 +1,188 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'image_skeleton_loader.dart';
+
+
+class RestaurantCard extends StatelessWidget {
+  final String name;
+  final String category;
+  final double rating;
+  final String distance;
+  final String imagePath;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onTap;
+
+  const RestaurantCard({
+    super.key,
+    required this.name,
+    required this.category,
+    required this.rating,
+    required this.distance,
+    required this.imagePath,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 240,
+      margin: const EdgeInsets.only(right: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image with Favorite Button
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: imagePath.trim().isEmpty
+                    ? _buildFallbackImage()
+                    : CachedNetworkImage(
+                        imageUrl: imagePath,
+                        height: 160,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const ImageSkeletonLoader(
+                          height: 160,
+                        ),
+                        errorWidget: (context, url, error) => _buildFallbackImage(),
+                        fadeInDuration: const Duration(milliseconds: 300),
+                      ),
+              ),
+
+              Positioned(
+                top: 12,
+                right: 12,
+                child: GestureDetector(
+                  onTap: onFavoriteToggle,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                      color: isFavorite ? const Color(0xFFED3A72) : Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Text Info Section with Padding
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                // Restaurant Name
+                Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Category and Rating
+                Row(
+                  children: [
+                    Text(
+                      category,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                      child: Text(
+                        '•',
+                        style: TextStyle(color: Colors.grey[400]),
+                      ),
+                    ),
+                    Text(
+                      rating.toString(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      PhosphorIcons.star(PhosphorIconsStyle.fill),
+                      size: 13,
+                      color: Colors.amber,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Distance
+                Row(
+                  children: [
+                    Icon(
+                      PhosphorIcons.car(),
+                      size: 15,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      distance,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 32),
+            const SizedBox(height: 4),
+            Text(
+              'No Image',
+              style: GoogleFonts.poppins(
+                color: Colors.grey[500],
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

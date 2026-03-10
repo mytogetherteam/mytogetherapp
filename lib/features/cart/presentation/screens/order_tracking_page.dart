@@ -1,0 +1,1158 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:dio/dio.dart';
+import 'dart:async';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
+import 'package:flutter/services.dart';
+import '../../../../core/utils/navigation_controller.dart';
+import '../../data/cart_manager.dart';
+import '../../data/active_order_state.dart';
+import '../../../home/data/restaurant_data.dart' show Restaurant;
+import '../../../home/presentation/widgets/map_skeleton_loader.dart';
+import 'awaiting_payment_page.dart';
+import '../../../../core/network/websocket_service.dart';
+import '../../../../core/theme/app_map_theme.dart';
+
+class OrderTrackingPage extends StatefulWidget {
+  final CartStore store;
+  final Restaurant? restaurant;
+  final int foodTotal;
+
+  const OrderTrackingPage({
+    super.key,
+    required this.store,
+    this.restaurant,
+    this.foodTotal = 0,
+  });
+
+  @override
+  State<OrderTrackingPage> createState() => _OrderTrackingPageState();
+}
+
+class _OrderTrackingPageState extends State<OrderTrackingPage>
+    with TickerProviderStateMixin {
+  GoogleMapController? _mapController;
+  LatLng? _currentLocation;
+  List<LatLng> _routePoints = [];
+  bool _isRouting = false;
+  bool _showMap = false;
+  StreamSubscription<Position>? _positionStreamSubscription;
+
+  late AnimationController _idleSolidController;
+  late AnimationController _lightProgressController;
+  Timer? _idleSequenceTimer;
+  late AnimationController _dotsAnimController;
+
+  double? _routeDistanceKm;
+  int? _routeDurationMins;
+  double? _deliveryFee;
+  bool _isCancelling = false;
+  bool _showCancelLoading = false;
+
+  late final Dio _dio;
+
+  static const LatLng _defaultLocation = LatLng(13.7563, 100.5018);
+
+  LatLng get _restaurantLatLng {
+    final lat = widget.restaurant?.latitude;
+    final lon = widget.restaurant?.longitude;
+    if (lat != null && lon != null) return LatLng(lat, lon);
+    return const LatLng(13.7600, 100.5050);
+  }
+
+  StreamSubscription? _orderSubscription;
+  Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  BitmapDescriptor? _homeIcon;
+  BitmapDescriptor? _shopIcon;
+  BitmapDescriptor? _homeWithBubbleIcon;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Solid idle trailing animation
+    _idleSolidController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+
+    // Light idle trailing animation
+    _lightProgressController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    
+    _startIdleAnimationSequence();
+
+    WebSocketService().connect(force: true);
+    
+    _orderSubscription = WebSocketService().orderUpdates.listen((update) {
+      if (!mounted) return;
+      
+      final Map<String, dynamic> actualData = (update.containsKey('data') && update['data'] is Map) 
+          ? update['data'] as Map<String, dynamic> 
+          : update;
+
+      final status = actualData['status'] as String?;
+      
+      if (mounted) {
+        setState(() {});
+      }
+      
+      // If the shop accepted, navigate to Payment
+      final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'AWAITING_APPROVAL', 'PAYMENT_SLIP_REQUESTED'];
+      if (status != null && transitionStatuses.contains(status.toUpperCase())) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _navigateToPayment();
+        });
+      }
+    });
+
+    // Dots animation
+    _dotsAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+
+    _dio = Dio();
+
+    _checkCachedData();
+    if (_routePoints.isNotEmpty) {
+      _showMap = true;
+    }
+
+    // Pre-build custom marker icons
+    _buildCustomMarkers().then((_) {
+      _initLocationAndRoute();
+    });
+  }
+
+  void _startIdleAnimationSequence() {
+    if (!mounted) return;
+
+    // Orchestrate the sequence using async/await to ensure they are sequential
+    _runSequentialIdleSequence();
+  }
+
+  Future<void> _runSequentialIdleSequence() async {
+    if (!mounted) return;
+
+    // Stage 0: 0% -> 100% Light Trail (Solid stays at 0)
+    _idleSolidController.value = 0.0;
+    _lightProgressController.duration = const Duration(seconds: 3);
+    await _lightProgressController.forward(from: 0.0);
+    if (!mounted) return;
+    _lightProgressController.value = 0.0; // Disappear
+
+    // Stage 1: Solid glides to 20%, then light trail runs 20% -> 100%
+    await _idleSolidController.animateTo(0.2, duration: const Duration(seconds: 3), curve: Curves.linear);
+    if (!mounted) return;
+    _lightProgressController.duration = const Duration(seconds: 6); // Slowed down
+    await _lightProgressController.forward(from: 0.0);
+    if (!mounted) return;
+    _lightProgressController.value = 0.0; // Disappear
+
+    // Stage 2: Solid glides to 40%, then light trail runs 40% -> 100%
+    await _idleSolidController.animateTo(0.4, duration: const Duration(seconds: 4), curve: Curves.linear);
+    if (!mounted) return;
+    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+    await _lightProgressController.forward(from: 0.0);
+    if (!mounted) return;
+    _lightProgressController.value = 0.0; // Disappear
+
+    // Stage 3: Solid glides to 60%, then light trail runs 60% -> 100%
+    await _idleSolidController.animateTo(0.6, duration: const Duration(seconds: 4), curve: Curves.linear);
+    if (!mounted) return;
+    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+    await _lightProgressController.forward(from: 0.0);
+    if (!mounted) return;
+    _lightProgressController.value = 0.0; // Disappear
+
+    // Stage 4: Solid glides to 70%, then light trail loops
+    await _idleSolidController.animateTo(0.7, duration: const Duration(seconds: 4), curve: Curves.linear);
+    if (!mounted) return;
+    _lightProgressController.duration = const Duration(seconds: 6); 
+    _lightProgressController.repeat();
+  }
+
+  void _checkCachedData() {
+    final state = ActiveOrderState.instance;
+    if (state.routePoints.isNotEmpty) {
+      _routePoints = state.routePoints;
+      _routeDistanceKm = state.routeDistanceKm;
+      _routeDurationMins = state.routeDurationMins;
+      _deliveryFee = state.deliveryFee;
+    }
+  }
+
+  @override
+  void dispose() {
+    _idleSequenceTimer?.cancel();
+    _idleSolidController.dispose();
+    _lightProgressController.dispose();
+    _orderSubscription?.cancel();
+    _positionStreamSubscription?.cancel();
+    _mapController?.dispose();
+    _dotsAnimController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initLocationAndRoute() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    LatLng? userLoc;
+    if (serviceEnabled &&
+        permission != LocationPermission.denied &&
+        permission != LocationPermission.deniedForever) {
+      // Use last-known position immediately (fast, no waiting)
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          userLoc = LatLng(last.latitude, last.longitude);
+          if (mounted) setState(() => _currentLocation = userLoc);
+        }
+      } catch (_) {}
+
+      // Start continuous updates in background
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium, distanceFilter: 15),
+      ).listen((pos) {
+        final newLoc = LatLng(pos.latitude, pos.longitude);
+        if (mounted) {
+          setState(() {
+            _currentLocation = newLoc;
+            _updateMarkersAndPolylines();
+          });
+        }
+      });
+    }
+
+    final startLoc = userLoc ?? _defaultLocation;
+    if (mounted) setState(() => _currentLocation ??= startLoc);
+
+    if (_routePoints.isEmpty) {
+      // Show map immediately with skeleton/default state, then fetch route
+      if (mounted) setState(() => _showMap = true);
+      await _fetchRoute(startLoc);
+    } else {
+      _buildInitialMarkersAndPolylines();
+      _updateBubbleBitmap();
+      if (mounted) setState(() => _showMap = true);
+      // Zoom to cached route
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted && _routePoints.isNotEmpty && _mapController != null) {
+          _fitBounds(_routePoints);
+        }
+      });
+    }
+  }
+
+  void _buildInitialMarkersAndPolylines() {
+    _updateMarkersAndPolylines();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Custom Marker Builders
+  // ---------------------------------------------------------------------------
+
+  Future<void> _buildCustomMarkers() async {
+    _homeIcon = await _drawMarkerBitmap(
+      icon: Icons.home_rounded,
+      bgColor: const Color(0xFFED3973),
+      iconColor: Colors.white,
+      size: 45, // Reduced from 60
+    );
+    _shopIcon = await _drawMarkerBitmap(
+      icon: Icons.restaurant,
+      bgColor: const Color(0xFFED3973),
+      iconColor: Colors.white,
+      size: 45, // Reduced from 60
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<BitmapDescriptor> _drawMarkerBitmap({
+    required IconData icon,
+    required Color bgColor,
+    required Color iconColor,
+    double size = 75,
+  }) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+    final double r = size / 2;
+
+    // Shadow
+    canvas.drawCircle(
+      Offset(r, r + 4),
+      r * 0.85,
+      Paint()..color = Colors.black.withValues(alpha: 0.18),
+    );
+
+    // White border ring
+    canvas.drawCircle(
+      Offset(r, r),
+      r,
+      Paint()..color = Colors.white,
+    );
+
+    // Coloured fill
+    canvas.drawCircle(
+      Offset(r, r),
+      r - 4,
+      Paint()..color = bgColor,
+    );
+
+    // Icon
+    final tp = TextPainter(textDirection: TextDirection.ltr)
+      ..text = TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          fontSize: size * 0.44,
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+          color: iconColor,
+        ),
+      );
+    tp.layout();
+    tp.paint(
+      canvas,
+      Offset((size - tp.width) / 2, (size - tp.height) / 2 - 2),
+    );
+
+    final img = await pictureRecorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+  }
+
+  Future<void> _updateBubbleBitmap() async {
+    if (_routeDistanceKm == null || _routeDurationMins == null) return;
+    
+    final fee = _deliveryFee ?? 0;
+    final distance = _routeDistanceKm ?? 0;
+    final duration = _routeDurationMins ?? 0;
+
+    final bmp = await _drawHomeMarkerWithBubbleBitmap(
+      fee: fee.toDouble(),
+      distance: distance,
+      duration: duration,
+    );
+    
+    if (mounted) {
+      setState(() {
+        _homeWithBubbleIcon = bmp;
+        _updateMarkersAndPolylines();
+      });
+    }
+  }
+
+  Future<BitmapDescriptor> _drawHomeMarkerWithBubbleBitmap({
+    required double fee,
+    required double distance,
+    required int duration,
+  }) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+
+    const double iconSize = 45.0; // Reduced from 60
+    const double r = iconSize / 2;
+    const double boxHeight = 60.0; // Reduced from 80
+    const double pointerWidth = 16.0; // Reduced from 20
+    const double pointerHeight = 10.0; // Reduced from 14
+    const double gap = 2.0; // Reduced from 4
+    const double shadowBottomPadding = 6.0;
+    
+    final double homeIconY = boxHeight + pointerHeight + gap;
+    final double centerOfHomeY = homeIconY + r;
+    final double totalHeight = centerOfHomeY + r + shadowBottomPadding;
+
+    // Text details
+    final TextPainter feePainter = TextPainter(
+      text: TextSpan(
+        text: 'Est. Delivery Fee ',
+        style: GoogleFonts.poppins(
+            fontSize: 14, fontWeight: FontWeight.w400, color: Colors.white), // Reduced from 22
+        children: [
+          TextSpan(
+            text: '฿ ${fee.toStringAsFixed(0)}',
+            style: GoogleFonts.poppins(
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white), // Reduced from 24
+          ),
+        ],
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final TextPainter timePainter = TextPainter(
+      text: TextSpan(
+        text: '${distance.toStringAsFixed(1)} km  •  $duration min',
+        style: GoogleFonts.poppins(
+            fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white), // Reduced from 18
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final double textWidth = math.max(feePainter.width, timePainter.width);
+    final double boxWidth = textWidth + 32; // Reduced padding
+    final double totalWidth = math.max(boxWidth, iconSize + 20); 
+
+    final double centerX = totalWidth / 2;
+
+    // Background shadow of the entire bubble
+    final RRect bubbleRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        centerX - boxWidth / 2,
+        0,
+        boxWidth,
+        boxHeight,
+      ),
+      const Radius.circular(12), // Reduced from 30
+    );
+    canvas.drawRRect(
+      bubbleRRect.shift(const Offset(0, 8)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+
+    // Bubble path including pointer
+    final Path pointerPath = Path()
+      ..moveTo(centerX - pointerWidth / 2, boxHeight - 2)
+      ..lineTo(centerX + pointerWidth / 2, boxHeight - 2)
+      ..lineTo(centerX, boxHeight + pointerHeight)
+      ..close();
+
+    final Path fullBubble = Path.combine(
+        PathOperation.union, Path()..addRRect(bubbleRRect), pointerPath);
+
+    final Paint pinkPaint = Paint()..color = const Color(0xFFED3973);
+    final Paint whiteBorderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+
+    canvas.drawPath(fullBubble, pinkPaint);
+    canvas.drawPath(fullBubble, whiteBorderPaint);
+
+    // Draw Texts vertically centered inside the fixed boxHeight
+    final double totalTextHeight = feePainter.height + timePainter.height + 6;
+    final double textStartY = (boxHeight - totalTextHeight) / 2;
+    
+    feePainter.paint(canvas, Offset(centerX - feePainter.width / 2, textStartY));
+    timePainter.paint(canvas, Offset(centerX - timePainter.width / 2, textStartY + feePainter.height + 6));
+
+    // Home Icon Shadow
+    canvas.drawCircle(
+      Offset(centerX, centerOfHomeY + 4),
+      r * 0.85,
+      Paint()..color = Colors.black.withValues(alpha: 0.18),
+    );
+    // Home Icon Base
+    canvas.drawCircle(Offset(centerX, centerOfHomeY), r,
+        Paint()..color = Colors.white);
+    canvas.drawCircle(
+        Offset(centerX, centerOfHomeY), r - 4, pinkPaint);
+
+    final TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr)
+      ..text = TextSpan(
+        text: String.fromCharCode(Icons.home_rounded.codePoint),
+        style: TextStyle(
+          fontSize: iconSize * 0.44,
+          fontFamily: Icons.home_rounded.fontFamily,
+          package: Icons.home_rounded.fontPackage,
+          color: Colors.white,
+        ),
+      );
+    iconPainter.layout();
+    iconPainter.paint(
+      canvas,
+      Offset(centerX - iconPainter.width / 2,
+          centerOfHomeY - iconPainter.height / 2 - 2),
+    );
+
+    final ui.Image img = await pictureRecorder.endRecording().toImage(
+      totalWidth.toInt(),
+      totalHeight.toInt(),
+    );
+    final ByteData? data =
+        await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void _updateMarkersAndPolylines() {
+    final sets = <Marker>{};
+    
+    // Restaurant Marker (custom pink shop icon)
+    sets.add(Marker(
+      markerId: const MarkerId('restaurant'),
+      position: _restaurantLatLng,
+      icon: _shopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+      anchor: const Offset(0.5, 0.5),
+    ));
+
+    // User / Home Marker (custom pink home icon)
+    if (_currentLocation != null) {
+      final bool hasRouteData = _routePoints.isNotEmpty && _routeDistanceKm != null;
+      if (hasRouteData && _homeWithBubbleIcon != null) {
+        sets.add(Marker(
+          markerId: const MarkerId('user_bubble'),
+          position: _currentLocation!,
+          icon: _homeWithBubbleIcon!,
+          anchor: const Offset(0.5, 0.76),
+          zIndexInt: 2,
+        ));
+      } else {
+        sets.add(Marker(
+          markerId: const MarkerId('user'),
+          position: _currentLocation!,
+          icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          anchor: const Offset(0.5, 0.5),
+        ));
+      }
+    }
+
+    final polySet = <Polyline>{};
+    if (_routePoints.isNotEmpty) {
+      // Primary app pink route to match the image
+      polySet.add(Polyline(
+        polylineId: const PolylineId('route'),
+        points: _routePoints,
+        color: const Color(0xFFED3973),
+        width: 3,
+        jointType: JointType.round,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+      ));
+    }
+
+    if (mounted) {
+      setState(() {
+        _markers = sets;
+        _polylines = polySet;
+      });
+    }
+  }
+
+  void _fitBounds(List<LatLng> points) {
+    if (points.isEmpty || _mapController == null) return;
+
+    // Include both user and restaurant in the bounds
+    final all = [
+      ...points,
+      _restaurantLatLng,
+      if (_currentLocation != null) _currentLocation!,
+    ];
+
+    double minLat = all.first.latitude;
+    double maxLat = all.first.latitude;
+    double minLng = all.first.longitude;
+    double maxLng = all.first.longitude;
+
+    for (var p in all) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
+  }
+
+  Future<void> _fetchRoute(LatLng start) async {
+    final dest = _restaurantLatLng;
+    setState(() => _isRouting = true);
+
+    try {
+      final url =
+          'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?geometries=geojson';
+      final response = await _dio.get(url).timeout(const Duration(seconds: 5)); // Reduced from 10s
+
+      if (response.statusCode == 200 &&
+          response.data['routes'] != null &&
+          (response.data['routes'] as List).isNotEmpty) {
+        final route = response.data['routes'][0];
+        final List coords = route['geometry']['coordinates'];
+        final double distanceM = (route['distance'] as num).toDouble();
+        final double durationS = (route['duration'] as num).toDouble();
+
+        final List<LatLng> points =
+            coords.map<LatLng>((c) => LatLng(c[1], c[0])).toList();
+
+        final km = distanceM / 1000;
+        final mins = (durationS / 60).ceil();
+        // Prefer backend delivery fee from WebSocket if available; otherwise estimate
+        final backendFee = ActiveOrderState.instance.deliveryFee;
+        final fee = (backendFee != null && backendFee > 0)
+            ? backendFee
+            : (30.0 + (km * 15.0)).roundToDouble();
+
+        if (mounted) {
+          final polyPoints = [start, ...points, dest];
+          setState(() {
+            _routePoints = polyPoints;
+            _routeDistanceKm = km;
+            _routeDurationMins = mins;
+            _deliveryFee = fee;
+            _isRouting = false;
+            _updateMarkersAndPolylines();
+          });
+
+          _updateBubbleBitmap();
+
+          // Cache in global state
+          ActiveOrderState.instance.updateRouteData(
+            points: polyPoints,
+            distanceKm: km,
+            durationMins: mins,
+            fee: fee,
+          );
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              _fitBounds(polyPoints);
+            }
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isRouting = false);
+      }
+    } catch (e) {
+      debugPrint('Routing error: $e. Falling back to straight line.');
+      if (mounted) {
+        final fallbackPoints = [start, dest];
+        final distanceM = Geolocator.distanceBetween(
+          start.latitude, start.longitude, dest.latitude, dest.longitude);
+        final km = distanceM / 1000;
+        final mins = (km * 2).ceil(); // Rough estimate: 2 mins per km
+        
+        // Use backend fee or estimate
+        final backendFee = ActiveOrderState.instance.deliveryFee;
+        final fee = (backendFee != null && backendFee > 0)
+            ? backendFee
+            : (30.0 + (km * 15.0)).roundToDouble();
+
+        setState(() {
+          _routePoints = fallbackPoints;
+          _routeDistanceKm = km;
+          _routeDurationMins = mins;
+          _deliveryFee = fee;
+          _isRouting = false;
+          _updateMarkersAndPolylines();
+        });
+
+        _updateBubbleBitmap();
+
+        ActiveOrderState.instance.updateRouteData(
+          points: fallbackPoints,
+          distanceKm: km,
+          durationMins: mins,
+          fee: fee,
+        );
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && _mapController != null) {
+            _fitBounds(fallbackPoints);
+          }
+        });
+      }
+    }
+  }
+
+  void _goHome() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _navigateToPayment() {
+    if (!mounted) return;
+    _idleSequenceTimer?.cancel();
+    _idleSolidController.stop();
+    _lightProgressController.stop();
+    _dotsAnimController.stop();
+    final fee = _deliveryFee ?? 0.0;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AwaitingPaymentPage(
+          foodTotal: widget.foodTotal.toDouble(),
+          deliveryFee: fee,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    final panelH = screenH * 0.44;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // ── MAP ──────────────────────────────────────────────────────────
+          Positioned.fill(
+            child: _showMap
+                ? GoogleMap(
+                    padding: EdgeInsets.only(bottom: panelH * 1.1), // Push camera up to stay above the bottom panel
+                    initialCameraPosition: CameraPosition(
+                      target: _restaurantLatLng,
+                      zoom: 14,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      _updateMarkersAndPolylines();
+                      if (_routePoints.isNotEmpty) {
+                        _fitBounds(_routePoints);
+                      }
+                    },
+                    markers: _markers,
+                    polylines: _polylines,
+                    myLocationEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    compassEnabled: false,
+                    tiltGesturesEnabled: false,
+                    rotateGesturesEnabled: false,
+                    style: AppMapTheme.defaultStyle,
+                  )
+                : const MapSkeletonLoader(),
+          ),
+
+
+          if (_showMap && _isRouting)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8)
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFFED3973)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('Finding route...',
+                          style: GoogleFonts.poppins(
+                              fontSize: 12, color: Colors.black87)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16, // Changed from right: 16
+            child: GestureDetector(
+              onTap: _goHome,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 8)
+                  ],
+                ),
+                child: const Icon(Icons.close, color: Colors.black, size: 20),
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: panelH,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 20,
+                      offset: Offset(0, -4))
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 28),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                                  Text(
+                                    'Awaiting Restaurant Confirmation',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'The restaurant is reviewing your order and arranging a delivery rider.',
+                                          style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              color: Colors.grey[600],
+                                              height: 1.5),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              'Order ID',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 10,
+                                                color: Colors.grey[600],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              (ActiveOrderState.instance.orderId != null && !ActiveOrderState.instance.orderId!.startsWith('#')) 
+                                                  ? '#${ActiveOrderState.instance.orderId}' 
+                                                  : (ActiveOrderState.instance.orderId ?? '...'),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                color: const Color(0xFFED3973),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return AnimatedBuilder(
+                                animation: Listenable.merge([_idleSolidController, _lightProgressController]),
+                                builder: (context, _) {
+                                  final double idleSolidWidth = constraints.maxWidth * _idleSolidController.value;
+                                  final double remainingIdleDistance = constraints.maxWidth - idleSolidWidth;
+                                  final double lightProgressWidthFactor = _lightProgressController.value;
+                                  final double totalLightTrailWidth = idleSolidWidth + (remainingIdleDistance * lightProgressWidthFactor);
+
+                                  return Container(
+                                    height: 10,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        // Light Pink Trail (Underneath/Next to solid)
+                                        if (totalLightTrailWidth > 0)
+                                          Container(
+                                            height: 10,
+                                            width: totalLightTrailWidth,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFFB3C6),
+                                              borderRadius: BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        // Solid Pink Component (With gradient tip)
+                                        if (idleSolidWidth > 0)
+                                          Container(
+                                            height: 10,
+                                            width: idleSolidWidth,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFED3973),
+                                              borderRadius: BorderRadius.circular(5),
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFFED3973), Color(0xFFFFB3C6)],
+                                                stops: [0.8, 1.0], // Feather the tip
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          _buildInfoRow(
+                            label: 'Food Total',
+                            value:
+                                '฿ ${widget.foodTotal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                            valueColor: Colors.black,
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          _buildDeliveryFeeRow(),
+
+                          const SizedBox(height: 28),
+
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF1F2),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.access_time,
+                                      size: 16, color: Color(0xFFED3973)),
+                                  const SizedBox(width: 8),
+                                  Text('This usually takes 1–2 minutes.',
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 13, 
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFFED3973))),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          Center(
+                            child: TextButton(
+                              onPressed: () => _showCancelConfirm(),
+                              child: Text(
+                                'Cancel order',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+      {required String label, required String value, Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87)),
+        Text(value,
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? Colors.black)),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryFeeRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Text('Delivery Fee',
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87)),
+            const SizedBox(width: 4),
+            Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
+          ],
+        ),
+        AnimatedBuilder(
+          animation: _dotsAnimController,
+          builder: (context, _) {
+            final step = (_dotsAnimController.value * 4).floor() % 4;
+            final dots = '.' * step;
+            final spaces = ' ' * (3 - step);
+            return Text(
+              'Calculating$dots$spaces',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFED3973),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showCancelConfirm() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 20),
+              Text('Cancel Order?',
+                  style: GoogleFonts.poppins(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Are you sure you want to cancel this order?',
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.black26),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text('Keep Order',
+                          style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600, color: Colors.black87)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isCancelling ? null : () async {
+                        setState(() => _isCancelling = true);
+                        setModalState(() => {}); // Rebuild button to show disabled state
+                        
+                        // Delayed loading indicator (500ms)
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          if (mounted && _isCancelling) {
+                            setState(() => _showCancelLoading = true);
+                            setModalState(() => {});
+                          }
+                        });
+
+                        try {
+                          // 1. Backend call
+                          await ActiveOrderState.instance.cancelActiveOrder();
+                          
+                          // 2. Clear local store
+                          CartManager.instance.removeStore(widget.store.name);
+                          
+                          // 3. Navigation
+                          if (mounted) {
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            NavigationController.instance.goToFoodTab();
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              _isCancelling = false;
+                              _showCancelLoading = false;
+                            });
+                            setModalState(() => {});
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFED3973),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: _showCancelLoading 
+                        ? const SizedBox(
+                            height: 20, 
+                            width: 20, 
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                          )
+                        : Text('Cancel Order',
+                            style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

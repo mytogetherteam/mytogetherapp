@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_section.dart';
+import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
+import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
+
+class FoodPage extends StatefulWidget {
+  const FoodPage({super.key});
+
+  @override
+  State<FoodPage> createState() => _FoodPageState();
+}
+
+class _FoodPageState extends State<FoodPage> {
+  Key _refreshKey = UniqueKey();
+
+  Future<void> _onRefresh() async {
+    // Small delay for better UX and to allow skeletons to show
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      setState(() {
+        _refreshKey = UniqueKey();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        floatingActionButton: const StyledCartFab(),
+        body: Column(
+          children: [
+            FoodHeader(onLocationChanged: _onRefresh),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: const Color(0xFFED3973),
+                child: SingleChildScrollView(
+                  key: _refreshKey,
+                  physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator to work on short lists
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      const SpecialPromotionSection(),
+                      const SizedBox(height: 20),
+                      // ── 5 live feed sections ───────────────────────────
+                      ..._buildFeedSections(),
+                      _buildEndOfListMessage(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildFeedSections() {
+    final activeLoc = UserLocationRepository.instance.activeLocation;
+    final pos = LocationService().cachedPosition;
+    
+    final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+    final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+
+    const sections = [
+      ('trending',       'Trending Near You', 1),
+      ('right-now',      'Right Now', 1),
+      ('popular-dishes', 'Popular Dishes', 1),
+      ('hot-deals',      'Hot Deals', 1),
+      ('for-you',        'For You Now', 2),
+    ];
+
+    return [
+      for (final s in sections) ...[
+        FoodFeedSection(
+          feedType: s.$1,
+          title: s.$2,
+          latitude: lat,
+          longitude: lon,
+          layoutType: s.$3,
+        ),
+      ],
+    ];
+  }
+
+  Widget _buildEndOfListMessage() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 0, bottom: 20),
+      child: Center(
+        child: Text(
+          "That's all for now!",
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey[400],
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+}

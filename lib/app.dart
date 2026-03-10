@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
+import 'core/auth/auth_service.dart';
+import 'features/auth/presentation/screens/login_page.dart';
+import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
+
+class App extends StatelessWidget {
+  const App({super.key});
+
+  static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'myTogether',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      navigatorObservers: [App.routeObserver],
+      navigatorKey: navigatorKey,
+      // Auth-aware initial route
+      home: AuthService().isLoggedIn ? const MainNavigationScreen() : const LoginPage(),
+      routes: {
+        '/home': (context) => const MainNavigationScreen(),
+        '/login': (context) => const LoginPage(),
+      },
+    );
+  }
+}
