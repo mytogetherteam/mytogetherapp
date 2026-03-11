@@ -13,6 +13,7 @@ import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/presentation/screens/login_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
@@ -169,7 +170,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           showDialog(
                             context: context,
                             barrierDismissible: false,
-                            builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFED3973))),
+                            builder: (context) => const Center(child: CustomLoadingIndicator(size: 40)),
                           );
                           
                           await AuthRepository.instance.logout();

@@ -30,6 +30,7 @@ class RestaurantDetailPage extends StatefulWidget {
   final List<MenuItemDto> popularDishes;
   final List<MenuItemDto> recommendations;
   final List<MenuItemDto> hotDeals;
+  final String? targetMenuItemId;
 
   const RestaurantDetailPage({
     super.key,
@@ -47,6 +48,7 @@ class RestaurantDetailPage extends StatefulWidget {
     this.popularDishes = const [],
     this.recommendations = const [],
     this.hotDeals = const [],
+    this.targetMenuItemId,
   });
 
   @override
@@ -185,28 +187,32 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       final double toolbarHeight = kToolbarHeight + topPadding;
       final double snapTarget = 420 - toolbarHeight;
 
-      if (offset > 0 && offset < snapTarget) {
-        // Snappier threshold and faster durations
-        if (offset > snapTarget * 0.3) {
-          Future.microtask(() {
-            if (mounted) {
-              _scrollController.animateTo(
-                snapTarget,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            }
-          });
-        } else {
-          Future.microtask(() {
-            if (mounted) {
-              _scrollController.animateTo(
-                0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            }
-          });
+      // Only perform snapping if we are close to the header area but not exactly at 0
+      // We use a threshold of 50 to avoid snapping for minor layout ripples on entry
+      if (offset > 50 && offset < snapTarget) {
+        // Only snap if we were not already in a programmatic scroll (best effort check)
+        if (notification.dragDetails != null || offset > snapTarget * 0.2) {
+          if (offset > snapTarget * 0.4) {
+            Future.microtask(() {
+              if (mounted) {
+                _scrollController.animateTo(
+                  snapTarget,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          } else {
+            Future.microtask(() {
+              if (mounted) {
+                _scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          }
         }
       }
     }
@@ -851,17 +857,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     }
 
     return [
-      for (final s in sections) ...[
+      for (int i = 0; i < sections.length; i++) ...[
         ShopFeedSection(
           shopId: shopId,
-          feedType: s.$1,
-          title: s.$2,
-          titleIcon: s.$3,
+          feedType: sections[i].$1,
+          title: sections[i].$2,
+          titleIcon: sections[i].$3,
           showRestaurantName: false,
+          targetMenuItemId: widget.targetMenuItemId,
           onEmpty: (isEmpty) {
             final changed = isEmpty
-                ? _emptySections.add(s.$1)
-                : _emptySections.remove(s.$1);
+                ? _emptySections.add(sections[i].$1)
+                : _emptySections.remove(sections[i].$1);
             if (changed && mounted) setState(() {});
           },
         ),

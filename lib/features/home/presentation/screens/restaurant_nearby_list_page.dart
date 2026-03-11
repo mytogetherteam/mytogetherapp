@@ -15,6 +15,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 
 class RestaurantNearbyListPage extends StatefulWidget {
@@ -708,14 +709,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (_isRouting)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFFED3973),
-                                ),
-                              )
+                              const CustomLoadingIndicator(size: 16)
                             else
                               const Icon(
                                 Icons.near_me_rounded,

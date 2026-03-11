@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../auth/data/models/user_location_model.dart';
@@ -279,7 +280,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFED3973)),
+                  child: CustomLoadingIndicator(size: 30),
                 ),
               ),
             ),

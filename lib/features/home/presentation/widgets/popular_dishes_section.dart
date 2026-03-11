@@ -39,10 +39,10 @@ class PopularDishesSection extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.85,
+              childAspectRatio: 0.81,
             ),
             itemCount: dishes.length,
             itemBuilder: (context, index) {
@@ -58,6 +58,7 @@ class PopularDishesSection extends StatelessWidget {
                 rating: (dish['rating'] as num?)?.toDouble() ?? 0.0,
                 originalPrice: (dish['originalPrice'] as num?)?.toDouble(),
                 displayPrice: dish['displayPrice'] as String?,
+                forceRestaurantNavigation: true,
               );
             },
           ),

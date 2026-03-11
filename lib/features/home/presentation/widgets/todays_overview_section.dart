@@ -230,13 +230,13 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: displayItems.length > 6 ? 6 : displayItems.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 24,
+              childAspectRatio: 0.81,
+            ),
+          itemCount: displayItems.length > (MediaQuery.of(context).size.width > 600 ? 5 : 6) ? (MediaQuery.of(context).size.width > 600 ? 5 : 6) : displayItems.length,
           itemBuilder: (context, index) {
             final item = displayItems[index];
             return FoodMenuItemCard(
@@ -252,6 +252,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
               originalPrice: item.originalPrice,
               displayPrice: item.displayPrice,
               onFavoriteToggle: () => _toggleFavorite(item),
+              forceRestaurantNavigation: true,
             );
           },
         ),

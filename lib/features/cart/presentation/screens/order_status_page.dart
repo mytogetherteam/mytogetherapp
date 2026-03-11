@@ -9,6 +9,7 @@ import 'dart:ui' as ui;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
 import 'order_complete_page.dart';
 
@@ -450,10 +451,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                       height: 48,
                                       fit: BoxFit.cover,
                                       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                                        if (wasSynchronouslyLoaded || frame != null) return child;
                                         return Container(
                                           color: Colors.grey[200],
-                                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFED3973))),
+                                          child: const Center(child: CustomLoadingIndicator(size: 24)),
                                         );
                                       },
                                       errorBuilder: (context, error, stackTrace) => _buildNoImageAvatar(),
@@ -620,11 +620,11 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => Container(
                                                 color: Colors.grey[100],
-                                                child: const Center(
+                                                child: Center(
                                                   child: SizedBox(
                                                     width: 16,
                                                     height: 16,
-                                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                                    child: CustomLoadingIndicator(size: 16),
                                                   ),
                                                 ),
                                               ),
@@ -833,7 +833,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                   final double baseSolidWidth = constraints.maxWidth * baseFraction;
                   
                   final double idleSolidWidth = segmentWidth * _idleSolidController.value;
-                  final double totalSolidWidth = (baseSolidWidth + idleSolidWidth).clamp(0.0, constraints.maxWidth);
+                  // Critical Fix: Only allow the solid bar to grow beyond the base dot if we are at status 1, 2, or 3
+                  // and ensure it doesn't leak into the *next* status accidentally.
+                  final double totalSolidWidth = (baseSolidWidth + idleSolidWidth).clamp(0.0, baseSolidWidth + segmentWidth);
 
                   final double remainingIdleDistance = segmentWidth - idleSolidWidth;
                   final double lightProgressWidthRelative = remainingIdleDistance * _lightProgressController.value;

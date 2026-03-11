@@ -6,6 +6,7 @@ import '../../../../core/utils/price_formatter.dart';
 
 import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
+import '../screens/restaurant_detail_page.dart';
 
 class FoodMenuItemCard extends StatelessWidget {
   final String id;
@@ -37,7 +38,14 @@ class FoodMenuItemCard extends StatelessWidget {
     this.displayPrice,
     this.showRestaurantName = true,
     this.onFavoriteToggle,
+    this.isHighlighted = false,
+    this.forceRestaurantNavigation = false,
+    this.targetMenuItemId,
   });
+
+  final bool isHighlighted;
+  final bool forceRestaurantNavigation;
+  final String? targetMenuItemId;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +54,20 @@ class FoodMenuItemCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
+        if (forceRestaurantNavigation || (targetMenuItemId != null && targetMenuItemId != id)) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RestaurantDetailPage(
+                id: restaurantId,
+                name: restaurantName,
+                targetMenuItemId: id,
+              ),
+            ),
+          );
+          return;
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -128,9 +150,9 @@ class FoodMenuItemCard extends StatelessWidget {
                 Text(
                   title,
                   style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
                     fontSize: 14,
-                    color: Colors.black,
+                    color: isHighlighted ? const Color(0xFFED3A72) : Colors.black,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -199,6 +221,19 @@ class FoodMenuItemCard extends StatelessWidget {
           ),
         ],
       ),
+    ).decorateIf(
+      isHighlighted,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFED3A72), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFED3A72).withValues(alpha: 0.1),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
     );
   }
 
@@ -229,6 +264,16 @@ class FoodMenuItemCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+extension WidgetDecorator on Widget {
+  Widget decorateIf(bool condition, {required BoxDecoration decoration}) {
+    if (!condition) return this;
+    return Container(
+      decoration: decoration,
+      child: this,
     );
   }
 }

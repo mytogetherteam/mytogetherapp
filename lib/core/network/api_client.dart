@@ -13,8 +13,8 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: 'https://mytogetherapi-production.up.railway.app',
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(seconds: 45),
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',

@@ -236,7 +236,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                   final item = _items[index];
                   return FoodMenuItemCard(
                     id: item.id,
-                    restaurantId: item.restaurantId.isEmpty ? '103' : item.restaurantId,
+                    restaurantId: item.restaurantId,
                     title: item.title,
                     price: item.price,
                     currency: item.currency,
@@ -245,6 +245,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                     isFavorite: _localFavorites[item.id] ?? item.isFavorite,
                     displayPrice: item.displayPrice,
                     onFavoriteToggle: () => _toggleFavorite(item),
+                    forceRestaurantNavigation: true,
                   );
                 },
               ),

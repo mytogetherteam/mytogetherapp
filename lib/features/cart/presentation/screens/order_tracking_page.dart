@@ -15,6 +15,7 @@ import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -760,8 +761,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFFED3973)),
+                        child: CustomLoadingIndicator(size: 14),
                       ),
                       const SizedBox(width: 8),
                       Text('Finding route...',
@@ -1136,11 +1136,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: _showCancelLoading 
-                        ? const SizedBox(
-                            height: 20, 
-                            width: 20, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                          )
+                        ? const CustomLoadingIndicator(size: 20, color: Colors.white)
                         : Text('Cancel Order',
                             style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600)),

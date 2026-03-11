@@ -5,6 +5,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
+import 'jwt_utils.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -83,6 +84,12 @@ class AuthService {
     return _userLocations!.first.id;
   }
 
+  bool get isTokenNearlyExpired {
+    if (_accessToken == null) return true;
+    // Check if it expires in less than 60 seconds
+    return JwtUtils.isExpired(_accessToken!, offsetSeconds: 60);
+  }
+
   Future<void> saveSession({
     required String accessToken,
     required String refreshToken,
@@ -145,26 +152,21 @@ class AuthService {
       return null;
     }
 
-    try {
-      final response = await dio.post(
-        '${ApiClient.apiPrefix}/auth/refresh',
-        data: {'refreshToken': _refreshToken},
-        options: Options(headers: {'Authorization': ''}),
-      );
+    final response = await dio.post(
+      '${ApiClient.apiPrefix}/auth/refresh',
+      data: {'refreshToken': _refreshToken},
+      options: Options(headers: {'Authorization': ''}),
+    );
 
-      if (response.statusCode == 200 && response.data != null) {
-        final data = response.data['data'];
-        final newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
-        final newRefreshToken = data['refreshToken'] as String?;
-        
-        if (newToken.isNotEmpty) {
-          await updateTokens(newToken, newRefreshToken);
-          return newToken;
-        }
+    if (response.statusCode == 200 && response.data != null) {
+      final data = response.data['data'];
+      final newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
+      final newRefreshToken = data['refreshToken'] as String?;
+      
+      if (newToken.isNotEmpty) {
+        await updateTokens(newToken, newRefreshToken);
+        return newToken;
       }
-    } catch (e) {
-      // Refresh failed
-      return null;
     }
     return null;
   }

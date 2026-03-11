@@ -12,6 +12,7 @@ import '../../../cart/data/models/cart_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -960,14 +961,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       ),
                       child: _isAddingToCart 
                         ? const Center(
-                            child: SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            ),
+                            child: CustomLoadingIndicator(size: 24, color: Colors.white),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,

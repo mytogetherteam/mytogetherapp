@@ -18,6 +18,7 @@ import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   final double foodTotal;
@@ -341,11 +342,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: _isCancelling 
-                        ? const SizedBox(
-                            height: 20, 
-                            width: 20, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                          )
+                        ? const CustomLoadingIndicator(size: 20, color: Colors.white)
                         : Text('Cancel Order',
                             style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600)),
@@ -407,10 +404,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       imageUrl: qrUrl,
       fit: BoxFit.contain,
       placeholder: (context, url) => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFFED3973),
-          strokeWidth: 2,
-        ),
+        child: CustomLoadingIndicator(size: 24),
       ),
       errorWidget: (context, url, error) => _buildNoImageState(isError: true),
     );
@@ -729,11 +723,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                           borderRadius: BorderRadius.circular(14)),
                     ),
                     child: _isUploading 
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
+                        ? const CustomLoadingIndicator(size: 24, color: Colors.white)
                         : Text(
                             'Submit receipt',
                             style: GoogleFonts.poppins(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class OrderConfirmedModal extends StatefulWidget {
   const OrderConfirmedModal({super.key});
@@ -42,14 +43,7 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
         const SizedBox(height: 24),
         // Loading indicator
         if (!_isConfirmed) ...[
-          const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              color: Color(0xFFED3973),
-              strokeWidth: 3,
-            ),
-          ),
+          const CustomLoadingIndicator(size: 24),
           const SizedBox(height: 24),
         ],
         AnimatedSwitcher(

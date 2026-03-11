@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -154,7 +155,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomLoadingIndicator(size: 40))
           : _notifications.isEmpty
               ? _buildEmptyState()
               : NotificationListener<ScrollNotification>(
@@ -175,7 +176,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
+                              child: CustomLoadingIndicator(size: 24),
                             ),
                           );
                         }

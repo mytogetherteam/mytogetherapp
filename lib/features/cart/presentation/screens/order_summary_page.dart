@@ -24,6 +24,7 @@ import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../home/presentation/widgets/location_selection_modal.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 import '../../../home/data/shop_storage.dart';
 
@@ -483,7 +484,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                  if (_paymentTypes == null) {
                                    return const Center(child: Padding(
                                      padding: EdgeInsets.all(20.0),
-                                     child: CircularProgressIndicator(),
+                                     child: CustomLoadingIndicator(size: 30),
                                    ));
                                  }
                                  
@@ -774,14 +775,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                               ),
                               child: _isPlacingOrder
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
+                                  ? const CustomLoadingIndicator(size: 24, color: Colors.white)
                                   : Text(
                                       'Place Order',
                                       style: GoogleFonts.poppins(

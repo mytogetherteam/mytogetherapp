@@ -121,7 +121,6 @@ class ActiveOrderState extends ChangeNotifier {
 
     final String? statusStr = data['status'] as String?;
     if (statusStr != null) {
-      debugPrint('🔔 [WebSocket] Status update: $statusStr');
       final upStatus = statusStr.toUpperCase();
       switch (upStatus) {
         case 'PENDING':
@@ -132,13 +131,13 @@ class ActiveOrderState extends ChangeNotifier {
         case 'PAYMENT_UPLOADED':
         case 'PAYMENT_CHECKING':
         case 'PAYMENT_SLIP_REQUESTED':
+        case 'CONFIRMED':
           orderStatus = 1; // Payment Checking
           showUploadSection = true;
           break;
         case 'PAID':
         case 'PAYMENT_VERIFIED':
         case 'PREPARING':
-        case 'CONFIRMED':
           orderStatus = 2; // Preparing
           break;
         case 'ON_THE_WAY':
@@ -155,7 +154,8 @@ class ActiveOrderState extends ChangeNotifier {
           break;
       }
     } else if (data['orderStatus'] != null) {
-      orderStatus = data['orderStatus'] as int;
+      final int newStatus = data['orderStatus'] as int;
+      orderStatus = newStatus;
     }
 
     saveToPrefs();

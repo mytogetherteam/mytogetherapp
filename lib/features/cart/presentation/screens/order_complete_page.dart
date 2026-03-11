@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class OrderCompletePage extends StatefulWidget {
   const OrderCompletePage({super.key});
@@ -111,7 +112,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                     if (wasSynchronouslyLoaded || frame != null) return child;
                                     return Container(
                                       color: Colors.grey[200],
-                                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFED3973))),
+                                      child: const Center(child: CustomLoadingIndicator(size: 24)),
                                     );
                                   },
                                   errorBuilder: (context, error, stackTrace) => _buildNoImageAvatar(),

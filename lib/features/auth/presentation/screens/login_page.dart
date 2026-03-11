@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -300,14 +301,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.1)),
         ),
         child: _isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
+            ? const CustomLoadingIndicator(size: 22, color: Colors.white)
             : Text(
                 'Login',
                 style: GoogleFonts.poppins(

@@ -9,6 +9,7 @@ import '../../../auth/data/repositories/user_location_repository.dart';
 import '../widgets/location_skeleton_loader.dart';
 import '../widgets/location_details_sheet.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class LocationSearchPage extends StatefulWidget {
   const LocationSearchPage({super.key});
@@ -251,7 +252,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                     Container(
                       color: Colors.white.withValues(alpha: 0.6),
                       child: const Center(
-                        child: CircularProgressIndicator(color: Color(0xFFED3973)),
+                        child: CustomLoadingIndicator(size: 30),
                       ),
                     ),
                 ],
@@ -342,7 +343,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
   Widget _buildSearchResults() {
     if (_isSearching) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFED3973), strokeWidth: 2));
+      return const Center(child: CustomLoadingIndicator(size: 30));
     }
     if (_searchResults.isEmpty) {
       return Center(child: Text('No results found', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)));

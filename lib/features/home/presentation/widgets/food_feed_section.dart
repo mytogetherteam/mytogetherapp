@@ -4,6 +4,7 @@ import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../screens/menu_detail_page.dart';
+import '../screens/restaurant_detail_page.dart';
 import 'food_list_item_card.dart';
 import 'food_menu_item_card.dart';
 
@@ -117,7 +118,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
             mainAxisSpacing: 24,
             childAspectRatio: 0.85,
           ),
-          itemCount: items.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : items.length,
+          itemCount: items.length > (MediaQuery.of(context).size.width > 600 ? 20 : 20) ? (MediaQuery.of(context).size.width > 600 ? 20 : 20) : items.length,
           itemBuilder: (context, i) {
             final item = items[i];
             return FoodMenuItemCard(
@@ -133,6 +134,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
               originalPrice: item.originalPrice,
               displayPrice: item.displayPrice,
               onFavoriteToggle: () => _toggleFavorite(item),
+              forceRestaurantNavigation: true,
             );
           },
         ),
@@ -247,7 +249,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     return SizedBox(
       height: 290, // Height for 2 cards vertically
       child: PageView.builder(
-        itemCount: pageCount > 3 ? 3 : pageCount, // Cap at 3 pages (6 items)
+        itemCount: pageCount > 10 ? 10 : pageCount, // Cap at 10 pages (20 items)
         padEnds: false,
         controller: PageController(viewportFraction: 0.92),
         itemBuilder: (context, pageIndex) {
@@ -272,15 +274,10 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MenuDetailPage(
-                          id: item.id.toString(),
-                          restaurantId: item.shopId.toString(),
-                          title: item.name,
-                          price: item.price,
-                          currency: item.currency,
-                          imagePath: item.imageUrl ?? '',
-                          description: '',
-                          restaurantName: item.shopName,
+                        builder: (context) => RestaurantDetailPage(
+                          id: item.shopId.toString(),
+                          name: item.shopName,
+                          targetMenuItemId: item.id.toString(),
                         ),
                       ),
                     );

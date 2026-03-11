@@ -276,10 +276,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     if (state.orderStatus == 0) {
       return 'Awaiting Confirmation';
     } else if (state.orderStatus == 1) {
-      return 'Awaiting Payment';
+      return 'Checking your Payment...';
     } else if (state.orderStatus == 2) {
-      return 'Payment Being Verified';
-    } else if (state.orderStatus == 3) {
       return 'Restaurant Preparing...';
     } else if (state.orderStatus == 3) {
       return 'Est. arrival: ${state.estimatedTime}';

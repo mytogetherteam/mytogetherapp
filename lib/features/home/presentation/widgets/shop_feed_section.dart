@@ -24,7 +24,10 @@ class ShopFeedSection extends StatefulWidget {
     this.titleIcon,
     this.showRestaurantName = true,
     this.onEmpty,
+    this.targetMenuItemId,
   });
+
+  final String? targetMenuItemId;
 
   @override
   State<ShopFeedSection> createState() => _ShopFeedSectionState();
@@ -104,7 +107,9 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
             mainAxisSpacing: 24,
             childAspectRatio: 0.85,
           ),
-          itemCount: items.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : items.length,
+          itemCount: (widget.targetMenuItemId != null && items.any((it) => it.id.toString() == widget.targetMenuItemId))
+              ? items.length
+              : (items.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : items.length),
           itemBuilder: (context, i) {
             final item = items[i];
             return FoodMenuItemCard(
@@ -116,16 +121,23 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               imagePath: item.imageUrl ?? '',
               restaurantName: item.shopName,
               isFavorite: _localFavorites[item.id] ?? item.isFavorite,
-              rating: item.rating,
               originalPrice: item.originalPrice,
               displayPrice: item.displayPrice,
               showRestaurantName: widget.showRestaurantName,
+              isHighlighted: widget.targetMenuItemId == item.id.toString(),
+              targetMenuItemId: widget.targetMenuItemId,
               onFavoriteToggle: () => _toggleFavorite(item),
             );
           },
         ),
         const SizedBox(height: 30),
       ],
+    ).scrollIntoViewIf(
+      context,
+      condition: widget.targetMenuItemId != null && 
+                 items.any((it) => it.id.toString() == widget.targetMenuItemId),
+      targetIndex: items.indexWhere((it) => it.id.toString() == widget.targetMenuItemId),
+      crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
     );
   }
 
@@ -262,6 +274,57 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ImageSkeletonLoader(width: width, height: height),
+    );
+  }
+}
+
+extension ScrollExtension on Widget {
+  Widget scrollIntoViewIf(
+    BuildContext context, {
+    required bool condition,
+    int targetIndex = -1,
+    int crossAxisCount = 2,
+  }) {
+    if (!condition) return this;
+    
+    return Builder(
+      builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Small delay ensures components are fully rendered and layout is stable
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!context.mounted) return;
+
+            final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+            if (renderBox == null) return;
+
+            // Check if widget is already visible in viewport
+            final position = renderBox.localToGlobal(Offset.zero);
+            final viewportHeight = MediaQuery.of(context).size.height;
+            
+            if (targetIndex == -1) return;
+            
+            final bool isFirstRow = targetIndex < crossAxisCount;
+
+            if (isFirstRow) {
+              // If the first-row item is already anywhere on the screen, skip scroll
+              // This maintains the "normal" restaurant detail page look as requested.
+              if (position.dy > 0 && position.dy < viewportHeight) {
+                return;
+              }
+            }
+            // For row 2 and beyond, or if row 1 is not visible, we perform the scroll
+            // to bring the item to the focused alignment (0.1).
+
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutCubic,
+              alignment: 0.1, // Positioned slightly below the top
+            );
+          });
+        });
+        return this;
+      },
     );
   }
 }
