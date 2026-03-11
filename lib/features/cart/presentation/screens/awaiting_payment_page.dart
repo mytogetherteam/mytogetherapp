@@ -97,20 +97,29 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
         album: 'MyTogether',
         name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('QR Code saved to gallery!',
-                style: GoogleFonts.poppins(fontSize: 13)),
-            backgroundColor: const Color(0xFFED3973),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('QR Code saved to gallery!',
+                  style: GoogleFonts.poppins(fontSize: 13)),
+              backgroundColor: const Color(0xFFED3973),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
+          // Transition to upload section
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted && !_showUploadSection) {
+              setState(() => _showUploadSection = true);
+              ActiveOrderState.instance.setShowUploadSection(true);
+            }
+          });
+        }
+      } catch (_) {
+        // Silent fail — gallery save is best-effort
       }
-    } catch (_) {
-      // Silent fail — gallery save is best-effort
     }
-  }
 
   Future<void> _pickReceiptImage() async {
     PermissionStatus status;
@@ -698,7 +707,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                           borderRadius: BorderRadius.circular(14)),
                     ),
                     child: Text(
-                      'Yes, I have done Payment',
+                      'I have already paid',
                       style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,

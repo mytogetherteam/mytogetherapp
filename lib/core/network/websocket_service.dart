@@ -55,7 +55,9 @@ class WebSocketService {
           connectionStatus.value = false;
           debugPrint('❌ [WebSocket] Error: $error');
         },
-        onDebugMessage: (String message) {},
+        onDebugMessage: (String message) {
+          debugPrint('📡 [WebSocket Debug] $message');
+        },
         stompConnectHeaders: {
           'Authorization': 'Bearer $token',
         },
@@ -82,80 +84,37 @@ class WebSocketService {
   void onConnect(dynamic frame) {
     _isConnecting = false;
     connectionStatus.value = true;
-    
-    final currentUser = AuthService().currentUser;
-    final email = currentUser?.email;
-    final username = currentUser?.username;
-    final userId = currentUser?.id;
-    final activeOrderId = ActiveOrderState.instance.orderId;
-
-    final destinations = {
-      '/user/queue/order-updates',
-      '/user/topic/order-updates',
-      '/topic/order-updates',
-      '/topic/orders',
-      '/topic/order-status',
-      '/queue/order-updates',
-      if (activeOrderId != null) ...{
-        '/topic/order-updates-$activeOrderId',
-        '/topic/order-updates/$activeOrderId',
-        '/topic/order-updates.$activeOrderId',
-        '/queue/order-updates-$activeOrderId',
-        '/topic/order/$activeOrderId',
-        '/topic/order-status/$activeOrderId',
-        '/queue/order/$activeOrderId',
-        '/topic/orders/$activeOrderId',
-        '/exchange/order-updates/$activeOrderId',
-      },
-      if (userId != null) ...{
-        '/user/$userId/queue/order-updates',
-        '/user/$userId/topic/order-updates',
-        '/user/$userId/queue/notifications',
-      },
-      if (email != null) ...{
-        '/user/$email/queue/order-updates',
-        '/user/${email.toLowerCase()}/queue/order-updates',
-        '/user/$email/topic/order-updates',
-      },
-      if (username != null) ...{
-        '/user/$username/queue/order-updates',
-        '/user/${username.toLowerCase()}/queue/order-updates',
-        '/user/$username/topic/order-updates',
-      },
-      '/user/queue/reply',
-      '/topic/public',
-    };
 
     final token = AuthService().accessToken;
     final headers = {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    for (final destination in destinations) {
-      _stompClient?.subscribe(
-        destination: destination,
-        headers: {
-          ...headers,
-          'receipt': 'rcpt-$destination',
-        },
-        callback: (StompFrame frame) {
-          if (frame.body != null) {
-            // debugPrint('📦 [WebSocket] Message on: $destination');
-            try {
-              final Map<String, dynamic> data = json.decode(frame.body!);
-              data['_destination'] = destination;
-              
-              // Centralized state update
-              ActiveOrderState.instance.updateFromSocket(data);
-              
-              _orderUpdateController.add(data);
-            } catch (e) {
-              debugPrint('❌ [WebSocket] Parsing Error: $e');
-            }
-          }
-        },
-      );
-    }
+    // Per API spec: the canonical user order-update topic is /user/queue/order-updates
+    // Spring STOMP routes user-prefixed destinations automatically based on the authenticated principal.
+    const destination = '/user/queue/order-updates';
+
+    _stompClient?.subscribe(
+      destination: destination,
+      headers: {
+        ...headers,
+        'receipt': 'rcpt-order-updates',
+      },
+      callback: (StompFrame frame) {
+        if (frame.body == null) return;
+        try {
+          final Map<String, dynamic> raw = json.decode(frame.body!);
+          debugPrint('📦 [WebSocket] ORDER_UPDATE received: ${frame.body}');
+
+          // Centralized state update
+          ActiveOrderState.instance.updateFromSocket(raw);
+
+          _orderUpdateController.add(raw);
+        } catch (e) {
+          debugPrint('❌ [WebSocket] Parsing Error: $e');
+        }
+      },
+    );
   }
 
   void disconnect() {

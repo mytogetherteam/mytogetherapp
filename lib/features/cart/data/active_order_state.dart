@@ -16,10 +16,13 @@ class ActiveOrderState extends ChangeNotifier {
   String? logoPath;
   String? estimatedTime; // e.g. "09:45 PM"
   String? orderId;
+  String? restaurantId;
   String? statusLabel;
   String? statusLabelMm;
   bool hasActiveOrder = false;
   String? deliveryAddress;
+  String? restaurantAddress;   // shop's physical address
+  String? userLocationName;    // user's saved location name (e.g. "Home")
   LatLng? restaurantLatLng;
   LatLng? userLocation;
 
@@ -41,29 +44,30 @@ class ActiveOrderState extends ChangeNotifier {
   /// 1: Awaiting Payment
   /// 2: Payment Checking
   /// 3: Preparing
-  /// 4: On the way
   /// 5: Completed
   /// -1: Cancelled
   int orderStatus = 0; 
+  String? cancelReason;
   double? totalAmount;
   String? paymentMethod;
   List<CartItem> orderItems = [];
 
   // Track if we are in upload state in AwaitingPaymentPage
   bool showUploadSection = false;
-
   void setActiveOrder({
     required String storeName,
     required String restaurantName,
     String? logoPath,
     String? estimatedTime,
     String? orderId,
+    String? restaurantId,
   }) {
     this.storeName = storeName;
     this.restaurantName = restaurantName;
     this.logoPath = logoPath;
     this.estimatedTime = estimatedTime;
     this.orderId = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    this.restaurantId = restaurantId;
     hasActiveOrder = true;
     saveToPrefs();
     notifyListeners();
@@ -85,6 +89,12 @@ class ActiveOrderState extends ChangeNotifier {
     orderStatus = status;
     saveToPrefs();
     notifyListeners();
+    
+    // Disconnect WebSocket if order is terminal (Completed = 4, Cancelled = -1)
+    if (status == 4 || status == -1) {
+      debugPrint('🔌 [ActiveOrderState] Order reached terminal status ($status). Disconnecting WebSocket.');
+      WebSocketService().disconnect();
+    }
   }
 
   void setShowUploadSection(bool show) {
@@ -94,9 +104,16 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   void updateFromSocket(Map<String, dynamic> data) {
-    if (data.containsKey('data') && data['data'] is Map) {
+    // Handle the server wrapper: { "type": "ORDER_UPDATE", "order": { ... } }
+    if (data.containsKey('order') && data['order'] is Map) {
+      data = data['order'] as Map<String, dynamic>;
+    } else if (data.containsKey('data') && data['data'] is Map) {
       data = data['data'] as Map<String, dynamic>;
     }
+
+    // Skip any non-order WebSocket messages (e.g. rating/review updates)
+    final String? msgType = data['type'] as String?;
+    if (msgType != null && msgType != 'ORDER_UPDATE') return;
 
     if (data['deliveryFee'] != null) deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) riderName = data['deliveryRiderName'] as String?;
@@ -119,6 +136,19 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
 
+    if (data['cancelReason'] != null) {
+      cancelReason = data['cancelReason'] as String?;
+    }
+
+    // Handle ongoing status
+    if (data.containsKey('ongoing')) {
+      final isOngoing = data['ongoing'] as bool?;
+      if (isOngoing == false) {
+        // Drop from active bar but keep data for UI to render history/receipt
+        hasActiveOrder = false;
+      }
+    }
+
     final String? statusStr = data['status'] as String?;
     if (statusStr != null) {
       final upStatus = statusStr.toUpperCase();
@@ -128,17 +158,27 @@ class ActiveOrderState extends ChangeNotifier {
           orderStatus = 0; // Awaiting Confirmation
           showUploadSection = false;
           break;
+        case 'CONFIRMED':
+          // Shop confirmed order & set delivery fee → user needs to pay
+          orderStatus = 1; // Awaiting Payment
+          showUploadSection = false;
+          break;
         case 'PAYMENT_UPLOADED':
         case 'PAYMENT_CHECKING':
+          // User uploaded slip, waiting for shop to verify
+          orderStatus = 1; // Awaiting Payment (checking)
+          showUploadSection = false;
+          break;
         case 'PAYMENT_SLIP_REQUESTED':
-        case 'CONFIRMED':
-          orderStatus = 1; // Payment Checking
-          showUploadSection = true;
+          // Shop rejected slip, user must re-upload
+          orderStatus = 1; // Awaiting Payment
+          showUploadSection = false;
           break;
         case 'PAID':
         case 'PAYMENT_VERIFIED':
         case 'PREPARING':
           orderStatus = 2; // Preparing
+          showUploadSection = false;
           break;
         case 'ON_THE_WAY':
         case 'DELIVERING':
@@ -148,9 +188,11 @@ class ActiveOrderState extends ChangeNotifier {
         case 'COMPLETED':
         case 'DELIVERED':
           orderStatus = 4; // Completed
+          WebSocketService().disconnect();
           break;
         case 'CANCELLED':
           orderStatus = -1;
+          WebSocketService().disconnect();
           break;
       }
     } else if (data['orderStatus'] != null) {
@@ -233,6 +275,9 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   void clearOrder() {
+    // Ensure WebSocket is closed when clearing the order state
+    WebSocketService().disconnect();
+    
     storeName = null;
     restaurantName = null;
     logoPath = null;
@@ -242,6 +287,7 @@ class ActiveOrderState extends ChangeNotifier {
     orderStatus = 0;
     totalAmount = null;
     paymentMethod = null;
+    cancelReason = null;
     orderItems = [];
     routePoints = [];
     routeDistanceKm = null;
@@ -259,6 +305,9 @@ class ActiveOrderState extends ChangeNotifier {
     statusLabelMm = null;
     showUploadSection = false;
     deliveryAddress = null;
+    restaurantAddress = null;
+    userLocationName = null;
+    restaurantId = null;
     restaurantLatLng = null;
     userLocation = null;
     saveToPrefs();
@@ -275,9 +324,11 @@ class ActiveOrderState extends ChangeNotifier {
       await prefs.setString('logoPath', logoPath ?? '');
       await prefs.setString('estimatedTime', estimatedTime ?? '');
       await prefs.setString('orderId', orderId ?? '');
+      await prefs.setString('restaurantId', restaurantId ?? '');
       await prefs.setInt('orderStatus', orderStatus);
       await prefs.setDouble('totalAmount', totalAmount ?? 0.0);
       await prefs.setString('paymentMethod', paymentMethod ?? '');
+      await prefs.setString('cancelReason', cancelReason ?? '');
       await prefs.setDouble('deliveryFee', deliveryFee ?? 0.0);
       await prefs.setString('riderName', riderName ?? '');
       await prefs.setString('riderPhone', riderPhone ?? '');
@@ -289,6 +340,9 @@ class ActiveOrderState extends ChangeNotifier {
       await prefs.setString('displayTotalAmount', displayTotalAmount ?? '');
       await prefs.setString('statusLabel', statusLabel ?? '');
       await prefs.setString('statusLabelMm', statusLabelMm ?? '');
+      await prefs.setString('deliveryAddress', deliveryAddress ?? '');
+      await prefs.setString('restaurantAddress', restaurantAddress ?? '');
+      await prefs.setString('userLocationName', userLocationName ?? '');
       await prefs.setBool('showUploadSection', showUploadSection);
 
       // Serialize routePoints
@@ -317,9 +371,11 @@ class ActiveOrderState extends ChangeNotifier {
         logoPath = prefs.getString('logoPath');
         estimatedTime = prefs.getString('estimatedTime');
         orderId = prefs.getString('orderId');
+        restaurantId = prefs.getString('restaurantId');
         orderStatus = prefs.getInt('orderStatus') ?? 0;
         totalAmount = prefs.getDouble('totalAmount');
         paymentMethod = prefs.getString('paymentMethod');
+        cancelReason = prefs.getString('cancelReason');
         deliveryFee = prefs.getDouble('deliveryFee');
         riderName = prefs.getString('riderName');
         riderPhone = prefs.getString('riderPhone');
@@ -364,6 +420,13 @@ class ActiveOrderState extends ChangeNotifier {
         if (logoPath == '') logoPath = null;
         if (estimatedTime == '') estimatedTime = null;
         if (orderId == '') orderId = null;
+        if (restaurantId == '') restaurantId = null;
+        deliveryAddress = prefs.getString('deliveryAddress');
+        restaurantAddress = prefs.getString('restaurantAddress');
+        userLocationName = prefs.getString('userLocationName');
+        if (deliveryAddress == '') deliveryAddress = null;
+        if (restaurantAddress == '') restaurantAddress = null;
+        if (userLocationName == '') userLocationName = null;
       }
       notifyListeners();
     } catch (e) {

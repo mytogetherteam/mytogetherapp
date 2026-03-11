@@ -36,6 +36,7 @@ class ShopFeedSection extends StatefulWidget {
 class _ShopFeedSectionState extends State<ShopFeedSection> {
   late Future<ShopFeedSectionDto> _future;
   final Map<int, bool> _localFavorites = {};
+  bool _hasScrolled = false;
 
   @override
   void initState() {
@@ -72,9 +73,17 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
           });
           return const SizedBox.shrink();
         }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) widget.onEmpty?.call(false);
-        });
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) widget.onEmpty?.call(false);
+          });
+        }
+        
+        // Trigger one-time scroll logic if needed
+        if (!_hasScrolled) {
+          _checkAndScrollToTarget(items);
+        }
+
         return _buildContent(items);
       },
     );
@@ -132,13 +141,48 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
         ),
         const SizedBox(height: 30),
       ],
-    ).scrollIntoViewIf(
-      context,
-      condition: widget.targetMenuItemId != null && 
-                 items.any((it) => it.id.toString() == widget.targetMenuItemId),
-      targetIndex: items.indexWhere((it) => it.id.toString() == widget.targetMenuItemId),
-      crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
     );
+  }
+
+  void _checkAndScrollToTarget(List<ShopFeedItemDto> items) {
+    if (_hasScrolled || widget.targetMenuItemId == null) return;
+
+    final targetIndex = items.indexWhere((it) => it.id.toString() == widget.targetMenuItemId);
+    if (targetIndex == -1) return;
+
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted || _hasScrolled) return;
+
+        final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+        if (renderBox == null) return;
+
+        final position = renderBox.localToGlobal(Offset.zero);
+        final viewportHeight = MediaQuery.of(context).size.height;
+        final bool isFirstRow = targetIndex < crossAxisCount;
+
+        // Mark as scrolled immediately to prevent multiple triggers
+        _hasScrolled = true;
+
+        if (isFirstRow) {
+          // If first-row item is already visible, skip scroll
+          if (position.dy > 0 && position.dy < viewportHeight) {
+            return;
+          }
+        }
+
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+          alignment: 0.1,
+        );
+      });
+    });
   }
 
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {
@@ -278,54 +322,4 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
   }
 }
 
-extension ScrollExtension on Widget {
-  Widget scrollIntoViewIf(
-    BuildContext context, {
-    required bool condition,
-    int targetIndex = -1,
-    int crossAxisCount = 2,
-  }) {
-    if (!condition) return this;
-    
-    return Builder(
-      builder: (context) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Small delay ensures components are fully rendered and layout is stable
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (!context.mounted) return;
-
-            final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-            if (renderBox == null) return;
-
-            // Check if widget is already visible in viewport
-            final position = renderBox.localToGlobal(Offset.zero);
-            final viewportHeight = MediaQuery.of(context).size.height;
-            
-            if (targetIndex == -1) return;
-            
-            final bool isFirstRow = targetIndex < crossAxisCount;
-
-            if (isFirstRow) {
-              // If the first-row item is already anywhere on the screen, skip scroll
-              // This maintains the "normal" restaurant detail page look as requested.
-              if (position.dy > 0 && position.dy < viewportHeight) {
-                return;
-              }
-            }
-            // For row 2 and beyond, or if row 1 is not visible, we perform the scroll
-            // to bring the item to the focused alignment (0.1).
-
-            Scrollable.ensureVisible(
-              context,
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutCubic,
-              alignment: 0.1, // Positioned slightly below the top
-            );
-          });
-        });
-        return this;
-      },
-    );
-  }
-}
 

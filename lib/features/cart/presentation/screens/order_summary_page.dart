@@ -701,7 +701,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       logoPath: _restaurant?.logoPath,
                                       estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
                                       orderId: orderId,
+                                      restaurantId: _restaurant?.id ?? widget.store.items.first.restaurantId,
                                     );
+                                    // Store real location data for Delivery Information display
+                                    ActiveOrderState.instance.restaurantAddress =
+                                        _restaurant?.address ?? _restaurant?.addressEn ?? _restaurant?.addressTh;
+                                    ActiveOrderState.instance.userLocationName =
+                                        _primaryLocation?.locationName ?? _primaryLocation?.locationType;
+                                    ActiveOrderState.instance.deliveryAddress =
+                                        _primaryLocation?.address ?? _primaryLocation?.addressTh;
+                                    ActiveOrderState.instance.saveToPrefs(); // persist new fields immediately
 
                                   // Update User ID in session if it was missing or different
                                   if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {

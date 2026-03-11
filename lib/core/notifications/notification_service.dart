@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,12 @@ import '../auth/auth_service.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
+import '../../features/cart/data/active_order_state.dart';
+import '../../features/cart/data/cart_manager.dart';
+import '../../features/cart/presentation/screens/order_tracking_page.dart';
+import '../../features/cart/presentation/screens/awaiting_payment_page.dart';
+import '../../features/cart/presentation/screens/order_status_page.dart';
+import '../../features/cart/presentation/screens/order_complete_page.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -63,6 +70,15 @@ class NotificationService {
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.data['notificationType'] == 'ORDER_STATUS' && message.data['order'] != null) {
+        try {
+          final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
+          ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+        } catch (e) {
+          debugPrint('FCM data parse error: $e');
+        }
+      }
+
       if (message.notification != null) {
         NotificationRepository().incrementCount(); // Real-time increment
         _showLocalNotification(message);
@@ -168,6 +184,48 @@ class NotificationService {
   }
 
   void _handleNotificationClick(RemoteMessage? message) {
+    if (message != null && message.data['notificationType'] == 'ORDER_STATUS') {
+      try {
+        final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
+        ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+        
+        final context = App.navigatorKey.currentState?.context;
+        if (context == null) return;
+        final state = ActiveOrderState.instance;
+        final s = state.orderStatus;
+
+        if (s == 0) {
+          App.navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => OrderTrackingPage(
+              store: CartStore(name: state.storeName ?? '', items: state.orderItems),
+              foodTotal: (state.totalAmount ?? 0).toInt(),
+            ),
+          ));
+        } else if (s == 1) {
+          App.navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => AwaitingPaymentPage(
+              foodTotal: state.totalAmount ?? 0,
+              deliveryFee: state.deliveryFee ?? 0,
+            ),
+          ));
+        } else if (s == 2 || s == 3 || s == -1) {
+          App.navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => OrderStatusPage(
+              foodTotal: state.totalAmount ?? 0,
+              deliveryFee: state.deliveryFee ?? 0,
+            ),
+          ));
+        } else if (s == 4) {
+          App.navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => const OrderCompletePage(),
+          ));
+        }
+        return; // Handled order routing
+      } catch (e) {
+        debugPrint('FCM parsing or routing error: $e');
+      }
+    }
+
     App.navigatorKey.currentState?.push(
       MaterialPageRoute(builder: (context) => const NotificationsPage()),
     );

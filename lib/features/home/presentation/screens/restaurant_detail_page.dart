@@ -188,8 +188,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       final double snapTarget = 420 - toolbarHeight;
 
       // Only perform snapping if we are close to the header area but not exactly at 0
-      // We use a threshold of 50 to avoid snapping for minor layout ripples on entry
-      if (offset > 50 && offset < snapTarget) {
+      // We also disable snapping if targetMenuItemId is present to allow free scrolling to the top
+      if (offset > 50 && offset < snapTarget && widget.targetMenuItemId == null) {
         // Only snap if we were not already in a programmatic scroll (best effort check)
         if (notification.dragDetails != null || offset > snapTarget * 0.2) {
           if (offset > snapTarget * 0.4) {

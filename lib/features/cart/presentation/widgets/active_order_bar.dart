@@ -131,10 +131,10 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
             position: _slideAnim,
             child: GestureDetector(
                 onTap: () {
-              final orderStatus = state.orderStatus;
-              
-              if (orderStatus == 0) {
-                // Return to Order Tracking Page (Awaiting Confirmation)
+              final s = state.orderStatus;
+
+              if (s == 0) {
+                // PENDING / AWAITING_APPROVAL → show tracking/confirmation page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -144,8 +144,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                     ),
                   ),
                 );
-              } else if (orderStatus == 1 || orderStatus == 2) {
-                // Return to Awaiting Payment Page
+              } else if (s == 1) {
+                // CONFIRMED / PAYMENT_SLIP_REQUESTED → user needs to pay / re-upload
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -155,8 +155,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                     ),
                   ),
                 );
-              } else if (orderStatus == 3) {
-                // In order tracking status — go to OrderStatusPage
+              } else if (s == 2 || s == 3 || s == -1) {
+                // PAYMENT_VERIFIED / PREPARING / ON_THE_WAY / CANCELLED → order status page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -166,8 +166,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                     ),
                   ),
                 );
-              } else if (orderStatus == 4) {
-                // In Completed status — go to OrderCompletePage
+              } else if (s == 4) {
+                // DELIVERED → completion page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -254,10 +254,13 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                       children: [
                         _buildStepIcon(Icons.storefront_outlined, active: true),
                         Expanded(child: _buildConnector(filled: true)),
-                        _buildStepIcon(Icons.restaurant_menu_outlined, active: state.orderStatus >= 2),
+                        // Step 2: payment — active once shop confirms (CONFIRMED or later)
+                        _buildStepIcon(Icons.receipt_long_outlined, active: state.orderStatus >= 1),
                         Expanded(child: _buildConnector(filled: state.orderStatus >= 2)),
+                        // Step 3: delivery — active when ON_THE_WAY
                         _buildStepIcon(Icons.delivery_dining_outlined, active: state.orderStatus >= 3),
-                        Expanded(child: _buildConnector(filled: state.orderStatus >= 3)),
+                        Expanded(child: _buildConnector(filled: state.orderStatus >= 4)),
+                        // Step 4: home — active when DELIVERED
                         _buildStepIcon(Icons.home_outlined, active: state.orderStatus >= 4),
                       ],
                     ),
@@ -273,18 +276,22 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
   }
 
   String _getStatusText(ActiveOrderState state) {
-    if (state.orderStatus == 0) {
-      return 'Awaiting Confirmation';
-    } else if (state.orderStatus == 1) {
-      return 'Checking your Payment...';
-    } else if (state.orderStatus == 2) {
-      return 'Restaurant Preparing...';
-    } else if (state.orderStatus == 3) {
-      return 'Est. arrival: ${state.estimatedTime}';
-    } else if (state.orderStatus == 4) {
-      return 'Order Completed';
+    switch (state.orderStatus) {
+      case 0:
+        return 'Awaiting Confirmation';
+      case 1:
+        // showUploadSection distinguishes CONFIRMED (needs payment) from PAYMENT_UPLOADED (waiting verify)
+        return state.showUploadSection ? 'Awaiting Payment' : 'Verifying Payment...';
+      case 2:
+        return 'Restaurant Preparing...';
+      case 3:
+        final eta = state.estimatedTime;
+        return eta != null && eta.isNotEmpty ? 'Est. arrival: $eta' : 'Order Is On The Way...';
+      case 4:
+        return 'Order Delivered!';
+      default:
+        return 'Processing Order...';
     }
-    return 'Processing Order...';
   }
 
   Widget _buildStepIcon(IconData icon, {required bool active}) {

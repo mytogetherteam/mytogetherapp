@@ -5,6 +5,8 @@ import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
+import '../../../../features/cart/data/active_order_state.dart';
+import '../../../../features/cart/presentation/screens/order_complete_page.dart';
 import '../../../../features/cart/presentation/widgets/active_order_bar.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,6 +20,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  int? _lastStatus;
 
   final List<Widget> _screens = const [
     HomePage(),
@@ -31,6 +34,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _requestLocationPermission();
     NavigationController.instance.tabChangeRequest.addListener(_onTabChangeRequested);
+    
+    // Global listener for order completion
+    _lastStatus = ActiveOrderState.instance.orderStatus;
+    ActiveOrderState.instance.addListener(_onOrderStateChanged);
+  }
+
+  void _onOrderStateChanged() {
+    if (!mounted) return;
+    final newStatus = ActiveOrderState.instance.orderStatus;
+    
+    // If transition to COMPLETED (4) happens, navigate to completion page
+    if (newStatus == 4 && _lastStatus != 4) {
+      debugPrint('🎉 [MainNavigation] Order Completed detected! Navigating...');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const OrderCompletePage()),
+      );
+    }
+    _lastStatus = newStatus;
   }
 
   void _onTabChangeRequested() {

@@ -94,22 +94,34 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (!mounted) return;
       
-      final Map<String, dynamic> actualData = (update.containsKey('data') && update['data'] is Map) 
-          ? update['data'] as Map<String, dynamic> 
-          : update;
+      debugPrint('📍 [OrderTrackingPage] WS Update: $update');
+      
+      // Handle the server wrapper: { "type": "ORDER_UPDATE", "order": { ... } }
+      Map<String, dynamic> data = update;
+      if (update.containsKey('order') && update['order'] is Map) {
+        data = update['order'] as Map<String, dynamic>;
+      } else if (update.containsKey('data') && update['data'] is Map) {
+        data = update['data'] as Map<String, dynamic>;
+      }
 
-      final status = actualData['status'] as String?;
+      final status = (data['status'] as String?) ?? (update['type'] as String?);
+      debugPrint('📍 [OrderTrackingPage] Detected Status string: $status');
       
       if (mounted) {
         setState(() {});
       }
       
-      // If the shop accepted, navigate to Payment
-      final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'AWAITING_APPROVAL', 'PAYMENT_SLIP_REQUESTED'];
-      if (status != null && transitionStatuses.contains(status.toUpperCase())) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _navigateToPayment();
-        });
+      if (status != null) {
+        final upperStatus = status.toUpperCase();
+        
+        // If the shop accepted, navigate to Payment
+        final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'PAYMENT_SLIP_REQUESTED'];
+        if (transitionStatuses.contains(upperStatus)) {
+          debugPrint('📍 [OrderTrackingPage] Match found! Triggering navigation to payment...');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _navigateToPayment();
+          });
+        }
       }
     });
 

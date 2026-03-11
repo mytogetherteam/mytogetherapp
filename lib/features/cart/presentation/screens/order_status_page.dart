@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
-import '../../../home/presentation/screens/location_search_page.dart';
 import 'dart:ui' as ui;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/network/websocket_service.dart';
@@ -12,6 +11,7 @@ import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
 import 'order_complete_page.dart';
+import '../../../home/data/repositories/restaurant_repository.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -98,6 +98,30 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         }
       }
     });
+
+    // Proactively fetch restaurant address if missing (e.g. on app restart)
+    _recoverMissingRestaurantAddress();
+  }
+
+  Future<void> _recoverMissingRestaurantAddress() async {
+    final state = ActiveOrderState.instance;
+    if ((state.restaurantAddress == null || state.restaurantAddress!.isEmpty) && 
+        state.restaurantId != null) {
+      try {
+        final id = int.tryParse(state.restaurantId!);
+        if (id != null) {
+          final shop = await RestaurantRepository.instance.getShopById(id);
+          if (mounted) {
+            setState(() {
+              state.restaurantAddress = shop.address ?? shop.addressEn ?? shop.addressTh;
+              state.saveToPrefs();
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Error recovering restaurant address: $e');
+      }
+    }
   }
 
   void _animateToStatus(int status) {
@@ -311,6 +335,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   String get _statusTitle {
+    if (_currentStatus == -1) return 'Order Cancelled';
     switch (_currentStatus) {
       case 1:
         return 'Checking your Payment';
@@ -356,25 +381,26 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: _currentStatus == -1 ? const Color(0xFFEF4444) : Colors.black,
                 ),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Estimate arrival: ${state.estimatedTime ?? "09:45 PM"}',
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            
-            // Progress Bar
-            _buildProgressBar(),
-            const SizedBox(height: 32),
+            if (_currentStatus != -1) ...[
+              Text(
+                'Estimate arrival: ${state.estimatedTime ?? "09:45 PM"}',
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              // Progress Bar
+              _buildProgressBar(),
+              const SizedBox(height: 32),
+            ],
 
             // Map Embed (only if status >= 3)
             AnimatedSize(
               duration: const Duration(milliseconds: 500),
-              child: _currentStatus >= 3 
+              child: (_currentStatus >= 3 && _currentStatus != -1)
                 ? Column(
                     children: [
                       Container(
@@ -432,10 +458,33 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '$storeName is ${_currentStatus == 1 ? "checking your payment" : _currentStatus == 2 ? "preparing your order" : _currentStatus == 3 ? "delivering your order" : "completing your order"}',
-                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                        ),
+                        if (_currentStatus == -1)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFECACA)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    state.cancelReason ?? 'This order was cancelled from the shop.',
+                                    style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Text(
+                            '$storeName is ${_currentStatus == 1 ? "checking your payment" : _currentStatus == 2 ? "preparing your order" : _currentStatus == 3 ? "delivering your order" : "completing your order"}',
+                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+                          ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -471,9 +520,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 ),
                               ),
                             ),
-                            _buildCircleButton(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill)),
-                            const SizedBox(width: 8),
-                            _buildCircleButton(PhosphorIcons.chatCircleText(PhosphorIconsStyle.fill)),
+                            _buildSmallCircleButton(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill)),
+                            const SizedBox(width: 6),
+                            _buildSmallCircleButton(PhosphorIcons.chatCircleText(PhosphorIconsStyle.fill)),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -509,8 +558,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                     Text(
                                       state.displayTotalAmount ?? '${total.toStringAsFixed(0)} ฿',
                                       style: GoogleFonts.poppins(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
                                           color: Colors.black),
                                     ),
                                     const SizedBox(width: 8),
@@ -556,35 +605,6 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[800],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Small Contact Icons
-                          GestureDetector(
-                            onTap: () {
-                              // Phone logic
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.phone, size: 14, color: Colors.blue),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () {
-                              // Message logic
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.chat_bubble, size: 14, color: Colors.green),
                             ),
                           ),
                         ],
@@ -696,110 +716,226 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             const SizedBox(height: 16),
 
             // Delivery Info Card
-            _buildInfoCard(
-              title: 'Delivery Information',
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header row: bike icon + title
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFED3973).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.location_on, color: Color(0xFFED3973), size: 20),
+                      Image.asset(
+                        'assets/images/delivery_bike.png',
+                        width: 40,
+                        height: 40,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              state.deliveryAddress ?? 'Current Location',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Your delivery address',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LocationSearchPage()),
-                          );
-                          if (result != null && mounted) {
-                            setState(() {});
-                          }
-                        },
-                        child: Text(
-                          'Change',
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFFED3973),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Deliver Information',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1),
-                  ),
-                  Text(
-                    'Order Summary',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...state.orderItems.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                  const SizedBox(height: 25),
+                  // Route: restaurant -> destination with dotted line
+                  IntrinsicHeight(
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          '${item.quantity}x ',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFED3973),
-                          ),
+                        // Left: icons + dotted line
+                        Column(
+                          children: [
+                            Container(
+                              width: 15,
+                              height: 15,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF4A90E2),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: CustomPaint(
+                                painter: _DottedLinePainter(),
+                                child: const SizedBox(width: 2),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.location_on,
+                              color: Color(0xFFED3973),
+                              size: 22,
+                            ),
+                          ],
                         ),
+                        const SizedBox(width: 14),
+                        // Right: Info (either Cancelled or Route text)
                         Expanded(
-                          child: Text(
-                            item.title,
-                            style: GoogleFonts.poppins(fontSize: 13),
-                          ),
-                        ),
-                        Text(
-                          '฿${(item.price * item.quantity).toStringAsFixed(0)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          child: _currentStatus == -1 && state.cancelReason != null
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Order Cancelled',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      state.cancelReason!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Restaurant row
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          storeName,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (state.restaurantAddress != null && state.restaurantAddress!.isNotEmpty)
+                                          Text(
+                                            state.restaurantAddress!,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 40),
+                                    // Destination row
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          state.userLocationName ?? 'My Location',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        if (state.deliveryAddress != null && state.deliveryAddress!.isNotEmpty)
+                                          Text(
+                                            state.deliveryAddress!,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                         ),
                       ],
                     ),
-                  )),
+                  ),
+                  if (_currentStatus != -1 && state.riderName != null) ...[
+                    const SizedBox(height: 25),
+                    const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey[100],
+                            border: Border.all(color: Colors.grey[200]!, width: 1),
+                          ),
+                          child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                state.riderName!,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                'Delivery Rider',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (state.riderPhone != null)
+                          _buildSmallCircleButton(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill)),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
+            
+            // Reorder/Cancel Actions
+            if (_currentStatus == -1)
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ActiveOrderState.instance.clearOrder();
+                    _goHome();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFED3973),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    'Order Again',
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -916,50 +1052,15 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     );
   }
 
-  Widget _buildCircleButton(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFEBF1), // Light primary color
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: const Color(0xFFED3973), size: 24),
-    );
-  }
 
-  Widget _buildInfoCard({required String title, required Widget child}) {
+  Widget _buildSmallCircleButton(IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFFFFEBF1),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          child,
-        ],
-      ),
+      child: Icon(icon, color: const Color(0xFFED3973), size: 18),
     );
   }
 
@@ -998,4 +1099,30 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
       ],
     );
   }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    const double dashHeight = 4;
+    const double dashSpace = 4;
+    double startY = 0;
+
+    while (startY < size.height) {
+      canvas.drawLine(
+        Offset(size.width / 2, startY),
+        Offset(size.width / 2, (startY + dashHeight).clamp(0, size.height)),
+        paint,
+      );
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
