@@ -14,6 +14,7 @@ import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
 import 'package:dio/dio.dart';
+import '../../../../app.dart';
 import '../../../../core/network/websocket_service.dart';
 import 'order_tracking_page.dart';
 import '../../data/active_order_state.dart';
@@ -71,7 +72,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
         // 2. Fetch from API to ensure data is fresh
         RestaurantRepository.instance.getShopById(restaurantId).then((shop) {
-          debugPrint('PAYMENT_METHODS_API: ${shop.paymentTypes.map((t) => '${t.paymentMethodCode} (Active: ${t.isActive})').join(', ')}');
           if (mounted) {
             setState(() {
               _restaurant = shop;
@@ -182,6 +182,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
 
   bool _isProcessing = false;
+  bool _hasShownEmptyToast = false;
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +195,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // Show empty state if store not found or items empty (unless we are performing an action)
         if ((currentStoreIdx == -1 || CartManager.instance.stores[currentStoreIdx].items.isEmpty) && !_isProcessing) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) Navigator.of(context).pop();
+            if (context.mounted && !_hasShownEmptyToast) {
+              _hasShownEmptyToast = true;
+              App.scaffoldMessengerKey.currentState?.showSnackBar(
+                SnackBar(
+                  content: Text('Your cart is empty now!', style: GoogleFonts.poppins()),
+                  backgroundColor: const Color(0xFFED3973),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Navigator.of(context).pop();
+            }
           });
           return const Scaffold(backgroundColor: Colors.white);
         }
@@ -1360,70 +1371,5 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              PhosphorIcons.shoppingCart(),
-              size: 64,
-              color: const Color(0xFFED3973),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Your cart is empty',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'Add some delicious items from the menu to start your order!',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: const Color(0xFF64748B),
-                height: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: 200,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFED3973),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Browse Menu',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }

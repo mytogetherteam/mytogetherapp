@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
@@ -14,6 +15,7 @@ class AuthService {
 
   static const _keyAccessToken = 'access_token';
   static const _keyRefreshToken = 'refresh_token';
+  // Non-sensitive user data stays in SharedPreferences
   static const _keyUserId = 'user_id';
   static const _keyUsername = 'username';
   static const _keyEmail = 'user_email';
@@ -21,6 +23,11 @@ class AuthService {
   static const _keyRole = 'user_role';
   static const _keyUserLocations = 'user_locations';
   static const _keyUserProfile = 'user_profile';
+
+  // Secure storage for tokens only
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   String? _accessToken;
   String? _refreshToken;
@@ -31,9 +38,13 @@ class AuthService {
   /// Call once at app startup in main()
   Future<void> initialize() async {
     if (_initialized) return;
+
+    // Read tokens from secure storage
+    _accessToken = await _secureStorage.read(key: _keyAccessToken);
+    _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+
+    // Read non-sensitive profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString(_keyAccessToken);
-    _refreshToken = prefs.getString(_keyRefreshToken);
 
     final userId = prefs.getInt(_keyUserId);
     final username = prefs.getString(_keyUsername);
@@ -101,16 +112,17 @@ class AuthService {
     _currentUser = user;
     _userLocations = userLocations;
 
+    // Store tokens securely
+    await _secureStorage.write(key: _keyAccessToken, value: accessToken);
+    await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
+
+    // Store non-sensitive profile data in SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAccessToken, accessToken);
-    await prefs.setString(_keyRefreshToken, refreshToken);
     await prefs.setInt(_keyUserId, user.id);
     await prefs.setString(_keyUsername, user.username);
     await prefs.setString(_keyEmail, user.email);
     await prefs.setString(_keyFullName, user.fullName);
     await prefs.setString(_keyRole, user.role);
-    
-    // Save full profile and locations
     await prefs.setString(_keyUserProfile, json.encode(user.toJson()));
     if (userLocations != null) {
       await prefs.setString(_keyUserLocations, json.encode(userLocations.map((e) => e.toJson()).toList()));
@@ -127,23 +139,27 @@ class AuthService {
     _refreshToken = null;
     _currentUser = null;
 
+    // Clear tokens from secure storage
+    await _secureStorage.delete(key: _keyAccessToken);
+    await _secureStorage.delete(key: _keyRefreshToken);
+
+    // Clear remaining profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Wipes all local preferences, essentially clearing all simple caches
+    await prefs.clear();
   }
 
   void updateAccessToken(String newToken) {
     _accessToken = newToken;
-    SharedPreferences.getInstance().then((p) => p.setString(_keyAccessToken, newToken));
+    _secureStorage.write(key: _keyAccessToken, value: newToken);
   }
 
   Future<void> updateTokens(String accessToken, String? refreshToken) async {
     _accessToken = accessToken;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAccessToken, accessToken);
-    
+    await _secureStorage.write(key: _keyAccessToken, value: accessToken);
+
     if (refreshToken != null && refreshToken.isNotEmpty) {
       _refreshToken = refreshToken;
-      await prefs.setString(_keyRefreshToken, refreshToken);
+      await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
     }
   }
 

@@ -40,7 +40,7 @@ class WebSocketService {
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
-      debugPrint('❌ [WebSocket] Token missing.');
+      _isConnecting = false;
       return;
     }
 
@@ -53,17 +53,12 @@ class WebSocketService {
         onWebSocketError: (dynamic error) {
           _isConnecting = false;
           connectionStatus.value = false;
-          debugPrint('❌ [WebSocket] Error: $error');
         },
-        onDebugMessage: (String message) {
-          debugPrint('📡 [WebSocket Debug] $message');
-        },
+        onDebugMessage: (String message) {},
         stompConnectHeaders: {
           'Authorization': 'Bearer $token',
         },
-        onStompError: (frame) {
-          debugPrint('❌ [WebSocket] STOMP Error: ${frame.body}');
-        },
+        onStompError: (frame) {},
         onUnhandledFrame: (frame) {},
         onUnhandledMessage: (frame) {},
         onUnhandledReceipt: (frame) {},
@@ -71,7 +66,6 @@ class WebSocketService {
         webSocketConnectHeaders: {}, 
         onDisconnect: (frame) {
           connectionStatus.value = false;
-          debugPrint('Disconnected from WebSocket');
         },
         heartbeatOutgoing: const Duration(milliseconds: 10000),
         heartbeatIncoming: const Duration(milliseconds: 10000),
@@ -104,14 +98,13 @@ class WebSocketService {
         if (frame.body == null) return;
         try {
           final Map<String, dynamic> raw = json.decode(frame.body!);
-          debugPrint('📦 [WebSocket] ORDER_UPDATE received: ${frame.body}');
 
           // Centralized state update
           ActiveOrderState.instance.updateFromSocket(raw);
 
           _orderUpdateController.add(raw);
         } catch (e) {
-          debugPrint('❌ [WebSocket] Parsing Error: $e');
+          // Ignore parsing errors
         }
       },
     );

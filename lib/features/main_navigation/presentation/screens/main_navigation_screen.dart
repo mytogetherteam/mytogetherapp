@@ -46,7 +46,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     
     // If transition to COMPLETED (4) happens, navigate to completion page
     if (newStatus == 4 && _lastStatus != 4) {
-      debugPrint('🎉 [MainNavigation] Order Completed detected! Navigating...');
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const OrderCompletePage()),

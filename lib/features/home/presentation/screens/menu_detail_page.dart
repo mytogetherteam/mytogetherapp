@@ -829,12 +829,25 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         try {
                           CartDto? result;
                           if (widget.cartItemId != null) {
+                            // Find the names for the newly selected variant
+                            String? vName;
+                            String? vNameMm;
+                            if (_selectedVariantId != null && _currentFood != null) {
+                              try {
+                                final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId);
+                                vName = variant.name;
+                                vNameMm = variant.nameMm;
+                              } catch (_) {}
+                            }
+                            
                             // Update existing item
                             result = await CartManager.instance.updateItemQuantity(
                               widget.restaurantName,
                               widget.cartItemId!,
                               _quantity,
                               variantId: _selectedVariantId,
+                              variantName: vName,
+                              variantNameMm: vNameMm,
                               optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
                               specialInstructions: _instructionsController.text.trim().isEmpty 
                                   ? null 
@@ -859,7 +872,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             CartManager.instance.updateCartFromDto(result);
                             
                             // Also trigger a background sync just to be safe, but don't await it
-                            CartManager.instance.syncWithApi();
+                            CartManager.instance.invalidateCache().then((_) {
+                              CartManager.instance.syncWithApi();
+                            });
                             
                             if (mounted) {
                               operationCompleted = true;
@@ -870,6 +885,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           }
 
                           // Fallback if result is null (shouldn't happen on success)
+                          await CartManager.instance.invalidateCache();
                           await CartManager.instance.syncWithApi();
                           if (mounted) {
                             operationCompleted = true;
@@ -906,6 +922,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                     optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
                                   ));
                                   // Sync local state
+                                  await CartManager.instance.invalidateCache();
                                   await CartManager.instance.syncWithApi();
                                   if (mounted) {
                                     setState(() => _isAddingToCart = false);

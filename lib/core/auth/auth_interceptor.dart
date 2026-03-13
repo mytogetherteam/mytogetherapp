@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'auth_service.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
@@ -22,7 +23,6 @@ class AuthInterceptor extends QueuedInterceptor {
       } catch (e) {
         // If proactive refresh fails (e.g. timeout), we don't log out yet.
         // We let the request proceed and handle 401/403 in onError if it happens.
-        debugPrint('Proactive refresh failed: $e');
       }
     }
 
@@ -86,7 +86,4 @@ class AuthInterceptor extends QueuedInterceptor {
   }
 }
 
-// Minimal debug helper if not available
-void debugPrint(String message) {
-  print('AuthInterceptor: $message');
-}
+

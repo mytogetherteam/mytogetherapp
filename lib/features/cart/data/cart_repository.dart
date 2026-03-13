@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'models/cart_dto.dart';
 
@@ -17,7 +16,6 @@ class CartRepository {
   /// Returns the updated [CartDto].
   Future<CartDto> addToCart(AddToCartRequest request) async {
     final payload = request.toJson();
-    debugPrint('CART_PAYLOAD: $payload');
     try {
       final response = await _apiClient.dio.post(
         '${ApiClient.apiPrefix}/cart/items',
@@ -65,12 +63,20 @@ class CartRepository {
   }
 
   /// Removes a single item from the cart by its [cartItemId].
-  Future<CartDto> removeCartItem(int cartItemId) async {
+  Future<CartDto?> removeCartItem(int cartItemId) async {
     final response = await _apiClient.dio.delete(
       '${ApiClient.apiPrefix}/cart/items/$cartItemId',
     );
     _assertSuccess(response.statusCode, 'remove cart item');
-    return CartDto.fromJson(response.data['data'] as Map<String, dynamic>);
+    
+    // Safely parse the response, as empty carts might return no body or a 204 status
+    if (response.data == null || response.data is! Map) {
+      return null;
+    }
+    
+    final data = (response.data as Map)['data'];
+    if (data == null) return null;
+    return CartDto.fromJson(data as Map<String, dynamic>);
   }
 
   /// Clears the entire cart.
@@ -84,7 +90,6 @@ class CartRepository {
       final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/cart/list');
       if (response.statusCode == 200) {
         final data = response.data['data'];
-        debugPrint('GET_CART_LIST_RESPONSE: $data');
         if (data is List) {
           return data
               .map((e) => CartDto.fromJson(e as Map<String, dynamic>))

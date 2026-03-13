@@ -32,7 +32,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     super.initState();
     _progressCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 3),
     );
     _dotCtrl = AnimationController(
       vsync: this,
@@ -65,7 +65,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     // Initial check
     if (ActiveOrderState.instance.hasActiveOrder) {
       _wasActive = true;
-      _progressCtrl.forward();
+      _progressCtrl.repeat(); // Continuous progress animation
       _slideCtrl.forward();
       _shimmerCtrl.forward(from: 0);
     }
@@ -88,7 +88,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       final isActive = ActiveOrderState.instance.hasActiveOrder;
       if (isActive && !_wasActive) {
         _progressCtrl.reset();
-        _progressCtrl.forward();
+        _progressCtrl.repeat(); 
         _slideCtrl.forward(from: 0);
         _shimmerCtrl.forward(from: 0); 
       } else if (!isActive && _wasActive) {
@@ -145,16 +145,29 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                   ),
                 );
               } else if (s == 1) {
-                // CONFIRMED / PAYMENT_SLIP_REQUESTED → user needs to pay / re-upload
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AwaitingPaymentPage(
-                      foodTotal: state.totalAmount ?? 0,
-                      deliveryFee: state.deliveryFee ?? 0,
+                // If it's status 1 but we are already verifying the payment, go to Status Page
+                if (state.isPaymentChecking) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderStatusPage(
+                        foodTotal: state.totalAmount ?? 0,
+                        deliveryFee: state.deliveryFee ?? 0,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  // CONFIRMED / PAYMENT_SLIP_REQUESTED → user needs to pay / re-upload
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AwaitingPaymentPage(
+                        foodTotal: state.totalAmount ?? 0,
+                        deliveryFee: state.deliveryFee ?? 0,
+                      ),
+                    ),
+                  );
+                }
               } else if (s == 2 || s == 3 || s == -1) {
                 // PAYMENT_VERIFIED / PREPARING / ON_THE_WAY / CANCELLED → order status page
                 Navigator.push(
@@ -247,19 +260,28 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                     ),
                   ),
 
-                  // Progress bar + step icons
+                   // Progress bar + step icons
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                     child: Row(
                       children: [
                         _buildStepIcon(Icons.storefront_outlined, active: true),
-                        Expanded(child: _buildConnector(filled: true)),
-                        // Step 2: payment — active once shop confirms (CONFIRMED or later)
-                        _buildStepIcon(Icons.receipt_long_outlined, active: state.orderStatus >= 1),
-                        Expanded(child: _buildConnector(filled: state.orderStatus >= 2)),
+                        Expanded(child: _buildConnector(
+                          filled: state.orderStatus >= 2,
+                          isProcessing: state.orderStatus == 0 || state.orderStatus == 1,
+                        )),
+                        // Step 2: payment — active once shop confirms payment (PAID or later)
+                        _buildStepIcon(Icons.receipt_long_outlined, active: state.orderStatus >= 2),
+                        Expanded(child: _buildConnector(
+                          filled: state.orderStatus >= 3,
+                          isProcessing: state.orderStatus == 2,
+                        )),
                         // Step 3: delivery — active when ON_THE_WAY
                         _buildStepIcon(Icons.delivery_dining_outlined, active: state.orderStatus >= 3),
-                        Expanded(child: _buildConnector(filled: state.orderStatus >= 4)),
+                        Expanded(child: _buildConnector(
+                          filled: state.orderStatus >= 4,
+                          isProcessing: state.orderStatus == 3,
+                        )),
                         // Step 4: home — active when DELIVERED
                         _buildStepIcon(Icons.home_outlined, active: state.orderStatus >= 4),
                       ],
@@ -341,11 +363,70 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     );
   }
 
-  Widget _buildConnector({required bool filled}) {
-    return Container(
-      height: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      color: filled ? const Color(0xFFED3973) : Colors.grey[200],
+  Widget _buildConnector({required bool filled, bool isProcessing = false}) {
+    return AnimatedBuilder(
+      animation: _progressCtrl,
+      builder: (context, child) {
+        return Container(
+          height: 3,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: Stack(
+            children: [
+              if (filled)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFED3973),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              if (isProcessing)
+                Positioned.fill(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        children: [
+                          Container(
+                            width: constraints.maxWidth * _progressCtrl.value,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFED3973),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          // Optional: Adding a small 'glow' or 'dot' at the end of processing
+                          Positioned(
+                            left: constraints.maxWidth * _progressCtrl.value - 4,
+                            top: -1,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFED3973),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFFED3973),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

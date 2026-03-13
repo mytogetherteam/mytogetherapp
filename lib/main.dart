@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'core/auth/auth_service.dart';
 import 'core/location/location_service.dart';
 import 'features/cart/data/active_order_state.dart';
@@ -41,6 +42,9 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  // Disable Google Fonts CDN — use locally bundled Poppins from assets/fonts/
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   runApp(const App());
 }

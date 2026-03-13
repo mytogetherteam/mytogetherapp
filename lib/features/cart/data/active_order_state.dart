@@ -39,6 +39,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? displayFoodPrice;
   String? displayDeliveryFee;
   String? displayTotalAmount;
+  bool isPaymentChecking = false;
 
   /// 0: Awaiting Confirmation
   /// 1: Awaiting Payment
@@ -92,7 +93,6 @@ class ActiveOrderState extends ChangeNotifier {
     
     // Disconnect WebSocket if order is terminal (Completed = 4, Cancelled = -1)
     if (status == 4 || status == -1) {
-      debugPrint('🔌 [ActiveOrderState] Order reached terminal status ($status). Disconnecting WebSocket.');
       WebSocketService().disconnect();
     }
   }
@@ -162,23 +162,27 @@ class ActiveOrderState extends ChangeNotifier {
           // Shop confirmed order & set delivery fee → user needs to pay
           orderStatus = 1; // Awaiting Payment
           showUploadSection = false;
+          isPaymentChecking = false;
           break;
         case 'PAYMENT_UPLOADED':
         case 'PAYMENT_CHECKING':
           // User uploaded slip, waiting for shop to verify
           orderStatus = 1; // Awaiting Payment (checking)
           showUploadSection = false;
+          isPaymentChecking = true;
           break;
         case 'PAYMENT_SLIP_REQUESTED':
           // Shop rejected slip, user must re-upload
           orderStatus = 1; // Awaiting Payment
           showUploadSection = false;
+          isPaymentChecking = false;
           break;
         case 'PAID':
         case 'PAYMENT_VERIFIED':
         case 'PREPARING':
           orderStatus = 2; // Preparing
           showUploadSection = false;
+          isPaymentChecking = false;
           break;
         case 'ON_THE_WAY':
         case 'DELIVERING':
@@ -230,14 +234,11 @@ class ActiveOrderState extends ChangeNotifier {
 
   Future<bool> cancelActiveOrder({String? reason}) async {
     if (orderId == null) {
-      debugPrint('cancelActiveOrder: orderId is null');
       return false;
     }
     
     final String cancelReason = reason ?? 'test';
     final String sanitizedOrderId = orderId!.replaceAll('#', '');
-    
-    debugPrint('cancelActiveOrder: Attempting to cancel order $sanitizedOrderId');
     
     try {
       final response = await ApiClient().dio.put(
@@ -252,17 +253,13 @@ class ActiveOrderState extends ChangeNotifier {
         ),
       );
       
-      debugPrint('cancelActiveOrder: Response status: ${response.statusCode}');
-      
       if (response.statusCode == 200 || response.statusCode == 204) {
         WebSocketService().disconnect();
         clearOrder();
         return true;
       }
     } catch (e) {
-      debugPrint('cancelActiveOrder: Error: $e');
-      // If it's a 404 or 400, it's likely already cancelled or in an un-cancellable state
-      // but the user wants to clear the local state regardless.
+      // Clear local state even on error to prevent UX hang
       WebSocketService().disconnect();
       clearOrder();
       return true; 
@@ -310,6 +307,7 @@ class ActiveOrderState extends ChangeNotifier {
     restaurantId = null;
     restaurantLatLng = null;
     userLocation = null;
+    isPaymentChecking = false;
     saveToPrefs();
     notifyListeners();
   }
@@ -344,6 +342,7 @@ class ActiveOrderState extends ChangeNotifier {
       await prefs.setString('restaurantAddress', restaurantAddress ?? '');
       await prefs.setString('userLocationName', userLocationName ?? '');
       await prefs.setBool('showUploadSection', showUploadSection);
+      await prefs.setBool('isPaymentChecking', isPaymentChecking);
 
       // Serialize routePoints
       if (routePoints.isNotEmpty) {
@@ -357,7 +356,7 @@ class ActiveOrderState extends ChangeNotifier {
       await prefs.setDouble('routeDistanceKm', routeDistanceKm ?? 0.0);
       await prefs.setInt('routeDurationMins', routeDurationMins ?? 0);
     } catch (e) {
-      debugPrint('Error saving order state: $e');
+      // Ignore prefs save errors
     }
   }
 
@@ -388,6 +387,7 @@ class ActiveOrderState extends ChangeNotifier {
         statusLabel = prefs.getString('statusLabel');
         statusLabelMm = prefs.getString('statusLabelMm');
         showUploadSection = prefs.getBool('showUploadSection') ?? false;
+        isPaymentChecking = prefs.getBool('isPaymentChecking') ?? false;
 
         routeDistanceKm = prefs.getDouble('routeDistanceKm');
         routeDurationMins = prefs.getInt('routeDurationMins');
@@ -400,7 +400,7 @@ class ActiveOrderState extends ChangeNotifier {
             final List<dynamic> decoded = jsonDecode(pointsStr);
             routePoints = decoded.map((p) => LatLng(p['lat'], p['lng'])).toList();
           } catch (e) {
-            debugPrint('Error decoding routePoints: $e');
+            // Ignore route point decode errors
           }
         }
         
@@ -430,7 +430,7 @@ class ActiveOrderState extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading order state: $e');
+      // Ignore prefs load errors
     }
   }
 }

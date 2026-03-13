@@ -37,6 +37,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
   late Future<ShopFeedSectionDto> _future;
   final Map<int, bool> _localFavorites = {};
   bool _hasScrolled = false;
+  final GlobalKey _targetKey = GlobalKey();
 
   @override
   void initState() {
@@ -121,7 +122,8 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               : (items.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : items.length),
           itemBuilder: (context, i) {
             final item = items[i];
-            return FoodMenuItemCard(
+            final isTarget = widget.targetMenuItemId == item.id.toString();
+            Widget card = FoodMenuItemCard(
               id: item.id.toString(),
               restaurantId: item.shopId.toString(),
               title: item.name,
@@ -133,10 +135,14 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               originalPrice: item.originalPrice,
               displayPrice: item.displayPrice,
               showRestaurantName: widget.showRestaurantName,
-              isHighlighted: widget.targetMenuItemId == item.id.toString(),
+              isHighlighted: isTarget,
               targetMenuItemId: widget.targetMenuItemId,
               onFavoriteToggle: () => _toggleFavorite(item),
             );
+            
+            return isTarget 
+                ? Container(key: _targetKey, child: card) 
+                : card;
           },
         ),
         const SizedBox(height: 30),
@@ -150,36 +156,22 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
     final targetIndex = items.indexWhere((it) => it.id.toString() == widget.targetMenuItemId);
     if (targetIndex == -1) return;
 
-    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!mounted || _hasScrolled) return;
 
-        final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-        if (renderBox == null) return;
+        final targetContext = _targetKey.currentContext;
+        if (targetContext == null) return;
 
-        final position = renderBox.localToGlobal(Offset.zero);
-        final viewportHeight = MediaQuery.of(context).size.height;
-        final bool isFirstRow = targetIndex < crossAxisCount;
-
-        // Mark as scrolled immediately to prevent multiple triggers
         _hasScrolled = true;
 
-        if (isFirstRow) {
-          // If first-row item is already visible, skip scroll
-          if (position.dy > 0 && position.dy < viewportHeight) {
-            return;
-          }
-        }
-
         Scrollable.ensureVisible(
-          context,
+          targetContext,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeOutCubic,
-          alignment: 0.1,
+          alignment: 0.3, // Centers the item nicely in the upper half of screen
         );
       });
     });
@@ -275,9 +267,8 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
       padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 38),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFED3973).withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFED3973).withValues(alpha: 0.15)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
         child: Row(

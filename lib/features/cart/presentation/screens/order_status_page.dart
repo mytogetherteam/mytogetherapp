@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import 'dart:ui' as ui;
@@ -12,6 +13,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
 import 'order_complete_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
+import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -37,12 +39,11 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
   
-  late AnimationController _progressAnimController;
-  
-  // Idle progress animation
-  late AnimationController _idleSolidController;
-  late AnimationController _lightProgressController;
-  Timer? _idleSequenceTimer;
+  late AnimationController _processingController;
+
+  WebViewController? _webController;
+  bool _webViewError = false;
+  String? _lastInitedUrl;
 
   StreamSubscription? _orderSubscription;
 
@@ -60,40 +61,42 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
       if (mounted) _updateMarkers();
     });
 
-    // Step-based animation for progress bar
-    _progressAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000), 
-    );
-
-    // Solid idle trailing animation
-    _idleSolidController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
-
-    // Light idle trailing animation
-    _lightProgressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
+    // Processing animation for current segment (repeating 0 -> 1)
+    _processingController = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 3),
+    )..repeat();
     
     // Initial animation position based on starting status
     _animateToStatus(_currentStatus);
+
+    // Initialize WebView if already on the way
+    final state = ActiveOrderState.instance;
+    if (_currentStatus == 3 && state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty) {
+      _initWebView(state.deliveryTrackingUrl!);
+    }
 
     // Connect to WebSockets with force: true to ensure topic subscriptions are refreshed with the current orderId
     WebSocketService().connect(force: true);
     
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (mounted) {
+        final state = ActiveOrderState.instance;
         setState(() {
           // Map ActiveOrderState orderStatus (0-4) to local _currentStatus (1-4)
-          _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
-          _animateToStatus(_currentStatus); 
+          _currentStatus = state.orderStatus.clamp(1, 4);
+
+          // Trigger WebView init if status is 3 and we have a new URL
+          if (_currentStatus == 3 && 
+              state.deliveryTrackingUrl != null && 
+              state.deliveryTrackingUrl!.isNotEmpty &&
+              state.deliveryTrackingUrl != _lastInitedUrl) {
+            _initWebView(state.deliveryTrackingUrl!);
+          }
         });
 
         // Auto-navigate when status becomes COMPLETED (4)
-        if (ActiveOrderState.instance.orderStatus == 4) {
+        if (state.orderStatus == 4) {
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
       }
@@ -119,81 +122,38 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           }
         }
       } catch (e) {
-        debugPrint('Error recovering restaurant address: $e');
+        // Ignore error recovering restaurant address
       }
     }
   }
 
-  void _animateToStatus(int status) {
-    // Stop any existing idle animation
-    _idleSequenceTimer?.cancel();
-    _idleSolidController.stop();
-    _lightProgressController.stop();
-    _idleSolidController.value = 0.0;
-
-    // 1 -> 0.0, 2 -> 0.33, 3 -> 0.66, 4 -> 1.0
-    double target = (status - 1) / 3.0;
+  void _initWebView(String url) {
+    _lastInitedUrl = url;
+    _webViewError = false;
     
-    _progressAnimController.animateTo(target, curve: Curves.easeInOut).then((_) {
-      if (mounted && status < 4) {
-        _startIdleAnimationSequence();
-      }
-    });
+    _webController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (error) {
+            if (mounted) {
+              setState(() => _webViewError = true);
+            }
+          },
+          onNavigationRequest: (request) => NavigationDecision.navigate,
+        ),
+      )
+      ..loadRequest(Uri.parse(url));
   }
 
-  void _startIdleAnimationSequence() {
-    if (!mounted) return;
-    _runSequentialIdleSequence();
-  }
-
-  Future<void> _runSequentialIdleSequence() async {
-    if (!mounted) return;
-
-    // Stage 0: 0% -> 100% Light Trail (Solid stays at 0)
-    _idleSolidController.value = 0.0;
-    _lightProgressController.duration = const Duration(seconds: 3);
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; // Disappear
-
-    // Stage 1: Solid glides to 20%, then light trail runs 20% -> 100%
-    await _idleSolidController.animateTo(0.2, duration: const Duration(seconds: 3), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 6); // Slowed down to match visual speed
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; 
-
-    // Stage 2: Solid glides to 40%, then light trail runs 40% -> 100%
-    await _idleSolidController.animateTo(0.4, duration: const Duration(seconds: 4), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0;
-
-    // Stage 3: Solid glides to 60%, then light trail runs 60% -> 100%
-    await _idleSolidController.animateTo(0.6, duration: const Duration(seconds: 4), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0;
-
-    // Stage 4: Solid glides to 70%, then light trail loops
-    await _idleSolidController.animateTo(0.7, duration: const Duration(seconds: 4), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 6); 
-    _lightProgressController.repeat();
+  void _animateToStatus(int status) {
+    // This method is now legacy as segment colors update via setState
   }
 
   @override
   void dispose() {
-    _idleSequenceTimer?.cancel();
-    _idleSolidController.dispose();
-    _lightProgressController.dispose();
+    _processingController.dispose();
     _orderSubscription?.cancel();
-    _progressAnimController.dispose();
     super.dispose();
   }
 
@@ -205,11 +165,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   void _goHome() {
-    _idleSequenceTimer?.cancel();
-    _idleSolidController.stop();
-    _lightProgressController.stop();
     _orderSubscription?.cancel();
-    _progressAnimController.stop();
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
@@ -342,7 +298,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
       case 2:
         return 'Preparing your order';
       case 3:
-        return 'On the way!';
+        return 'Delivering to you';
       case 4:
         return 'Arrived!';
       default:
@@ -398,43 +354,75 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             ],
 
             // Map Embed (only if status >= 3)
-            AnimatedSize(
-              duration: const Duration(milliseconds: 500),
-              child: (_currentStatus >= 3 && _currentStatus != -1)
-                ? Column(
-                    children: [
-                      Container(
-                        height: 260,
-                        width: double.infinity,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                        ),
-                        child: GoogleMap(
-                          padding: const EdgeInsets.only(bottom: 0),
-                          initialCameraPosition: CameraPosition(
-                            target: state.restaurantLatLng ?? const LatLng(13.7563, 100.5018),
-                            zoom: 14,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: SizeTransition(sizeFactor: animation, child: child));
+              },
+              child: (() {
+                if (_currentStatus < 3 || _currentStatus == -1) return const SizedBox.shrink(key: ValueKey('empty_map'));
+                
+                final state = ActiveOrderState.instance;
+                final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
+                
+                // If we attempted to show WebView but it failed, hide the map section entirely as requested
+                if (hasTrackingUrl && _webViewError) {
+                  return const SizedBox.shrink(key: ValueKey('webview_error'));
+                }
+
+                return Column(
+                  key: const ValueKey('map_section'),
+                  children: [
+                    Container(
+                      height: 260,
+                      width: double.infinity,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
-                          onMapCreated: (controller) {
-                            _mapController = controller;
-                            _updateMarkers();
-                            Future.delayed(const Duration(milliseconds: 300), _fitBounds);
-                          },
-                          markers: _markers,
-                          polylines: _polylines,
-                          myLocationEnabled: false,
-                          zoomControlsEnabled: false,
-                          mapToolbarEnabled: false,
-                          compassEnabled: false,
-                          style: AppMapTheme.defaultStyle,
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                  )
-                : const SizedBox.shrink(),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: ImageSkeletonLoader(),
+                          ),
+                          Positioned.fill(
+                            child: (hasTrackingUrl && _webController != null)
+                              ? WebViewWidget(controller: _webController!)
+                              : GoogleMap(
+                                  padding: const EdgeInsets.only(bottom: 0),
+                                  initialCameraPosition: CameraPosition(
+                                    target: state.restaurantLatLng ?? const LatLng(13.7563, 100.5018),
+                                    zoom: 14,
+                                  ),
+                                  onMapCreated: (controller) {
+                                    _mapController = controller;
+                                    _updateMarkers();
+                                    Future.delayed(const Duration(milliseconds: 400), _fitBounds);
+                                  },
+                                  markers: _markers,
+                                  polylines: _polylines,
+                                  myLocationEnabled: false,
+                                  zoomControlsEnabled: false,
+                                  mapToolbarEnabled: false,
+                                  compassEnabled: false,
+                                  style: AppMapTheme.defaultStyle,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              })(),
             ),
 
             // Info Card
@@ -494,18 +482,16 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 width: 48,
                                 height: 48,
                                 child: state.logoPath != null && state.logoPath!.isNotEmpty
-                                  ? Image.network(
-                                      state.logoPath!,
+                                  ? CachedNetworkImage(
+                                      imageUrl: state.logoPath!,
                                       width: 48,
                                       height: 48,
                                       fit: BoxFit.cover,
-                                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                                        return Container(
-                                          color: Colors.grey[200],
-                                          child: const Center(child: CustomLoadingIndicator(size: 24)),
-                                        );
-                                      },
-                                      errorBuilder: (context, error, stackTrace) => _buildNoImageAvatar(),
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey[100],
+                                        child: const Center(child: CustomLoadingIndicator(size: 24)),
+                                      ),
+                                      errorWidget: (context, url, error) => _buildNoImageAvatar(),
                                     )
                                   : _buildNoImageAvatar(),
                               ),
@@ -558,7 +544,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                     Text(
                                       state.displayTotalAmount ?? '${total.toStringAsFixed(0)} ฿',
                                       style: GoogleFonts.poppins(
-                                          fontSize: 17,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w600,
                                           color: Colors.black),
                                     ),
@@ -944,72 +930,45 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
   Widget _buildProgressBar() {
     return Stack(
-      alignment: Alignment.center,
       children: [
-        // Background line
+        // Background track (Gray line connecting nodes)
         Positioned(
           left: 18,
           right: 18,
+          top: 18,
           child: Container(
             height: 3,
             color: Colors.grey.shade200,
           ),
         ),
-        // Animated fill lines
+        // Animated Segments
         Positioned(
           left: 18,
           right: 18,
+          top: 18,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              return AnimatedBuilder(
-                animation: Listenable.merge([_progressAnimController, _idleSolidController, _lightProgressController]),
-                builder: (context, child) {
-                  final double baseFraction = _progressAnimController.value.clamp(0.0, 1.0);
-                  final double segmentWidth = constraints.maxWidth / 3.0;
-                  final double baseSolidWidth = constraints.maxWidth * baseFraction;
-                  
-                  final double idleSolidWidth = segmentWidth * _idleSolidController.value;
-                  // Critical Fix: Only allow the solid bar to grow beyond the base dot if we are at status 1, 2, or 3
-                  // and ensure it doesn't leak into the *next* status accidentally.
-                  final double totalSolidWidth = (baseSolidWidth + idleSolidWidth).clamp(0.0, baseSolidWidth + segmentWidth);
-
-                  final double remainingIdleDistance = segmentWidth - idleSolidWidth;
-                  final double lightProgressWidthRelative = remainingIdleDistance * _lightProgressController.value;
-                  final double totalLightTrailWidth = (totalSolidWidth + lightProgressWidthRelative).clamp(0.0, constraints.maxWidth);
-
-                  final bool isFinalStatus = _currentStatus >= 4;
-
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Stack(
-                      children: [
-                        // Light Pink Trail (Underneath/Next to solid)
-                        if (!isFinalStatus && totalLightTrailWidth > 0)
-                          Container(
-                            height: 3,
-                            width: totalLightTrailWidth,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFB3C6),
-                            ),
-                          ),
-                        // Solid Pink Component (With gradient tip)
-                        Container(
-                          height: 3,
-                          width: isFinalStatus ? constraints.maxWidth : totalSolidWidth,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFED3973),
-                            gradient: (!isFinalStatus && idleSolidWidth > 0)
-                                ? const LinearGradient(
-                                    colors: [Color(0xFFED3973), Color(0xFFFFB3C6)],
-                                    stops: [0.8, 1.0],
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              final double availableWidth = (constraints.maxWidth - 36).clamp(0.0, double.infinity);
+              if (availableWidth <= 0) return const SizedBox.shrink();
+              final segmentWidth = availableWidth / 3.0;
+              return Row(
+                children: [
+                   _buildSegment(
+                     width: segmentWidth,
+                     filled: _currentStatus > 1,
+                     isProcessing: _currentStatus == 1,
+                   ),
+                   _buildSegment(
+                     width: segmentWidth,
+                     filled: _currentStatus > 2,
+                     isProcessing: _currentStatus == 2,
+                   ),
+                   _buildSegment(
+                     width: segmentWidth,
+                     filled: _currentStatus > 3,
+                     isProcessing: _currentStatus == 3,
+                   ),
+                ],
               );
             },
           ),
@@ -1025,6 +984,68 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildSegment({required double width, required bool filled, bool isProcessing = false}) {
+    return SizedBox(
+      width: width,
+      height: 3,
+      child: Stack(
+        children: [
+          if (filled)
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFED3973),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          if (isProcessing)
+            AnimatedBuilder(
+              animation: _processingController,
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    // Growing fill line
+                    Container(
+                      width: width * _processingController.value,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFED3973).withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(2),
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFED3973).withValues(alpha: 0.1),
+                            const Color(0xFFED3973),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Moving dot/glow at the tip
+                    Positioned(
+                      left: width * _processingController.value - 6,
+                      top: -1.5,
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFED3973),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFFED3973),
+                              blurRadius: 6,
+                              spreadRadius: 2,
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 

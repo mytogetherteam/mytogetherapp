@@ -75,7 +75,7 @@ class NotificationService {
           final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
           ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
         } catch (e) {
-          debugPrint('FCM data parse error: $e');
+          // Ignore parse errors
         }
       }
 
@@ -122,9 +122,7 @@ class NotificationService {
         await _sendTokenToServer(token);
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('FCM: Error getting token: $e');
-      }
+      // Ignore token retrieval errors
     }
   }
 
@@ -140,13 +138,7 @@ class NotificationService {
         },
       );
     } catch (e) {
-      if (kDebugMode) {
-        if (e is DioException) {
-          print('FCM: Error registering device: ${e.response?.statusCode} - ${e.response?.data}');
-        } else {
-          print('FCM: Error registering device: $e');
-        }
-      }
+      // Ignore token registration errors
     }
   }
 
@@ -222,8 +214,8 @@ class NotificationService {
         }
         return; // Handled order routing
       } catch (e) {
-        debugPrint('FCM parsing or routing error: $e');
-      }
+          // Ignore FCM routing errors
+        }
     }
 
     App.navigatorKey.currentState?.push(

@@ -22,18 +22,15 @@ class UserLocationRepository extends ChangeNotifier {
       return;
     }
     _activeLocation = location;
-    debugPrint('📍 UserLocationRepository: Active location set to: ${location.locationName}');
     notifyListeners();
   }
 
   Future<List<UserLocationModel>> getRawLocations({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedLocations != null) {
-      debugPrint('📍 UserLocationRepository: Returning cached locations');
       return _cachedLocations!;
     }
 
     try {
-      debugPrint('📍 UserLocationRepository: Fetching locations from API');
       final response = await _dio.get(_baseUrl);
       if (response.statusCode == 200 && response.data != null) {
         final dynamic rawData = response.data;
@@ -49,7 +46,6 @@ class UserLocationRepository extends ChangeNotifier {
       }
       return _cachedLocations ?? [];
     } catch (e) {
-      debugPrint('❌ UserLocationRepository: getRawLocations failed: $e');
       if (_cachedLocations != null) return _cachedLocations!;
       rethrow;
     }
@@ -75,7 +71,6 @@ class UserLocationRepository extends ChangeNotifier {
       }
       throw Exception('Failed to add location');
     } catch (e) {
-      debugPrint('❌ UserLocationRepository: addLocation failed: $e');
       rethrow;
     }
   }
@@ -100,7 +95,6 @@ class UserLocationRepository extends ChangeNotifier {
       }
       throw Exception('Failed to update location');
     } catch (e) {
-      debugPrint('❌ UserLocationRepository: updateLocation failed: $e');
       rethrow;
     }
   }

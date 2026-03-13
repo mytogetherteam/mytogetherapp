@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -35,7 +35,6 @@ class AwaitingPaymentPage extends StatefulWidget {
 }
 
 class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
-  bool _isCancelling = false;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
   File? _receiptImage;
@@ -45,6 +44,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   @override
   void initState() {
     super.initState();
+    // Prevent screenshots/screen recording on this sensitive payment page
+    if (Platform.isAndroid) {
+      const MethodChannel('secure_screen').invokeMethod('enable');
+    }
     // Load persisted state if needed
     _showUploadSection = ActiveOrderState.instance.showUploadSection;
 
@@ -73,6 +76,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
   @override
   void dispose() {
+    // Re-enable screenshots when leaving payment page
+    if (Platform.isAndroid) {
+      const MethodChannel('secure_screen').invokeMethod('disable');
+    }
     _orderSubscription?.cancel();
     super.dispose();
   }
@@ -266,105 +273,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
 
 
-  void _showCancelConfirm() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-              const SizedBox(height: 20),
-              Text('Cancel Order?',
-                  style: GoogleFonts.poppins(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(
-                'Are you sure you want to cancel this order?',
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.black26),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text('Keep Order',
-                          style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600, color: Colors.black87)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isCancelling ? null : () async {
-                        setModalState(() => _isCancelling = true);
-                        if (mounted) setState(() => _isCancelling = true);
-                        
-                        try {
-                          // 1. Remove store from cart
-                          final storeName = ActiveOrderState.instance.storeName;
-                          if (storeName != null) {
-                            CartManager.instance.removeStore(storeName);
-                          }
-                          
-                          // 2. Call backend cancel
-                          await ActiveOrderState.instance.cancelActiveOrder();
-                          
-                          // 3. Navigation
-                          if (mounted) {
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                            NavigationController.instance.goToFoodTab();
-                          }
-                        } finally {
-                          setModalState(() => _isCancelling = false);
-                          if (mounted) setState(() => _isCancelling = false);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFED3973),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: _isCancelling 
-                        ? const CustomLoadingIndicator(size: 20, color: Colors.white)
-                        : Text('Cancel Order',
-                            style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
 
   Widget _buildQrSection() {
@@ -742,20 +651,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                 ),
               ],
 
-              const SizedBox(height: 16),
-              // Cancel order
-              Center(
-                child: TextButton(
-                  onPressed: _showCancelConfirm,
-                  child: Text(
-                    'Cancel order',
-                    style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ),
+
             ],
           ),
         ),

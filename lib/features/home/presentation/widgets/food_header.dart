@@ -36,7 +36,6 @@ class _FoodHeaderState extends State<FoodHeader> {
     final cachedPos = LocationService().cachedPosition;
     
     if (cachedAddr != null && cachedPos != null) {
-      debugPrint('📍 FoodHeader: Found cached location: $cachedAddr');
       if (mounted) {
         final loc = UserLocationModel(
           id: -1, // Temporary flag for cached
@@ -75,24 +74,19 @@ class _FoodHeaderState extends State<FoodHeader> {
         return; // Success, we have the official primary
       }
     } catch (e) {
-      debugPrint('📍 FoodHeader: API Error or Timeout: $e');
+      // API error or timeout, fall through to GPS fallback
     }
 
     // 2. If no primary found in API (or API failed), trigger robust fallback
-    debugPrint('📍 FoodHeader: Falling back to GPS detection');
     await _fallbackToCurrentLocation();
   }
 
   Future<void> _fallbackToCurrentLocation() async {
     try {
-      debugPrint('📍 FoodHeader: GPS Fallback: Detecting position');
       final pos = await LocationService().getCurrentPosition().timeout(
         const Duration(seconds: 10),
         onTimeout: () => throw Exception('GPS detection timed out'),
       );
-      debugPrint('📍 FoodHeader: GPS Fallback: Detected: ${pos.latitude}, ${pos.longitude}');
-      
-      debugPrint('📍 FoodHeader: GPS Fallback: Reverse geocoding');
       final place = await LocationSearchService.instance.reverseGeocode(pos.latitude, pos.longitude).timeout(
         const Duration(seconds: 8),
         onTimeout: () => throw Exception('Geocoding timed out'),
@@ -118,7 +112,6 @@ class _FoodHeaderState extends State<FoodHeader> {
           UserLocationRepository.instance.setActiveLocation(newLoc);
         }
 
-        debugPrint('📍 FoodHeader: GPS Fallback: Saving new location to API');
         try {
           final savedLoc = await UserLocationRepository.instance.addLocation(newLoc).timeout(
             const Duration(seconds: 5),
@@ -129,15 +122,12 @@ class _FoodHeaderState extends State<FoodHeader> {
             UserLocationRepository.instance.setActiveLocation(savedLoc);
           }
         } catch (e) {
-          debugPrint('📍 FoodHeader: GPS Fallback: Could not save to API: $e');
           // We still show the detected location even if saving fails
         }
       } else {
-        debugPrint('📍 FoodHeader: GPS Fallback: Geocode failed');
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      debugPrint('📍 FoodHeader: GPS Fallback: Critical error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

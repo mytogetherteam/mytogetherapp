@@ -50,11 +50,11 @@ class FoodMenuItemCard extends StatefulWidget {
   State<FoodMenuItemCard> createState() => _FoodMenuItemCardState();
 }
 
-class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerProviderStateMixin {
+class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _borderController;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _floatAnimation;
-  late Animation<double> _borderAnimation;
 
   @override
   void initState() {
@@ -74,19 +74,24 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: const Offset(0, -0.06), end: Offset.zero).chain(CurveTween(curve: Curves.bounceOut)), weight: 60),
     ]).animate(_controller);
 
-    _borderAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 2.5).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 2.5, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 60),
-    ]).animate(_controller);
+    _borderController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
 
     if (widget.isHighlighted) {
       _controller.forward();
+      // Start border tracing animation after a slight delay
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) _borderController.forward();
+      });
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _borderController.dispose();
     super.dispose();
   }
 
@@ -104,7 +109,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerPr
             scale: _scaleAnimation.value,
             child: GestureDetector(
               onTap: () {
-                if (widget.forceRestaurantNavigation || (widget.targetMenuItemId != null && widget.targetMenuItemId != widget.id)) {
+                if (widget.forceRestaurantNavigation) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -143,36 +148,71 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerPr
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: const Color(0xFFED3A72),
-                                width: _borderAnimation.value,
+                          child: AnimatedBuilder(
+                            animation: _borderController,
+                            builder: (context, child) {
+                              return ShaderMask(
+                                blendMode: BlendMode.srcATop,
+                                shaderCallback: (Rect bounds) {
+                                  // Sweep a diagonal shine from top-left to bottom-right
+                                  // Animation goes from -1.0 to 1.0 (hidden to hidden)
+                                  final double slide = (_borderController.value * 3) - 1.5; 
+                                  
+                                  return LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.6), // The shine core
+                                      Colors.white.withValues(alpha: 0.8), // The shine center
+                                      Colors.white.withValues(alpha: 0.6), // The shine core
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.0),
+                                    ],
+                                    stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
+                                    transform: GradientRotation(0.35), // Slight tilt
+                                    // Move the gradient based on slide
+                                    tileMode: TileMode.clamp,
+                                  ).createShader(
+                                    Rect.fromLTWH(
+                                      bounds.width * slide, 
+                                      bounds.height * slide, 
+                                      bounds.width, 
+                                      bounds.height
+                                    ),
+                                  );
+                                },
+                                child: child,
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              clipBehavior: Clip.antiAlias,
-                              child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                ? _buildFallbackImage()
-                                : (isNetworkImage
-                                    ? CachedNetworkImage(
-                                      imageUrl: widget.imagePath,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => const ImageSkeletonLoader(),
-                                      errorWidget: (context, url, error) => _buildFallbackImage(),
-                                      fadeInDuration: const Duration(milliseconds: 300),
-                                    )
-                                  : Image.asset(
-                                      widget.imagePath,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return _buildFallbackImage();
-                                      },
-                                    )),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                clipBehavior: Clip.antiAlias,
+                                child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
+                                  ? _buildFallbackImage()
+                                  : (isNetworkImage
+                                      ? CachedNetworkImage(
+                                        imageUrl: widget.imagePath,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const ImageSkeletonLoader(),
+                                        errorWidget: (context, url, error) => _buildFallbackImage(),
+                                        fadeInDuration: const Duration(milliseconds: 300),
+                                      )
+                                    : Image.asset(
+                                        widget.imagePath,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return _buildFallbackImage();
+                                        },
+                                      )),
+                              ),
                             ),
                           ),
                         ),
@@ -291,7 +331,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerPr
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Center(
         child: Column(
@@ -317,3 +357,5 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with SingleTickerPr
     );
   }
 }
+
+// Previous _BorderPainter removed in favor of mirror reflection ShaderMask logic inside Build.

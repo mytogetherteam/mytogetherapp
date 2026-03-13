@@ -94,8 +94,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (!mounted) return;
       
-      debugPrint('📍 [OrderTrackingPage] WS Update: $update');
-      
       // Handle the server wrapper: { "type": "ORDER_UPDATE", "order": { ... } }
       Map<String, dynamic> data = update;
       if (update.containsKey('order') && update['order'] is Map) {
@@ -103,9 +101,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       } else if (update.containsKey('data') && update['data'] is Map) {
         data = update['data'] as Map<String, dynamic>;
       }
-
       final status = (data['status'] as String?) ?? (update['type'] as String?);
-      debugPrint('📍 [OrderTrackingPage] Detected Status string: $status');
       
       if (mounted) {
         setState(() {});
@@ -117,7 +113,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         // If the shop accepted, navigate to Payment
         final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'PAYMENT_SLIP_REQUESTED'];
         if (transitionStatuses.contains(upperStatus)) {
-          debugPrint('📍 [OrderTrackingPage] Match found! Triggering navigation to payment...');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToPayment();
           });
@@ -648,7 +643,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         if (mounted) setState(() => _isRouting = false);
       }
     } catch (e) {
-      debugPrint('Routing error: $e. Falling back to straight line.');
       if (mounted) {
         final fallbackPoints = [start, dest];
         final distanceM = Geolocator.distanceBetween(
@@ -787,7 +781,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
-            left: 16, // Changed from right: 16
+            right: 16,
             child: GestureDetector(
               onTap: _goHome,
               child: Container(

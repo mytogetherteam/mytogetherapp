@@ -133,6 +133,26 @@ class CartItemDto {
       currency: json['currency'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'menuItemId': menuItemId,
+    'name': name,
+    'nameMm': nameMm,
+    'quantity': quantity,
+    'price': price,
+    'total': total,
+    'displayPrice': displayPrice,
+    'displayTotal': displayTotal,
+    'imageUrl': imageUrl,
+    'variantName': variantName,
+    'variantNameMm': variantNameMm,
+    'optionNames': optionNames,
+    'optionIds': optionIds,
+    'variantId': variantId,
+    'specialInstructions': specialInstructions,
+    'currency': currency,
+  };
 }
 
 /// Represents the full cart response
@@ -191,4 +211,18 @@ class CartDto {
 
   /// Total number of individual items (sum of quantities)
   int get totalQuantity => items.fold(0, (sum, i) => sum + i.quantity);
+
+  Map<String, dynamic> toJson() => {
+    'shopId': shopId,
+    'shopName': shopName,
+    'shopNameEn': shopNameEn,
+    'shopNameMm': shopNameMm,
+    'shopImageUrl': shopImageUrl,
+    'items': items.map((i) => i.toJson()).toList(),
+    'subtotal': subtotal,
+    'deliveryFee': deliveryFee,
+    'total': total,
+    'totalItems': totalItems,
+    'currency': currency,
+  };
 }

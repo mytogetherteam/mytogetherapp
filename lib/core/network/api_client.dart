@@ -18,7 +18,6 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
       ),
     );
@@ -26,11 +25,7 @@ class ApiClient {
     // Auth interceptor: attaches Bearer token and handles 401 auto-refresh
     _dio.interceptors.add(AuthInterceptor(_dio));
 
-    // Logging interceptor for debugging
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-    ));
+    // No logging interceptor to keep console clean for production beta
   }
 
   Dio get dio => _dio;

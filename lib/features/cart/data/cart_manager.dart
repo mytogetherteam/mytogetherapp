@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'cart_repository.dart';
 import 'models/cart_dto.dart';
 
@@ -62,14 +64,60 @@ class CartManager extends ChangeNotifier {
 
   final List<CartStore> _stores = [];
 
+  static const _cacheKey = 'cart_cache_json';
+  static const _cacheTimestampKey = 'cart_cache_ts';
+  static const _cacheTtlMs = 5 * 60 * 1000; // 5 minutes
+
   List<CartStore> get stores => List.unmodifiable(_stores);
 
+  /// Returns cached cart stores if the cache is fresh (< 5 min).
+  /// Returns null if cache is stale or missing.
+  Future<bool> _loadCachedCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ts = prefs.getInt(_cacheTimestampKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - ts > _cacheTtlMs) return false; // stale
+
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null) return false;
+
+      final List<dynamic> decoded = json.decode(raw);
+      final carts = decoded.map((e) => CartDto.fromJson(e as Map<String, dynamic>)).toList();
+      _updateFromCarts(carts);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _cacheCart(List<CartDto> carts) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = json.encode(carts.map((c) => c.toJson()).toList());
+      await prefs.setString(_cacheKey, encoded);
+      await prefs.setInt(_cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
+  Future<void> invalidateCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheTimestampKey);
+    } catch (_) {}
+  }
+
   Future<void> syncWithApi() async {
+    // If cache is fresh, skip the API call entirely
+    final hitCache = await _loadCachedCart();
+    if (hitCache) return;
+
     try {
       final carts = await CartRepository.instance.getAllCarts();
       _updateFromCarts(carts);
+      await _cacheCart(carts);
     } catch (e) {
-      debugPrint('Error syncing cart with API: $e');
+      // Ignore sync errors
     }
   }
 
@@ -153,8 +201,9 @@ class CartManager extends ChangeNotifier {
     int? variantId,
     String? variantName,
     String? variantNameMm,
-  }) {
-    syncWithApi();
+  }) async {
+    await invalidateCache();
+    await syncWithApi();
   }
 
   Future<CartDto?> updateItemQuantity(
@@ -164,15 +213,70 @@ class CartManager extends ChangeNotifier {
     String? options, 
     String? specialInstructions, 
     int? variantId,
+    String? variantName,
+    String? variantNameMm,
     List<int>? optionIds,
   }) async {
     final cartItemId = int.tryParse(itemId);
     if (cartItemId == null) return null;
 
+    // --- Optimistic UI Update ---
+    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    if (storeIndex != -1) {
+      final store = _stores[storeIndex];
+      final itemIndex = store.items.indexWhere((i) => i.id == itemId);
+      if (itemIndex != -1) {
+        if (newQuantity <= 0) {
+          final updatedItems = List<CartItem>.from(store.items)..removeAt(itemIndex);
+          if (updatedItems.isEmpty) {
+            _stores.removeAt(storeIndex);
+          } else {
+            _stores[storeIndex] = CartStore(
+               name: store.name,
+               distance: store.distance,
+               time: store.time,
+               items: updatedItems,
+            );
+          }
+        } else {
+          final updatedItems = List<CartItem>.from(store.items);
+          final oldItem = updatedItems[itemIndex];
+          updatedItems[itemIndex] = CartItem(
+            id: oldItem.id,
+            menuItemId: oldItem.menuItemId,
+            restaurantId: oldItem.restaurantId,
+            title: oldItem.title,
+            price: oldItem.price, // Technically price could change based on variants/options, but the API sync will fix this in ~500ms
+            imagePath: oldItem.imagePath,
+            nameMm: oldItem.nameMm,
+            imageUrl: oldItem.imageUrl,
+            quantity: newQuantity,
+            options: options ?? oldItem.options, // Use new options if provided
+            optionIds: optionIds ?? oldItem.optionIds, // Use new optionIds if provided
+            specialInstructions: specialInstructions ?? oldItem.specialInstructions, // Use new instructions if provided
+            variantId: variantId ?? oldItem.variantId, // Use new variantId if provided
+            variantName: variantName ?? oldItem.variantName, // Use new variantName if provided
+            variantNameMm: variantNameMm ?? oldItem.variantNameMm, // Use new variantNameMm if provided
+          );
+          _stores[storeIndex] = CartStore(
+            name: store.name,
+            distance: store.distance,
+            time: store.time,
+            items: updatedItems,
+          );
+        }
+        notifyListeners(); // Refresh UI instantly
+      }
+    }
+    // ----------------------------
+
+
     try {
       CartDto? result;
+      bool wasDeleted = false;
       if (newQuantity <= 0) {
         result = await CartRepository.instance.removeCartItem(cartItemId);
+        wasDeleted = true;
       } else {
         result = await CartRepository.instance.updateCartItem(cartItemId, UpdateCartItemRequest(
           quantity: newQuantity,
@@ -184,11 +288,18 @@ class CartManager extends ChangeNotifier {
       
       if (result != null) {
         updateCartFromDto(result);
+        await invalidateCache();
+      } else if (wasDeleted) {
+        // API returned null on delete = success, cart is perfectly empty!
+        _stores.removeWhere((s) => s.name == storeName);
+        notifyListeners();
+        await invalidateCache();
       }
       
       return result;
     } catch (e) {
-      debugPrint('Error updating cart item: $e');
+      // If an update fails, force a sync to ensure local state matches server
+      await syncWithApi();
       return null;
     }
   }
@@ -218,18 +329,20 @@ class CartManager extends ChangeNotifier {
           await CartRepository.instance.removeCartItem(cartItemId);
         }
       }
-      
+
+      await invalidateCache();
       // Sync with API to get fresh state
       await syncWithApi();
     } catch (e) {
-      debugPrint('Error removing store items: $e');
       // Still sync just in case some were removed
+      await invalidateCache();
       await syncWithApi();
     }
   }
 
   Future<void> clearCart() async {
     await CartRepository.instance.clearCart();
+    await invalidateCache();
     await syncWithApi();
   }
 
