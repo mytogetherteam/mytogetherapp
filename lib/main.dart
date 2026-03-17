@@ -8,6 +8,7 @@ import 'features/cart/data/cart_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/notifications/notification_service.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'app.dart';
 
 @pragma('vm:entry-point')
@@ -16,26 +17,41 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  print('[BOOT] --- APP BOOT START ---');
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  print('[BOOT] WidgetsBinding initialized.');
+  
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  print('[BOOT] Splash preserved.');
 
-  await Firebase.initializeApp();
+  try {
+    print('[BOOT] Initializing Firebase...');
+    await Firebase.initializeApp();
+    print('[BOOT] Firebase initialized successfully.');
+  } catch (e) {
+    print('[BOOT] Firebase initialization failed: $e');
+  }
   
-  // Initialize auth session FIRST so NotificationService can register the token
+  print('[BOOT] Initializing AuthService...');
   await AuthService().initialize();
+  print('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
   
-  // Initialize notification service in background to avoid splash screen hang
+  print('[BOOT] Initializing NotificationService (background)...');
   NotificationService().initialize();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  print('[BOOT] NotificationService initialization triggered.');
 
-  // Pre-fetch location once at startup — permission dialog (if needed) shows
-  // here, never again mid-navigation. Result is cached in LocationService.
+  print('[BOOT] Starting LocationService pre-fetch...');
   LocationService().getCurrentPosition();
+  print('[BOOT] LocationService pre-fetch triggered.');
 
-  // Load active order state if any
+  print('[BOOT] Loading active order state...');
   await ActiveOrderState.instance.loadFromPrefs();
+  print('[BOOT] Active order state loaded.');
 
-  // Sync cart from API on startup
+  print('[BOOT] Syncing cart...');
   CartManager.instance.syncWithApi();
+  print('[BOOT] Cart sync triggered.');
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -44,8 +60,15 @@ void main() async {
     ),
   );
 
-  // Disable Google Fonts CDN — use locally bundled Poppins from assets/fonts/
   GoogleFonts.config.allowRuntimeFetching = false;
 
+  print('[BOOT] Calling runApp()...');
   runApp(const App());
+  print('[BOOT] runApp() called.');
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    print('[BOOT] --- FIRST FRAME RENDERED ---');
+    FlutterNativeSplash.remove();
+    print('[BOOT] Native splash removal requested.');
+  });
 }

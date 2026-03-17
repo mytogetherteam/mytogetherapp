@@ -106,6 +106,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('[BOOT] Building MainNavigationScreen...');
     return Scaffold(
       body: Stack(
         children: [

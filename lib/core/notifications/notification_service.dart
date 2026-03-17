@@ -23,7 +23,15 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FirebaseMessaging? _fcm;
+  FirebaseMessaging get fcm {
+    try {
+      _fcm ??= FirebaseMessaging.instance;
+    } catch (e) {
+      debugPrint('Firebase Messaging not available: $e');
+    }
+    return _fcm!; 
+  }
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
@@ -58,15 +66,19 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     // Request permissions
-    await _fcm.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('FCM permission request failed: $e');
+    }
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -107,7 +119,7 @@ class NotificationService {
     // Check if the app was opened from a terminated state via a notification
     // Add a timeout to prevent hanging the initialization if Firebase is unresponsive
     try {
-      RemoteMessage? initialMessage = await _fcm.getInitialMessage().timeout(
+      RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage().timeout(
         const Duration(seconds: 2),
       );
       if (initialMessage != null) {
@@ -123,11 +135,15 @@ class NotificationService {
     }
 
     // Listen for token refreshes
-    _fcm.onTokenRefresh.listen((newToken) {
-      if (AuthService().isLoggedIn) {
-        _sendTokenToServer(newToken);
-      }
-    });
+    try {
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+        if (AuthService().isLoggedIn) {
+          _sendTokenToServer(newToken);
+        }
+      });
+    } catch (e) {
+      debugPrint('FCM onTokenRefresh failed: $e');
+    }
 
     _isInitialized = true;
   }
@@ -139,7 +155,7 @@ class NotificationService {
 
   Future<void> _registerDeviceInBackground() async {
     try {
-      String? token = await _fcm.getToken().timeout(const Duration(seconds: 5));
+      String? token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 5));
       if (token != null) {
         await _sendTokenToServer(token);
       }

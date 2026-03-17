@@ -71,12 +71,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    print('[BOOT] Building HomePage...');
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.red,
       floatingActionButton: const StyledCartFab(),
       body: SafeArea(
         bottom: false,

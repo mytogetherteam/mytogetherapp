@@ -371,7 +371,7 @@ class OperatingHourDto {
 
   factory OperatingHourDto.fromJson(Map<String, dynamic> json) {
     return OperatingHourDto(
-      dayOfWeek: json['dayOfWeek'] ?? '',
+      dayOfWeek: json['dayOfWeek']?.toString() ?? '',
       openingTime: json['openingTime'] != null ? LocalTimeDto.fromJson(json['openingTime']) : null,
       closingTime: json['closingTime'] != null ? LocalTimeDto.fromJson(json['closingTime']) : null,
       isClosed: json['isClosed'] ?? false,

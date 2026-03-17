@@ -14,6 +14,7 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Building App widget...');
     return LifecycleObserver(
       child: MaterialApp(
         title: 'Mytogether',
