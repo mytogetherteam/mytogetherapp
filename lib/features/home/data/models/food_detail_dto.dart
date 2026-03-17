@@ -57,7 +57,7 @@ class FoodDetailDto {
 
   factory FoodDetailDto.fromJson(Map<String, dynamic> json) {
     return FoodDetailDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       shopId: json['shopId'],
       shopName: json['shopName'] as String? ?? json['shopNameEn'] as String? ?? json['shopNameMm'] as String?,
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
@@ -92,6 +92,7 @@ class MenuItemVariantDto {
   final String name;
   final String? nameMm;
   final double price;
+  final String? displayPrice;
   final bool isAvailable;
 
   MenuItemVariantDto({
@@ -99,15 +100,17 @@ class MenuItemVariantDto {
     required this.name,
     this.nameMm,
     required this.price,
+    this.displayPrice,
     this.isAvailable = true,
   });
 
   factory MenuItemVariantDto.fromJson(Map<String, dynamic> json) {
     return MenuItemVariantDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      displayPrice: json['displayPrice'] as String?,
       isAvailable: json['isAvailable'] ?? true,
     );
   }
@@ -136,7 +139,7 @@ class MenuItemOptionGroupDto {
 
   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
     return MenuItemOptionGroupDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
       groupType: json['groupType'] ?? 'MULTI_SELECT',
@@ -156,20 +159,23 @@ class MenuItemOptionDto {
   final String name;
   final String? nameMm;
   final double price;
+  final String? displayPrice;
 
   MenuItemOptionDto({
     required this.id,
     required this.name,
     this.nameMm,
     required this.price,
+    this.displayPrice,
   });
 
   factory MenuItemOptionDto.fromJson(Map<String, dynamic> json) {
     return MenuItemOptionDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      displayPrice: json['displayPrice'] as String?,
     );
   }
 }

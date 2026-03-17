@@ -61,15 +61,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       return;
     }
 
+    // Rely on LocationService singleton for permissions (handled at startup)
+    // or just check briefly without requesting to avoid double prompts.
     permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return;
-      }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied || 
+        permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -509,6 +505,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           popularDishes: data.popularDishes,
           recommendations: data.recommendations,
           hotDeals: data.hotDeals,
+          isFavorite: _localFavorites[data.id] ?? data.isFavorite,
         ),
       ),
     );
@@ -846,6 +843,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               imageUrls: data.imageUrls,
                               isExpanded: _expandedRestaurantId == data.id,
                               isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+                              onViewMenu: () => _navigateToDetail(data),
                               onFavoriteToggle: () => _toggleFavorite(data),
                               onTap: () {
                                 setState(() {
@@ -880,7 +878,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   }
                                 });
                               },
-                              onViewMenu: () => _navigateToDetail(data),
                             );
                           },
                         );

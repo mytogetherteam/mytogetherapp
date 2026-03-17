@@ -7,9 +7,9 @@ import '../../../../features/news/presentation/screens/news_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
+import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../features/cart/presentation/widgets/active_order_bar.dart';
 import '../../../../core/utils/navigation_controller.dart';
-import 'package:geolocator/geolocator.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -21,6 +21,7 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   int? _lastStatus;
+  final Set<String> _notifiedCancelledOrders = {};
 
   final List<Widget> _screens = const [
     HomePage(),
@@ -32,7 +33,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    _requestLocationPermission();
     NavigationController.instance.tabChangeRequest.addListener(_onTabChangeRequested);
     
     // Global listener for order completion
@@ -42,15 +42,45 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   void _onOrderStateChanged() {
     if (!mounted) return;
-    final newStatus = ActiveOrderState.instance.orderStatus;
+    final state = ActiveOrderState.instance;
+    final newStatus = state.orderStatus;
     
-    // If transition to COMPLETED (4) happens, navigate to completion page
-    if (newStatus == 4 && _lastStatus != 4) {
+    // Check for transition to COMPLETED (4)
+    if (newStatus == 4 && _lastStatus != 4 && !OrderCompletePage.isCurrentlyVisible) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const OrderCompletePage()),
       );
     }
+    
+    // Check for any order that just became CANCELLED (-1)
+    // We check allOrdersList to find terminal states that are filtered out of activeOrdersList
+    for (final order in state.allOrdersList) {
+      if (order.orderStatus == -1 && !_notifiedCancelledOrders.contains(order.orderId)) {
+        _notifiedCancelledOrders.add(order.orderId);
+        
+        // Use a small delay to ensure WS state has settled and avoid UI jank
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderCancelPage(
+                  orderId: order.orderId,
+                  reason: order.cancelReason,
+                  shopId: order.shopId,
+                  shopName: order.shopName,
+                  shopNameMm: order.shopNameMm,
+                  shopLogo: order.shopLogo,
+                  shopImageUrl: order.shopImageUrl,
+                ),
+              ),
+            );
+          }
+        });
+      }
+    }
+    
     _lastStatus = newStatus;
   }
 
@@ -59,20 +89,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (requested != null && mounted) {
       setState(() => _currentIndex = requested);
       NavigationController.instance.tabChangeRequest.value = null;
-    }
-  }
-
-  Future<void> _requestLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
     }
   }
 

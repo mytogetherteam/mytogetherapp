@@ -642,6 +642,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           height: 64,
                                 child: ElevatedButton(
                                   onPressed: (_isPlacingOrder || _isProcessing) ? null : () async {
+                                    setState(() => _isProcessing = true);
                                     final nav = Navigator.of(context);
                                     
                                     final foodTotal = CartManager.instance.getStoreTotal(widget.store.name);
@@ -650,7 +651,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     .items;
 
                                 bool operationCompleted = false;
-                                setState(() => _isProcessing = true);
                                 
                                 // Only show loading if it takes longer than 500ms
                                 Future.delayed(const Duration(milliseconds: 500), () {
@@ -1019,7 +1019,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 13),
                     ),
                     Text(
-                      '$fee ฿',
+                      fee.toFormattedPrice(),
                       style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -1146,7 +1146,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       child: Padding(
                         padding: const EdgeInsets.only(top: 0), // Align text baseline/top with image
                         child: Text(
-                          item.title.trim().isEmpty ? (item.nameMm ?? '') : item.title,
+                          item.title.trim().isNotEmpty ? item.title : (item.nameMm ?? ''),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -1163,14 +1163,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             title: 'Remove Item',
                             message: 'Are you sure you want to remove ${item.title} from your order?',
                             onConfirm: () async {
-                              await CartManager.instance.updateItemQuantity(
-                                storeName, 
-                                item.id, 
-                                0,
-                                options: item.options,
-                                specialInstructions: item.specialInstructions,
-                                variantId: item.variantId,
-                              );
+                                await CartManager.instance.updateItemQuantity(
+                                  storeName, 
+                                  item.id, 
+                                  0,
+                                  options: item.options,
+                                  optionIds: item.optionIds,
+                                  specialInstructions: item.specialInstructions,
+                                  variantId: item.variantId,
+                                );
                             },
                           ),
                         );
@@ -1189,9 +1190,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 ),
                 const SizedBox(height: 5),
                 // Dynamic Add-ons / Description
-                if ((item.variantName?.isNotEmpty ?? false) || (item.options?.isNotEmpty ?? false))
+                if ((item.variantName?.isNotEmpty ?? false) || (item.variantNameMm?.isNotEmpty ?? false) || (item.options?.isNotEmpty ?? false))
                   Text(
-                    '${item.variantName ?? ''}${item.variantName != null && item.options != null && item.options!.isNotEmpty ? '\n' : ''}${item.options ?? ''}',
+                    '${item.variantName ?? item.variantNameMm ?? ''}${((item.variantName != null || item.variantNameMm != null) && item.options != null && item.options!.isNotEmpty) ? '\n' : ''}${item.options ?? ''}',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[600],
@@ -1317,6 +1318,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           item.id, 
                                           0,
                                           options: item.options,
+                                          optionIds: item.optionIds,
                                           specialInstructions: item.specialInstructions,
                                           variantId: item.variantId,
                                         );
@@ -1324,14 +1326,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ),
                                   );
                                 } else {
-                                  await CartManager.instance.updateItemQuantity(
-                                    storeName, 
-                                    item.id, 
-                                    item.quantity - 1,
-                                    options: item.options,
-                                    specialInstructions: item.specialInstructions,
-                                    variantId: item.variantId,
-                                  );
+                                    await CartManager.instance.updateItemQuantity(
+                                      storeName, 
+                                      item.id, 
+                                      item.quantity - 1,
+                                      options: item.options,
+                                      optionIds: item.optionIds,
+                                      specialInstructions: item.specialInstructions,
+                                      variantId: item.variantId,
+                                    );
                                 }
                               }),
                               Container(
@@ -1352,6 +1355,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   item.id, 
                                   item.quantity + 1,
                                   options: item.options,
+                                  optionIds: item.optionIds,
                                   specialInstructions: item.specialInstructions,
                                   variantId: item.variantId,
                                 );

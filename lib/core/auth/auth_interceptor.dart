@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'auth_service.dart';
 
 class AuthInterceptor extends QueuedInterceptor {

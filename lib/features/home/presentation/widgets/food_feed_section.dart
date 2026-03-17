@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
-import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'food_list_item_card.dart';
 import 'food_menu_item_card.dart';

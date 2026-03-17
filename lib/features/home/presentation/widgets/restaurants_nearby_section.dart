@@ -128,7 +128,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 260, // Height to accommodate the card content
+              height: 280, // Increased height to accommodate multi-line restaurant names
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -158,6 +158,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                             logoPath: data.logoPath,
                             deliveryTime: data.deliveryTime,
                             status: data.status,
+                            isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                           ),
                         ),
                       );
@@ -196,7 +197,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 260,
+          height: 280,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),

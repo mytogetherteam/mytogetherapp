@@ -15,6 +15,7 @@ import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class OrderTrackingPage extends StatefulWidget {
@@ -76,10 +77,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     super.initState();
 
     // Solid idle trailing animation
+    final initialProgress = ActiveOrderState.instance.idleSolidProgress ?? 0.0;
     _idleSolidController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
-    );
+      value: initialProgress,
+    )..addListener(() {
+      ActiveOrderState.instance.updateIdleProgress(_idleSolidController.value);
+    });
 
     // Light idle trailing animation
     _lightProgressController = AnimationController(
@@ -113,6 +118,29 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         // If the shop accepted, navigate to Payment
         final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'PAYMENT_SLIP_REQUESTED'];
         if (transitionStatuses.contains(upperStatus)) {
+          final state = ActiveOrderState.instance;
+          if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
+            if (!state.hasNotifiedSlipRequest) {
+              state.setNotifiedSlipRequest(true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text('New payment slip requested by restaurant',
+                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFFED3973),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              );
+            }
+          }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToPayment();
           });
@@ -149,39 +177,52 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Future<void> _runSequentialIdleSequence() async {
     if (!mounted) return;
 
+    final startValue = _idleSolidController.value;
+
     // Stage 0: 0% -> 100% Light Trail (Solid stays at 0)
-    _idleSolidController.value = 0.0;
-    _lightProgressController.duration = const Duration(seconds: 3);
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; // Disappear
+    if (startValue <= 0.0) {
+      _idleSolidController.value = 0.0;
+      _lightProgressController.duration = const Duration(seconds: 3);
+      await _lightProgressController.forward(from: 0.0);
+      if (!mounted) return;
+      _lightProgressController.value = 0.0; // Disappear
+    }
 
     // Stage 1: Solid glides to 20%, then light trail runs 20% -> 100%
-    await _idleSolidController.animateTo(0.2, duration: const Duration(seconds: 3), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 6); // Slowed down
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; // Disappear
+    if (startValue < 0.2) {
+      await _idleSolidController.animateTo(0.2, duration: const Duration(seconds: 3), curve: Curves.linear);
+      if (!mounted) return;
+      _lightProgressController.duration = const Duration(seconds: 6); // Slowed down
+      await _lightProgressController.forward(from: 0.0);
+      if (!mounted) return;
+      _lightProgressController.value = 0.0; // Disappear
+    }
 
     // Stage 2: Solid glides to 40%, then light trail runs 40% -> 100%
-    await _idleSolidController.animateTo(0.4, duration: const Duration(seconds: 4), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; // Disappear
+    if (startValue < 0.4) {
+      await _idleSolidController.animateTo(0.4, duration: const Duration(seconds: 4), curve: Curves.linear);
+      if (!mounted) return;
+      _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+      await _lightProgressController.forward(from: 0.0);
+      if (!mounted) return;
+      _lightProgressController.value = 0.0; // Disappear
+    }
 
     // Stage 3: Solid glides to 60%, then light trail runs 60% -> 100%
-    await _idleSolidController.animateTo(0.6, duration: const Duration(seconds: 4), curve: Curves.linear);
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
-    await _lightProgressController.forward(from: 0.0);
-    if (!mounted) return;
-    _lightProgressController.value = 0.0; // Disappear
+    if (startValue < 0.6) {
+      await _idleSolidController.animateTo(0.6, duration: const Duration(seconds: 4), curve: Curves.linear);
+      if (!mounted) return;
+      _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+      await _lightProgressController.forward(from: 0.0);
+      if (!mounted) return;
+      _lightProgressController.value = 0.0; // Disappear
+    }
 
     // Stage 4: Solid glides to 70%, then light trail loops
-    await _idleSolidController.animateTo(0.7, duration: const Duration(seconds: 4), curve: Curves.linear);
+    if (startValue < 0.7) {
+      await _idleSolidController.animateTo(0.7, duration: const Duration(seconds: 4), curve: Curves.linear);
+    }
+    
     if (!mounted) return;
     _lightProgressController.duration = const Duration(seconds: 6); 
     _lightProgressController.repeat();
@@ -688,13 +729,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   void _navigateToPayment() {
-    if (!mounted) return;
+    if (!mounted || AwaitingPaymentPage.isCurrentlyVisible) return;
     _idleSequenceTimer?.cancel();
     _idleSolidController.stop();
     _lightProgressController.stop();
     _dotsAnimController.stop();
     final fee = _deliveryFee ?? 0.0;
-    Navigator.of(context).push(
+    Navigator.pushReplacement(
+      context,
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(
           foodTotal: widget.foodTotal.toDouble(),

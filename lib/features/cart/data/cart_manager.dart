@@ -370,4 +370,15 @@ class CartManager extends ChangeNotifier {
     }
     return null;
   }
+
+  /// Helper to check if a specific menu item is in a specific store's cart
+  CartItem? findItem(String storeName, int menuItemId) {
+    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    if (storeIndex != -1) {
+      for (var item in _stores[storeIndex].items) {
+        if (item.menuItemId == menuItemId) return item;
+      }
+    }
+    return null;
+  }
 }

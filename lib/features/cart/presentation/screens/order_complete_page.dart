@@ -5,7 +5,10 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
+import '../../../../core/utils/price_formatter.dart';
+
 class OrderCompletePage extends StatefulWidget {
+  static bool isCurrentlyVisible = false;
   const OrderCompletePage({super.key});
 
   @override
@@ -18,10 +21,17 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   @override
   void initState() {
     super.initState();
+    OrderCompletePage.isCurrentlyVisible = true;
     // We don't clear the order here anymore so it remains in the tracking card
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ActiveOrderState.instance.setOrderStatus(4); // 4 = Completed
     });
+  }
+
+  @override
+  void dispose() {
+    OrderCompletePage.isCurrentlyVisible = false;
+    super.dispose();
   }
 
   void _goToFoodTab() {
@@ -176,7 +186,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${total.toStringAsFixed(0)} ฿',
+                            total.toFormattedPrice(),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

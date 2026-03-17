@@ -87,6 +87,7 @@ class CartItemDto {
   final int? variantId;
   final String? specialInstructions;
   final String? currency;
+  final List<SelectedOptionDto>? selectedOptions;
 
   const CartItemDto({
     required this.id,
@@ -106,13 +107,49 @@ class CartItemDto {
     this.variantId,
     this.specialInstructions,
     this.currency,
+    this.selectedOptions,
   });
 
   factory CartItemDto.fromJson(Map<String, dynamic> json) {
+    final selectedOptions = (json['selectedOptions'] as List<dynamic>?)
+        ?.map((e) => SelectedOptionDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    // Handle nested optionGroups in cart response if present
+    final optionGroups = json['optionGroups'] as List<dynamic>?;
+    List<int>? groupOptionIds;
+    List<String>? groupOptionNames;
+    
+    if (optionGroups != null) {
+      groupOptionIds = [];
+      groupOptionNames = [];
+      for (var group in optionGroups) {
+        if (group is Map) {
+          final options = group['options'] as List<dynamic>?;
+          if (options != null) {
+            for (var opt in options) {
+              if (opt is Map) {
+                final id = int.tryParse(opt['id']?.toString() ?? '');
+                if (id != null) groupOptionIds.add(id);
+                
+                final enName = opt['nameEn']?.toString() ?? opt['name']?.toString();
+                final mmName = opt['nameMm']?.toString();
+                final displayName = (enName != null && enName.trim().isNotEmpty) ? enName : (mmName ?? '');
+                if (displayName.isNotEmpty) groupOptionNames.add(displayName);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    final enName = (json['name'] as String? ?? json['nameEn'] as String? ?? '').trim();
+    final mmName = (json['nameMm'] as String? ?? '').trim();
+
     return CartItemDto(
-      id: json['id'] as int? ?? 0,
-      menuItemId: json['menuItemId'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      menuItemId: int.tryParse(json['menuItemId']?.toString() ?? '') ?? 0,
+      name: enName.isNotEmpty ? enName : mmName,
       nameMm: json['nameMm'] as String?,
       quantity: json['quantity'] as int? ?? 1,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
@@ -124,13 +161,14 @@ class CartItemDto {
       variantNameMm: json['variantNameMm'] as String?,
       optionNames: (json['optionNames'] as List<dynamic>?)
           ?.map((e) => e.toString())
-          .toList(),
+          .toList() ?? groupOptionNames ?? selectedOptions?.map((o) => o.name).toList(),
       optionIds: (json['optionIds'] as List<dynamic>?)
-          ?.map((e) => e as int)
-          .toList(),
-      variantId: json['variantId'] as int?,
+          ?.map((e) => int.tryParse(e.toString()) ?? 0)
+          .toList() ?? groupOptionIds ?? selectedOptions?.map((o) => o.id).toList(),
+      variantId: int.tryParse(json['variantId']?.toString() ?? ''),
       specialInstructions: json['specialInstructions'] as String?,
       currency: json['currency'] as String?,
+      selectedOptions: selectedOptions,
     );
   }
 
@@ -152,6 +190,47 @@ class CartItemDto {
     'variantId': variantId,
     'specialInstructions': specialInstructions,
     'currency': currency,
+    'selectedOptions': selectedOptions?.map((e) => e.toJson()).toList(),
+  };
+}
+
+class SelectedOptionDto {
+  final int id;
+  final String name;
+  final String? nameEn;
+  final String? nameMm;
+  final double price;
+  final String? displayPrice;
+
+  SelectedOptionDto({
+    required this.id,
+    required this.name,
+    this.nameEn,
+    this.nameMm,
+    required this.price,
+    this.displayPrice,
+  });
+
+  factory SelectedOptionDto.fromJson(Map<String, dynamic> json) {
+    final enName = json['nameEn'] as String? ?? json['name'] as String?;
+    final mmName = json['nameMm'] as String?;
+    return SelectedOptionDto(
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: (enName != null && enName.trim().isNotEmpty) ? enName : (mmName ?? ''),
+      nameEn: json['nameEn'],
+      nameMm: json['nameMm'],
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      displayPrice: json['displayPrice'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'nameEn': nameEn,
+    'nameMm': nameMm,
+    'price': price,
+    'displayPrice': displayPrice,
   };
 }
 

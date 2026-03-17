@@ -18,14 +18,19 @@ import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
+import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/global_modal.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
+  static bool isCurrentlyVisible = false;
+  final String? orderId;
   final double foodTotal;
   final double deliveryFee;
 
   const AwaitingPaymentPage({
     super.key,
+    this.orderId,
     required this.foodTotal,
     required this.deliveryFee,
   });
@@ -39,43 +44,72 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   bool _showUploadSection = false;
   File? _receiptImage;
   bool _isUploading = false;
+  bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
 
   @override
   void initState() {
     super.initState();
+    AwaitingPaymentPage.isCurrentlyVisible = true;
     // Prevent screenshots/screen recording on this sensitive payment page
     if (Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
     // Load persisted state if needed
-    _showUploadSection = ActiveOrderState.instance.showUploadSection;
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    _showUploadSection = order?.showUploadSection ?? false;
+
+    // Listen to global state for real-time rebuilds (e.g., when QR URL arrives)
+    ActiveOrderState.instance.addListener(_onStateUpdated);
 
     // Listen for WebSocket updates (Rider, Status, Fee)
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (mounted) {
-        setState(() {
-          _showUploadSection = ActiveOrderState.instance.showUploadSection;
-        });
-
-        // Auto-navigate to status page if payment is verified (status >= 2)
-        if (ActiveOrderState.instance.orderStatus >= 2) {
+        final state = ActiveOrderState.instance;
+        final order = state.getOrder(widget.orderId);
+        if (order == null) return;
+        
+        // ... navigation logic using 'order' status
+        if (order.orderStatus >= 2) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => OrderStatusPage(
                 foodTotal: widget.foodTotal,
-                deliveryFee: ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee,
+                deliveryFee: order.deliveryFee ?? widget.deliveryFee,
               ),
             ),
           );
         }
+
+        if (order.orderStatus == -1) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderCancelPage(
+                orderId: order.orderId,
+                reason: order.cancelReason,
+                shopId: order.shopId,
+                shopName: order.shopName,
+                shopNameMm: order.shopNameMm,
+                shopLogo: order.shopLogo,
+                shopImageUrl: order.shopImageUrl,
+              ),
+            ),
+          );
+        }
+
+        setState(() {
+          _showUploadSection = order.showUploadSection;
+        });
       }
     });
   }
 
   @override
   void dispose() {
+    ActiveOrderState.instance.removeListener(_onStateUpdated);
+    AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
     if (Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('disable');
@@ -84,10 +118,46 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     super.dispose();
   }
 
+  void _onStateUpdated() {
+    if (mounted) {
+      final order = ActiveOrderState.instance.getOrder(widget.orderId);
+      setState(() {
+        if (order != null) {
+          _showUploadSection = order.showUploadSection;
+        }
+      });
+    }
+  }
+
 
   void _goHome() {
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _showSlipRequestedToast() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'New payment slip requested by restaurant',
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFED3973),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   // Save QR to gallery
@@ -119,7 +189,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
           Future.delayed(const Duration(milliseconds: 1500), () {
             if (mounted && !_showUploadSection) {
               setState(() => _showUploadSection = true);
-              ActiveOrderState.instance.setShowUploadSection(true);
+              ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
             }
           });
         }
@@ -169,7 +239,33 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     );
 
     if (picked != null && mounted) {
-      setState(() => _receiptImage = File(picked.path));
+      final file = File(picked.path);
+      final sizeInBytes = await file.length();
+      final sizeInMb = sizeInBytes / (1024 * 1024);
+
+      if (sizeInMb > 1.0) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Image Too Large', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+              content: Text(
+                'The selected image is ${sizeInMb.toStringAsFixed(1)}MB, which exceeds the 1MB limit. Please choose a smaller image or compress it.',
+                style: GoogleFonts.poppins(fontSize: 13),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('OK', style: GoogleFonts.poppins(color: const Color(0xFFED3973))),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+      setState(() => _receiptImage = file);
     }
   }
 
@@ -209,16 +305,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
   Future<void> _submitReceipt() async {
     if (_receiptImage == null || _isUploading) return;
+    setState(() => _isUploading = true);
 
-    final orderId = ActiveOrderState.instance.orderId;
+    final orderId = widget.orderId;
     if (orderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Order ID not found. Please try again.', style: GoogleFonts.poppins())),
       );
       return;
     }
-
-    setState(() => _isUploading = true);
 
     try {
       // 1. Convert image to Base64
@@ -241,12 +336,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
       if (mounted) {
         // 3. Clear states and navigate
+        final order = ActiveOrderState.instance.getOrder(widget.orderId);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => OrderStatusPage(
               foodTotal: widget.foodTotal,
-              deliveryFee: ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee,
+              deliveryFee: order?.deliveryFee ?? widget.deliveryFee,
             ),
           ),
         );
@@ -266,6 +362,145 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  void _showCancelConfirmationSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Cancel Order?',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Are you sure you want to cancel this order?',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.black26),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      'Keep Order',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _cancelOrder();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFED3973),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      'Cancel Order',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cancelOrder() async {
+    if (_isCancelling) return;
+    setState(() => _isCancelling = true);
+
+    try {
+      final success = await ActiveOrderState.instance.cancelActiveOrder(orderId: widget.orderId);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order cancelled successfully.', 
+              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
+            backgroundColor: const Color(0xFFED3973),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        _goHome();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel order. Please try again.', 
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connection error. Could not cancel order.', 
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
     }
   }
 
@@ -312,10 +547,12 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   }
 
   Widget _buildPaymentImage() {
-    final qrUrl = ActiveOrderState.instance.shopPaymentQrUrl;
+    final qrUrl = ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl;
 
     if (qrUrl == null || qrUrl.isEmpty) {
-      return _buildNoImageState();
+      return const Center(
+        child: CustomLoadingIndicator(size: 40),
+      );
     }
 
     return CachedNetworkImage(
@@ -352,17 +589,92 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     );
   }
 
+  Widget _buildVerifyingSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const CustomLoadingIndicator(size: 40),
+          const SizedBox(height: 24),
+          Text(
+            'Verifying Payment',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We are currently verifying your payment receipt. This usually takes a few minutes.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '(ငွေလွှဲဖြတ်ပိုင်းကို စစ်ဆေးနေပါသည်။ ခေတ္တစောင့်ဆိုင်းပေးပါ။)',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFFED3973),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildUploadReceiptSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Upload Receipt',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+        Row(
+          children: [
+            if (_showUploadSection && !ActiveOrderState.instance.isSlipRequested)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _showUploadSection = false);
+                    ActiveOrderState.instance.setShowUploadSection(false, orderId: widget.orderId);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
+                  ),
+                ),
+              ),
+            Text(
+              ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true ? 'Re-upload Receipt' : 'Upload Receipt',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
 
@@ -398,7 +710,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Please ensure the transaction date, time, and amount are clearly visible in the photo.',
+                ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true
+                    ? 'The restaurant has requested a new receipt. (ဆိုင်မှ ဖြတ်ပိုင်းအသစ် ပြန်တင်ခိုင်းထားပါသည်။) Please ensure the transaction details are clearly visible.'
+                    : 'Please ensure the transaction date, time, and amount are clearly visible in the photo.',
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: const Color(0xFFED3973),
@@ -479,7 +793,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _showUploadSection ? 'Confirm payment' : 'Awaiting Payment',
+                    ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true
+                        ? 'Re-upload Receipt'
+                        : (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking == true
+                            ? 'Verifying Payment' 
+                            : (_showUploadSection ? 'Confirm payment' : 'Awaiting Payment')),
                     style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -524,29 +842,43 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'PAYMENT SUMMARY',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[500],
-                        letterSpacing: 0.8,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'PAYMENT SUMMARY',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[500],
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        if (widget.orderId != null)
+                          Text(
+                            '#${widget.orderId!}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _summaryRow('Food Price',
-                        ActiveOrderState.instance.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0),
+                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0),
                         isValue: false),
                     const SizedBox(height: 16),
                     _summaryRow('Delivery Fee',
-                        ActiveOrderState.instance.displayDeliveryFee ?? (ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0),
+                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayDeliveryFee ?? (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0),
                         isValue: false),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
                       child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow('Total',
-                        ActiveOrderState.instance.displayTotalAmount ?? (widget.foodTotal + (ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0),
+                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayTotalAmount ?? (widget.foodTotal + (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0),
                         isValue: true),
                   ],
                 ),
@@ -555,25 +887,30 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               const SizedBox(height: 20),
 
               // Rider Info Section (If available)
-              if (ActiveOrderState.instance.riderName != null) ...[
+              if (ActiveOrderState.instance.getOrder(widget.orderId)?.riderName != null) ...[
                 _buildRiderInfoCard(),
                 const SizedBox(height: 20),
               ],
 
-              // Conditional: QR section OR Upload Receipt section
-              if (!_showUploadSection) _buildQrSection(),
-              if (_showUploadSection) _buildUploadReceiptSection(),
+              // Conditional: QR section OR Upload Receipt section OR Verifying state
+              if (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking == true)
+                _buildVerifyingSection()
+              else ...[
+                if (!_showUploadSection) _buildQrSection(),
+                if (_showUploadSection) _buildUploadReceiptSection(),
+              ],
 
               const SizedBox(height: 28),
 
-              // --- BUTTONS ---
+            // --- BUTTONS ---
+            if (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking != true) ...[
               if (!_showUploadSection) ...[
-                // Save QR Code → switches to upload section
+                // Save QR Code -> switches to upload section
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: ActiveOrderState.instance.shopPaymentQrUrl != null 
+                    onPressed: ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl != null 
                         ? _saveQrToGallery 
                         : null,
                     style: ElevatedButton.styleFrom(
@@ -607,7 +944,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() => _showUploadSection = true);
-                      ActiveOrderState.instance.setShowUploadSection(true);
+                      ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -630,7 +967,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: canSubmit ? _submitReceipt : null,
+                    onPressed: (canSubmit && !_isUploading) ? _submitReceipt : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFED3973),
                       foregroundColor: Colors.white,
@@ -650,14 +987,32 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
 
-
+              // Cancel Order Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: TextButton(
+                  onPressed: _isCancelling ? null : _showCancelConfirmationSheet,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFED3973),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Cancel Order',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ],
-          ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _summaryRow(String label, String value, {required bool isValue}) {
     return Row(
@@ -684,8 +1039,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   }
 
   Widget _buildRiderInfoCard() {
-    final name = ActiveOrderState.instance.riderName ?? 'Unknown Rider';
-    final phone = ActiveOrderState.instance.riderPhone ?? 'No Phone';
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    final name = order?.riderName ?? 'Unknown Rider';
+    final phone = order?.riderPhone ?? 'No Phone';
 
     return Container(
       padding: const EdgeInsets.all(20),

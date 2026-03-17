@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../cart/data/cart_manager.dart';
 
 import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
@@ -100,232 +101,241 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
     final bool isNetworkImage = widget.imagePath.startsWith('http');
     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > widget.price;
 
-    return AnimatedBuilder(
-      animation: _controller,
+    return ListenableBuilder(
+      listenable: CartManager.instance,
       builder: (context, _) {
-        return FractionalTranslation(
-          translation: _floatAnimation.value,
-          child: Transform.scale(
-            scale: _scaleAnimation.value,
-            child: GestureDetector(
-              onTap: () {
-                if (widget.forceRestaurantNavigation) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RestaurantDetailPage(
-                        id: widget.restaurantId,
-                        name: widget.restaurantName,
-                        targetMenuItemId: widget.id,
-                      ),
-                    ),
-                  );
-                  return;
-                }
+        // Consider it favorite/filled if explicitly favorite OR if already in cart
+        final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 && 
+            CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
+        final showFilledHeart = widget.isFavorite || isInCart;
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MenuDetailPage(
-                      id: widget.id,
-                      restaurantId: widget.restaurantId,
-                      title: widget.title,
-                      price: widget.price,
-                      currency: widget.currency,
-                      imagePath: widget.imagePath,
-                      restaurantName: widget.restaurantName,
-                      displayPrice: widget.displayPrice,
-                      description: '', // Will be fetched via API in MenuDetailPage
-                    ),
-                  ),
-                );
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image Section
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: AnimatedBuilder(
-                            animation: _borderController,
-                            builder: (context, child) {
-                              return ShaderMask(
-                                blendMode: BlendMode.srcATop,
-                                shaderCallback: (Rect bounds) {
-                                  // Sweep a diagonal shine from top-left to bottom-right
-                                  // Animation goes from -1.0 to 1.0 (hidden to hidden)
-                                  final double slide = (_borderController.value * 3) - 1.5; 
-                                  
-                                  return LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Colors.white.withValues(alpha: 0.0),
-                                      Colors.white.withValues(alpha: 0.0),
-                                      Colors.white.withValues(alpha: 0.6), // The shine core
-                                      Colors.white.withValues(alpha: 0.8), // The shine center
-                                      Colors.white.withValues(alpha: 0.6), // The shine core
-                                      Colors.white.withValues(alpha: 0.0),
-                                      Colors.white.withValues(alpha: 0.0),
-                                    ],
-                                    stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
-                                    transform: GradientRotation(0.35), // Slight tilt
-                                    // Move the gradient based on slide
-                                    tileMode: TileMode.clamp,
-                                  ).createShader(
-                                    Rect.fromLTWH(
-                                      bounds.width * slide, 
-                                      bounds.height * slide, 
-                                      bounds.width, 
-                                      bounds.height
-                                    ),
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return FractionalTranslation(
+              translation: _floatAnimation.value,
+              child: Transform.scale(
+                scale: _scaleAnimation.value,
+                child: GestureDetector(
+                  onTap: () {
+                    if (widget.forceRestaurantNavigation) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RestaurantDetailPage(
+                            id: widget.restaurantId,
+                            name: widget.restaurantName,
+                            targetMenuItemId: widget.id,
+                            isFavorite: false, // Fallback
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MenuDetailPage(
+                          id: widget.id,
+                          restaurantId: widget.restaurantId,
+                          title: widget.title,
+                          price: widget.price,
+                          currency: widget.currency,
+                          imagePath: widget.imagePath,
+                          restaurantName: widget.restaurantName,
+                          displayPrice: widget.displayPrice,
+                          description: '', // Will be fetched via API in MenuDetailPage
+                          isFavorite: showFilledHeart,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image Section
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: AnimatedBuilder(
+                                animation: _borderController,
+                                builder: (context, child) {
+                                  return ShaderMask(
+                                    blendMode: BlendMode.srcATop,
+                                    shaderCallback: (Rect bounds) {
+                                      // Sweep a diagonal shine from top-left to bottom-right
+                                      // Animation goes from -1.0 to 1.0 (hidden to hidden)
+                                      final double slide = (_borderController.value * 3) - 1.5; 
+                                      
+                                      return LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Colors.white.withValues(alpha: 0.0),
+                                          Colors.white.withValues(alpha: 0.0),
+                                          Colors.white.withValues(alpha: 0.6), // The shine core
+                                          Colors.white.withValues(alpha: 0.8), // The shine center
+                                          Colors.white.withValues(alpha: 0.6), // The shine core
+                                          Colors.white.withValues(alpha: 0.0),
+                                          Colors.white.withValues(alpha: 0.0),
+                                        ],
+                                        stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
+                                        transform: GradientRotation(0.35), // Slight tilt
+                                        // Move the gradient based on slide
+                                        tileMode: TileMode.clamp,
+                                      ).createShader(
+                                        Rect.fromLTWH(
+                                          bounds.width * slide, 
+                                          bounds.height * slide, 
+                                          bounds.width, 
+                                          bounds.height
+                                        ),
+                                      );
+                                    },
+                                    child: child,
                                   );
                                 },
-                                child: child,
-                              );
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
+                                      ? _buildFallbackImage()
+                                      : (isNetworkImage
+                                          ? CachedNetworkImage(
+                                            imageUrl: widget.imagePath,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => const ImageSkeletonLoader(),
+                                            errorWidget: (context, url, error) => _buildFallbackImage(),
+                                            fadeInDuration: const Duration(milliseconds: 300),
+                                          )
+                                        : Image.asset(
+                                            widget.imagePath,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return _buildFallbackImage();
+                                            },
+                                          )),
+                                  ),
+                                ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                clipBehavior: Clip.antiAlias,
-                                child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                  ? _buildFallbackImage()
-                                  : (isNetworkImage
-                                      ? CachedNetworkImage(
-                                        imageUrl: widget.imagePath,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => const ImageSkeletonLoader(),
-                                        errorWidget: (context, url, error) => _buildFallbackImage(),
-                                        fadeInDuration: const Duration(milliseconds: 300),
-                                      )
-                                    : Image.asset(
-                                        widget.imagePath,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return _buildFallbackImage();
-                                        },
-                                      )),
+                            ),
+                          Positioned(
+                            top: 10,
+                            right: 10,
+                            child: GestureDetector(
+                              onTap: widget.onFavoriteToggle,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  showFilledHeart ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                                  color: showFilledHeart ? const Color(0xFFED3A72) : Colors.white,
+                                  size: 16,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: GestureDetector(
-                      onTap: widget.onFavoriteToggle,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          widget.isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                          color: widget.isFavorite ? const Color(0xFFED3A72) : Colors.white,
-                          size: 16,
+                          ],
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Text Info Section with Padding
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  // Title Section
-                  Text(
-                    widget.title,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  // Restaurant & Rating Row
-                  Row(
-                    children: [
-                      if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
-                        Expanded(
-                          child: Text(
-                            widget.restaurantName,
+                    // Text Info Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.title,
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w400,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.black,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      if (widget.rating > 0) ...[
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          widget.rating.toStringAsFixed(1),
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
+                                Expanded(
+                                  child: Text(
+                                    widget.restaurantName,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              if (widget.rating > 0) ...[
+                                const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                const SizedBox(width: 2),
+                                Text(
+                                  widget.rating.toStringAsFixed(1),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  // Price Section
-                  Row(
-                    children: [
-                      Text(
-                        widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFED3A72),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFED3A72),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (hasDiscount) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey[400],
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 11,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
-                      if (hasDiscount) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                          style: GoogleFonts.poppins(
-                            color: Colors.grey[400],
-                            fontWeight: FontWeight.w400,
-                            fontSize: 11,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildFallbackImage() {
     return Container(

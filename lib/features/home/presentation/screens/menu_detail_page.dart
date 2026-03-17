@@ -44,12 +44,14 @@ class MenuDetailPage extends StatefulWidget {
     this.initialOptionIds,
     this.initialInstructions,
     this.cartItemId,
+    this.isFavorite,
   });
 
   final int? initialVariantId;
   final List<int>? initialOptionIds;
   final String? initialInstructions;
   final String? cartItemId;
+  final bool? isFavorite;
 
   @override
   State<MenuDetailPage> createState() => _MenuDetailPageState();
@@ -74,6 +76,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
   // Favorite state
   bool _isFavorite = false;
+  bool _isTogglingFavorite = false;
 
   // Special instructions
   final TextEditingController _instructionsController = TextEditingController();
@@ -95,6 +98,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
+    
+    // Check if item is in cart to fulfill user expectation that "Add to Cart" = "Filled Heart"
+    final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 && 
+        CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
+    _isFavorite = widget.isFavorite ?? isInCart;
+
     _fetchFoodDetails();
   }
 
@@ -121,6 +130,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       allOptionIds.addAll(ids);
     }
 
+    // If we have a specific cartItemId we are editing, we should check its quantity
+    // But we also want to know if the CURRENT selection matches ANY item in the cart
+    // to show the correct quantity for that specific configuration.
     final cartItem = CartManager.instance.findItemInCarts(
       _currentFood!.id,
       variantId: _selectedVariantId,
@@ -131,6 +143,10 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       setState(() {
         _quantity = cartItem.quantity;
       });
+    } else {
+      // If we are editing but changed to a configuration that doesn't exist, 
+      // we might want to reset quantity to 1 or keep current. 
+      // Keep current is usually safer.
     }
   }
 
@@ -309,7 +325,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           (() {
                             final enName = _currentFood?.name ?? widget.title;
                             final mmName = _currentFood?.nameMm ?? '';
-                            return enName.trim().isEmpty ? mmName : enName;
+                            return enName.trim().isNotEmpty ? enName : mmName;
                           })(),
                           style: GoogleFonts.poppins(
                             fontSize: 20,
@@ -424,9 +440,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     ),
                     const SizedBox(height: 16),
                     ..._currentFood!.variants.map((variant) {
-                      final variantName = (variant.nameMm != null && variant.nameMm!.isNotEmpty) 
-                          ? variant.nameMm! 
-                          : variant.name;
+                      final variantName = variant.name.trim().isNotEmpty 
+                          ? variant.name 
+                          : (variant.nameMm ?? '');
                       return _buildSelectionItem(
                         title: variantName,
                         price: variant.price.toStringAsFixed(0).toFormattedPrice(currency: _currentFood!.currency),
@@ -456,7 +472,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           Row(
                             children: [
                               Text(
-                                group.nameMm ?? group.name,
+                                group.name.trim().isNotEmpty ? group.name : (group.nameMm ?? ''),
                                 style: GoogleFonts.poppins(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
@@ -480,9 +496,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ...group.options.map((option) {
                             final isSelected = _selectedOptions[group.id]?.contains(option.id) ?? false;
                             final isRadio = group.groupType == 'SINGLE_SELECT' || group.groupType == 'RADIO';
-                            final optionName = (option.nameMm != null && option.nameMm!.isNotEmpty)
-                                ? option.nameMm!
-                                : option.name;
+                            final optionName = option.name.trim().isNotEmpty
+                                ? option.name
+                                : (option.nameMm ?? '');
 
                             return _buildSelectionItem(
                               title: optionName,
@@ -671,6 +687,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   _buildCircleIconButton(
                     icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
                     onPressed: () async {
+                      if (_isTogglingFavorite) return;
+                      _isTogglingFavorite = true;
+                      
                       setState(() {
                         _isFavorite = !_isFavorite;
                       });
@@ -700,6 +719,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                         );
                       }
+                    } finally {
+                      _isTogglingFavorite = false;
                     }
                   },
                     isScrolled: _isScrolled,
@@ -807,6 +828,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       
                       bool operationCompleted = false;
                       
+                      // Optimistically fill the heart icon as requested by user
+                      final bool wasFavoriteBefore = _isFavorite;
+                      setState(() {
+                        _isFavorite = true;
+                      });
+
                       // Only show loading if it takes longer than 500ms
                       Future.delayed(const Duration(milliseconds: 500), () {
                         if (!operationCompleted && mounted) {
@@ -889,12 +916,18 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           await CartManager.instance.syncWithApi();
                           if (mounted) {
                             operationCompleted = true;
-                            setState(() => _isAddingToCart = false);
+                            setState(() {
+                              _isAddingToCart = false;
+                            });
                             Navigator.pop(context); 
                           }
                         } catch (e) {
                           if (mounted) {
-                            setState(() => _isAddingToCart = false);
+                            setState(() {
+                              _isAddingToCart = false;
+                              // Rollback heart if it was only filled due to this operation
+                              _isFavorite = wasFavoriteBefore;
+                            });
                             final errorStr = e.toString();
                             
                             // Handle Single Shop Rule Conflict (409)
@@ -909,6 +942,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                               if (clearConfirmed == true && mounted) {
                                 try {
+                                  // Re-fill heart optimistically for retry
+                                  setState(() {
+                                    _isFavorite = true;
+                                  });
+
                                   await CartRepository.instance.clearCart();
                                   // Retry adding to cart
                                   await CartRepository.instance.addToCart(AddToCartRequest(
@@ -934,9 +972,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       ),
                                     );
                                   }
-                                } catch (retryErr) {
-                                  if (mounted) {
-                                    setState(() => _isAddingToCart = false);
+                                  } catch (retryErr) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isAddingToCart = false;
+                                        // Rollback heart again on retry failure
+                                        _isFavorite = wasFavoriteBefore;
+                                      });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('Failed: $retryErr'), backgroundColor: Colors.red),
                                     );

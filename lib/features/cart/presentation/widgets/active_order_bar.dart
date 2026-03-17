@@ -15,31 +15,29 @@ class ActiveOrderBar extends StatefulWidget {
   State<ActiveOrderBar> createState() => _ActiveOrderBarState();
 }
 
-class _ActiveOrderBarState extends State<ActiveOrderBar>
-    with TickerProviderStateMixin {
+class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStateMixin {
+  late PageController _pageController;
   late AnimationController _progressCtrl;
   late AnimationController _dotCtrl;
   late AnimationController _slideCtrl;
-  late Animation<Offset> _slideAnim;
-  
-  // Shimmer controller
   late AnimationController _shimmerCtrl;
-  
+  late Animation<Offset> _slideAnim;
   bool _wasActive = false;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _progressCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     );
+    // ... existing dot/slide controllers
     _dotCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    // Slide up animation (bottom to top)
     _slideCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -49,38 +47,26 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       }
     });
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 1.2), // Start below screen
+      begin: const Offset(0, 1.2),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideCtrl,
       curve: Curves.easeOutCubic,
     ));
 
-    // Shimmer effect animation
     _shimmerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
 
-    // Initial check
     if (ActiveOrderState.instance.hasActiveOrder) {
       _wasActive = true;
-      _progressCtrl.repeat(); // Continuous progress animation
+      _progressCtrl.repeat();
       _slideCtrl.forward();
       _shimmerCtrl.forward(from: 0);
     }
     
     ActiveOrderState.instance.addListener(_handleStateChange);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Whenever this route becomes current (e.g. returning from sub-page), trigger slide animation
-    final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-    if (isCurrent && ActiveOrderState.instance.hasActiveOrder) {
-      _slideCtrl.forward(from: 0);
-    }
   }
 
   void _handleStateChange() {
@@ -103,6 +89,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
 
   @override
   void dispose() {
+    _pageController.dispose();
     ActiveOrderState.instance.removeListener(_handleStateChange);
     _progressCtrl.dispose();
     _dotCtrl.dispose();
@@ -117,9 +104,10 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       listenable: Listenable.merge([ActiveOrderState.instance, _slideCtrl]),
       builder: (context, _) {
         final state = ActiveOrderState.instance;
+        final orders = state.activeOrdersList;
+        
         if (!state.hasActiveOrder && _slideCtrl.isDismissed) return const SizedBox.shrink();
         
-        // Ensure it slides down correctly when order is cleared
         if (!state.hasActiveOrder && !_slideCtrl.isDismissed) {
            _slideCtrl.reverse();
         }
@@ -129,185 +117,229 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
           axisAlignment: -1.0,
           child: SlideTransition(
             position: _slideAnim,
-            child: GestureDetector(
-                onTap: () {
-              final s = state.orderStatus;
-
-              if (s == 0) {
-                // PENDING / AWAITING_APPROVAL → show tracking/confirmation page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OrderTrackingPage(
-                      store: CartStore(name: state.storeName ?? '', items: state.orderItems),
-                      foodTotal: (state.totalAmount ?? 0).toInt(),
-                    ),
-                  ),
-                );
-              } else if (s == 1) {
-                // If it's status 1 but we are already verifying the payment, go to Status Page
-                if (state.isPaymentChecking) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OrderStatusPage(
-                        foodTotal: state.totalAmount ?? 0,
-                        deliveryFee: state.deliveryFee ?? 0,
-                      ),
-                    ),
-                  );
-                } else {
-                  // CONFIRMED / PAYMENT_SLIP_REQUESTED → user needs to pay / re-upload
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AwaitingPaymentPage(
-                        foodTotal: state.totalAmount ?? 0,
-                        deliveryFee: state.deliveryFee ?? 0,
-                      ),
-                    ),
-                  );
-                }
-              } else if (s == 2 || s == 3 || s == -1) {
-                // PAYMENT_VERIFIED / PREPARING / ON_THE_WAY / CANCELLED → order status page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OrderStatusPage(
-                      foodTotal: state.totalAmount ?? 0,
-                      deliveryFee: state.deliveryFee ?? 0,
-                    ),
-                  ),
-                );
-              } else if (s == 4) {
-                // DELIVERED → completion page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const OrderCompletePage(),
-                  ),
-                );
-              }
-            },
             child: Container(
+              height: 120, // Reduced height for carousel items
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!, width: 1),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                    child: Row(
-                      children: [
-                        // Logo
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[100],
-                            border: Border.all(color: Colors.grey[200]!, width: 1),
-                          ),
-                          child: ClipOval(
-                            child: (state.logoPath ?? '').isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: state.logoPath!,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (c, u, e) =>
-                                        const Icon(Icons.restaurant, size: 22, color: Colors.grey),
-                                  )
-                                : const Icon(Icons.restaurant, size: 22, color: Colors.grey),
-                          ),
+                   // Hint cards for multiple orders (visual UX)
+                  if (orders.length > 1) ...[
+                    Positioned(
+                      left: 10, right: 10, top: 8, bottom: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey[200]!),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                state.restaurantName ?? state.storeName ?? '',
-                                style: GoogleFonts.poppins(
-                                    fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                _getStatusText(state),
-                                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              'Track order',
-                              style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFED3973)),
-                            ),
-                            const SizedBox(width: 2),
-                            const Icon(Icons.arrow_forward,
-                                size: 14, color: Color(0xFFED3973)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
 
-                   // Progress bar + step icons
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                    child: Row(
-                      children: [
-                        _buildStepIcon(Icons.storefront_outlined, active: true),
-                        Expanded(child: _buildConnector(
-                          filled: state.orderStatus >= 2,
-                          isProcessing: state.orderStatus == 0 || state.orderStatus == 1,
-                        )),
-                        // Step 2: payment — active once shop confirms payment (PAID or later)
-                        _buildStepIcon(Icons.receipt_long_outlined, active: state.orderStatus >= 2),
-                        Expanded(child: _buildConnector(
-                          filled: state.orderStatus >= 3,
-                          isProcessing: state.orderStatus == 2,
-                        )),
-                        // Step 3: delivery — active when ON_THE_WAY
-                        _buildStepIcon(Icons.delivery_dining_outlined, active: state.orderStatus >= 3),
-                        Expanded(child: _buildConnector(
-                          filled: state.orderStatus >= 4,
-                          isProcessing: state.orderStatus == 3,
-                        )),
-                        // Step 4: home — active when DELIVERED
-                        _buildStepIcon(Icons.home_outlined, active: state.orderStatus >= 4),
-                      ],
-                    ),
+                  PageView.builder(
+                    controller: _pageController,
+                    itemCount: orders.length,
+                    itemBuilder: (context, index) {
+                      final orderItem = orders[index];
+                      return _buildOrderCard(orderItem);
+                    },
                   ),
+                  
+                  // Indicators
+                  if (orders.length > 1)
+                    Positioned(
+                      bottom: 6,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: _buildPageIndicator(orders.length),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-        ),
-      );
-  },
-);
+        );
+      },
+    );
   }
 
-  String _getStatusText(ActiveOrderState state) {
-    switch (state.orderStatus) {
+  Widget _buildOrderCard(ActiveOrderItem order) {
+    return GestureDetector(
+      onTap: () => _handleOrderTap(order),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+              child: Row(
+                children: [
+                  _buildLogo(order.logoPath),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.restaurantName ?? order.storeName ?? 'Restaurant',
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          _getStatusText(order),
+                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildTrackButton(),
+                ],
+              ),
+            ),
+            _buildProgressBar(order),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleOrderTap(ActiveOrderItem order) {
+    final s = order.orderStatus;
+    if (s == 2 || s == -1) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderStatusPage(
+        foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+        deliveryFee: order.deliveryFee ?? 0,
+      )));
+    } else if (s == 1) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => AwaitingPaymentPage(
+      orderId: order.orderId,
+      foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+      deliveryFee: order.deliveryFee ?? 0,
+    )));
+  } else if (s == 3 || s == 0) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderTrackingPage(
+        store: CartStore(name: order.storeName ?? '', items: order.orderItems),
+        foodTotal: (order.totalAmount ?? 0).toInt(),
+      )));
+    } else if (s == 4 && !OrderCompletePage.isCurrentlyVisible) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderCompletePage()));
+    }
+  }
+
+  Widget _buildPageIndicator(int count) {
+    return ListenableBuilder(
+      listenable: _pageController,
+      builder: (context, _) {
+        final double page = _pageController.hasClients ? _pageController.page ?? 0 : 0;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(count, (i) {
+            final double delta = (page - i).abs();
+            final double size = 6 + (1.0 - delta.clamp(0.0, 1.0)) * 2;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: size,
+              height: 6,
+              decoration: BoxDecoration(
+                color: delta < 0.5 ? const Color(0xFFED3973) : Colors.grey[300],
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressBar(ActiveOrderItem order) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          _buildStepIcon(Icons.storefront_outlined, active: true),
+          Expanded(child: _buildConnector(
+            filled: order.orderStatus >= 2,
+            isProcessing: order.orderStatus == 0 || order.orderStatus == 1,
+          )),
+          _buildStepIcon(Icons.receipt_long_outlined, active: order.orderStatus >= 2),
+          Expanded(child: _buildConnector(
+            filled: order.orderStatus >= 3,
+            isProcessing: order.orderStatus == 2,
+          )),
+          _buildStepIcon(Icons.delivery_dining_outlined, active: order.orderStatus >= 3),
+          Expanded(child: _buildConnector(
+            filled: order.orderStatus >= 4,
+            isProcessing: order.orderStatus == 3,
+          )),
+          _buildStepIcon(Icons.home_outlined, active: order.orderStatus >= 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogo(String? logoPath) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.grey[100],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: ClipOval(
+        child: (logoPath ?? '').isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: logoPath!,
+                fit: BoxFit.cover,
+                errorWidget: (c, u, e) =>
+                    const Icon(Icons.restaurant, size: 22, color: Colors.grey),
+              )
+            : const Icon(Icons.restaurant, size: 22, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _buildTrackButton() {
+    return Row(
+      children: [
+        Text(
+          'Track order',
+          style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFED3973)),
+        ),
+        const SizedBox(width: 2),
+        const Icon(Icons.arrow_forward,
+            size: 14, color: Color(0xFFED3973)),
+      ],
+    );
+  }
+
+  String _getStatusText(ActiveOrderItem order) {
+    switch (order.orderStatus) {
       case 0:
         return 'Awaiting Confirmation';
       case 1:
-        // showUploadSection distinguishes CONFIRMED (needs payment) from PAYMENT_UPLOADED (waiting verify)
-        return state.showUploadSection ? 'Awaiting Payment' : 'Verifying Payment...';
+        return order.showUploadSection ? 'Awaiting Payment' : 'Verifying Payment...';
       case 2:
         return 'Restaurant Preparing...';
       case 3:
-        final eta = state.estimatedTime;
+        final eta = order.estimatedTime;
         return eta != null && eta.isNotEmpty ? 'Est. arrival: $eta' : 'Order Is On The Way...';
       case 4:
         return 'Order Delivered!';

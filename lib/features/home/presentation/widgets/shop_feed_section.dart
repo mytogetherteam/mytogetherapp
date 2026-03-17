@@ -64,7 +64,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) widget.onEmpty?.call(true);
           });
-          return _buildRetry();
+          return const SizedBox.shrink();
         }
         final items = snapshot.data?.items ?? [];
         if (items.isEmpty) {
@@ -260,50 +260,6 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
       ],
     );
   }
-
-  // ── Retry ─────────────────────────────────────────────────────────────────
-  Widget _buildRetry() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 38),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.title,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
-                  Text('Could not load — tap to retry',
-                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500])),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => setState(() { _future = _fetch(); }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFED3973),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text('Retry',
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
 
   Widget _shimmerBox({required double width, required double height, double radius = 8}) {
     return ClipRRect(

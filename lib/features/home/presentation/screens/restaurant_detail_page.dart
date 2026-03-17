@@ -33,6 +33,7 @@ class RestaurantDetailPage extends StatefulWidget {
   final List<MenuItemDto> recommendations;
   final List<MenuItemDto> hotDeals;
   final String? targetMenuItemId;
+  final bool? isFavorite;
 
   const RestaurantDetailPage({
     super.key,
@@ -51,6 +52,7 @@ class RestaurantDetailPage extends StatefulWidget {
     this.recommendations = const [],
     this.hotDeals = const [],
     this.targetMenuItemId,
+    this.isFavorite,
   });
 
   @override
@@ -64,6 +66,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   bool _showBasket = false;
   bool _isScrolled = false;
   bool _isFavorite = false;
+  bool _isTogglingFavorite = false;
 
   Restaurant? _currentRestaurant;
 
@@ -96,6 +99,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     ));
 
     // Seed UI immediately from constructor data
+    _isFavorite = widget.isFavorite ?? false;
     _currentRestaurant = Restaurant(
       id: widget.id,
       name: widget.name ?? 'Loading...',
@@ -108,6 +112,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       status: widget.status ?? '',
       latitude: widget.latitude,
       longitude: widget.longitude,
+      isFavorite: _isFavorite,
     );
 
     final shopId = int.tryParse(widget.id) ?? 0;
@@ -408,6 +413,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     _buildCircleIconButton(
                       icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
                       onPressed: () async {
+                        if (_isTogglingFavorite) return;
+                        _isTogglingFavorite = true;
+                        
                         setState(() {
                           _isFavorite = !_isFavorite;
                         });
@@ -437,6 +445,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                               ),
                             );
                           }
+                        } finally {
+                          _isTogglingFavorite = false;
                         }
                       },
                       isScrolled: _isScrolled,

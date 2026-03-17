@@ -29,6 +29,7 @@ class WebSocketService {
 
     if (_stompClient != null) {
       if (force) {
+        debugPrint(' [WS] Force reconnecting...');
         _stompClient = null;
       } else {
         _stompClient?.activate();
@@ -37,34 +38,48 @@ class WebSocketService {
     }
 
     _isConnecting = true;
+    debugPrint(' [WS] Connecting to: wss://mytogetherapi-production.up.railway.app/ws/websocket');
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
+       debugPrint(' [WS] Connection aborted: No access token found.');
       _isConnecting = false;
       return;
     }
 
     _stompClient = StompClient(
       config: StompConfig(
-        // Use the raw WebSocket endpoint for SockJS compliance
         url: 'wss://mytogetherapi-production.up.railway.app/ws/websocket',
         onConnect: onConnect,
-        beforeConnect: () async {},
+        beforeConnect: () async {
+           debugPrint(' [WS] Preparing connection headers...');
+        },
         onWebSocketError: (dynamic error) {
+          debugPrint(' [WS] WebSocket Error: $error');
           _isConnecting = false;
           connectionStatus.value = false;
         },
-        onDebugMessage: (String message) {},
+        onDebugMessage: (String message) {
+          // debugPrint(' [WS] [STOMP] $message');
+        },
         stompConnectHeaders: {
           'Authorization': 'Bearer $token',
         },
-        onStompError: (frame) {},
-        onUnhandledFrame: (frame) {},
-        onUnhandledMessage: (frame) {},
-        onUnhandledReceipt: (frame) {},
-        // Avoid custom headers in HTTP Upgrade to prevent 400 errors on some proxies
+        onStompError: (frame) {
+           debugPrint(' [WS] STOMP Error: ${frame.body}');
+        },
+        onUnhandledFrame: (frame) {
+           debugPrint(' [WS] Unhandled Frame: ${frame.command}');
+        },
+        onUnhandledMessage: (frame) {
+           debugPrint(' [WS] Unhandled Message: ${frame.body}');
+        },
+        onUnhandledReceipt: (frame) {
+           debugPrint(' [WS] Unhandled Receipt: ${frame.headers}');
+        },
         webSocketConnectHeaders: {}, 
         onDisconnect: (frame) {
+           debugPrint(' [WS] Disconnected.');
           connectionStatus.value = false;
         },
         heartbeatOutgoing: const Duration(milliseconds: 10000),
@@ -76,6 +91,7 @@ class WebSocketService {
   }
 
   void onConnect(dynamic frame) {
+    debugPrint(' [WS]   Connected!');
     _isConnecting = false;
     connectionStatus.value = true;
 
@@ -84,9 +100,8 @@ class WebSocketService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    // Per API spec: the canonical user order-update topic is /user/queue/order-updates
-    // Spring STOMP routes user-prefixed destinations automatically based on the authenticated principal.
     const destination = '/user/queue/order-updates';
+    debugPrint(' [WS] Subscribing to: $destination');
 
     _stompClient?.subscribe(
       destination: destination,
@@ -96,15 +111,41 @@ class WebSocketService {
       },
       callback: (StompFrame frame) {
         if (frame.body == null) return;
+        
         try {
-          final Map<String, dynamic> raw = json.decode(frame.body!);
+          dynamic payload = json.decode(frame.body!);
+          
+          // Unmarshall if wrapped
+          if (payload is Map && payload.containsKey('order') && payload['order'] is Map) {
+            payload = payload['order'];
+          } else if (payload is Map && payload.containsKey('data') && payload['data'] is Map) {
+            payload = payload['data'];
+          }
 
-          // Centralized state update
-          ActiveOrderState.instance.updateFromSocket(raw);
+          if (payload is Map) {
+            final Map<String, dynamic> raw = payload as Map<String, dynamic>;
+            
+            // Smarter status extraction: check root then nested
+            String? status = (raw['statusName'] ?? raw['statusLabel'] ?? raw['status'])?.toString();
+            
+            // Fallback: search in nested fields if still null
+            if (status == null) {
+              final nested = raw['order'] ?? raw['data'] ?? raw['status'];
+              if (nested is Map) {
+                status = (nested['statusName'] ?? nested['statusLabel'] ?? nested['status'] ?? nested['name'] ?? nested['code'])?.toString();
+              }
+            }
 
-          _orderUpdateController.add(raw);
+            final displayStatus = (status ?? 'UNKNOWN').toUpperCase();
+            debugPrint(' 📡 [WS] STATUS: $displayStatus 🔔 ✨');
+            debugPrint(' [WS] Message Content: $raw');
+
+            ActiveOrderState.instance.updateFromSocket(raw);
+            _orderUpdateController.add(raw);
+          }
         } catch (e) {
-          // Ignore parsing errors
+          debugPrint(' [WS] Error processing update: $e');
+          debugPrint(' [WS] Raw body: ${frame.body}');
         }
       },
     );

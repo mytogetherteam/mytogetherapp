@@ -233,6 +233,9 @@ class ShopDetailDto {
   final bool isFavorite;
   final List<ShopPaymentTypeDto> paymentTypes;
   final String? paymentQrUrl;
+  final int? minEta;
+  final int? maxEta;
+  final List<DeliveryTierDto> deliveryTiers;
 
   ShopDetailDto({
     required this.id,
@@ -264,6 +267,9 @@ class ShopDetailDto {
     this.cuisineType,
     this.paymentTypes = const [],
     this.paymentQrUrl,
+    this.minEta,
+    this.maxEta,
+    this.deliveryTiers = const [],
   });
 
   factory ShopDetailDto.fromJson(Map<String, dynamic> json) {
@@ -309,6 +315,43 @@ class ShopDetailDto {
           .map((e) => ShopPaymentTypeDto.fromJson(e))
           .toList(),
       paymentQrUrl: json['paymentQrUrl'],
+      minEta: json['minEta'],
+      maxEta: json['maxEta'],
+      deliveryTiers: (json['deliveryTiers'] as List? ?? [])
+          .map((e) => DeliveryTierDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class DeliveryTierDto {
+  final String tier;
+  final double fee;
+  final String? displayFee;
+  final String? estimatedTime;
+  final String? icon;
+  final String? label;
+  final String? labelMm;
+
+  DeliveryTierDto({
+    required this.tier,
+    required this.fee,
+    this.displayFee,
+    this.estimatedTime,
+    this.icon,
+    this.label,
+    this.labelMm,
+  });
+
+  factory DeliveryTierDto.fromJson(Map<String, dynamic> json) {
+    return DeliveryTierDto(
+      tier: json['tier'] ?? '',
+      fee: (json['fee'] ?? 0.0).toDouble(),
+      displayFee: json['displayFee'],
+      estimatedTime: json['estimatedTime'],
+      icon: json['icon'],
+      label: json['label'],
+      labelMm: json['labelMm'],
     );
   }
 }

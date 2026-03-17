@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../../../core/utils/price_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
@@ -12,8 +13,10 @@ import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
 import 'order_complete_page.dart';
+import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import 'order_cancel_page.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -53,7 +56,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     
     // Auto-navigate if already completed
-    if (ActiveOrderState.instance.orderStatus == 4) {
+    if (ActiveOrderState.instance.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
       Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
     }
     
@@ -96,8 +99,63 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         });
 
         // Auto-navigate when status becomes COMPLETED (4)
-        if (state.orderStatus == 4) {
+        if (state.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
+        }
+
+        // Auto-navigate when status becomes CANCELLED (-1)
+        if (state.orderStatus == -1) {
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OrderCancelPage(
+                    orderId: state.orderId ?? "",
+                    reason: state.cancelReason,
+                    shopId: state.shopId,
+                    shopName: state.shopName,
+                    shopNameMm: state.shopNameMm,
+                    shopLogo: state.shopLogo,
+                    shopImageUrl: state.shopImageUrl,
+                  ),
+                ),
+              );
+            }
+          });
+        }
+
+        // Auto-navigate back to Payment if requested and not already checking
+        if (state.orderStatus == 1 && !state.isPaymentChecking && !AwaitingPaymentPage.isCurrentlyVisible) {
+          if (!state.hasNotifiedSlipRequest) {
+            state.setNotifiedSlipRequest(true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text('New payment slip requested by restaurant',
+                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFED3973),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+          }
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AwaitingPaymentPage(
+                foodTotal: widget.foodTotal,
+                deliveryFee: state.deliveryFee ?? widget.deliveryFee,
+              ),
+            ),
+          );
         }
       }
     });
@@ -131,6 +189,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     _lastInitedUrl = url;
     _webViewError = false;
     
+    // Safety check for scheme
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme) {
+      debugPrint(' [OrderStatus] Invalid URL (missing scheme): $url');
+      if (mounted) setState(() => _webViewError = true);
+      return;
+    }
+
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -143,7 +209,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           onNavigationRequest: (request) => NavigationDecision.navigate,
         ),
       )
-      ..loadRequest(Uri.parse(url));
+      ..loadRequest(uri);
   }
 
   void _animateToStatus(int status) {
@@ -542,7 +608,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 Row(
                                   children: [
                                     Text(
-                                      state.displayTotalAmount ?? '${total.toStringAsFixed(0)} ฿',
+                                      state.displayTotalAmount ?? total.toFormattedPrice(),
                                       style: GoogleFonts.poppins(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -666,7 +732,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                           ),
                                         ),
                                         Text(
-                                          '${(item.price * item.quantity).toStringAsFixed(0)} ฿',
+                                          (item.price * item.quantity).toFormattedPrice(),
                                           style: GoogleFonts.poppins(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
@@ -682,14 +748,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 child: Divider(),
                               ),
                               
-                              _buildSummaryRow('Food Total', state.displayFoodPrice ?? '${widget.foodTotal.toStringAsFixed(0)} ฿'),
+                              _buildSummaryRow('Food Total', state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
                               const SizedBox(height: 8),
-                              _buildSummaryRow('Delivery Fee', state.displayDeliveryFee ?? '${widget.deliveryFee.toStringAsFixed(0)} ฿'),
+                              _buildSummaryRow('Delivery Fee', state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
-                              _buildSummaryRow('Total Amount', state.displayTotalAmount ?? '${(widget.foodTotal + widget.deliveryFee).toStringAsFixed(0)} ฿', isBold: true),
+                              _buildSummaryRow('Total Amount', state.displayTotalAmount ?? (widget.foodTotal + widget.deliveryFee).toFormattedPrice(), isBold: true),
                             ],
                           ),
                         ),

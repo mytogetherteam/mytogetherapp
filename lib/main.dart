@@ -23,7 +23,8 @@ void main() async {
   // Initialize auth session FIRST so NotificationService can register the token
   await AuthService().initialize();
   
-  await NotificationService().initialize();
+  // Initialize notification service in background to avoid splash screen hang
+  NotificationService().initialize();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Pre-fetch location once at startup — permission dialog (if needed) shows
