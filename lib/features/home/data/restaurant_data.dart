@@ -6,6 +6,7 @@ class Restaurant {
   final String name;
   final String category;
   final double rating;
+  final int reviewCount;
   final String distance;
   final String imagePath;
   final String logoPath;
@@ -20,6 +21,8 @@ class Restaurant {
   final List<MenuItemDto> hotDeals;
   final List<ShopPaymentTypeDto> paymentTypes;
   final String? paymentQrUrl;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
 
   // New fields for Overview Page
   final String? address;
@@ -36,6 +39,7 @@ class Restaurant {
     required this.name,
     required this.category,
     required this.rating,
+    this.reviewCount = 0,
     required this.distance,
     required this.imagePath,
     required this.logoPath,
@@ -58,5 +62,7 @@ class Restaurant {
     this.isFavorite = false,
     this.paymentTypes = const [],
     this.paymentQrUrl,
+    this.deliveryFee,
+    this.originalDeliveryFee,
   });
 }

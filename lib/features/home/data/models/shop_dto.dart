@@ -95,8 +95,8 @@ class ShopListItemDto {
   final String name;
   final String? nameEn;
   final String? category;
-  final double ratingAvg;
-  final int ratingCount;
+  final double rating;
+  final int reviewCount;
   final String? primaryPhotoUrl;
   final String? logoUrl;
   final double distance;
@@ -107,14 +107,16 @@ class ShopListItemDto {
   final double? latitude;
   final double? longitude;
   final List<String> imageUrls;
+  final String? displayDeliveryFee;
+  final String? originalDeliveryFee;
 
   ShopListItemDto({
     required this.id,
     required this.name,
     this.nameEn,
     this.category,
-    required this.ratingAvg,
-    required this.ratingCount,
+    required this.rating,
+    required this.reviewCount,
     this.primaryPhotoUrl,
     this.logoUrl,
     required this.distance,
@@ -125,6 +127,8 @@ class ShopListItemDto {
     this.latitude,
     this.longitude,
     this.imageUrls = const <String>[],
+    this.displayDeliveryFee,
+    this.originalDeliveryFee,
   });
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
@@ -133,14 +137,14 @@ class ShopListItemDto {
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       nameEn: json['nameEn'],
       category: json['category'],
-      ratingAvg: (json['ratingAvg'] ?? 0.0).toDouble(),
-      ratingCount: json['ratingCount'] ?? 0,
+      rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
+      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       distance: (json['distance'] ?? 0.0).toDouble(),
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,
-      estimatedTime: json['estimatedTime'],
+      estimatedTime: json['estimatedTime']?.toString(),
       isFavorite: json['isFavorite'] ?? false,
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
       longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
@@ -148,7 +152,19 @@ class ShopListItemDto {
           .map((e) => ImageUtils.cleanImageUrl(e.toString()))
           .whereType<String>()
           .toList(),
+      displayDeliveryFee: _parseDeliveryFee(json),
+      originalDeliveryFee: _parseOriginalDeliveryFee(json),
     );
+  }
+
+  static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
+    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
+    return null;
+  }
+
+  static String? _parseOriginalDeliveryFee(Map<String, dynamic> json) {
+    return null;
   }
 }
 
@@ -208,8 +224,8 @@ class ShopDetailDto {
   final String name;
   final String? category;
   final CuisineTypeDto? cuisineType;
-  final double ratingAvg;
-  final int ratingCount;
+  final double rating;
+  final int reviewCount;
   final String? logoUrl;
   final String? coverUrl;
   final String? primaryPhotoUrl;
@@ -241,8 +257,8 @@ class ShopDetailDto {
     required this.id,
     required this.name,
     this.category,
-    required this.ratingAvg,
-    required this.ratingCount,
+    required this.rating,
+    required this.reviewCount,
     this.logoUrl,
     this.coverUrl,
     this.primaryPhotoUrl,
@@ -278,13 +294,13 @@ class ShopDetailDto {
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       category: json['category'],
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
-      ratingAvg: (json['ratingAvg'] ?? 0.0).toDouble(),
-      ratingCount: json['ratingCount'] ?? 0,
+      rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
+      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
       distance: (json['distance'] ?? 0.0).toDouble(),
-      estimatedTime: json['estimatedTime'],
+      estimatedTime: json['estimatedTime']?.toString(),
       isOpen: json['isOpen'] ?? false,
       address: json['address']?.toString(),
       addressMm: json['addressMm']?.toString(),
@@ -348,7 +364,7 @@ class DeliveryTierDto {
       tier: json['tier'] ?? '',
       fee: (json['fee'] ?? 0.0).toDouble(),
       displayFee: json['displayFee'],
-      estimatedTime: json['estimatedTime'],
+      estimatedTime: json['estimatedTime']?.toString(),
       icon: json['icon'],
       label: json['label'],
       labelMm: json['labelMm'],

@@ -91,6 +91,12 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       category: '',
       isFavorite: t.isFavorite,
       displayPrice: t.displayPrice,
+      rating: t.rating,
+      reviewCount: t.reviewCount,
+      distanceKm: t.distanceKm,
+      estimatedTime: t.estimatedTime,
+      deliveryFee: t.deliveryFee,
+      originalDeliveryFee: t.originalDeliveryFee,
     );
   }
 
@@ -244,6 +250,12 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                     restaurantName: item.restaurantName,
                     isFavorite: _localFavorites[item.id] ?? item.isFavorite,
                     displayPrice: item.displayPrice,
+                    rating: item.rating,
+                    reviewCount: item.reviewCount,
+                    distanceKm: item.distanceKm,
+                    estimatedTime: item.estimatedTime,
+                    deliveryFee: item.deliveryFee,
+                    originalDeliveryFee: item.originalDeliveryFee,
                     onFavoriteToggle: () => _toggleFavorite(item),
                     forceRestaurantNavigation: true,
                   );

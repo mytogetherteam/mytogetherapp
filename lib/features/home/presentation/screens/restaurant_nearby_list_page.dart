@@ -315,12 +315,14 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         ? '${restaurant.name.substring(0, 12)}…' 
         : restaurant.name;
     
+    final double fontSize = 9.5; // Reduced from 13.0 (ratio ~ 7/10)
+    
     final textSpan = TextSpan(
       text: nameStr,
       style: GoogleFonts.poppins(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: selected ? Colors.white : Colors.black87,
+        fontSize: fontSize,
+        fontWeight: FontWeight.w800,
+        color: selected ? Colors.white : const Color(0xFFED3973),
       ),
     );
     final textPainter = TextPainter(
@@ -357,27 +359,38 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
+    // Scale by 3x for sharp high-DPI text on devices
+    const double pixelRatio = 3.0;
+    canvas.scale(pixelRatio, pixelRatio);
+
     // Shadow
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.2)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(2, 2, pillW, pillH),
-        const Radius.circular(20),
-      ),
-      shadowPaint,
-    );
+      
+    if (selected) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(2, 2, pillW, pillH),
+          const Radius.circular(20),
+        ),
+        shadowPaint,
+      );
+    } else {
+      canvas.drawCircle(Offset(vPad/2 + iconCircleSize/2 + 1, pillH / 2 + 2), iconCircleSize / 2, shadowPaint);
+    }
 
     // Pill background
-    final bgPaint = Paint()..color = selected ? const Color(0xFFED3973) : Colors.white;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, pillW, pillH),
-        const Radius.circular(20),
-      ),
-      bgPaint,
-    );
+    final bgPaint = Paint()..color = selected ? const Color(0xFFED3973) : Colors.transparent;
+    if (selected) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, pillW, pillH),
+          const Radius.circular(20),
+        ),
+        bgPaint,
+      );
+    }
 
     // Icon Circle
     final circlePaint = Paint()..color = selected ? Colors.white : const Color(0xFFED3973);
@@ -390,26 +403,31 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     ));
 
     // Rating Text
-    textPainter.paint(canvas, Offset(vPad/2 + iconCircleSize + spacing, (pillH - textPainter.height) / 2));
+    final textOffset = Offset(vPad/2 + iconCircleSize + spacing, (pillH - textPainter.height) / 2);
+    textPainter.paint(canvas, textOffset);
 
     // Tail triangle
-    final tailPaint = Paint()
-      ..color = selected ? const Color(0xFFED3973) : Colors.white
-      ..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(pillW / 2 - 4, pillH)
-      ..lineTo(pillW / 2 + 4, pillH)
-      ..lineTo(pillW / 2, pillH + tailH)
-      ..close();
-    canvas.drawPath(path, tailPaint);
-
-    // Bottom dot (optional, keeping for style consistency if desired, or remove if strictly matching)
-    // canvas.drawCircle(Offset(pillW / 2, totalH - dotSize / 2), dotSize / 2, tailPaint);
+    if (selected) {
+      final tailPaint = Paint()
+        ..color = const Color(0xFFED3973)
+        ..style = PaintingStyle.fill;
+      final path = Path()
+        ..moveTo(pillW / 2 - 4, pillH)
+        ..lineTo(pillW / 2 + 4, pillH)
+        ..lineTo(pillW / 2, pillH + tailH)
+        ..close();
+      canvas.drawPath(path, tailPaint);
+    }
 
     final pic = recorder.endRecording();
-    final img = await pic.toImage(pillW.ceil(), totalH.ceil());
+    final img = await pic.toImage((pillW * pixelRatio).ceil(), (totalH * pixelRatio).ceil());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(
+      data!.buffer.asUint8List(),
+      imagePixelRatio: pixelRatio,
+      width: pillW,
+      height: totalH,
+    );
   }
 
 
@@ -836,15 +854,34 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               name: data.name,
                               category: data.category,
                               rating: data.rating,
+                              reviewCount: data.reviewCount,
                               distance: data.distance,
                               imagePath: data.imagePath,
                               deliveryTime: data.deliveryTime,
+                              deliveryFee: data.deliveryFee,
+                              originalDeliveryFee: data.originalDeliveryFee,
                               status: data.status,
                               imageUrls: data.imageUrls,
                               isExpanded: _expandedRestaurantId == data.id,
                               isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                               onViewMenu: () => _navigateToDetail(data),
                               onFavoriteToggle: () => _toggleFavorite(data),
+                              onDirectionTap: () {
+                                if (_expandedRestaurantId != data.id) {
+                                  setState(() {
+                                    _expandedRestaurantId = data.id;
+                                  });
+                                  if (data.latitude != null && data.longitude != null) {
+                                    _mapController?.animateCamera(
+                                      CameraUpdate.newLatLngZoom(
+                                        LatLng(data.latitude!, data.longitude!),
+                                        15,
+                                      ),
+                                    );
+                                  }
+                                }
+                                _getRouteToRestaurant(data.id);
+                              },
                               onTap: () {
                                 setState(() {
                                   if (_expandedRestaurantId == data.id) {

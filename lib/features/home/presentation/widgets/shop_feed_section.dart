@@ -137,6 +137,12 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               showRestaurantName: widget.showRestaurantName,
               isHighlighted: isTarget,
               targetMenuItemId: widget.targetMenuItemId,
+              rating: item.rating,
+              reviewCount: item.reviewCount,
+              distanceKm: item.distanceKm,
+              estimatedTime: item.estimatedTime,
+              deliveryFee: item.deliveryFee,
+              originalDeliveryFee: item.originalDeliveryFee,
               onFavoriteToggle: () => _toggleFavorite(item),
             );
             

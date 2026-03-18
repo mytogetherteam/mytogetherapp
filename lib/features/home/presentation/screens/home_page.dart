@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-      backgroundColor: Colors.red,
+      backgroundColor: Colors.white,
       floatingActionButton: const StyledCartFab(),
       body: SafeArea(
         bottom: false,

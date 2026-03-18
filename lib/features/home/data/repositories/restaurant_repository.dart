@@ -136,13 +136,16 @@ class RestaurantRepository {
       id: dto.id.toString(),
       name: dto.name,
       category: dto.category ?? 'Restaurant',
-      rating: dto.ratingAvg,
+      rating: dto.rating,
+      reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
       imagePath: imagePath,
       logoPath: (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
           ? dto.logoUrl! 
           : '', 
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
+      deliveryFee: dto.displayDeliveryFee,
+      originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
       latitude: dto.latitude,
       longitude: dto.longitude,
@@ -162,7 +165,8 @@ class RestaurantRepository {
       id: dto.id.toString(),
       name: dto.name,
       category: dto.category ?? 'Restaurant',
-      rating: dto.ratingAvg,
+      rating: dto.rating,
+      reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
       imagePath: imagePath,
       logoPath: (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 

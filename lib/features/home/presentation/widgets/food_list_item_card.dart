@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
+import 'shop_item_metadata_row.dart';
 
 class FoodListItemCard extends StatelessWidget {
   final String title;
@@ -13,6 +14,12 @@ class FoodListItemCard extends StatelessWidget {
   final String imagePath;
   final bool isFavorite;
   final String? displayPrice;
+  final double rating;
+  final int reviewCount;
+  final double? distanceKm;
+  final String? estimatedTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
@@ -26,6 +33,12 @@ class FoodListItemCard extends StatelessWidget {
     this.currency = '฿',
     this.isFavorite = false,
     this.displayPrice,
+    this.rating = 0.0,
+    this.reviewCount = 0,
+    this.distanceKm,
+    this.estimatedTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
     this.onTap,
     this.onFavoriteToggle,
   });
@@ -101,53 +114,69 @@ class FoodListItemCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                  ShopItemMetadataRow(
+                    rating: rating > 0 ? rating : null,
+                    reviewCount: reviewCount,
+                    distanceKm: distanceKm,
+                    deliveryTime: estimatedTime,
+                    deliveryFee: deliveryFee,
+                    originalDeliveryFee: originalDeliveryFee,
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                          decoration: TextDecoration.lineThrough,
+                  ],
+                  if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0')) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (originalPrice > price) ...[
+                          Text(
+                            originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey[500],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          displayPrice ?? price.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFED3973),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        displayPrice ?? price.toStringAsFixed(0).toFormattedPrice(currency: currency),
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFED3973),
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
             // Add Button
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFFED3973),
-                shape: BoxShape.circle,
+            if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0'))
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFED3973),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
           ],
         ),
       ),

@@ -3,15 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
-
+import 'shop_item_metadata_row.dart';
 
 class NearbyRestaurantListItem extends StatelessWidget {
   final String name;
   final String category;
   final double rating;
+  final int reviewCount;
   final String distance;
   final String imagePath;
   final String deliveryTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
   final String status;
   final List<String> imageUrls;
   final bool isExpanded;
@@ -19,15 +22,19 @@ class NearbyRestaurantListItem extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onViewMenu;
   final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onDirectionTap;
 
   const NearbyRestaurantListItem({
     super.key,
     required this.name,
     required this.category,
     required this.rating,
+    this.reviewCount = 0,
     required this.distance,
     required this.imagePath,
     required this.deliveryTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
     required this.status,
     this.imageUrls = const <String>[],
     this.isExpanded = false,
@@ -35,6 +42,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
     this.onTap,
     this.onViewMenu,
     this.onFavoriteToggle,
+    this.onDirectionTap,
   });
 
   @override
@@ -107,63 +115,27 @@ class NearbyRestaurantListItem extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            category,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                            child: Text('•', style: TextStyle(color: Colors.grey[400])),
-                          ),
-                          Text(
-                            rating.toString(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(PhosphorIcons.star(PhosphorIconsStyle.fill), size: 14, color: Colors.amber),
-                        ],
+                      Text(
+                        category,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ShopItemMetadataRow(
+                        rating: rating > 0 ? rating : null,
+                        reviewCount: reviewCount,
+                        distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
+                        deliveryTime: deliveryTime,
+                        deliveryFee: deliveryFee,
+                        originalDeliveryFee: originalDeliveryFee,
                       ),
                       const SizedBox(height: 4),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(PhosphorIcons.car(), size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            distance,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                            child: Text('•', style: TextStyle(color: Colors.grey[400])),
-                          ),
-                          Icon(PhosphorIcons.clock(), size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            deliveryTime,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                            child: Text('•', style: TextStyle(color: Colors.grey[400])),
-                          ),
                           Text(
                             status,
                             style: GoogleFonts.poppins(
@@ -174,6 +146,29 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                   : Colors.red,
                             ),
                           ),
+                          if (onDirectionTap != null) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: onDirectionTap,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.near_me_rounded,
+                                      size: 14,
+                                      color: Color(0xFFED3973),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],

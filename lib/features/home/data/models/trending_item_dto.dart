@@ -11,6 +11,10 @@ class TrendingItemDto {
   final String currency;
   final double? originalPrice;
   final String? displayPrice;
+  final double? distanceKm;
+  final String? estimatedTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
 
   TrendingItemDto({
     required this.id,
@@ -25,6 +29,10 @@ class TrendingItemDto {
     required this.currency,
     this.originalPrice,
     this.displayPrice,
+    this.distanceKm,
+    this.estimatedTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
   });
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
@@ -45,7 +53,27 @@ class TrendingItemDto {
       currency: json['currency'] as String? ?? '฿',
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       displayPrice: json['displayPrice'] as String?,
+      distanceKm: json['distanceKm'] != null 
+          ? (json['distanceKm'] is num 
+              ? (json['distanceKm'] as num).toDouble() 
+              : double.tryParse(json['distanceKm'].toString()))
+          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
+      estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
+      deliveryFee: _parseDeliveryFee(json),
+      originalDeliveryFee: _parseOriginalDeliveryFee(json),
     );
+  }
+
+  static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
+    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
+    if (json['deliveryFee'] != null) return json['deliveryFee'] as String;
+    return null;
+  }
+
+  static String? _parseOriginalDeliveryFee(Map<String, dynamic> json) {
+    if (json['originalDeliveryFee'] != null) return json['originalDeliveryFee'] as String;
+    return null;
   }
 
   static double _parsePrice(dynamic value) {

@@ -140,8 +140,12 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                     name: data.name,
                     category: data.category,
                     rating: data.rating,
+                    reviewCount: data.reviewCount,
                     distance: data.distance,
                     imagePath: data.imagePath,
+                    deliveryTime: data.deliveryTime,
+                    deliveryFee: data.deliveryFee,
+                    originalDeliveryFee: data.originalDeliveryFee,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     onTap: () {

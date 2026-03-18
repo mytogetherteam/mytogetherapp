@@ -3,13 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
-
+import 'shop_item_metadata_row.dart';
 
 class RestaurantCard extends StatelessWidget {
   final String name;
   final String category;
   final double rating;
-  final String distance;
+  final int reviewCount;
+  final String distance; // the formatted distance
+  final String? deliveryTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
   final String imagePath;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
@@ -20,7 +24,11 @@ class RestaurantCard extends StatelessWidget {
     required this.name,
     required this.category,
     required this.rating,
+    this.reviewCount = 0,
     required this.distance,
+    this.deliveryTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
     required this.imagePath,
     this.isFavorite = false,
     this.onFavoriteToggle,
@@ -97,59 +105,15 @@ class RestaurantCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                // Category and Rating
-                Row(
-                  children: [
-                    Text(
-                      category,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                      child: Text(
-                        '•',
-                        style: TextStyle(color: Colors.grey[400]),
-                      ),
-                    ),
-                    Text(
-                      rating.toString(),
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      PhosphorIcons.star(PhosphorIconsStyle.fill),
-                      size: 13,
-                      color: Colors.amber,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // Distance
-                Row(
-                  children: [
-                    Icon(
-                      PhosphorIcons.car(),
-                      size: 15,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      distance,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+                // Metadata Row
+                ShopItemMetadataRow(
+                  rating: rating > 0 ? rating : null,
+                  reviewCount: reviewCount,
+                  // Since distance is a string here ('5.0 km'), we will just parse it
+                  distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
+                  deliveryTime: deliveryTime,
+                  deliveryFee: deliveryFee,
+                  originalDeliveryFee: originalDeliveryFee,
                 ),
               ],
             ),

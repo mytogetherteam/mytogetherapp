@@ -11,8 +11,13 @@ class MenuItemDto {
   final String category;
   final bool isFavorite;
   final double rating;
+  final int reviewCount;
   final double? originalPrice;
   final String? displayPrice;
+  final double? distanceKm;
+  final String? estimatedTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
 
   MenuItemDto({
     required this.id,
@@ -25,8 +30,13 @@ class MenuItemDto {
     required this.category,
     this.isFavorite = false,
     this.rating = 0.0,
+    this.reviewCount = 0,
     this.originalPrice,
     this.displayPrice,
+    this.distanceKm,
+    this.estimatedTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
   });
 
   factory MenuItemDto.fromJson(Map<String, dynamic> json) {
@@ -41,9 +51,22 @@ class MenuItemDto {
       category: json['category'] ?? '',
       isFavorite: json['isFavorite'] ?? false,
       rating: _parsePrice(json['rating']),
+      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       displayPrice: json['displayPrice'] as String?,
+      distanceKm: json['distanceKm'] != null 
+          ? double.tryParse(json['distanceKm'].toString()) 
+          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
+      estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
+      deliveryFee: _parseDeliveryFee(json),
+      originalDeliveryFee: null, // Depending on if api adds it
     );
+  }
+
+  static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
+    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
+    return null;
   }
 
   static double _parsePrice(dynamic value) {
@@ -82,8 +105,14 @@ class MenuItemDto {
       category: '',
       isFavorite: json['isFavorite'] ?? false,
       rating: _parsePrice(json['rating']),
+      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       displayPrice: json['displayPrice'] as String?,
+      distanceKm: json['distanceKm'] != null 
+          ? double.tryParse(json['distanceKm'].toString()) 
+          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
+      estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
+      deliveryFee: _parseDeliveryFee(json),
     );
   }
 }

@@ -15,6 +15,10 @@ class ShopFeedItemDto {
   final bool isFavorite;
   final String currency;
   final String? displayPrice;
+  final double? distanceKm;
+  final String? estimatedTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
 
   ShopFeedItemDto({
     required this.id,
@@ -29,6 +33,10 @@ class ShopFeedItemDto {
     required this.isFavorite,
     this.currency = '฿',
     this.displayPrice,
+    this.distanceKm,
+    this.estimatedTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
   });
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
@@ -42,14 +50,31 @@ class ShopFeedItemDto {
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       price: _parsePrice(json['price']),
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
-      rating: _parsePrice(json['rating']),
-      reviewCount: json['reviewCount'] as int? ?? 0,
+      rating: _parsePrice(json['rating'] ?? json['ratingAvg']),
+      reviewCount: (json['reviewCount'] ?? json['ratingCount']) as int? ?? 0,
       shopId: json['shopId'] as int? ?? 0,
       shopName: shopName,
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
       displayPrice: json['displayPrice'] as String?,
+      distanceKm: json['distanceKm'] != null 
+          ? double.tryParse(json['distanceKm'].toString()) 
+          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
+      estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
+      deliveryFee: _parseDeliveryFee(json),
+      originalDeliveryFee: _parseOriginalDeliveryFee(json),
     );
+  }
+
+  static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
+    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
+    return null;
+  }
+
+  static String? _parseOriginalDeliveryFee(Map<String, dynamic> json) {
+    // If they add original delivery fee later.
+    return null;
   }
 
   static double _parsePrice(dynamic value) {

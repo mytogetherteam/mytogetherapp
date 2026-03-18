@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/data/cart_manager.dart';
+import 'shop_item_metadata_row.dart';
 
 import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
@@ -22,6 +23,11 @@ class FoodMenuItemCard extends StatefulWidget {
   final double? originalPrice;
   final String? displayPrice;
   final bool showRestaurantName;
+  final int reviewCount;
+  final double? distanceKm;
+  final String? estimatedTime;
+  final String? deliveryFee;
+  final String? originalDeliveryFee;
   final VoidCallback? onFavoriteToggle;
   final bool isHighlighted;
   final bool forceRestaurantNavigation;
@@ -41,6 +47,11 @@ class FoodMenuItemCard extends StatefulWidget {
     this.originalPrice,
     this.displayPrice,
     this.showRestaurantName = true,
+    this.distanceKm,
+    this.reviewCount = 0,
+    this.estimatedTime,
+    this.deliveryFee,
+    this.originalDeliveryFee,
     this.onFavoriteToggle,
     this.isHighlighted = false,
     this.forceRestaurantNavigation = false,
@@ -256,73 +267,71 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
-                          Text(
-                            widget.title,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: Colors.black,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
-                                Expanded(
-                                  child: Text(
-                                    widget.restaurantName,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                              ],
-                              if (widget.rating > 0) ...[
-                                const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
-                                const SizedBox(width: 2),
-                                Text(
-                                  widget.rating.toStringAsFixed(1),
+                              Expanded(
+                                child: Text(
+                                  widget.title,
                                   style: GoogleFonts.poppins(
-                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                     color: Colors.black,
                                   ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFFED3A72),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (hasDiscount) ...[
-                                const SizedBox(width: 6),
+                              if (widget.price > 0 || hasDiscount || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
+                                const SizedBox(width: 4),
+                                if (hasDiscount) ...[
+                                  Text(
+                                    widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey[400],
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 9,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
                                 Text(
-                                  widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                  widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
                                   style: GoogleFonts.poppins(
-                                    color: Colors.grey[400],
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 11,
-                                    decoration: TextDecoration.lineThrough,
+                                    color: const Color(0xFFED3A72),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
                             ],
                           ),
+                          const SizedBox(height: 2),
+                          if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
+                            Text(
+                              widget.restaurantName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w400,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          ShopItemMetadataRow(
+                            rating: widget.rating > 0 ? widget.rating : null,
+                            reviewCount: widget.reviewCount,
+                            distanceKm: widget.distanceKm,
+                            deliveryTime: widget.estimatedTime,
+                            deliveryFee: widget.deliveryFee,
+                            originalDeliveryFee: widget.originalDeliveryFee,
+                            fontSize: 10,
+                            iconSize: 12,
+                          ),
+                          const SizedBox(height: 4),
                         ],
                       ),
                     ),
