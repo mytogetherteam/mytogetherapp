@@ -5,7 +5,9 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_secti
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
+// import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 
 class FoodPage extends StatefulWidget {
@@ -17,6 +19,30 @@ class FoodPage extends StatefulWidget {
 
 class _FoodPageState extends State<FoodPage> {
   Key _refreshKey = UniqueKey();
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _sectionKeys = {
+    'for-you': GlobalKey(),
+    'trending': GlobalKey(),
+    'popular-dishes': GlobalKey(),
+  };
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSection(String sectionKey) {
+    final key = _sectionKeys[sectionKey];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+        alignment: 0.1, // Near the top
+      );
+    }
+  }
 
   Future<void> _onRefresh() async {
     // Small delay for better UX and to allow skeletons to show
@@ -44,11 +70,24 @@ class _FoodPageState extends State<FoodPage> {
                 color: const Color(0xFFED3973),
                 child: SingleChildScrollView(
                   key: _refreshKey,
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator to work on short lists
                   child: Column(
                     children: [
                       const SizedBox(height: 16),
-                      const SpecialPromotionSection(),
+                      FoodQuickAccessSection(
+                        onNearbyTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RestaurantNearbyListPage()),
+                          );
+                        },
+                        onForYouTap: () => _scrollToSection('for-you'),
+                        onTrendingTap: () => _scrollToSection('trending'),
+                        onPopularTap: () => _scrollToSection('popular-dishes'),
+                      ),
+                      // Hiding special promotion for now
+                      // const SpecialPromotionSection(),
                       const SizedBox(height: 20),
                       // ── 5 live feed sections ───────────────────────────
                       ..._buildFeedSections(),
@@ -82,6 +121,7 @@ class _FoodPageState extends State<FoodPage> {
     return [
       for (final s in sections) ...[
         FoodFeedSection(
+          key: _sectionKeys[s.$1],
           feedType: s.$1,
           title: s.$2,
           latitude: lat,
