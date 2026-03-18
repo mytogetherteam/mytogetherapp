@@ -23,6 +23,8 @@ class NearbyRestaurantListItem extends StatelessWidget {
   final VoidCallback? onViewMenu;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onDirectionTap;
+  final VoidCallback? onCallTap;
+  final VoidCallback? onShareTap;
 
   const NearbyRestaurantListItem({
     super.key,
@@ -43,6 +45,8 @@ class NearbyRestaurantListItem extends StatelessWidget {
     this.onViewMenu,
     this.onFavoriteToggle,
     this.onDirectionTap,
+    this.onCallTap,
+    this.onShareTap,
   });
 
   @override
@@ -115,27 +119,26 @@ class NearbyRestaurantListItem extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        category,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ShopItemMetadataRow(
-                        rating: rating > 0 ? rating : null,
-                        reviewCount: reviewCount,
-                        distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
-                        deliveryTime: deliveryTime,
-                        deliveryFee: deliveryFee,
-                        originalDeliveryFee: originalDeliveryFee,
-                      ),
-                      const SizedBox(height: 4),
                       Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Text(
+                            category,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[400],
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
                             status,
                             style: GoogleFonts.poppins(
@@ -146,25 +149,84 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                   : Colors.red,
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ShopItemMetadataRow(
+                        rating: rating > 0 ? rating : null,
+                        reviewCount: reviewCount,
+                        distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
+                        deliveryTime: deliveryTime,
+                        deliveryFee: deliveryFee,
+                        originalDeliveryFee: originalDeliveryFee,
+                      ),
+                      const SizedBox(height: 8),
+                      // Action Buttons Row
+                      Row(
+                        children: [
                           if (onDirectionTap != null) ...[
-                            const SizedBox(width: 8),
                             GestureDetector(
                               onTap: onDirectionTap,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFED3973).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
+                                    Text(
+                                      'Direction',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFFED3973),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
                                       Icons.near_me_rounded,
                                       size: 14,
                                       color: Color(0xFFED3973),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (onCallTap != null) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: onCallTap,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  PhosphorIcons.phone(),
+                                  size: 16,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (onShareTap != null) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: onShareTap,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  PhosphorIcons.shareNetwork(),
+                                  size: 16,
+                                  color: Colors.grey[700],
                                 ),
                               ),
                             ),
