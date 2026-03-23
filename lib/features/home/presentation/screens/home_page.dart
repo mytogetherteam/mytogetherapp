@@ -17,6 +17,8 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
+import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -85,13 +87,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           children: [
             // Top Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 children: [
                   Image.asset(
                     'assets/images/icon.png',
-                    height: 40,
-                    width: 40,
+                    height: 32,
+                    width: 32,
                     errorBuilder: (context, error, stackTrace) =>
                         Icon(PhosphorIcons.warning(), color: theme.colorScheme.error),
                   ),
@@ -100,13 +102,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     'MyTogether',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 16,
                     ),
                   ),
                   const Spacer(),
                   IconButton(
                     onPressed: () {},
-                    icon: Icon(PhosphorIcons.magnifyingGlass(), size: 28, color: theme.iconTheme.color),
+                    icon: Icon(PhosphorIcons.magnifyingGlass(), size: 24, color: theme.iconTheme.color),
                   ),
                   ValueListenableBuilder<int>(
                     valueListenable: NotificationRepository().unreadCount,
@@ -125,7 +127,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               },
                               icon: Icon(
                                 PhosphorIcons.bell(), 
-                                size: 28, 
+                                size: 24, 
                                 color: theme.iconTheme.color
                               ),
                             ),
@@ -239,10 +241,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               title: 'Lost & \n Found',
                               assetPath: 'assets/images/services/lost-found.png',
                               badgeText: '9+',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const LostAndFoundPage(),
+                                ),
+                              ),
                             ),
                             CategoryCard(
                               title: 'Currency Exchange',
                               assetPath: 'assets/images/services/exchange.png',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CurrencyExchangePage(),
+                                ),
+                              ),
                             ),
                             CategoryCard(
                               title: 'Visa',
@@ -265,7 +279,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       const SizedBox(height: 24),
                       // Restaurants Nearby Section
                       const RestaurantsNearbySection(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       // Today's Overview Section (Trending Near By)
                       const TodaysOverviewSection(),
                       const SizedBox(height: 24),

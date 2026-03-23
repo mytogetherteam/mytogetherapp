@@ -910,7 +910,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         return ListView.builder(
                           controller: _listScrollController,
                           physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 20),
+                          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 40),
                           itemCount: restaurants.length,
                           itemBuilder: (context, index) {
                             final data = restaurants[index];

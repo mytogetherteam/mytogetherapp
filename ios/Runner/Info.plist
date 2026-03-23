@@ -51,6 +51,10 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<true/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+		</array>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 	</dict>

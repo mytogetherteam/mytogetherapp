@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'lost_item_card.dart';
 import 'view_all_icon_button.dart';
+import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 
 class LostItemsNearbySection extends StatefulWidget {
   const LostItemsNearbySection({super.key});
@@ -65,7 +66,12 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () {},
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LostAndFoundPage(),
+                  ),
+                ),
               ),
             ],
           ),

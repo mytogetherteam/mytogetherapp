@@ -214,7 +214,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         color: const Color(0xFFED3973),
         child: _items.isEmpty && _isLoading
             ? GridView.builder(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 48.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 16,
@@ -226,7 +226,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
               )
             : GridView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 48.0),
                 physics: const AlwaysScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,

@@ -106,14 +106,17 @@ class RestaurantCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 // Metadata Row
-                ShopItemMetadataRow(
-                  rating: rating > 0 ? rating : null,
-                  reviewCount: reviewCount,
-                  // Since distance is a string here ('5.0 km'), we will just parse it
-                  distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
-                  deliveryTime: deliveryTime,
-                  deliveryFee: deliveryFee,
-                  originalDeliveryFee: originalDeliveryFee,
+                Transform.translate(
+                  offset: const Offset(-1.5, 0),
+                  child: ShopItemMetadataRow(
+                    rating: rating > 0 ? rating : null,
+                    reviewCount: reviewCount,
+                    // Since distance is a string here ('5.0 km'), we will just parse it
+                    distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
+                    deliveryTime: deliveryTime,
+                    deliveryFee: deliveryFee,
+                    originalDeliveryFee: originalDeliveryFee,
+                  ),
                 ),
               ],
             ),

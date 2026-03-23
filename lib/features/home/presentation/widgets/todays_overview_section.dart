@@ -170,8 +170,8 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
             crossAxisSpacing: 16,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.85,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.88,
           ),
           itemCount: MediaQuery.of(context).size.width > 600 ? 4 : 4,
           itemBuilder: (_, index) => Column(
@@ -238,8 +238,8 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
               crossAxisSpacing: 16,
-              mainAxisSpacing: 24,
-              childAspectRatio: 0.81,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.88,
             ),
           itemCount: displayItems.length > (MediaQuery.of(context).size.width > 600 ? 5 : 6) ? (MediaQuery.of(context).size.width > 600 ? 5 : 6) : displayItems.length,
           itemBuilder: (context, index) {

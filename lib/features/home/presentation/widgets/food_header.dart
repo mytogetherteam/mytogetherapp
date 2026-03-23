@@ -143,7 +143,7 @@ class _FoodHeaderState extends State<FoodHeader> {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 10, 16, 10),
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 8, 16, 8),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -214,13 +214,13 @@ class _FoodHeaderState extends State<FoodHeader> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           GestureDetector(
             onTap: () {
               // Future: Navigate to search page
             },
             child: Container(
-              height: 40,
+              height: 36,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.3),

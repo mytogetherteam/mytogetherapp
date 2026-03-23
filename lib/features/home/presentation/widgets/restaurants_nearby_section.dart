@@ -128,7 +128,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 280, // Increased height to accommodate multi-line restaurant names
+              height: 240, // Reduced height to remove empty space below cards
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -201,7 +201,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 280,
+          height: 240,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
