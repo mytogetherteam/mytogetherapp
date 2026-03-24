@@ -14,13 +14,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
-import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../core/presentation/widgets/global_modal.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;

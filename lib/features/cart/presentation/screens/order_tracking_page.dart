@@ -602,7 +602,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final all = [
       ...points,
       _restaurantLatLng,
-      if (_currentLocation != null) _currentLocation!,
+      ?_currentLocation,
     ];
 
     double minLat = all.first.latitude;

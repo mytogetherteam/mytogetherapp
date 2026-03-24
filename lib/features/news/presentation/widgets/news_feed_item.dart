@@ -24,7 +24,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
   late int _likesCount;
   // _pageController is no longer needed for ListView.builder
   // late PageController _pageController;
-  int _currentImageIndex = 0;
+  final int _currentImageIndex = 0;
   bool _isExpanded = false;
 
   @override

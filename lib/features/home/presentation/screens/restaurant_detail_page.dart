@@ -11,8 +11,6 @@ import '../widgets/shop_feed_section.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../data/models/food_detail_dto.dart';
 import '../../../../core/location/location_service.dart';
 import 'restaurant_overview_page.dart';
 import '../../../../app.dart';

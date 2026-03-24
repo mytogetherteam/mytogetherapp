@@ -529,7 +529,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                    shrinkWrap: true,
                                    physics: const NeverScrollableScrollPhysics(),
                                    itemCount: paymentTypes.length,
-                                   separatorBuilder: (_, __) => const SizedBox(height: 16),
+                                   separatorBuilder: (_, _) => const SizedBox(height: 16),
                                    itemBuilder: (context, index) {
                                      final type = paymentTypes[index];
                                      

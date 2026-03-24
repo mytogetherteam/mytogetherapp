@@ -19,6 +19,7 @@ import 'package:mytogetherapp/features/notifications/data/repositories/notificat
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
+import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -261,6 +262,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             CategoryCard(
                               title: 'Visa',
                               assetPath: 'assets/images/services/visa.png',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const VisaPage(),
+                                ),
+                              ),
                             ),
                             CategoryCard(
                               title: 'Places',

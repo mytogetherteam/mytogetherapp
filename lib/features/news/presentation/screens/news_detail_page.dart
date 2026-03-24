@@ -42,7 +42,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   late int _likesCount;
   // Use viewportFraction 0.80 for the "peek" effect, matching the feed
   final PageController _pageController = PageController(viewportFraction: 0.80);
-  int _currentImageIndex = 0;
+  final int _currentImageIndex = 0;
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   bool _isGifPickerVisible = false;

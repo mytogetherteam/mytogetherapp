@@ -864,7 +864,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return ListView.builder(
                             itemCount: 5,
-                            itemBuilder: (_, __) => const NearbyRestaurantListItemSkeleton(),
+                            itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
                           );
                         }
 

@@ -405,7 +405,7 @@ class ActiveOrderState extends ChangeNotifier {
     if (msgType != null && msgType != 'ORDER_UPDATE') return;
 
     // Identify the target order
-    final id = data['orderId']?.toString() ?? data['id']?.toString() ?? this.orderId;
+    final id = data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
     if (id == null || !_orders.containsKey(id)) return;
     
     final item = _orders[id]!;

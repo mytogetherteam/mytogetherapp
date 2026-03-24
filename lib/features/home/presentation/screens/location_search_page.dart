@@ -351,7 +351,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: _searchResults.length,
-      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100, indent: 72, endIndent: 16),
+      separatorBuilder: (_, _) => Divider(height: 1, color: Colors.grey.shade100, indent: 72, endIndent: 16),
       itemBuilder: (context, index) {
         final place = _searchResults[index];
         return _buildPlaceTile(place);
