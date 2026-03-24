@@ -1,91 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'visa_detail_page.dart';
+import 'dart:io';
 
-// ---------------------------------------------------------------------------
-// Data models
-// ---------------------------------------------------------------------------
+void main() {
+  final file = File('lib/features/visa/presentation/screens/visa_page.dart');
+  final lines = file.readAsLinesSync();
 
-class _VisaItem {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accentColor;
-  final String? imageUrl;
-  final String? description;
-  final String? officialWebsite;
-  final bool canTakeAppointmentOnline;
+  final startIdx = lines.indexWhere((l) => l.startsWith('final List<_VisaCategory> _visaCategories = ['));
+  final endIdx = lines.indexWhere((l) => l.startsWith('];'), lines.indexWhere((l) => l.startsWith('final List<_ServiceCategory> _serviceCategories = [')));
 
-  const _VisaItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accentColor,
-    this.imageUrl,
-    this.description,
-    this.officialWebsite,
-    this.canTakeAppointmentOnline = false,
-  });
-}
+  if (startIdx == -1 || endIdx == -1) {
+    print('Could not find bounds');
+    return;
+  }
 
-class _ServiceItem {
-  final String title;
-  final String subtitle;
-  final String description;
-  final IconData icon;
-  final String? imageUrl;
-  final String? officialWebsite;
-  final bool canTakeAppointmentOnline;
-
-  const _ServiceItem({
-    required this.title,
-    required this.subtitle,
-    required this.description,
-    required this.icon,
-    this.imageUrl,
-    this.officialWebsite,
-    this.canTakeAppointmentOnline = false,
-  });
-}
-
-class _VisaCategory {
-  final String label;
-  final String emoji;
-  final Color color;
-  final List<_VisaItem> items;
-
-  const _VisaCategory({
-    required this.label,
-    required this.emoji,
-    required this.color,
-    required this.items,
-  });
-}
-
-class _ServiceCategory {
-  final String label;
-  final String emoji;
-  final Color color;
-  final List<_ServiceItem> items;
-
-  const _ServiceCategory({
-    required this.label,
-    required this.emoji,
-    required this.color,
-    required this.items,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Static data
-// ---------------------------------------------------------------------------
-
-const _pink = Color(0xFFED3973);
-const _orange = Color(0xFFFBA15C);
-const _bgColor = Color(0xFFF5F5F5);
-
+  final newContent = r'''
 final List<_VisaCategory> _visaCategories = [
   _VisaCategory(
     label: 'Short-Term & Tourist',
@@ -242,7 +169,6 @@ final List<_ServiceCategory> _serviceCategories = [
     items: [
       _ServiceItem(
         title: '90-Day Reporting (TM.47)',
-        subtitle: 'Address reporting every 90 days',
         description: 'Long-term visa holders must report their residential address to the Immigration Bureau every 90 days of continuous stay in Thailand. Getting this done late incurs a 2,000 THB fine. You can complete this report in person, by mail, or through the official Thai Immigration e-Service portal online.',
         icon: PhosphorIconsRegular.calendarCheck,
         imageUrl: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=800&auto=format&fit=crop',
@@ -251,14 +177,12 @@ final List<_ServiceCategory> _serviceCategories = [
       ),
       _ServiceItem(
         title: 'TM.30 (Residence Notification)',
-        subtitle: 'Filed by landlord within 24 hours',
         description: 'Under the Immigration Act, the property owner or landlord must report the presence of any foreigner staying at their residence within 24 hours of arrival. While the landlord usually files the TM.30 online, the foreigner must keep the TM.30 receipt in their passport for subsequent visa extensions and 90-day reporting.',
         icon: PhosphorIconsRegular.house,
         imageUrl: 'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'TDAC (Digital Arrival Card)',
-        subtitle: 'Digital alternative to TM.6 card',
         description: 'The traditional TM.6 Arrival Card is being replaced by the Thailand Digital Arrival Card (TDAC) and ETA system. While currently suspended for air arrivals from most countries to ease airport congestion, the digital integration allows immigration pre-screening. Ensure you check current requirements before traveling if entering by land.',
         icon: PhosphorIconsRegular.deviceMobile,
         imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800&auto=format&fit=crop',
@@ -272,28 +196,24 @@ final List<_ServiceCategory> _serviceCategories = [
     items: [
       _ServiceItem(
         title: 'Extension of Stay (TM.7)',
-        subtitle: 'Extend your visa at Immigration',
         description: 'An extension of stay (using form TM.7) is applied for at a Thai Immigration Office. A 60-day tourist visa or visa exemption can typically be extended for an additional 30 days for a fee of 1,900 THB. Long-term visas (business, education, retirement) require extensive annual renewal paperwork submitted via TM.7.',
         icon: PhosphorIconsRegular.clockCounterClockwise,
         imageUrl: 'https://images.unsplash.com/photo-1544256718-3bcf237f3974?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Re-Entry Permit (TM.8)',
-        subtitle: 'Required before leaving Thailand',
         description: 'If you leave Thailand, your current visa is automatically canceled unless you have a Re-Entry Permit. Form TM.8 allows you to obtain a Single-Entry (1,000 THB) or Multiple-Entry (3,800 THB) permit. This keeps your current visa valid while you travel abroad. Apply at Immigration or at major airports before departure.',
         icon: PhosphorIconsRegular.arrowUUpLeft,
         imageUrl: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Visa Type Change (TM.86/87)',
-        subtitle: 'Change visa type without leaving',
         description: 'Forms TM.86 and TM.87 allow foreigners to change their visa status (e.g., from a Tourist Visa or Exemption to a Non-Immigrant Visa) without leaving Thailand. This requires at least 15 days remaining on the current stamp, and significant supporting documentation from a sponsor, employer, or family member.',
         icon: PhosphorIconsRegular.swap,
         imageUrl: 'https://images.unsplash.com/photo-1450101499163-c8848c66cb85?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Transfer Stamp',
-        subtitle: 'Move visas to a new passport',
         description: 'When you receive a new passport from your embassy while staying in Thailand, your existing Thai visa and entry stamps must be transferred from the old passport to the new one. This free service is done at the Immigration Office that issued your most recent visa extension or at the airport.',
         icon: PhosphorIconsRegular.stamp,
         imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop',
@@ -307,28 +227,24 @@ final List<_ServiceCategory> _serviceCategories = [
     items: [
       _ServiceItem(
         title: 'Digital Work Permit (e-WP)',
-        subtitle: 'Legal authorization to work',
         description: 'Foreigners legally employed in Thailand must hold a Work Permit. The physical blue books have been heavily replaced by the Digital Work Permit (e-WP) application on smartphones. The employer must coordinate with the Ministry of Labour to secure the Work Permit before you can legally begin working.',
         icon: PhosphorIconsRegular.briefcase,
         imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Certificate of Residence',
-        subtitle: 'Official proof of Thai address',
         description: 'A Certificate of Residence is an official document from Immigration or your Embassy confirming your Thai address. It is frequently required for buying a vehicle, applying for a Thai driver\'s license, opening a bank account, or acquiring utilities. You must show proof of address like a lease contract and a TM.30 receipt.',
         icon: PhosphorIconsRegular.certificate,
         imageUrl: 'https://images.unsplash.com/photo-1603796846054-e2ef6cc2878d?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Income Certificate',
-        subtitle: 'Embassy letter verifying income',
         description: 'An Income Certificate is an official letter from a foreign embassy verifying a foreigner\'s pension or steady monthly income from abroad. This is commonly required for Retirement Visa applications (e.g., proving monthly income of at least 65,000 THB) or Marriage Visas (40,000 THB).',
         icon: PhosphorIconsRegular.money,
         imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'Permanent Residency (PR)',
-        subtitle: 'Indefinite stay for qualified residents',
         description: 'Permanent Residency allows you to stay in Thailand indefinitely without applying for annual extensions. Criteria are highly strict: you must hold a Non-Immigrant visa for at least 3 consecutive years, speak conversational Thai, and show significant tax payments. An annual quota of 100 people per nationality is enforced.',
         icon: PhosphorIconsRegular.mapPin,
         imageUrl: 'https://images.unsplash.com/photo-1473186578172-c141e6798fec?q=80&w=800&auto=format&fit=crop',
@@ -342,14 +258,12 @@ final List<_ServiceCategory> _serviceCategories = [
     items: [
       _ServiceItem(
         title: 'Medical Certificate for Visa',
-        subtitle: 'Health check for Work Permits',
         description: 'A standardized medical certificate is required for Work Permits and certain long-term visas. A doctor at a certified Thai clinic or hospital must examine you (including a blood test) and verify that you do not suffer from prohibitive diseases like late-stage syphilis, tuberculosis, drug addiction, alcoholism, or elephantiasis.',
         icon: PhosphorIconsRegular.heartbeat,
         imageUrl: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=800&auto=format&fit=crop',
       ),
       _ServiceItem(
         title: 'ThaiID App Verification',
-        subtitle: 'Digital identity application',
         description: 'ThaID is a digital identity application developed by the Department of Provincial Administration (DOPA). While primarily for Thai citizens, expats with specific residency status and pink cards can use it to securely verify their identity when accessing government e-services, filing taxes remotely, and verifying banking transactions.',
         icon: PhosphorIconsRegular.fingerprint,
         imageUrl: 'https://images.unsplash.com/photo-1585076641399-5c06d15a43ce?q=80&w=800&auto=format&fit=crop',
@@ -357,431 +271,10 @@ final List<_ServiceCategory> _serviceCategories = [
     ],
   )
 ];
+'''
+  ;
 
-
-// ---------------------------------------------------------------------------
-// Main Page
-// ---------------------------------------------------------------------------
-
-class VisaPage extends StatefulWidget {
-  const VisaPage({super.key});
-
-  @override
-  State<VisaPage> createState() => _VisaPageState();
-}
-
-class _VisaPageState extends State<VisaPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Scaffold(
-        backgroundColor: _bgColor,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            _buildSliverHeader(innerBoxIsScrolled),
-          ],
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _VisaTypesTab(categories: _visaCategories),
-              _ServicesTab(categories: _serviceCategories),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSliverHeader(bool innerBoxIsScrolled) {
-    return SliverAppBar(
-      expandedHeight: 200,
-      pinned: true,
-      stretch: true,
-      backgroundColor: _pink,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.parallax,
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_pink, _orange],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text('🇹🇭', style: TextStyle(fontSize: 22)),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Thailand Visa',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Types & Immigration Services 2026',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
-        onPressed: () => Navigator.pop(context),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
-        child: Container(
-          color: Colors.white,
-          child: TabBar(
-            controller: _tabController,
-            labelStyle:
-                GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
-            unselectedLabelStyle:
-                GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w400),
-            labelColor: _pink,
-            unselectedLabelColor: Colors.black54,
-            indicatorColor: _pink,
-            indicatorWeight: 2.5,
-            tabs: const [
-              Tab(text: 'Visa Types'),
-              Tab(text: 'Immigration Services'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tab: Visa Types
-// ---------------------------------------------------------------------------
-
-class _VisaTypesTab extends StatelessWidget {
-  final List<_VisaCategory> categories;
-
-  const _VisaTypesTab({required this.categories});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: categories.length,
-      itemBuilder: (context, i) => _CategorySection(category: categories[i]),
-    );
-  }
-}
-
-class _CategorySection extends StatelessWidget {
-  final _VisaCategory category;
-
-  const _CategorySection({required this.category});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-          child: Row(
-            children: [
-              Text(
-                category.label,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...category.items.map((item) => _VisaCard(item: item)),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-class _VisaCard extends StatelessWidget {
-  final _VisaItem item;
-
-  const _VisaCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: item.accentColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(item.icon, color: item.accentColor, size: 20),
-        ),
-        title: Text(
-          item.title,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            item.subtitle,
-            style: GoogleFonts.poppins(
-              fontSize: 11.5,
-              color: Colors.black45,
-              height: 1.4,
-            ),
-          ),
-        ),
-        trailing: Icon(
-          PhosphorIconsRegular.caretRight,
-          size: 14,
-          color: Colors.grey.shade400,
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VisaDetailPage(
-                args: VisaDetailArgs(
-                  title: item.title,
-                  description: item.description ?? item.subtitle,
-                  imageUrl: item.imageUrl,
-                  officialWebsite: item.officialWebsite,
-                  canTakeAppointmentOnline: item.canTakeAppointmentOnline,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tab: Immigration Services
-// ---------------------------------------------------------------------------
-
-class _ServicesTab extends StatelessWidget {
-  final List<_ServiceCategory> categories;
-
-  const _ServicesTab({required this.categories});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: categories.length,
-      itemBuilder: (context, i) =>
-          _ServiceCategorySection(category: categories[i]),
-    );
-  }
-}
-
-class _ServiceCategorySection extends StatelessWidget {
-  final _ServiceCategory category;
-
-  const _ServiceCategorySection({required this.category});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-          child: Row(
-            children: [
-              Text(
-                category.label,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                for (int i = 0; i < category.items.length; i++) ...[
-                  _ServiceItemTile(
-                    item: category.items[i],
-                    accentColor: category.color,
-                  ),
-                  if (i < category.items.length - 1)
-                    const Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      indent: 68,
-                      endIndent: 0,
-                      color: Color(0xFFF0F0F0),
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-}
-
-class _ServiceItemTile extends StatelessWidget {
-  final _ServiceItem item;
-  final Color accentColor;
-
-  const _ServiceItemTile({
-    required this.item,
-    required this.accentColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: accentColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(item.icon, color: accentColor, size: 20),
-      ),
-      title: Text(
-        item.title,
-        style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 3),
-        child: Text(
-          item.subtitle,
-          style: GoogleFonts.poppins(
-            fontSize: 11.5,
-            color: Colors.black45,
-            height: 1.4,
-          ),
-        ),
-      ),
-      trailing: Icon(
-        PhosphorIconsRegular.caretRight,
-        size: 14,
-        color: Colors.grey.shade400,
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VisaDetailPage(
-              args: VisaDetailArgs(
-                title: item.title,
-                description: item.description,
-                imageUrl: item.imageUrl,
-                officialWebsite: item.officialWebsite,
-                canTakeAppointmentOnline: item.canTakeAppointmentOnline,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  lines.replaceRange(startIdx, endIdx + 1, [newContent]);
+  file.writeAsStringSync(lines.join('\n') + '\n');
+  print('Updated successfully');
 }
