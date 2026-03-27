@@ -1043,9 +1043,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildStepNode(1, PhosphorIcons.wallet()),
-            _buildStepNode(2, PhosphorIcons.cookingPot()),
-            _buildStepNode(3, PhosphorIcons.moped()),
+            _buildStepNode(1, PhosphorIcons.package(PhosphorIconsStyle.fill)),
+            _buildStepNode(2, PhosphorIcons.cookingPot(PhosphorIconsStyle.fill)),
+            _buildStepNode(3, PhosphorIcons.bicycle(PhosphorIconsStyle.fill)),
             _buildStepNode(4, PhosphorIcons.house()),
           ],
         ),
@@ -1118,24 +1118,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Widget _buildStepNode(int stepIndex, IconData icon) {
     bool isCompleted = _currentStatus >= stepIndex;
     
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: isCompleted ? const Color(0xFFED3973) : Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isCompleted ? const Color(0xFFED3973) : Colors.grey.shade300,
-          width: 2,
-        ),
-      ),
-      child: Icon(
-        icon,
-        size: 18,
-        color: isCompleted ? Colors.white : Colors.grey.shade400,
-      ),
+    return Icon(
+      icon,
+      size: 26,
+      color: isCompleted ? const Color(0xFFED3973) : Colors.grey.shade400,
     );
   }
 
