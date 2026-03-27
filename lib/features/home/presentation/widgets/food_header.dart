@@ -7,6 +7,7 @@ import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
 import 'location_selection_modal.dart';
 import 'location_skeleton_loader.dart';
+import '../../../food/presentation/screens/food_search_page.dart';
 
 class FoodHeader extends StatefulWidget {
   final VoidCallback? onLocationChanged;
@@ -217,7 +218,10 @@ class _FoodHeaderState extends State<FoodHeader> {
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () {
-              // Future: Navigate to search page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FoodSearchPage()),
+              );
             },
             child: Container(
               height: 36,
