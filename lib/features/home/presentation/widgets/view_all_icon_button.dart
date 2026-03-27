@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class ViewAllIconButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -10,31 +11,21 @@ class ViewAllIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFED3973),
-            Color(0xFFEFA240),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
-          splashColor: Colors.white.withValues(alpha: 0.2),
-          highlightColor: Colors.white.withValues(alpha: 0.1),
-          child: const Icon(
-            Icons.arrow_forward,
-            color: Colors.white,
-            size: 16,
+    return Material(
+      color: const Color(0xFFED3973),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: Center(
+            child: Icon(
+              PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+              color: Colors.white,
+              size: 12, // Reduced icon size slightly to match 24x24
+            ),
           ),
         ),
       ),

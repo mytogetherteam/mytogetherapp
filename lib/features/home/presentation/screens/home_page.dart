@@ -3,12 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../widgets/category_card.dart';
-import '../widgets/special_promotion_section.dart';
+import '../widgets/together_deals_section.dart';
 import '../widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
 import '../widgets/trending_news_section.dart';
 import '../widgets/top_places_nearby_section.dart';
+import '../widgets/popular_brands_section.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/presentation/screens/login_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
@@ -29,7 +30,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  Key _refreshKey = UniqueKey();
   late AnimationController _bellAnimationController;
   late Animation<double> _bellScaleAnimation;
 
@@ -64,250 +64,364 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _handleRefresh() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      _refreshKey = UniqueKey();
-    });
-    await NotificationRepository().getUnreadCount();
-  }
 
   @override
   Widget build(BuildContext context) {
-    print('[BOOT] Building HomePage...');
-    final theme = Theme.of(context);
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: SystemUiOverlayStyle.light, // Using light for white text on pink background
       child: Scaffold(
-      backgroundColor: Colors.white,
-      floatingActionButton: const StyledCartFab(),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+        backgroundColor: const Color(0xFFED3973), // Pink background from mockup
+        floatingActionButton: const StyledCartFab(),
+        body: Column(
           children: [
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
+            // Pink Header Section
+            Container(
+              clipBehavior: Clip.hardEdge,
+              decoration: const BoxDecoration(),
+              child: Stack(
                 children: [
-                  Image.asset(
-                    'assets/images/icon.png',
-                    height: 32,
-                    width: 32,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Icon(PhosphorIcons.warning(), color: theme.colorScheme.error),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'MyTogether',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  // Background logo patterns (wavy mockup style)
+                  // Background logo patterns (wavy mockup style)
+                  Positioned(
+                    top: -200,
+                    right: -73,
+                    child: Transform.rotate(
+                      angle: 0.01,
+                      child: Opacity(
+                        opacity: 1, // Balanced visibility
+                        child: Image.asset(
+                          'assets/images/logo_white.png',
+                          width: 350,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {},
-                    icon: Icon(PhosphorIcons.magnifyingGlass(), size: 24, color: theme.iconTheme.color),
+                  Positioned(
+                    bottom: -140,
+                    left: -60,
+                    child: Transform.rotate(
+                      angle: 0.4,
+                      child: Opacity(
+                        opacity: 0.15,
+                        child: Image.asset(
+                          'assets/images/logo_white.png',
+                          width: 420,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   ),
-                  ValueListenableBuilder<int>(
-                    valueListenable: NotificationRepository().unreadCount,
-                    builder: (context, count, _) {
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ScaleTransition(
-                            scale: _bellScaleAnimation,
-                            child: IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const NotificationsPage()),
-                                ).then((_) => NotificationRepository().getUnreadCount());
-                              },
-                              icon: Icon(
-                                PhosphorIcons.bell(), 
-                                size: 24, 
-                                color: theme.iconTheme.color
+                  Positioned(
+                    top: -20,
+                    left: -140,
+                    child: Transform.rotate(
+                      angle: 0.8,
+                      child: Opacity(
+                        opacity: 0.12,
+                        child: Image.asset(
+                          'assets/images/logo_white.png',
+                          width: 360,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    color: Colors.transparent, // Explicitly transparent to show stack background
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 8,
+                      bottom: 8,
+                    ),
+                    child: Column(
+                      children: [
+                        // Top Row: Logo, Brand Name, Icons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Row(
+                            children: [
+                              // Logo
+                              Image.asset(
+                                'assets/images/icon.png',
+                                height: 36,
+                                width: 36,
+                                color: Colors.white,
                               ),
-                            ),
-                          ),
-                          if (count > 0)
-                            Positioned(
-                              top: 6,
-                              right: 10,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFED3973),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: theme.scaffoldBackgroundColor, width: 1.5),
-                                ),
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  count > 9 ? '9+' : count.toString(),
-                                  style: const TextStyle(
+                                  'MyTogether',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
                                     color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
+                              const Spacer(),
+                              // Notification Bell
+                              ValueListenableBuilder<int>(
+                                valueListenable: NotificationRepository().unreadCount,
+                                builder: (context, count, _) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const NotificationsPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(4), // Slightly increased padding
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            PhosphorIcons.bell(),
+                                            size: 25, // Increased size as requested
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: -3,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFED3973),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 1.5),
+                                            ),
+                                            child: Text(
+                                              count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 12),
+                              // Profile Avatar
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    AppDialog.show(
+                                      context: context,
+                                      title: 'Logout',
+                                      content: 'Are you sure you want to log out?',
+                                      buttonText: 'Logout',
+                                      secondaryButtonText: 'Cancel',
+                                      onButtonPressed: () async {
+                                        Navigator.pop(context); // Close dialog
+                                        
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) => const Center(child: CustomLoadingIndicator(size: 40)),
+                                        );
+                                        
+                                        await AuthRepository.instance.logout();
+                                        
+                                        if (context.mounted) {
+                                          Navigator.pushAndRemoveUntil(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                                            (route) => false,
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                  child: const CircleAvatar(
+                                    radius: 16,
+                                    backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Search Bar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Container(
+                            height: 43,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                        ],
-                      );
-                    }
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      AppDialog.show(
-                        context: context,
-                        title: 'Logout',
-                        content: 'Are you sure you want to log out?',
-                        buttonText: 'Logout',
-                        secondaryButtonText: 'Cancel',
-                        onButtonPressed: () async {
-                          Navigator.pop(context); // Close dialog
-                          
-                          // Show loading indicator
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => const Center(child: CustomLoadingIndicator(size: 40)),
-                          );
-                          
-                          await AuthRepository.instance.logout();
-                          
-                          if (context.mounted) {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const LoginPage()),
-                              (route) => false,
-                            );
-                          }
-                        },
-                      );
-                    },
-                    child: const CircleAvatar(
-                      radius: 14,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
-                      backgroundColor: Colors.grey,
+                            child: Row(
+                              children: [
+                                Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey.shade500, size: 20),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Search food, restaurants & more',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, thickness: 1, color: Colors.black.withValues(alpha: 0.05)),
-            
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: _handleRefresh,
-                color: const Color(0xFFED3A72),
-                child: SingleChildScrollView(
-                  key: _refreshKey,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
-                        child: Text(
-                          'Category',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                            color: Colors.black,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10), // Added back small spacer for better rhythm
+                    // Wrapper: dark pink bg so white section's rounded corners blend in
+                    Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFBE2E5B),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                      ),
+                      child: Column(
+                        children: [
+                          // 1. Delivery Info Bar
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFBE2E5B),
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(PhosphorIcons.bicycle(), color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Add more items — pay delivery once',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 5), // Added spacing below delivery bar
+                          // 2. Main White Section (Category Grid & Below)
+                          Container(
+                            width: double.infinity,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
+                                  child: GridView.count(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 8,
+                                    childAspectRatio: 0.95,
+                                    children: [
+                                      CategoryCard(
+                                        title: 'Food &\nRestaurant',
+                                        assetPath: 'assets/images/services/food_3d.png',
+                                        onTap: () => NavigationController.instance.goToFoodTab(),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Lost &\nFound',
+                                        assetPath: 'assets/images/services/lost_found_3d.png',
+                                        badgeText: '4',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const LostAndFoundPage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Currency\nExchange',
+                                        assetPath: 'assets/images/services/exchange_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const CurrencyExchangePage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Visa',
+                                        assetPath: 'assets/images/services/visa_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const VisaPage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Places',
+                                        assetPath: 'assets/images/services/places_3d.png',
+                                      ),
+                                      CategoryCard(
+                                        title: 'Store',
+                                        assetPath: 'assets/images/services/store_3d.png',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const TogetherDealsSection(),
+                                const RestaurantsNearbySection(),
+                                const PopularBrandsSection(),
+                                const SizedBox(height: 24),
+                                const TodaysOverviewSection(),
+                                const SizedBox(height: 24),
+                                const LostItemsNearbySection(),
+                                const SizedBox(height: 24),
+                                const TopPlacesNearbySection(),
+                                const SizedBox(height: 32),
+                                const TrendingNewsSection(),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      // Category Grid
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.8, // Adjusted for better vertical fit with text
-                          children: [
-                            CategoryCard(
-                              title: 'Food & Restaurant',
-                              assetPath: 'assets/images/services/food.png',
-                              onTap: () => NavigationController.instance.goToFoodTab(),
-                            ),
-                            CategoryCard(
-                              title: 'Lost & \n Found',
-                              assetPath: 'assets/images/services/lost-found.png',
-                              badgeText: '9+',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const LostAndFoundPage(),
-                                ),
-                              ),
-                            ),
-                            CategoryCard(
-                              title: 'Currency Exchange',
-                              assetPath: 'assets/images/services/exchange.png',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CurrencyExchangePage(),
-                                ),
-                              ),
-                            ),
-                            CategoryCard(
-                              title: 'Visa',
-                              assetPath: 'assets/images/services/visa.png',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const VisaPage(),
-                                ),
-                              ),
-                            ),
-                            CategoryCard(
-                              title: 'Places',
-                              assetPath: 'assets/images/services/places.png',
-                            ),
-                            CategoryCard(
-                              title: 'Store',
-                              assetPath: 'assets/images/services/store.png',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Special Promotion Section
-                      const SpecialPromotionSection(),
-                      const SizedBox(height: 24),
-                      // Restaurants Nearby Section
-                      const RestaurantsNearbySection(),
-                      const SizedBox(height: 12),
-                      // Today's Overview Section (Trending Near By)
-                      const TodaysOverviewSection(),
-                      const SizedBox(height: 24),
-                      // Lost Items Nearby Section
-                      const LostItemsNearbySection(),
-                      const SizedBox(height: 24),
-                      // Top Places Nearby Section
-                      const TopPlacesNearbySection(),
-                      const SizedBox(height: 32),
-                      // Trending News Section
-                      const TrendingNewsSection(),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
       ),
-    ),
     );
   }
 }

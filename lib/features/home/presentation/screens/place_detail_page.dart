@@ -1,0 +1,517 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import '../../presentation/widgets/image_skeleton_loader.dart';
+
+class PlaceDetailPage extends StatefulWidget {
+  final String name;
+  final String category;
+  final String distance;
+  final String imagePath;
+  final String description;
+  final String? openingHours;
+  final List<String> images;
+
+  const PlaceDetailPage({
+    super.key,
+    required this.name,
+    required this.category,
+    required this.distance,
+    required this.imagePath,
+    required this.description,
+    this.openingHours,
+    required this.images,
+  });
+
+  @override
+  State<PlaceDetailPage> createState() => _PlaceDetailPageState();
+}
+
+class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  late AnimationController _zoomController;
+  late AnimationController _entranceController;
+  late Animation<double> _zoomAnimation;
+  late Animation<double> _entranceOpacity;
+  late Animation<Offset> _entranceSlide;
+  bool _isScrolled = false;
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+
+    // Ken Burns Animation Setup
+    _zoomController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    );
+    _zoomAnimation = Tween<double>(begin: 1.2, end: 1.0).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.linear),
+    );
+    _zoomController.repeat(reverse: true);
+
+    // Entrance Animation Setup
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _entranceOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
+    );
+    _entranceSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entranceController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
+    );
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _zoomController.dispose();
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final double offset = _scrollController.offset;
+      if (offset > 200) {
+        if (!_isScrolled) setState(() => _isScrolled = true);
+      } else {
+        if (_isScrolled) setState(() => _isScrolled = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const double expandedHeight = 430.0;
+    final double appBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _isScrolled ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Animated Image Header
+                SliverAppBar(
+                  expandedHeight: expandedHeight,
+                  pinned: true,
+                  stretch: true,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    stretchModes: const [
+                      StretchMode.zoomBackground,
+                    ],
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ScaleTransition(
+                          scale: _zoomAnimation,
+                          child: Hero(
+                            tag: widget.name,
+                            child: CachedNetworkImage(
+                              imageUrl: widget.imagePath,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => const Icon(
+                                Icons.error,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Top Shadow for readability
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 120,
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withOpacity(0.4),
+                                    Colors.black.withOpacity(0.0),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Content Section
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _entranceOpacity,
+                    child: SlideTransition(
+                      position: _entranceSlide,
+                      child: Transform.translate(
+                        offset: const Offset(0, -60),
+                        child: Stack(
+                          children: [
+                            // Main Content Container
+                            Container(
+                              margin: const EdgeInsets.only(top: 60),
+                              padding: const EdgeInsets.only(top: 20, bottom: 40),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // About Location
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    child: Text(
+                                      'About Location',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    child: Text(
+                                      widget.description,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        color: Colors.grey[600],
+                                        height: 1.6,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+                                  // Photo Gallery
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    child: Text(
+                                      'Photo Gallery',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    height: 200,
+                                    child: ListView.builder(
+                                      padding: const EdgeInsets.only(left: 20.0),
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: widget.images.length,
+                                      itemBuilder: (context, index) {
+                                        return Container(
+                                          width: 150,
+                                          margin: const EdgeInsets.only(right: 16),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(20),
+                                            child: CachedNetworkImage(
+                                              imageUrl: widget.images[index],
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => const ImageSkeletonLoader(
+                                                height: 200,
+                                                width: 150,
+                                              ),
+                                              errorWidget: (context, url, error) => Container(
+                                                color: Colors.grey[200],
+                                                child: const Icon(Icons.error),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Floating Title and View on Map Section
+            AnimatedBuilder(
+              animation: _scrollController,
+              builder: (context, child) {
+                double scrollOffset = 0.0;
+                if (_scrollController.hasClients) {
+                  scrollOffset = _scrollController.offset;
+                }
+                
+                // Calculate position: start at bottom of image, move up with scroll
+                const double initialTop = expandedHeight - 50;
+                double currentTop = initialTop - scrollOffset;
+                
+                // Fade out as it reaches the top
+                double opacity = 1.0;
+                if (scrollOffset > 150) {
+                  opacity = (1.0 - (scrollOffset - 150) / 100).clamp(0.0, 1.0);
+                }
+
+                return Stack(
+                  children: [
+                    // Bottom Fade synchronized with scroll
+                    Positioned(
+                      top: expandedHeight - 90 - scrollOffset,
+                      left: 0,
+                      right: 0,
+                      height: 140, // More height to ensure deep connection
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white.withOpacity(0.0),
+                                Colors.white.withOpacity(0.6),
+                                Colors.white.withOpacity(0.9),
+                                Colors.white.withOpacity(0.95),
+                                Colors.white,
+                                Colors.white,
+                              ],
+                              stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Floating Title Section
+                    Positioned(
+                      top: currentTop,
+                      left: 20,
+                      right: 20,
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AutoSizeText(
+                                    widget.name,
+                                    maxLines: 2,
+                                    minFontSize: 16,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1D1D1F),
+                                      height: 1.1,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
+                                        color: const Color(0xFFED3A72),
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        widget.category,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF1D1D1F).withOpacity(0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (widget.openingHours != null) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          PhosphorIcons.clock(PhosphorIconsStyle.regular),
+                                          color: Colors.green[600],
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.openingHours!,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.green[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Container(
+                              height: 38,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFED3A72),
+                                borderRadius: BorderRadius.circular(19),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'View on Map',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
+            // Custom Floating App Bar (Back/Heart)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+                height: appBarHeight,
+                decoration: BoxDecoration(
+                  color: _isScrolled ? Colors.white : Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: _isScrolled ? Colors.black.withOpacity(0.05) : Colors.transparent,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    _buildCircleIconButton(
+                      icon: PhosphorIcons.arrowLeft(),
+                      onPressed: () => Navigator.pop(context),
+                      isScrolled: _isScrolled,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: _isScrolled ? 1.0 : 0.0,
+                        child: AutoSizeText(
+                          widget.name,
+                          maxLines: 1,
+                          minFontSize: 14,
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildCircleIconButton(
+                      icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                      onPressed: () {
+                        setState(() => _isFavorite = !_isFavorite);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_isFavorite ? 'Saved to favorites' : 'Removed from favorites'),
+                            duration: const Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: const Color(0xFFED3A72),
+                          ),
+                        );
+                      },
+                      isScrolled: _isScrolled,
+                      iconColorOverride: _isFavorite ? const Color(0xFFED3A72) : null,
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircleIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required bool isScrolled,
+    Color? iconColorOverride,
+  }) {
+    final Color iconColor = iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
+    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withOpacity(0.3);
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        icon: Icon(icon, color: iconColor, size: 24),
+        onPressed: onPressed,
+      ),
+    );
+  }
+}
