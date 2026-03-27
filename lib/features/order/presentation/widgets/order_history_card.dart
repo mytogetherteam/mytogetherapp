@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:intl/intl.dart';
-import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
-import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
-import 'package:mytogetherapp/features/cart/presentation/screens/order_tracking_page.dart';
-import 'package:mytogetherapp/features/cart/presentation/screens/order_status_page.dart';
-import 'package:mytogetherapp/features/cart/presentation/screens/awaiting_payment_page.dart';
-import 'package:mytogetherapp/features/cart/presentation/screens/order_complete_page.dart';
-import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
-import 'package:mytogetherapp/core/network/websocket_service.dart';
+import 'package:mytogetherapp/features/order/data/models/demo_order_data.dart';
 
-class OrderHistoryCard extends StatelessWidget {
-  final OrderHistoryDto order;
+class OrderHistoryCard extends StatefulWidget {
+  final DemoOrder order;
 
   const OrderHistoryCard({
     super.key,
     required this.order,
   });
 
+  @override
+  State<OrderHistoryCard> createState() => _OrderHistoryCardState();
+}
+
+class _OrderHistoryCardState extends State<OrderHistoryCard> {
+  late bool _isRated;
+  late int _ratingScore;
+
+  @override
+  void initState() {
+    super.initState();
+    _isRated = widget.order.isRated;
+    _ratingScore = widget.order.ratingScore;
+  }
+
   Color get primaryColor => const Color(0xFFED3A72);
+  Color get greenColor => const Color(0xFF2E7D32); // Using a solid green for 'Active'
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -39,375 +46,336 @@ class OrderHistoryCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Shop Info Row
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: order.shopImageUrl != null && order.shopImageUrl!.isNotEmpty
-                      ? Image.network(
-                          order.shopImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                        )
-                      : _buildPlaceholder(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      order.shopName ?? 'Restaurant',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    Text(
-                      order.statusLabel ?? order.status,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                order.displayTotalAmount ?? '฿ ${order.totalAmount.toStringAsFixed(0)}',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 12),
-          
-          // Order ID and Time
-          Row(
-            children: [
-              Text(
-                '#${order.lastOrderNo ?? (order.id.length > 8 ? order.id.substring(order.id.length - 6) : order.id).toUpperCase()}',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.circle, size: 4, color: Colors.grey[400]),
-              const SizedBox(width: 8),
-              Text(
-                _formatDate(order.createdAt),
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const Spacer(),
-              Icon(PhosphorIcons.car(), size: 14, color: primaryColor),
-              const SizedBox(width: 4),
-              Text(
-                'Delivery',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Progress Tracker
-          _buildProgressTracker(),
-          
-          const SizedBox(height: 16),
-          
-          // Items Summary
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ...order.items.take(3).map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${item.quantity}x ',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: primaryColor,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          item.menuItemName,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-                if (order.items.length > 3)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '+ ${order.items.length - 3} more items',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
+                _buildTopRow(),
+                const SizedBox(height: 16),
+                _buildMiddleRow(),
+                const SizedBox(height: 16),
+                _buildBottomRow(context),
               ],
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _viewDetails(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    foregroundColor: Colors.black87,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'View Details',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              if (order.ongoing) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _trackOrder(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Track Order',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          if (widget.order.type == 'completed' && widget.order.hasRatingRow) _buildRatingStrip(),
         ],
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      color: Colors.grey[100],
-      child: const Icon(Icons.restaurant, color: Colors.grey, size: 20),
-    );
-  }
+  Widget _buildTopRow() {
+    Color labelColor = Colors.grey;
+    if (widget.order.type == 'completed') labelColor = primaryColor;
+    if (widget.order.type == 'active') labelColor = greenColor;
 
-  Widget _buildProgressTracker() {
-    // Indices for stages: 0=Confirmed, 1=Preparing, 2=Ready, 3=Shipped, 4=Completed
-    int activeIndex = _getStatusIndex(order.status);
-    
     return Row(
       children: [
-        _buildStep(PhosphorIcons.checkCircle(), activeIndex >= 0),
-        _buildLine(activeIndex >= 1),
-        _buildStep(PhosphorIcons.cookingPot(), activeIndex >= 1),
-        _buildLine(activeIndex >= 2),
-        _buildStep(PhosphorIcons.package(), activeIndex >= 2),
-        _buildLine(activeIndex >= 3),
-        _buildStep(PhosphorIcons.moped(), activeIndex >= 3),
-        _buildLine(activeIndex >= 4),
-        _buildStep(PhosphorIcons.house(), activeIndex >= 4),
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.network(
+              widget.order.shopLogoUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.grey[200]),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            widget.order.shopName,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Text(
+          widget.order.type == 'completed' ? 'Completed' : (widget.order.type == 'cancelled' ? 'Cancelled' : 'Active'),
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: labelColor,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStep(IconData icon, bool isActive) {
+  Widget _buildMiddleRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Row(
+            children: _buildThumbnails(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              widget.order.priceDisplay,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  '${widget.order.itemCount} Items ',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildThumbnails() {
+    List<Widget> thumbs = [];
+    int maxDisplayCount = 3;
+    bool hasOverflow = widget.order.itemThumbnails.length > maxDisplayCount;
+
+    for (int i = 0; i < (hasOverflow ? maxDisplayCount : widget.order.itemThumbnails.length); i++) {
+        bool isLast = i == widget.order.itemThumbnails.length - 1;
+        bool isThird = i == maxDisplayCount - 1;
+
+        Widget img = Container(
+          width: 60,
+          height: 60,
+          margin: EdgeInsets.only(right: isLast ? 0 : 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[100],
+          ),
+          child: ClipRRect(
+             borderRadius: BorderRadius.circular(8),
+             child: Image.network(
+                widget.order.itemThumbnails[i],
+                fit: BoxFit.cover,
+                 errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.grey[200]),
+             ),
+          ),
+        );
+
+        if (hasOverflow && isThird) {
+           thumbs.add(Stack(
+             children: [
+                img,
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '+${widget.order.itemThumbnails.length - maxDisplayCount}', // +X overlay
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+             ],
+           ));
+        } else {
+           thumbs.add(img);
+        }
+    }
+
+    return thumbs;
+  }
+
+  Widget _buildBottomRow(BuildContext context) {
+    if (widget.order.type == 'active') {
+       return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.order.deliveryStatusTitle,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    widget.order.deliveryStatusSubtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+               onPressed: () {},
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: primaryColor,
+                 foregroundColor: Colors.white,
+                 elevation: 0,
+                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                 shape: RoundedRectangleBorder(
+                   borderRadius: BorderRadius.circular(100),
+                 ),
+               ),
+               child: Row(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                   Icon(PhosphorIcons.bicycle(PhosphorIconsStyle.fill), size: 14),
+                   const SizedBox(width: 6),
+                   Text(
+                     'Track order',
+                     style: GoogleFonts.poppins(
+                       fontWeight: FontWeight.w600,
+                       fontSize: 13,
+                     ),
+                   ),
+                   const SizedBox(width: 4),
+                   const Icon(Icons.chevron_right, size: 16),
+                 ],
+               ),
+            ),
+          ],
+       );
+    }
+
+    // For completed and cancelled
+    String btnLabel = widget.order.type == 'completed' ? 'Re-order' : 'Buy Again';
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          widget.order.dateDisplay,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.grey[500],
+          ),
+        ),
+        ElevatedButton(
+           onPressed: () {},
+           style: ElevatedButton.styleFrom(
+             backgroundColor: primaryColor,
+             foregroundColor: Colors.white,
+             elevation: 0,
+             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+             shape: RoundedRectangleBorder(
+               borderRadius: BorderRadius.circular(100),
+             ),
+           ),
+           child: Text(
+             btnLabel,
+             style: GoogleFonts.poppins(
+               fontWeight: FontWeight.w600,
+               fontSize: 13,
+             ),
+           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRatingStrip() {
     return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: isActive ? primaryColor : Colors.grey[100],
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        icon,
-        size: 16,
-        color: isActive ? Colors.white : Colors.grey[400],
-      ),
+       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+       decoration: const BoxDecoration(
+          color: Color(0xFFF8FAFC), // Light grey strip
+          borderRadius: BorderRadius.only(
+             bottomLeft: Radius.circular(16),
+             bottomRight: Radius.circular(16),
+          ),
+       ),
+       child: _isRated ? _buildRatedContent() : _buildPromptContent(),
     );
   }
 
-  Widget _buildLine(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: isActive ? primaryColor : Colors.grey[200],
-      ),
+  Widget _buildPromptContent() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'How was your order?',
+          style: GoogleFonts.poppins(
+             fontSize: 13,
+             color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Row(
+           children: List.generate(5, (index) => GestureDetector(
+              onTap: () {
+                setState(() {
+                  _ratingScore = index + 1;
+                  _isRated = true;
+                });
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Icon(Icons.star_border_rounded, size: 24, color: Colors.grey[400]),
+              ),
+           )),
+        ),
+      ],
     );
   }
 
-  int _getStatusIndex(String status) {
-    switch (status.toUpperCase()) {
-      case 'PENDING':
-      case 'CONFIRMED':
-        return 0;
-      case 'PAYMENT_VERIFIED':
-      case 'PREPARING':
-        return 1;
-      case 'READY_TO_PICKUP':
-        return 2;
-      case 'ON_THE_WAY':
-      case 'SHIPPED':
-        return 3;
-      case 'COMPLETED':
-      case 'DELIVERED':
-        return 4;
-      default:
-        return 0;
-    }
-  }
-
-  String _formatDate(String isoString) {
-    try {
-      final DateTime date = DateTime.parse(isoString);
-      final now = DateTime.now();
-      final difference = now.difference(date);
-      
-      if (difference.inMinutes < 1) return 'Just now';
-      if (difference.inHours < 1) return '${difference.inMinutes}m ago';
-      if (difference.inDays < 1) return '${difference.inHours}h ago';
-      
-      return DateFormat('dd MMM, hh:mm a').format(date);
-    } catch (_) {
-      return '';
-    }
-  }
-
-  void _viewDetails(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Order Details for #${order.lastOrderNo ?? order.id} coming soon!')),
-    );
-  }
-
-  Future<void> _trackOrder(BuildContext context) async {
-    final state = ActiveOrderState.instance;
-    
-    // 1. Bootstrap the state with what we know
-    state.setActiveOrder(
-      storeName: order.shopName ?? 'Restaurant',
-      restaurantName: order.shopName ?? 'Restaurant',
-      logoPath: order.shopImageUrl,
-      orderId: order.id,
-    );
-    
-    // 2. Refresh full order details and status from API
-    await state.syncActiveOrder();
-    
-    // 3. Connect WebSocket for live updates
-    WebSocketService().connect(force: true);
-
-    if (!context.mounted) return;
-
-    // 4. Navigate based on the current status
-    // Status mapping from updateFromSocket in active_order_state.dart:
-    // 1: Awaiting Payment
-    // 3: On the Way
-    // others: Status Timeline
-    
-    Widget targetPage;
-    final s = state.orderStatus;
-    final foodTotal = (state.totalAmount ?? 0) - (state.deliveryFee ?? 0);
-    final deliveryFee = state.deliveryFee ?? 0;
-
-    if (s == 0 || s == 2 || s == -1) {
-      targetPage = OrderStatusPage(
-        foodTotal: foodTotal,
-        deliveryFee: deliveryFee,
-      );
-    } else if (s == 1) {
-      if (state.isPaymentChecking) {
-        targetPage = OrderStatusPage(
-          foodTotal: foodTotal,
-          deliveryFee: deliveryFee,
-        );
-      } else {
-        targetPage = AwaitingPaymentPage(
-          foodTotal: foodTotal,
-          deliveryFee: deliveryFee,
-        );
-      }
-    } else if (s == 3) {
-      targetPage = OrderTrackingPage(
-        store: CartStore(name: state.storeName ?? '', items: state.orderItems),
-        foodTotal: (state.totalAmount ?? 0).toInt(),
-      );
-    } else if (s == 4) {
-       // Using status page for completed orders too if they are still "active" in state
-       // or navigate to complete page directly
-      targetPage = OrderCompletePage();
-    } else {
-      targetPage = OrderStatusPage(
-        foodTotal: foodTotal,
-        deliveryFee: deliveryFee,
-      );
-    }
-
-    if (targetPage is OrderCompletePage && OrderCompletePage.isCurrentlyVisible) {
-      return;
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => targetPage),
+  Widget _buildRatedContent() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'My rating $_ratingScore/5',
+           style: GoogleFonts.poppins(
+             fontSize: 13,
+             color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Icon(Icons.star_rounded, size: 20, color: primaryColor),
+      ],
     );
   }
 }
