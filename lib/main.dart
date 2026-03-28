@@ -60,7 +60,7 @@ void main() async {
     ),
   );
 
-  GoogleFonts.config.allowRuntimeFetching = false;
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   print('[BOOT] Calling runApp()...');
   runApp(const App());

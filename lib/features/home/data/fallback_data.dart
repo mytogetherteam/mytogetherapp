@@ -6,61 +6,72 @@ class FallbackData {
   static List<Restaurant> get restaurants => [
     const Restaurant(
       id: '1',
-      name: 'The Grand Pavilion',
-      category: 'Thai Fusion • Fine Dining',
-      rating: 4.8,
-      reviewCount: 1250,
-      distance: '0.8 km',
-      imagePath: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1200&auto=format&fit=crop',
-      logoPath: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx-D7wYn9S1_0N3WzS-Yk8yV_zXp9z_GgD9g&s',
+      name: 'Rangoon Tea House Bangkok',
+      category: 'Myanmar Fine Dining • Tea',
+      rating: 4.5,
+      reviewCount: 393,
+      distance: '2.4 km',
+      imagePath:
+          'https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600',
+      logoPath:
+          'https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600',
       deliveryTime: '25-35 min',
       status: 'Open',
-      deliveryFee: '฿0',
-      originalDeliveryFee: '฿40',
+      deliveryFee: '฿30',
     ),
     const Restaurant(
       id: '2',
-      name: 'Sushi Mitsu',
-      category: 'Japanese • Sushi',
-      rating: 4.9,
-      reviewCount: 890,
-      distance: '1.2 km',
-      imagePath: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=1200&auto=format&fit=crop',
-      logoPath: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=80',
-      deliveryTime: '30-40 min',
+      name: 'ThaNaKa Myanmar Restaurant',
+      category: 'Myanmar Home Cooking',
+      rating: 4.4,
+      reviewCount: 98,
+      distance: '1.8 km',
+      imagePath:
+          'https://lh3.googleusercontent.com/places/ANXAkqFaykNogx5SUXlxCh2T-t4XwyZ_QOXGOEeozCRNfbqeGSZ1SA2bTGPPXV25CL5Dy9FMLkv91b5wwHOlfcFjOj6N0KyMORvIHtc=s1200-w800-h600',
+      logoPath:
+          'https://lh3.googleusercontent.com/places/ANXAkqFaykNogx5SUXlxCh2T-t4XwyZ_QOXGOEeozCRNfbqeGSZ1SA2bTGPPXV25CL5Dy9FMLkv91b5wwHOlfcFjOj6N0KyMORvIHtc=s1200-w800-h600',
+      deliveryTime: '20-30 min',
       status: 'Open',
-      deliveryFee: '฿20',
+      deliveryFee: '฿30',
     ),
     const Restaurant(
       id: '3',
-      name: 'Burger Craft',
-      category: 'American • Burgers',
-      rating: 4.5,
-      reviewCount: 2100,
-      distance: '2.5 km',
-      imagePath: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1200&auto=format&fit=crop',
-      logoPath: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Burger_King_logo_%282021%29.svg/1024px-Burger_King_logo_%282021%29.svg.png',
-      deliveryTime: '20-30 min',
+      name: 'The Burma Food House',
+      category: 'Myanmar & Rakhine Cuisine',
+      rating: 4.7,
+      reviewCount: 304,
+      distance: '3.1 km',
+      imagePath:
+          'https://lh3.googleusercontent.com/place-photos/AL8-SNFiMFBdK4eewtN23mCBS_crMVNRFYz2Ra2F7_lsIeT7ozxUfLEI9Mt9WYNd5JWERcL4FNqbCW3gLnwZfrc9yl2MNsYC060k9NX_21WbTxjmzYWsYVl7T0_SK-b71W2ZilfHH5qy1h8cKwaRq0uNJ8kwOw=s1200-w800-h600',
+      logoPath:
+          'https://lh3.googleusercontent.com/place-photos/AL8-SNFiMFBdK4eewtN23mCBS_crMVNRFYz2Ra2F7_lsIeT7ozxUfLEI9Mt9WYNd5JWERcL4FNqbCW3gLnwZfrc9yl2MNsYC060k9NX_21WbTxjmzYWsYVl7T0_SK-b71W2ZilfHH5qy1h8cKwaRq0uNJ8hwOw=s1200-w800-h600',
+      deliveryTime: '30-40 min',
       status: 'Open',
-      deliveryFee: '฿15',
+      deliveryFee: '฿30',
     ),
   ];
 
   // --- Lost Items ---
   static List<Map<String, String>> get lostItems => [
     {
-      'description': 'Lost a black leather wallet containing a Thai ID and credit cards near Siam Paragon. Reward offered.',
-      'imageUrl': 'https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=600&auto=format&fit=crop',
+      'description':
+          'Lost a black leather wallet containing a Thai ID and credit cards near Siam Paragon. Reward offered.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=600&auto=format&fit=crop',
       'timeAgo': '5m ago',
     },
     {
-      'description': 'Found a set of BMW car keys at Lumphini Park. Message me to identify the keychain.',
-      'imageUrl': 'https://images.unsplash.com/photo-1582139329536-e7284fece509?q=80&w=600&auto=format&fit=crop',
+      'description':
+          'Found a set of BMW car keys at Lumphini Park. Message me to identify the keychain.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1582139329536-e7284fece509?q=80&w=600&auto=format&fit=crop',
       'timeAgo': '12m ago',
     },
     {
-      'description': 'Found a grey Herschel backpack on the BTS Sukhumvit line. Many personal items inside.',
-      'imageUrl': 'https://images.unsplash.com/photo-1547949003-9792a18a2601?q=80&w=600&auto=format&fit=crop',
+      'description':
+          'Found a grey Herschel backpack on the BTS Sukhumvit line. Many personal items inside.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1547949003-9792a18a2601?q=80&w=600&auto=format&fit=crop',
       'timeAgo': '45m ago',
     },
   ];
@@ -68,20 +79,26 @@ class FallbackData {
   // --- Trending News ---
   static List<Map<String, String>> get news => [
     {
-      'title': 'New Skywalk connects Siam Square to MBK: A boost for Bangkok pedestrians.',
-      'imageUrl': 'https://images.unsplash.com/photo-1512428559083-a400a4b82c97?q=80&w=1200&auto=format&fit=crop',
+      'title':
+          'New Skywalk connects Siam Square to MBK: A boost for Bangkok pedestrians.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1512428559083-a400a4b82c97?q=80&w=1200&auto=format&fit=crop',
       'source': 'Bangkok Post',
       'timeAgo': '10m ago',
     },
     {
-      'title': 'The Songkran Festival 2026: Official dates and main event locations announced.',
-      'imageUrl': 'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=1000&auto=format&fit=crop',
+      'title':
+          'The Songkran Festival 2026: Official dates and main event locations announced.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=1000&auto=format&fit=crop',
       'source': 'Thai PBS',
       'timeAgo': '1h ago',
     },
     {
-      'title': 'Local startups receive major funding boost to develop eco-friendly food packaging.',
-      'imageUrl': 'https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1400&auto=format&fit=crop',
+      'title':
+          'Local startups receive major funding boost to develop eco-friendly food packaging.',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1400&auto=format&fit=crop',
       'source': 'Reuters',
       'timeAgo': '3h ago',
     },
@@ -93,8 +110,10 @@ class FallbackData {
       'name': 'The Grand Palace',
       'category': 'Historical Landmark',
       'distance': '2.1 km',
-      'imagePath': 'https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?q=80&w=1400&auto=format&fit=crop',
-      'description': 'A complex of buildings at the heart of Bangkok, the Grand Palace has been the official residence of the Kings of Siam since 1782.',
+      'imagePath':
+          'https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?q=80&w=1400&auto=format&fit=crop',
+      'description':
+          'A complex of buildings at the heart of Bangkok, the Grand Palace has been the official residence of the Kings of Siam since 1782.',
       'hours': '8:30 AM - 3:30 PM',
       'gallery': [
         'https://images.unsplash.com/photo-1544015759-338276f920f3?q=80&w=800&auto=format&fit=crop',
@@ -105,8 +124,10 @@ class FallbackData {
       'name': 'Wat Arun',
       'category': 'Temple',
       'distance': '1.8 km',
-      'imagePath': 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?q=80&w=1400&auto=format&fit=crop',
-      'description': 'Wat Arun, the "Temple of Dawn", is one of Bangkok\'s most iconic symbols situated on the west bank of the Chao Phraya River.',
+      'imagePath':
+          'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?q=80&w=1400&auto=format&fit=crop',
+      'description':
+          'Wat Arun, the "Temple of Dawn", is one of Bangkok\'s most iconic symbols situated on the west bank of the Chao Phraya River.',
       'hours': '8:00 AM - 6:00 PM',
       'gallery': [
         'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?q=80&w=800&fit=crop',
@@ -117,8 +138,10 @@ class FallbackData {
       'name': 'Lumpini Park',
       'category': 'City Park',
       'distance': '3.5 km',
-      'imagePath': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?q=80&w=1400&auto=format&fit=crop',
-      'description': 'The first public park in Bangkok, offering a green oasis with a large artificial lake, jogging tracks, and playgrounds.',
+      'imagePath':
+          'https://images.unsplash.com/photo-1583417319070-4a69db38a482?q=80&w=1400&auto=format&fit=crop',
+      'description':
+          'The first public park in Bangkok, offering a green oasis with a large artificial lake, jogging tracks, and playgrounds.',
       'hours': '4:30 AM - 9:00 PM',
       'gallery': [
         'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800',
@@ -128,8 +151,10 @@ class FallbackData {
       'name': 'Siam Paragon',
       'category': 'Shopping Mall',
       'distance': '0.5 km',
-      'imagePath': 'https://images.unsplash.com/photo-1565967511849-76a60a516170?q=80&w=1400&auto=format&fit=crop',
-      'description': 'One of the largest shopping malls in Thailand, featuring high-end brands, a massive aquarium, and luxury cinemas.',
+      'imagePath':
+          'https://images.unsplash.com/photo-1565967511849-76a60a516170?q=80&w=1400&auto=format&fit=crop',
+      'description':
+          'One of the largest shopping malls in Thailand, featuring high-end brands, a massive aquarium, and luxury cinemas.',
       'hours': '10:00 AM - 10:00 PM',
       'gallery': [
         'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?q=80&w=800',
@@ -139,8 +164,10 @@ class FallbackData {
       'name': 'Wat Phra Kaew',
       'category': 'Temple',
       'distance': '2.3 km',
-      'imagePath': 'https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=1400&auto=format&fit=crop',
-      'description': 'Commonly known in English as the Temple of the Emerald Buddha and officially as Wat Phra Si Rattana Satsadaram.',
+      'imagePath':
+          'https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=1400&auto=format&fit=crop',
+      'description':
+          'Commonly known in English as the Temple of the Emerald Buddha and officially as Wat Phra Si Rattana Satsadaram.',
       'hours': '8:30 AM - 3:30 PM',
       'gallery': [
         'https://images.unsplash.com/photo-1569424888066-8848db9980d2?q=80&w=800&auto=format&fit=crop',
@@ -155,63 +182,72 @@ class FallbackData {
       'rating': '4.7',
       'time': '35min',
       'distance': '1.5km',
-      'logoUrl': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx-D7wYn9S1_0N3WzS-Yk8yV_zXp9z_GgD9g&s',
+      'logoUrl':
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx-D7wYn9S1_0N3WzS-Yk8yV_zXp9z_GgD9g&s',
     },
     {
       'name': 'KFC',
       'rating': '4.5',
       'time': '20min',
       'distance': '1.0km',
-      'logoUrl': 'https://images_production.sgp1.digitaloceanspaces.com/logo/kfc_logo.png',
+      'logoUrl':
+          'https://images_production.sgp1.digitaloceanspaces.com/logo/kfc_logo.png',
     },
     {
       'name': 'Burger King',
       'rating': '4.3',
       'time': '30min',
       'distance': '1.8km',
-      'logoUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Burger_King_logo_%282021%29.svg/1024px-Burger_King_logo_%282021%29.svg.png',
+      'logoUrl':
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Burger_King_logo_%282021%29.svg/1024px-Burger_King_logo_%282021%29.svg.png',
     },
     {
       'name': 'Starbucks',
       'rating': '4.8',
       'time': '15min',
       'distance': '0.5km',
-      'logoUrl': 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png',
+      'logoUrl':
+          'https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png',
     },
     {
       'name': 'Sushi Place',
       'rating': '4.7',
       'time': '40min',
       'distance': '2.2km',
-      'logoUrl': 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=80',
+      'logoUrl':
+          'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=80',
     },
     {
       'name': 'Shwe Tea House',
       'rating': '4.7',
       'time': '40min',
       'distance': '2.0km',
-      'logoUrl': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=100&q=80',
+      'logoUrl':
+          'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=100&q=80',
     },
     {
       'name': "McDonald's",
       'rating': '4.2',
       'time': '20min',
       'distance': '1.2km',
-      'logoUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png',
+      'logoUrl':
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png',
     },
     {
       'name': 'Pizza Hut',
       'rating': '4.4',
       'time': '35min',
       'distance': '2.2km',
-      'logoUrl': 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d2/Pizza_Hut_logo.svg/1200px-Pizza_Hut_logo.svg.png',
+      'logoUrl':
+          'https://upload.wikimedia.org/wikipedia/en/thumb/d/d2/Pizza_Hut_logo.svg/1200px-Pizza_Hut_logo.svg.png',
     },
     {
       'name': 'The Pizza Company',
       'rating': '4.6',
       'time': '45min',
       'distance': '3.0km',
-      'logoUrl': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6_GZ-8v7z-qf9v1XzVz-fXvXw-y9fXvXw-g&s',
+      'logoUrl':
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6_GZ-8v7z-qf9v1XzVz-fXvXw-y9fXvXw-g&s',
     },
   ];
 
@@ -223,7 +259,8 @@ class FallbackData {
       'originalPrice': 75,
       'deliveryFee': 25,
       'minutes': 30,
-      'imagePath': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400',
+      'imagePath':
+          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400',
     },
     {
       'name': 'Avocado Toast',
@@ -231,7 +268,8 @@ class FallbackData {
       'originalPrice': 75,
       'deliveryFee': 35,
       'minutes': 20,
-      'imagePath': 'https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&w=400',
+      'imagePath':
+          'https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&w=400',
     },
     {
       'name': 'Mango Sticky Rice',
@@ -239,7 +277,8 @@ class FallbackData {
       'originalPrice': 120,
       'deliveryFee': 40,
       'minutes': 40,
-      'imagePath': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=400',
+      'imagePath':
+          'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=400',
     },
     {
       'name': 'Special Pad Thai',
@@ -247,7 +286,8 @@ class FallbackData {
       'originalPrice': 150,
       'deliveryFee': 30,
       'minutes': 25,
-      'imagePath': 'https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=400',
+      'imagePath':
+          'https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=400',
     },
     {
       'name': 'Classic Pancakes',
@@ -255,7 +295,8 @@ class FallbackData {
       'originalPrice': 80,
       'deliveryFee': 20,
       'minutes': 15,
-      'imagePath': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=400',
+      'imagePath':
+          'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=400',
     },
   ];
 
@@ -264,56 +305,110 @@ class FallbackData {
     MenuItemDto(
       id: 't1',
       restaurantId: '1',
-      restaurantName: 'The Grand Pavilion',
-      title: 'Signature Pad Thai',
-      price: 185.0,
+      restaurantName: 'Rangoon Tea House',
+      title: 'Lahpet Thoke (Tea Leaf Salad)',
+      price: 150.0,
       currency: '฿',
-      imagePath: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=600',
-      category: 'Thai',
+      imagePath:
+          'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800&h=600&fit=crop&auto=format',
+      category: 'Myanmar',
       isFavorite: false,
-      rating: 4.8,
-      reviewCount: 450,
-      distanceKm: 0.8,
+      rating: 4.7,
+      reviewCount: 185,
+      distanceKm: 2.4,
       estimatedTime: '25 min',
-      deliveryFee: '฿0',
-      originalDeliveryFee: '฿40',
-      originalPrice: 220.0,
-      displayPrice: '฿185',
+      deliveryFee: '฿30',
+      displayPrice: '฿150',
     ),
     MenuItemDto(
       id: 't2',
       restaurantId: '2',
-      restaurantName: 'Sushi Mitsu',
-      title: 'Premium Sashimi Set',
-      price: 450.0,
+      restaurantName: 'ThaNaKa Restaurant',
+      title: 'Shan Noodles (Dry)',
+      price: 100.0,
       currency: '฿',
-      imagePath: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=600',
-      category: 'Japanese',
+      imagePath:
+          'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&h=600&fit=crop&auto=format',
+      category: 'Shan',
       isFavorite: true,
-      rating: 4.9,
-      reviewCount: 320,
-      distanceKm: 1.2,
-      estimatedTime: '35 min',
-      deliveryFee: '฿20',
-      displayPrice: '฿450',
+      rating: 4.7,
+      reviewCount: 104,
+      distanceKm: 1.8,
+      estimatedTime: '20 min',
+      deliveryFee: '฿30',
+      displayPrice: '฿100',
     ),
     MenuItemDto(
       id: 't3',
       restaurantId: '3',
-      restaurantName: 'Burger Craft',
-      title: 'Truffle Wagyu Burger',
-      price: 320.0,
+      restaurantName: 'The Burma Food House',
+      title: 'Nan Gyi Thoke',
+      price: 120.0,
       currency: '฿',
-      imagePath: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=600',
-      category: 'American',
+      imagePath:
+          'https://images.unsplash.com/photo-1511690656952-34342bfca0de?w=800&h=600&fit=crop&auto=format',
+      category: 'Noodles',
       isFavorite: false,
-      rating: 4.7,
-      reviewCount: 1200,
-      distanceKm: 2.5,
+      rating: 4.8,
+      reviewCount: 167,
+      distanceKm: 3.1,
       estimatedTime: '30 min',
-      deliveryFee: '฿15',
-      originalPrice: 380.0,
-      displayPrice: '฿320',
+      deliveryFee: '฿30',
+      displayPrice: '฿120',
+    ),
+    MenuItemDto(
+      id: 't4',
+      restaurantId: '4',
+      restaurantName: 'Laxmi Myanmar Food',
+      title: 'Chicken Biryani',
+      price: 150.0,
+      currency: '฿',
+      imagePath:
+          'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&h=600&fit=crop&auto=format',
+      category: 'Rice',
+      isFavorite: false,
+      rating: 4.6,
+      reviewCount: 82,
+      distanceKm: 3.4,
+      estimatedTime: '25 min',
+      deliveryFee: '฿30',
+      displayPrice: '฿150',
+    ),
+    MenuItemDto(
+      id: 't5',
+      restaurantId: '5',
+      restaurantName: 'Bagan Myay',
+      title: 'Bagan Papaya Salad',
+      price: 120.0,
+      currency: '฿',
+      imagePath:
+          'https://images.unsplash.com/photo-1559847844-5315695dadae?w=800&h=600&fit=crop&auto=format',
+      category: 'Salads',
+      isFavorite: false,
+      rating: 4.4,
+      reviewCount: 78,
+      distanceKm: 4.5,
+      estimatedTime: '35 min',
+      deliveryFee: '฿30',
+      displayPrice: '฿120',
+    ),
+    MenuItemDto(
+      id: 't6',
+      restaurantId: '6',
+      restaurantName: 'Feel Restaurant',
+      title: 'Za Lone Rice Salad',
+      price: 100.0,
+      currency: '฿',
+      imagePath:
+          'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&h=600&fit=crop&auto=format',
+      category: 'Rice',
+      isFavorite: false,
+      rating: 4.5,
+      reviewCount: 87,
+      distanceKm: 5.2,
+      estimatedTime: '30 min',
+      deliveryFee: '฿30',
+      displayPrice: '฿100',
     ),
   ];
 }

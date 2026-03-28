@@ -42,12 +42,12 @@ class MenuItemDto {
   factory MenuItemDto.fromJson(Map<String, dynamic> json) {
     return MenuItemDto(
       id: json['id']?.toString() ?? '',
-      restaurantId: json['restaurantId']?.toString() ?? '',
-      restaurantName: json['restaurantName'] ?? '',
-      title: json['title'] ?? '',
+      restaurantId: (json['restaurantId'] ?? json['shopId'])?.toString() ?? '',
+      restaurantName: json['restaurantName'] ?? json['shopNameEn'] ?? json['shopName'] ?? '',
+      title: json['title'] ?? json['nameEn'] ?? json['name'] ?? '',
       price: _parsePrice(json['price']),
       currency: json['currency'] as String? ?? '฿',
-      imagePath: ImageUtils.cleanImageUrl(json['imagePath']) ?? '',
+      imagePath: ImageUtils.cleanImageUrl(json['imagePath'] ?? json['imageUrl']) ?? '',
       category: json['category'] ?? '',
       isFavorite: json['isFavorite'] ?? false,
       rating: _parsePrice(json['rating']),
@@ -96,13 +96,13 @@ class MenuItemDto {
   factory MenuItemDto.fromDishJson(Map<String, dynamic> json) {
     return MenuItemDto(
       id: json['id']?.toString() ?? '',
-      restaurantId: json['shopId']?.toString() ?? '',
-      restaurantName: json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '',
-      title: json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '',
+      restaurantId: (json['restaurantId'] ?? json['shopId'])?.toString() ?? '',
+      restaurantName: json['restaurantName'] as String? ?? json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '',
+      title: json['title'] as String? ?? json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '',
       price: _parsePrice(json['price']),
       currency: json['currency'] as String? ?? '฿',
-      imagePath: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',
-      category: '',
+      imagePath: ImageUtils.cleanImageUrl(json['imagePath'] ?? json['imageUrl']) ?? '',
+      category: json['category']?.toString() ?? '',
       isFavorite: json['isFavorite'] ?? false,
       rating: _parsePrice(json['rating']),
       reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
@@ -113,6 +113,46 @@ class MenuItemDto {
           : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
+    );
+  }
+
+  MenuItemDto copyWith({
+    String? id,
+    String? restaurantId,
+    String? restaurantName,
+    String? title,
+    double? price,
+    String? currency,
+    String? imagePath,
+    String? category,
+    bool? isFavorite,
+    double? rating,
+    int? reviewCount,
+    double? originalPrice,
+    String? displayPrice,
+    double? distanceKm,
+    String? estimatedTime,
+    String? deliveryFee,
+    String? originalDeliveryFee,
+  }) {
+    return MenuItemDto(
+      id: id ?? this.id,
+      restaurantId: restaurantId ?? this.restaurantId,
+      restaurantName: restaurantName ?? this.restaurantName,
+      title: title ?? this.title,
+      price: price ?? this.price,
+      currency: currency ?? this.currency,
+      imagePath: imagePath ?? this.imagePath,
+      category: category ?? this.category,
+      isFavorite: isFavorite ?? this.isFavorite,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      originalPrice: originalPrice ?? this.originalPrice,
+      displayPrice: displayPrice ?? this.displayPrice,
+      distanceKm: distanceKm ?? this.distanceKm,
+      estimatedTime: estimatedTime ?? this.estimatedTime,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      originalDeliveryFee: originalDeliveryFee ?? this.originalDeliveryFee,
     );
   }
 }

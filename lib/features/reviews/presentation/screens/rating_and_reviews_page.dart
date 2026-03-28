@@ -7,8 +7,12 @@ import '../widgets/tiktok_style_review_card.dart';
 import '../widgets/skeleton_review_card.dart';
 import 'write_review_page.dart';
 
+import '../../../home/data/repositories/restaurant_repository.dart';
+import '../../data/models/review_model.dart';
+
 class RatingAndReviewsPage extends StatefulWidget {
-  const RatingAndReviewsPage({super.key});
+  final int shopId;
+  const RatingAndReviewsPage({super.key, required this.shopId});
 
   @override
   State<RatingAndReviewsPage> createState() => _RatingAndReviewsPageState();
@@ -17,13 +21,14 @@ class RatingAndReviewsPage extends StatefulWidget {
 class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
   bool _isLoading = true;
   int _selectedFilterIndex = 0;
+  Map<String, dynamic>? _shopReviews;
 
   final List<Map<String, dynamic>> _filters = [
-    {'label': '📷 Photos/videos (26)', 'key': 'photos'},
-    {'label': '⭐ 5 (121)', 'key': '5_star'},
-    {'label': '⭐ 4 (4)', 'key': '4_star'},
-    {'label': '⭐ 3 (1)', 'key': '3_star'},
-    {'label': 'Follow-up reviews (1)', 'key': 'follow_up'},
+    {'label': '📷 Photos/videos', 'key': 'photos'},
+    {'label': '⭐ 5', 'key': '5_star'},
+    {'label': '⭐ 4', 'key': '4_star'},
+    {'label': '⭐ 3', 'key': '3_star'},
+    {'label': 'Follow-up reviews', 'key': 'follow_up'},
   ];
 
   @override
@@ -36,12 +41,21 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
     setState(() {
       _isLoading = true;
     });
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    
+    try {
+      final reviews = await RestaurantRepository.instance.getShopReviews(widget.shopId);
+      if (mounted) {
+        setState(() {
+          _shopReviews = reviews;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -76,65 +90,77 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                   // Section 1: Rating Summary
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Customer ratings & reviews',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E293B), // Dark slate blue matching the image
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
+                    child: Builder(
+                      builder: (context) {
+                        final average = _shopReviews?['averageRating']?.toString() ?? '4.6';
+                        final total = _shopReviews?['totalReviews']?.toString() ?? '9,615';
+                        final bd = _shopReviews?['ratingBreakdown'] as Map<String, dynamic>? ?? {};
+
+                        double getPct(String key, double def) => (bd[key]?['percentage'] as num?)?.toDouble() ?? def;
+                        String getLbl(String key, String def) => bd[key]?['label']?.toString() ?? def;
+                        String getCnt(String key, String def) => bd[key]?['count']?.toString() ?? def;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '4.6',
+                              'Customer ratings & reviews',
                               style: GoogleFonts.poppins(
-                                fontSize: 42,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1E293B),
+                                color: const Color(0xFF1E293B), // Dark slate blue matching the image
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'out of 5',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
+                            const SizedBox(height: 16),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
                               children: [
-                                for (int i = 0; i < 4; i++)
-                                  const Icon(Icons.star_rounded, color: Color(0xFFFFC107), size: 24),
-                                const Icon(Icons.star_half_rounded, color: Color(0xFFFFC107), size: 24),
+                                Text(
+                                  average,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 42,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'out of 5',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Row(
+                                  children: [
+                                    for (int i = 0; i < 4; i++)
+                                      const Icon(Icons.star_rounded, color: Color(0xFFFFC107), size: 24),
+                                    const Icon(Icons.star_half_rounded, color: Color(0xFFFFC107), size: 24),
+                                  ],
+                                ),
                               ],
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$total ratings',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Progress Bars
+                            RatingProgressBar(starCount: 5, percentage: getPct('r5', 0.82), percentageText: getLbl('r5', '82%'), countText: getCnt('r5', '7,971')),
+                            RatingProgressBar(starCount: 4, percentage: getPct('r4', 0.08), percentageText: getLbl('r4', '8%'), countText: getCnt('r4', '861')),
+                            RatingProgressBar(starCount: 3, percentage: getPct('r3', 0.02), percentageText: getLbl('r3', '2%'), countText: getCnt('r3', '241')),
+                            RatingProgressBar(starCount: 2, percentage: getPct('r2', 0.0), percentageText: getLbl('r2', '0%'), countText: getCnt('r2', '80')),
+                            RatingProgressBar(starCount: 1, percentage: getPct('r1', 0.04), percentageText: getLbl('r1', '4%'), countText: getCnt('r1', '462')),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '9,615 ratings',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Progress Bars
-                        const RatingProgressBar(starCount: 5, percentage: 0.82, percentageText: '82%', countText: '7,971'),
-                        const RatingProgressBar(starCount: 4, percentage: 0.08, percentageText: '8%', countText: '861'),
-                        const RatingProgressBar(starCount: 3, percentage: 0.02, percentageText: '2%', countText: '241'),
-                        const RatingProgressBar(starCount: 2, percentage: 0.00, percentageText: '0%', countText: '80'),
-                        const RatingProgressBar(starCount: 1, percentage: 0.04, percentageText: '4%', countText: '462'),
-                      ],
+                        );
+                      }
                     ),
                   ),
                   
@@ -210,15 +236,33 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                   // Section 3: Review List (TikTok-style)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _isLoading
-                        ? Column(
+                    child: Builder(
+                      builder: (context) {
+                        if (_isLoading) {
+                          return Column(
                             children: List.generate(3, (index) => const SkeletonReviewCard()),
-                          )
-                        : Column(
+                          );
+                        }
+
+                        final itemsMap = _shopReviews?['items'] as List?;
+                        final reviews = (itemsMap ?? []).map((e) => Review.fromJson(e)).toList();
+
+                        if (reviews.isEmpty) {
+                          // Fallback to Demo Data if no items found (failsafe)
+                          return Column(
                             children: ReviewDemoData.reviews
-                                .map((review) => TiktokStyleReviewCard(review: review))
+                                .map((Review review) => TiktokStyleReviewCard(review: review))
                                 .toList(),
-                          ),
+                          );
+                        }
+
+                        return Column(
+                          children: reviews
+                              .map((Review review) => TiktokStyleReviewCard(review: review))
+                              .toList(),
+                        );
+                      }
+                    ),
                   ),
                 ],
               ),

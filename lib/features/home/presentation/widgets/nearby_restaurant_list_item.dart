@@ -121,12 +121,16 @@ class NearbyRestaurantListItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Text(
-                            category,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
+                          Flexible(
+                            child: Text(
+                              category,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.grey[600],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -139,14 +143,18 @@ class NearbyRestaurantListItem extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            status,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: status.toLowerCase() == 'open now' || status.toLowerCase() == 'open'
-                                  ? const Color(0xFF10B981)
-                                  : Colors.red,
+                          Flexible(
+                            child: Text(
+                              status,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: status.toLowerCase() == 'open now' || status.toLowerCase() == 'open'
+                                    ? const Color(0xFF10B981)
+                                    : Colors.red,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

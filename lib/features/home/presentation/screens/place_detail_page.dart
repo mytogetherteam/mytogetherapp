@@ -155,7 +155,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   fit: StackFit.expand,
                                   children: [
                                     ...previousChildren,
-                                    if (currentChild != null) currentChild,
+                                    ?currentChild,
                                   ],
                                 );
                               },
@@ -283,7 +283,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                               PageRouteBuilder(
                                                 opaque: false,
                                                 barrierDismissible: true,
-                                                pageBuilder: (context, _, __) => FullScreenImageViewer(
+                                                pageBuilder: (context, _, _) => FullScreenImageViewer(
                                                   imageUrls: widget.images,
                                                   initialIndex: index,
                                                   heroTagPrefix: 'gallery_${widget.name}_',

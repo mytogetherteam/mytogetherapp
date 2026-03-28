@@ -16,6 +16,7 @@ import 'dart:ui' as ui;
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../food/presentation/screens/food_search_page.dart';
 
 
 class RestaurantNearbyListPage extends StatefulWidget {
@@ -722,34 +723,46 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                 const SizedBox(width: 12),
                 // Search Box
                 Expanded(
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[600], size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'What shall we deliver?',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[500],
-                              fontSize: 14,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const FoodSearchPage()),
+                      );
+                    },
+                    child: Container(
+                      height: 36, // Match FoodHeader
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            PhosphorIcons.magnifyingGlass(), 
+                            color: Colors.grey[600]?.withValues(alpha: 0.8), 
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'What shall we deliver?',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[500],
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

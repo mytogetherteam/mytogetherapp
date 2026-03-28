@@ -5,7 +5,7 @@ import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
 
-class FoodListItemCard extends StatelessWidget {
+class FoodListItemCard extends StatefulWidget {
   final String title;
   final String description;
   final double price;
@@ -44,9 +44,30 @@ class FoodListItemCard extends StatelessWidget {
   });
 
   @override
+  State<FoodListItemCard> createState() => _FoodListItemCardState();
+}
+
+class _FoodListItemCardState extends State<FoodListItemCard> {
+  bool _imageLoadFailed = false;
+
+  void _onImageError() {
+    if (mounted && !_imageLoadFailed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _imageLoadFailed = true;
+          });
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bool hasInvalidImage = widget.imagePath.trim().isEmpty;
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(bottom: 12),
@@ -60,27 +81,27 @@ class FoodListItemCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               clipBehavior: Clip.antiAlias,
-              child: Image.network(
-                imagePath,
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded) return child;
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: frame != null
-                        ? SizedBox(width: 100, height: 100, child: child)
-                        : const ImageSkeletonLoader(width: 100, height: 100),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 100,
-                  height: 100,
-                  color: Colors.grey[100],
-                  child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                ),
-              ),
+              child: hasInvalidImage || _imageLoadFailed || widget.imagePath.isEmpty
+                  ? _buildFallbackImage()
+                  : Image.network(
+                      widget.imagePath,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded) return child;
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: frame != null
+                              ? SizedBox(width: 100, height: 100, child: child)
+                              : const ImageSkeletonLoader(width: 100, height: 100),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        _onImageError();
+                        return _buildFallbackImage();
+                      },
+                    ),
             ),
             const SizedBox(width: 16),
             // Details Section
@@ -93,7 +114,7 @@ class FoodListItemCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          title,
+                          widget.title,
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -104,10 +125,10 @@ class FoodListItemCard extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: onFavoriteToggle,
+                        onTap: widget.onFavoriteToggle,
                         child: Icon(
-                          isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                          color: isFavorite ? const Color(0xFFED3A72) : Colors.grey[400],
+                          widget.isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                          color: widget.isFavorite ? const Color(0xFFED3A72) : Colors.grey[400],
                           size: 20,
                         ),
                       ),
@@ -115,17 +136,17 @@ class FoodListItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   ShopItemMetadataRow(
-                    rating: rating > 0 ? rating : null,
-                    reviewCount: reviewCount,
-                    distanceKm: distanceKm,
-                    deliveryTime: estimatedTime,
-                    deliveryFee: deliveryFee,
-                    originalDeliveryFee: originalDeliveryFee,
+                    rating: widget.rating > 0 ? widget.rating : null,
+                    reviewCount: widget.reviewCount,
+                    distanceKm: widget.distanceKm,
+                    deliveryTime: widget.estimatedTime,
+                    deliveryFee: widget.deliveryFee,
+                    originalDeliveryFee: widget.originalDeliveryFee,
                   ),
-                  if (description.isNotEmpty) ...[
+                  if (widget.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      description,
+                      widget.description,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -134,13 +155,13 @@ class FoodListItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0')) ...[
+                  if (widget.price > 0 || widget.originalPrice > widget.price || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        if (originalPrice > price) ...[
+                        if (widget.originalPrice > widget.price) ...[
                           Text(
-                            originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                            widget.originalPrice.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               color: Colors.grey[500],
@@ -150,7 +171,7 @@ class FoodListItemCard extends StatelessWidget {
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          displayPrice ?? price.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                          widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -164,19 +185,47 @@ class FoodListItemCard extends StatelessWidget {
               ),
             ),
             // Add Button
-            if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0'))
+            if (widget.price > 0 || widget.originalPrice > widget.price || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0'))
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: const BoxDecoration(
                   color: Color(0xFFED3973),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                 child: const Icon(
                   Icons.add,
                   color: Colors.white,
                   size: 20,
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
+            const SizedBox(height: 4),
+            Text(
+              'No Image',
+              style: GoogleFonts.poppins(
+                color: Colors.grey[500],
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),

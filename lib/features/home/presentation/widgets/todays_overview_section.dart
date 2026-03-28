@@ -129,15 +129,17 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
     return FutureBuilder<List<MenuItemDto>>(
       future: _menuItemsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { // Modified condition
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return _buildSkeleton();
         }
 
-        final displayItems = (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) // New logic
+        // The repository already handles fallback to JSON data if API fails.
+        // We only use FallbackData if the repository returned null or empty.
+        final displayItems = (snapshot.data == null || snapshot.data!.isEmpty)
             ? FallbackData.trendingItems
             : snapshot.data!;
 
-        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By'); // Use displayItems
+        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By');
       },
     );
   }
@@ -173,7 +175,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 12,
-            childAspectRatio: 0.88,
+            childAspectRatio: 0.77,
           ),
           itemCount: MediaQuery.of(context).size.width > 600 ? 4 : 4,
           itemBuilder: (_, index) => Column(
@@ -241,7 +243,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
               crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.88,
+              childAspectRatio: 0.77,
             ),
           itemCount: displayItems.length > (MediaQuery.of(context).size.width > 600 ? 5 : 6) ? (MediaQuery.of(context).size.width > 600 ? 5 : 6) : displayItems.length,
           itemBuilder: (context, index) {

@@ -96,14 +96,11 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
           return _buildSkeleton();
         }
 
-        // Determine the list of restaurants (either fetched or fallback)
-        final List<Restaurant> restaurants;
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          debugPrint('RestaurantsNearbySection: Error or no data, using fallback: ${snapshot.error}');
-          restaurants = FallbackData.restaurants;
-        } else {
-          restaurants = snapshot.data!;
-        }
+        // The repository already handles fallback to JSON data if API fails.
+        // We only use FallbackData if the repository itself returns null or empty.
+        final List<Restaurant> restaurants = (snapshot.data == null || snapshot.data!.isEmpty)
+            ? FallbackData.restaurants
+            : snapshot.data!;
 
         // Build the UI using the determined restaurants list
         return Column(
@@ -136,7 +133,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 240,
+              height: 265,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -209,7 +206,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 240,
+          height: 265,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),

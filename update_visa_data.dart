@@ -275,6 +275,6 @@ final List<_ServiceCategory> _serviceCategories = [
   ;
 
   lines.replaceRange(startIdx, endIdx + 1, [newContent]);
-  file.writeAsStringSync(lines.join('\n') + '\n');
+  file.writeAsStringSync('${lines.join('\n')}\n');
   print('Updated successfully');
 }

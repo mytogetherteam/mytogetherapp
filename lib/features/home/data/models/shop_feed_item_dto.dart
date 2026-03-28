@@ -40,19 +40,26 @@ class ShopFeedItemDto {
   });
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
-    // Prioritize English name if available
-    final name = json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '';
-    final shopName = json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '';
+    // Prioritize English name or title if available
+    final name = json['title'] as String? ?? json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '';
+    final shopName = json['restaurantName'] as String? ?? json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '';
     
+    // Robust ID parsing (String vs Int)
+    final idValue = json['id'];
+    final id = idValue is int ? idValue : (int.tryParse(idValue?.toString() ?? '') ?? 0);
+    
+    final shopIdValue = json['shopId'] ?? json['restaurantId'];
+    final shopId = shopIdValue is int ? shopIdValue : (int.tryParse(shopIdValue?.toString() ?? '') ?? 0);
+
     return ShopFeedItemDto(
-      id: json['id'] as int? ?? 0,
+      id: id,
       name: name,
-      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
+      imageUrl: ImageUtils.cleanImageUrl(json['imagePath'] ?? json['imageUrl']),
       price: _parsePrice(json['price']),
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       rating: _parsePrice(json['rating'] ?? json['ratingAvg']),
       reviewCount: (json['reviewCount'] ?? json['ratingCount']) as int? ?? 0,
-      shopId: json['shopId'] as int? ?? 0,
+      shopId: shopId,
       shopName: shopName,
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
@@ -91,8 +98,9 @@ class ShopFeedItemDto {
 /// Wraps the top-level API response for any shop feed endpoint
 class ShopFeedSectionDto {
   final List<ShopFeedItemDto> items;
+  final String? title;
 
-  ShopFeedSectionDto({required this.items});
+  ShopFeedSectionDto({required this.items, this.title});
 
   factory ShopFeedSectionDto.fromJson(Map<String, dynamic> json) {
     // Safely extract data -> items, handling missing or null keys

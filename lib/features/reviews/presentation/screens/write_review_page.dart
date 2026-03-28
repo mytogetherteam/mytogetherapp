@@ -272,7 +272,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -284,23 +284,26 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                 ],
               ),
               child: SafeArea(
-                child: ElevatedButton(
-                  onPressed: _rating > 0 ? _submitReview : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3A72),
-                    disabledBackgroundColor: const Color(0xFFED3A72).withValues(alpha: 0.5),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _rating > 0 ? _submitReview : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFED3A72),
+                      disabledBackgroundColor: const Color(0xFFED3A72).withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Submit Review',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: Text(
+                      'Submit Review',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),

@@ -58,16 +58,16 @@ class FoodDetailDto {
   factory FoodDetailDto.fromJson(Map<String, dynamic> json) {
     return FoodDetailDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      shopId: json['shopId'],
-      shopName: json['shopName'] as String? ?? json['shopNameEn'] as String? ?? json['shopNameMm'] as String?,
-      name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
+      shopId: int.tryParse(json['shopId']?.toString() ?? json['restaurantId']?.toString() ?? '') ?? 0,
+      shopName: json['shopName'] as String? ?? json['restaurantName'] as String? ?? json['shopNameEn'] as String? ?? json['shopNameMm'] as String?,
+      name: json['name'] as String? ?? json['title'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
       description: json['description'],
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? '฿',
-      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',
+      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl'] ?? json['imagePath']) ?? '',
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
-      photoUrls: (json['photos'] as List? ?? [])
+      photoUrls: (json['photos'] as List? ?? json['photoUrls'] as List? ?? [])
           .map((e) {
             if (e is Map) return ImageUtils.cleanImageUrl(e['url']?.toString());
             return ImageUtils.cleanImageUrl(e.toString());

@@ -14,6 +14,9 @@ import '../../data/models/menu_item_dto.dart';
 import '../../../../core/location/location_service.dart';
 import 'restaurant_overview_page.dart';
 import '../../../../app.dart';
+import '../widgets/review_card.dart';
+import '../../../reviews/data/models/review_model.dart';
+import '../../../reviews/presentation/screens/rating_and_reviews_page.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -74,6 +77,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     'right-now', 'for-you', 'hot-deals', 'trending', 'popular-dishes'
   ];
 
+  Map<String, dynamic>? _shopReviews;
+  bool _isLoadingReviews = true;
+
   @override
   void initState() {
     super.initState();
@@ -120,6 +126,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       RestaurantRepository.instance.prefetchShopFeeds(shopId);
     }
 
+    _loadReviews();
+
     // Also refresh the shop detail header (name, logo, rating etc.)
     Future(() async {
       try {
@@ -137,6 +145,25 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
         }
       } catch (_) {}
     });
+  }
+
+  Future<void> _loadReviews() async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    try {
+      final reviews = await RestaurantRepository.instance.getShopReviews(shopId);
+      if (mounted) {
+        setState(() {
+          _shopReviews = reviews;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingReviews = false;
+        });
+      }
+    }
   }
 
   @override
@@ -335,6 +362,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_reviews.png',
                                   label: 'Reviews',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => RatingAndReviewsPage(
+                                          shopId: int.tryParse(widget.id) ?? 0,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_chat.png',
@@ -348,6 +385,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                           // ── 5 live feed sections ───────────────────────────
                           if (int.tryParse(widget.id) != null && int.parse(widget.id) > 0) ..._buildFeedSections(int.parse(widget.id)),
                           const SizedBox(height: 24),
+                          _buildCustomerReviewsSection(),
                           const SizedBox(height: 120), // Bottom padding for cart summary
                         ],
                       ),
@@ -849,6 +887,93 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     );
   }
 
+  Widget _buildCustomerReviewsSection() {
+    if (_isLoadingReviews) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFED3A72)),
+        ),
+      );
+    }
+
+    final reviewsList = _shopReviews!['content'] as List? ?? _shopReviews!['items'] as List? ?? [];
+    if (reviewsList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final totalReviews = _shopReviews!['totalReviews']?.toString() ?? reviewsList.length.toString();
+    final reviews = reviewsList.take(2).map((e) => Review.fromJson(e as Map<String, dynamic>)).toList();
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Customer Reviews ($totalReviews)',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RatingAndReviewsPage(
+                        shopId: int.tryParse(widget.id) ?? 0,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFED3973),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Column(
+            children: reviews.asMap().entries.map((entry) {
+              final index = entry.key;
+              final review = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ReviewCard(
+                  userName: review.userName.isNotEmpty ? review.userName : 'Anonymous',
+                  userAvatar: review.userAvatar,
+                  rating: review.rating,
+                  comment: review.text,
+                  tags: review.tags,
+                  date: 'Dec 25, 2025', // We can format proper date or leave it for now since ReviewCard uses String
+                  image: index == 0 ? (review.photoUrl.isNotEmpty ? review.photoUrl : null) : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildFeedSections(int shopId) {
     const sections = [
       ('right-now',      'Right Now',      Icons.access_time_filled_rounded),
@@ -873,7 +998,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
           feedType: sections[i].$1,
           title: sections[i].$2,
           titleIcon: sections[i].$3,
-          showRestaurantName: false,
+          showRestaurantName: true,
           targetMenuItemId: widget.targetMenuItemId,
           onEmpty: (isEmpty) {
             final changed = isEmpty

@@ -4,23 +4,27 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
-import '../../data/fallback_data.dart';
+import '../../data/repositories/restaurant_repository.dart';
+import '../../data/models/menu_item_dto.dart';
 
-class TogetherDealsSection extends StatelessWidget {
+class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Use high-quality fallback data
-    final deals = FallbackData.togetherDeals.map((data) => _Deal(
-      imagePath: data['imagePath']!,
-      price: data['price'],
-      originalPrice: data['originalPrice'],
-      name: data['name']!,
-      deliveryFee: data['deliveryFee'],
-      minutes: data['minutes'],
-    )).toList();
+  State<TogetherDealsSection> createState() => _TogetherDealsSectionState();
+}
 
+class _TogetherDealsSectionState extends State<TogetherDealsSection> {
+  Future<List<MenuItemDto>>? _dealsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dealsFuture = RestaurantRepository.instance.getTogetherDeals();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -71,41 +75,60 @@ class TogetherDealsSection extends StatelessWidget {
         const SizedBox(height: 12),
         // Horizontal scroll cards
         SizedBox(
-          height: 210,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 20, right: 20),
-            itemCount: deals.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => _DealCard(deal: deals[index]),
+          height: 220,
+          child: FutureBuilder<List<MenuItemDto>>(
+            future: _dealsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                return _buildSkeleton();
+              }
+
+              final deals = snapshot.data ?? [];
+              if (deals.isEmpty) return const SizedBox.shrink();
+
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 20, right: 20),
+                itemCount: deals.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _DealCard(item: deals[index]),
+              );
+            },
           ),
         ),
       ],
     );
   }
-}
 
-class _Deal {
-  final String imagePath;
-  final int price;
-  final int originalPrice;
-  final String name;
-  final int deliveryFee;
-  final int minutes;
-
-  const _Deal({
-    required this.imagePath,
-    required this.price,
-    required this.originalPrice,
-    required this.name,
-    required this.deliveryFee,
-    required this.minutes,
-  });
+  Widget _buildSkeleton() {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(left: 20, right: 20),
+      itemCount: 3,
+      separatorBuilder: (_, _) => const SizedBox(width: 12),
+      itemBuilder: (_, __) => SizedBox(
+        width: 130,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: const ImageSkeletonLoader(width: 130, height: 120),
+            ),
+            const SizedBox(height: 8),
+            Container(width: 60, height: 14, color: Colors.grey[200]),
+            const SizedBox(height: 4),
+            Container(width: 100, height: 14, color: Colors.grey[200]),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _DealCard extends StatelessWidget {
-  final _Deal deal;
-  const _DealCard({required this.deal});
+  final MenuItemDto item;
+  const _DealCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +141,7 @@ class _DealCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: CachedNetworkImage(
-              imageUrl: deal.imagePath,
+              imageUrl: item.imagePath,
               width: 130,
               height: 120,
               fit: BoxFit.cover,
@@ -160,28 +183,30 @@ class _DealCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '฿${deal.price}',
+                '฿${item.price.toInt()}',
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFFED3973),
                 ),
               ),
-              const SizedBox(width: 5),
-              Text(
-                '฿${deal.originalPrice}',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey,
-                  decoration: TextDecoration.lineThrough,
+              if (item.originalPrice != null) ...[
+                const SizedBox(width: 5),
+                Text(
+                  '฿${item.originalPrice!.toInt()}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    decoration: TextDecoration.lineThrough,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 2),
           // Food name
           Text(
-            deal.name,
+            item.title,
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -194,10 +219,10 @@ class _DealCard extends StatelessWidget {
           // Delivery info
           Row(
             children: [
-              Icon(PhosphorIcons.bicycle(), size: 12, color: Colors.grey.shade500),
+              Icon(PhosphorIcons.bicycle(), size: 12, color: const Color(0xFF00A560)),
               const SizedBox(width: 3),
               Text(
-                '฿${deal.deliveryFee} · ${deal.minutes}min',
+                '${item.deliveryFee ?? '฿30'} · ${item.estimatedTime ?? '20'} min',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
                   color: Colors.grey.shade500,
@@ -210,3 +235,4 @@ class _DealCard extends StatelessWidget {
     );
   }
 }
+

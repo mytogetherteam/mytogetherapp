@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../data/demo_food_search_data.dart';
+import '../../../home/data/repositories/restaurant_repository.dart';
+import '../../../home/data/restaurant_data.dart';
+import '../../../home/presentation/screens/restaurant_detail_page.dart';
+import '../../data/search_storage.dart';
 
 enum SearchFlowState { idle, typing, searched }
 
@@ -18,14 +21,35 @@ class FoodSearchPage extends StatefulWidget {
 class _FoodSearchPageState extends State<FoodSearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
-  
+
   SearchFlowState _currentState = SearchFlowState.idle;
+
+  List<String> _recentSearches = [];
+  List<Map<String, String>> _categories = [];
+  List<Restaurant> _searchResults = [];
+  bool _isSearching = false;
+  bool _hasUserSearchedBefore = false;
 
   @override
   void initState() {
     super.initState();
-    // Auto focus on open
+    _loadInitialData();
     Future.microtask(() => _searchFocus.requestFocus());
+  }
+
+  Future<void> _loadInitialData() async {
+    await SearchStorage().init();
+    final cats = await RestaurantRepository.instance.getFallbackCategories();
+
+    final storage = SearchStorage();
+    _hasUserSearchedBefore = storage.hasRecentSearches;
+    _recentSearches = storage.recentSearches;
+
+    if (mounted) {
+      setState(() {
+        _categories = cats;
+      });
+    }
   }
 
   @override
@@ -47,12 +71,27 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     }
   }
 
-  void _onSearchSubmitted(String value) {
+  Future<void> _onSearchSubmitted(String value) async {
     if (value.isNotEmpty) {
-      if (_currentState != SearchFlowState.searched) {
-        setState(() => _currentState = SearchFlowState.searched);
-      }
+      await SearchStorage().addSearch(value);
+      _recentSearches = SearchStorage().recentSearches;
+      _hasUserSearchedBefore = true;
+
+      setState(() {
+        _currentState = SearchFlowState.searched;
+        _isSearching = true;
+      });
       _searchFocus.unfocus();
+
+      final results = await RestaurantRepository.instance.searchFoodOrShop(
+        value,
+      );
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      }
     }
   }
 
@@ -64,16 +103,36 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     _searchFocus.requestFocus();
   }
 
-  void _onRecentOrCategoryTap(String term) {
+  Future<void> _onRecentTap(String term) async {
     _searchController.text = term;
-    setState(() {
-      _currentState = SearchFlowState.searched;
-    });
-    // Ensure caret is at the end of the text
     _searchController.selection = TextSelection.fromPosition(
       TextPosition(offset: _searchController.text.length),
     );
     _searchFocus.unfocus();
+    await _onSearchSubmitted(term);
+  }
+
+  void _onCategoryTap(String term) {
+    _searchController.text = term;
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _searchController.text.length),
+    );
+    _searchFocus.unfocus();
+    _onSearchSubmitted(term);
+  }
+
+  Future<void> _removeRecentSearch(String term) async {
+    await SearchStorage().removeSearch(term);
+    _recentSearches = SearchStorage().recentSearches;
+    _hasUserSearchedBefore = SearchStorage().hasRecentSearches;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _clearAllRecentSearches() async {
+    await SearchStorage().clearAll();
+    _recentSearches = [];
+    _hasUserSearchedBefore = false;
+    if (mounted) setState(() {});
   }
 
   @override
@@ -86,9 +145,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           child: Column(
             children: [
               _buildSearchBar(),
-              Expanded(
-                child: _buildBodyContent(),
-              ),
+              Expanded(child: _buildBodyContent()),
             ],
           ),
         ),
@@ -189,51 +246,72 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Recent Searches',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.blueGrey[400],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: DemoFoodSearchData.recentSearches.map((term) {
-                return GestureDetector(
-                  onTap: () => _onRecentOrCategoryTap(term),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          PhosphorIcons.clock(),
-                          size: 16,
-                          color: Colors.black54,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          term,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+            if (_hasUserSearchedBefore && _recentSearches.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Searches',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blueGrey[400],
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 28),
+                  GestureDetector(
+                    onTap: _clearAllRecentSearches,
+                    child: Text(
+                      'Clear all',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFED3A72),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _recentSearches.map((term) {
+                  return GestureDetector(
+                    onTap: () => _onRecentTap(term),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            PhosphorIcons.clock(),
+                            size: 16,
+                            color: Colors.black54,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            term,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 28),
+            ],
             Text(
               'Popular Categories',
               style: GoogleFonts.poppins(
@@ -246,7 +324,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: DemoFoodSearchData.categories.length,
+              itemCount: _categories.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
@@ -254,9 +332,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 childAspectRatio: 2.6,
               ),
               itemBuilder: (context, index) {
-                final category = DemoFoodSearchData.categories[index];
+                final category = _categories[index];
                 return GestureDetector(
-                  onTap: () => _onRecentOrCategoryTap(category['name']!),
+                  onTap: () => _onCategoryTap(category['name']!),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
@@ -266,12 +344,16 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          category['name']!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                        Flexible(
+                          child: Text(
+                            category['name']!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
@@ -296,98 +378,139 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Suggestions
-          ...DemoFoodSearchData.suggestions.map((suggestion) {
-            return InkWell(
-              onTap: () => _onRecentOrCategoryTap(suggestion),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    child: Row(
-                      children: [
-                        Icon(
-                          PhosphorIcons.magnifyingGlass(),
-                          size: 20,
-                          color: Colors.grey[500],
+          // Suggestions (Static for now but filtered from query)
+          ...(_recentSearches
+              .where(
+                (s) => s.toLowerCase().contains(
+                  _searchController.text.toLowerCase(),
+                ),
+              )
+              .map((suggestion) {
+                return InkWell(
+                  onTap: () => _onRecentTap(suggestion),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
                         ),
-                        const SizedBox(width: 14),
-                        Text(
-                          suggestion,
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              PhosphorIcons.magnifyingGlass(),
+                              size: 20,
+                              color: Colors.grey[500],
+                            ),
+                            const SizedBox(width: 14),
+                            Text(
+                              suggestion,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Divider(
+                        height: 1,
+                        color: Colors.grey[200],
+                        indent: 20,
+                        endIndent: 20,
+                      ),
+                    ],
                   ),
-                  Divider(height: 1, color: Colors.grey[200], indent: 20, endIndent: 20),
-                ],
-              ),
-            );
-          }),
-          
+                );
+              })),
+
           const SizedBox(height: 8),
 
-          // Typing Restaurants
-          ...DemoFoodSearchData.typingRestaurants.map((restaurant) {
-            return InkWell(
-              onTap: () => _onRecentOrCategoryTap(restaurant['name']),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Row(
+          // Typing Restaurants (Filtered from fallback)
+          FutureBuilder<List<Restaurant>>(
+            future: RestaurantRepository.instance.searchFoodOrShop(
+              _searchController.text,
+            ),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const SizedBox.shrink();
+              final results = snapshot.data!;
+              return Column(
+                children: results.take(3).map<Widget>((Restaurant restaurant) {
+                  return InkWell(
+                    onTap: () => _navigateToDetail(restaurant),
+                    child: Column(
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl: restaurant['image'],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
                           ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                restaurant['name'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: restaurant.imagePath,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) =>
+                                      Container(color: Colors.grey[200]),
+                                  errorWidget: (context, url, error) =>
+                                      Container(color: Colors.grey[200]),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.star, size: 14, color: Colors.grey[600]),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${restaurant['rating']} · ${restaurant['time']} · ${restaurant['distance']}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      restaurant.name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.star,
+                                          size: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          '${restaurant.rating} · ${restaurant.deliveryTime} · ${restaurant.distance}',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
+                        Divider(
+                          height: 1,
+                          color: Colors.grey[200],
+                          indent: 20,
+                          endIndent: 20,
+                        ),
                       ],
                     ),
-                  ),
-                  Divider(height: 1, color: Colors.grey[200], indent: 20, endIndent: 20),
-                ],
-              ),
-            );
-          }),
+                  );
+                }).toList(),
+              );
+            },
+          ),
           const SizedBox(height: 20),
         ],
       ),
@@ -417,16 +540,27 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             ],
           ),
         ),
-        
+
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            itemCount: DemoFoodSearchData.resultRestaurants.length,
-            itemBuilder: (context, index) {
-              final restaurant = DemoFoodSearchData.resultRestaurants[index];
-              return _buildSearchedRestaurantBlock(restaurant);
-            },
-          ),
+          child: _isSearching
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFED3A72)),
+                )
+              : _searchResults.isEmpty
+              ? Center(
+                  child: Text(
+                    'No results found for "${_searchController.text}"',
+                    style: GoogleFonts.poppins(color: Colors.grey[500]),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  itemCount: _searchResults.length,
+                  itemBuilder: (context, index) {
+                    final restaurant = _searchResults[index];
+                    return _buildSearchedRestaurantBlock(restaurant);
+                  },
+                ),
         ),
       ],
     );
@@ -441,7 +575,11 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Center(
-        child: Icon(PhosphorIcons.slidersHorizontal(), size: 16, color: Colors.black87),
+        child: Icon(
+          PhosphorIcons.slidersHorizontal(),
+          size: 16,
+          color: Colors.black87,
+        ),
       ),
     );
   }
@@ -458,12 +596,16 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (label == 'Category') ...[
-             const Icon(Icons.grid_view_outlined, size: 16, color: Colors.black54),
-             const SizedBox(width: 6),
+            const Icon(
+              Icons.grid_view_outlined,
+              size: 16,
+              color: Colors.black54,
+            ),
+            const SizedBox(width: 6),
           ],
           if (label == 'Under 25 Min') ...[
-             Icon(PhosphorIcons.lightning(), size: 16, color: Colors.black54),
-             const SizedBox(width: 6),
+            Icon(PhosphorIcons.lightning(), size: 16, color: Colors.black54),
+            const SizedBox(width: 6),
           ],
           Text(
             label,
@@ -475,122 +617,100 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           ),
           if (hasDropdown) ...[
             const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black54),
-          ]
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: Colors.black54,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSearchedRestaurantBlock(Map<String, dynamic> restaurant) {
-    List<dynamic> badges = restaurant['badges'] ?? [];
-    List<dynamic> menuItems = restaurant['menuItems'] ?? [];
-
+  Widget _buildSearchedRestaurantBlock(Restaurant restaurant) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Restaurant Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: restaurant['logo'],
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.contain,
+          InkWell(
+            onTap: () => _navigateToDetail(restaurant),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: restaurant.logoPath,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          Container(color: Colors.grey[200]),
+                      errorWidget: (context, url, error) =>
+                          Container(color: Colors.grey[200]),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        restaurant['name'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          restaurant.name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(PhosphorIcons.star(PhosphorIconsStyle.fill), size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${restaurant['rating']} · ${restaurant['time']} · ${restaurant['distance']}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              PhosphorIcons.star(PhosphorIconsStyle.fill),
+                              size: 14,
                               color: Colors.grey[600],
                             ),
-                          ),
-                        ],
-                      ),
-                      if (badges.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: badges.map((badgeText) {
-                            bool isPromo = badgeText.toString().contains('off');
-                            return Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isPromo ? Colors.green[50] : Colors.pink[50], // Very light green / pink
-                                borderRadius: BorderRadius.circular(4),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${restaurant.rating} · ${restaurant.deliveryTime} · ${restaurant.distance}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.grey[600],
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isPromo ? PhosphorIcons.sealPercent(PhosphorIconsStyle.fill) : PhosphorIcons.bicycle(),
-                                    size: 14,
-                                    color: isPromo ? const Color(0xFF22C55E) : const Color(0xFFED3A72),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    badgeText,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: isPromo ? const Color(0xFF22C55E) : const Color(0xFFED3A72),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                            ),
+                          ],
                         ),
-                      ]
-                    ],
+                      ],
+                    ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          // Horizontal Menu Items List
-          SizedBox(
-            height: 180, // Reduced height to decrease spacing to divider
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: menuItems.length,
-              itemBuilder: (context, index) {
-                final item = menuItems[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: _buildCustomMenuItem(item),
-                );
-              },
+          // Horizontal Menu Items List (Popular Dishes)
+          if (restaurant.popularDishes.isNotEmpty)
+            SizedBox(
+              height: 180,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: restaurant.popularDishes.length,
+                itemBuilder: (context, index) {
+                  final item = restaurant.popularDishes[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _buildCustomMenuItem(item),
+                  );
+                },
+              ),
             ),
-          ),
           const SizedBox(height: 8),
           Divider(height: 1, color: Colors.grey[200], indent: 16),
         ],
@@ -598,34 +718,38 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
-  Widget _buildCustomMenuItem(Map<String, dynamic> item) {
+  Widget _buildCustomMenuItem(dynamic item) {
     return SizedBox(
-      width: 100, // Reduced width so 3.5 items fit on screen (strategy)
+      width: 100,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: CachedNetworkImage(
-              imageUrl: item['image'],
+              imageUrl: item.imagePath,
               width: 100,
               height: 100,
               fit: BoxFit.cover,
+              placeholder: (context, url) => Container(color: Colors.grey[200]),
+              errorWidget: (context, url, error) =>
+                  Container(color: Colors.grey[200]),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '฿ ${item['price'].toInt()}',
+            '฿ ${item.price.toInt()}',
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFED3A72), // Pink color
+              color: const Color(0xFFED3A72),
               height: 1.2,
             ),
           ),
-          if (item['originalPrice'] != null && item['originalPrice'] > item['price']) ...[
+          if (item.originalPrice != null &&
+              item.originalPrice! > item.price) ...[
             Text(
-              '฿${item['originalPrice'].toInt()}',
+              '฿${item.originalPrice!.toInt()}',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
@@ -636,11 +760,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             ),
             const SizedBox(height: 2),
           ],
-          if (item['originalPrice'] == null || item['originalPrice'] <= item['price'])
-            const SizedBox(height: 4), // Add a bit more spacing if no original price to keep things somewhat aligned
           Expanded(
             child: Text(
-              item['name'],
+              item.title,
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -652,6 +774,31 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToDetail(Restaurant data) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RestaurantDetailPage(
+          id: data.id,
+          name: data.name,
+          category: data.category,
+          rating: data.rating,
+          distance: data.distance,
+          imagePath: data.imagePath,
+          logoPath: data.logoPath,
+          deliveryTime: data.deliveryTime,
+          status: data.status,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          popularDishes: data.popularDishes,
+          recommendations: data.recommendations,
+          hotDeals: data.hotDeals,
+          isFavorite: data.isFavorite,
+        ),
       ),
     );
   }

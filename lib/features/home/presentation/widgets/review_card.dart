@@ -108,6 +108,7 @@ class ReviewCard extends StatelessWidget {
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: tags.map((tag) => _buildTagChip(tag)).toList(),
           ),
           const SizedBox(height: 12),

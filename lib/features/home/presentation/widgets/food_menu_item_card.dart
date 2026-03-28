@@ -67,6 +67,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
   late AnimationController _borderController;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _floatAnimation;
+  bool _imageLoadFailed = false;
 
   @override
   void initState() {
@@ -107,8 +108,23 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
     super.dispose();
   }
 
+  void _onImageError() {
+    if (mounted && !_imageLoadFailed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _imageLoadFailed = true;
+          });
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // DO NOT hide the card anymore even if image is missing
+    final bool hasInvalidImage = widget.imagePath.trim().isEmpty;
+
     final bool isNetworkImage = widget.imagePath.startsWith('http');
     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > widget.price;
 
@@ -215,25 +231,29 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
                                     clipBehavior: Clip.antiAlias,
-                                    child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                      ? _buildFallbackImage()
-                                      : (isNetworkImage
-                                          ? CachedNetworkImage(
-                                            imageUrl: widget.imagePath,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) => const ImageSkeletonLoader(),
-                                            errorWidget: (context, url, error) => _buildFallbackImage(),
-                                            fadeInDuration: const Duration(milliseconds: 300),
-                                          )
-                                        : Image.asset(
-                                            widget.imagePath,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return _buildFallbackImage();
-                                            },
-                                          )),
+                                    child: hasInvalidImage || _imageLoadFailed || widget.imagePath.isEmpty
+                                        ? _buildFallbackImage()
+                                        : (isNetworkImage
+                                            ? CachedNetworkImage(
+                                              imageUrl: widget.imagePath,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => const ImageSkeletonLoader(),
+                                                errorWidget: (context, url, error) {
+                                                  _onImageError();
+                                                  return _buildFallbackImage();
+                                                },
+                                              fadeInDuration: const Duration(milliseconds: 300),
+                                            )
+                                          : Image.asset(
+                                              widget.imagePath,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                _onImageError();
+                                                return _buildFallbackImage();
+                                              },
+                                            )),
                                   ),
                                 ),
                               ),
@@ -284,24 +304,38 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                               ),
                               if (widget.price > 0 || hasDiscount || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
                                 const SizedBox(width: 4),
-                                if (hasDiscount) ...[
-                                  Text(
-                                    widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.grey[400],
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 9,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFFED3A72),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
+                                Flexible(
+                                  flex: 0,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (hasDiscount) ...[
+                                        Flexible(
+                                          child: Text(
+                                            widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.grey[400],
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 9,
+                                              decoration: TextDecoration.lineThrough,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Text(
+                                        widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFFED3A72),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -351,19 +385,13 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
   Widget _buildFallbackImage() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(16),
-      ),
+      width: double.infinity,
+      color: Colors.grey[100],
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.grey[400],
-              size: 32,
-            ),
+            Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 32),
             const SizedBox(height: 4),
             Text(
               'No Image',
@@ -378,6 +406,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
       ),
     );
   }
+
 }
 
 // Previous _BorderPainter removed in favor of mirror reflection ShaderMask logic inside Build.

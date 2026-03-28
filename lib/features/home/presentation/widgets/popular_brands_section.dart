@@ -2,22 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'view_all_icon_button.dart';
-import '../../data/fallback_data.dart';
+import '../../data/repositories/restaurant_repository.dart';
+import '../../data/restaurant_data.dart' show Restaurant;
 
-class PopularBrandsSection extends StatelessWidget {
+class PopularBrandsSection extends StatefulWidget {
   const PopularBrandsSection({super.key});
 
   @override
+  State<PopularBrandsSection> createState() => _PopularBrandsSectionState();
+}
+
+class _PopularBrandsSectionState extends State<PopularBrandsSection> {
+  Future<List<Restaurant>>? _brandsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _brandsFuture = RestaurantRepository.instance.getPopularShops();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Use high-quality fallback data
-    final List<Map<String, dynamic>> brands = FallbackData.popularBrands;
-
-    // Group brands into chunks of 3 for the horizontal scroll
-    final List<List<Map<String, dynamic>>> brandChunks = [];
-    for (var i = 0; i < brands.length; i += 3) {
-      brandChunks.add(brands.sublist(i, i + 3 > brands.length ? brands.length : i + 3));
-    }
-
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -26,7 +31,7 @@ class PopularBrandsSection extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Background Decorative Shape (White Curve)
+          // Background Decorative Shapes
           Positioned(
             right: -150,
             bottom: -50,
@@ -78,30 +83,48 @@ class PopularBrandsSection extends StatelessWidget {
                 const SizedBox(height: 16),
                 // Horizontal scrolling list of columns
                 SizedBox(
-                  height: 224, // Optimized height for 3 rows + spacing
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: brandChunks.length + 1, // +1 for the "More" button
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (context, index) {
-                      if (index == brandChunks.length) {
-                        return const _MoreCard();
+                  height: 300,
+                  child: FutureBuilder<List<Restaurant>>(
+                    future: _brandsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                        return _buildSkeleton();
                       }
-                      final chunk = brandChunks[index];
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _BrandCard(brand: chunk[0]),
-                          if (chunk.length > 1) ...[
-                            const SizedBox(height: 12),
-                            _BrandCard(brand: chunk[1]),
-                          ],
-                          if (chunk.length > 2) ...[
-                            const SizedBox(height: 12),
-                            _BrandCard(brand: chunk[2]),
-                          ],
-                        ],
+
+                      final brands = snapshot.data ?? [];
+                      if (brands.isEmpty) return const SizedBox.shrink();
+
+                      // Group brands into chunks of 3 for the horizontal scroll
+                      final List<List<Restaurant>> chunks = [];
+                      for (var i = 0; i < brands.length; i += 3) {
+                        chunks.add(brands.sublist(i, i + 3 > brands.length ? brands.length : i + 3));
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: chunks.length + 1,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          if (index == chunks.length) {
+                            return const _MoreCard();
+                          }
+                          final chunk = chunks[index];
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _BrandCard(brand: chunk[0]),
+                              if (chunk.length > 1) ...[
+                                const SizedBox(height: 12),
+                                _BrandCard(brand: chunk[1]),
+                              ],
+                              if (chunk.length > 2) ...[
+                                const SizedBox(height: 12),
+                                _BrandCard(brand: chunk[2]),
+                              ],
+                            ],
+                          );
+                        },
                       );
                     },
                   ),
@@ -110,6 +133,28 @@ class PopularBrandsSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      scrollDirection: Axis.horizontal,
+      itemCount: 2,
+      separatorBuilder: (_, _) => const SizedBox(width: 12),
+      itemBuilder: (_, __) => Column(
+        children: List.generate(3, (i) => Padding(
+          padding: EdgeInsets.only(bottom: i < 2 ? 12 : 0),
+          child: Container(
+            width: 250,
+            height: 88,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        )),
       ),
     );
   }
@@ -154,25 +199,26 @@ class _MoreCard extends StatelessWidget {
 }
 
 class _BrandCard extends StatelessWidget {
-  final Map<String, dynamic> brand;
-
+  final Restaurant brand;
   const _BrandCard({required this.brand});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 210, // Fixed width for consistent columns
-      padding: const EdgeInsets.all(8),
+      width: 250,
+      height: 88,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Rounded Logo Container
           Container(
-            width: 44,
-            height: 44,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color: Colors.grey.shade50,
@@ -182,9 +228,9 @@ class _BrandCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                brand['logoUrl'],
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 24),
+                brand.imagePath.isNotEmpty ? brand.imagePath : 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=100&h=100&fit=crop',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 28),
               ),
             ),
           ),
@@ -196,33 +242,33 @@ class _BrandCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  brand['name'],
+                  brand.name,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
                     const SizedBox(width: 2),
                     Text(
-                      brand['rating'],
+                      brand.rating.toString(),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      ' · ${brand['time']} · ${brand['distance']}',
+                      ' · ${brand.deliveryTime} · ${brand.distance}',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.grey.shade500,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],

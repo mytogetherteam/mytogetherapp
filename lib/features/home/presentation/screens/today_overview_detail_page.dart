@@ -232,7 +232,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 24,
-                  childAspectRatio: 0.85,
+                  childAspectRatio: 0.77,
                 ),
                 itemCount: _items.length + (_isLoading && _hasMore ? 2 : 0),
                 itemBuilder: (context, index) {

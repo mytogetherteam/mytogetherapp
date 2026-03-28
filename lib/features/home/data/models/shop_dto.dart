@@ -133,7 +133,7 @@ class ShopListItemDto {
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
     return ShopListItemDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       nameEn: json['nameEn'],
       category: json['category'],
@@ -290,7 +290,7 @@ class ShopDetailDto {
 
   factory ShopDetailDto.fromJson(Map<String, dynamic> json) {
     return ShopDetailDto(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       category: json['category'],
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,

@@ -1,0 +1,3826 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Enriched restaurant data with full DTO structure — 2 Myanmar restaurants with real reviews.",
+    "lastUpdated": "2026-03-28",
+    "totalShops": 2,
+    "totalMenuItems": 20,
+    "currency": "THB (฿)",
+    "location": "Bangkok, Thailand",
+    "note": "All fields match demo.json v2 shape. Real food images and reviews preserved from source."
+  },
+  "categories": [
+    {
+      "id": 1,
+      "name": "Noodles",
+      "icon": "🍜",
+      "slug": "noodles"
+    },
+    {
+      "id": 2,
+      "name": "Rice",
+      "icon": "🍚",
+      "slug": "rice"
+    },
+    {
+      "id": 3,
+      "name": "Curries",
+      "icon": "🍛",
+      "slug": "curries"
+    },
+    {
+      "id": 4,
+      "name": "Salads",
+      "icon": "🥗",
+      "slug": "salads"
+    },
+    {
+      "id": 5,
+      "name": "Soups",
+      "icon": "🍲",
+      "slug": "soups"
+    },
+    {
+      "id": 6,
+      "name": "Snacks",
+      "icon": "🥟",
+      "slug": "snacks"
+    },
+    {
+      "id": 7,
+      "name": "Beverages",
+      "icon": "🧋",
+      "slug": "beverages"
+    },
+    {
+      "id": 8,
+      "name": "Desserts",
+      "icon": "🍮",
+      "slug": "desserts"
+    },
+    {
+      "id": 9,
+      "name": "Seafood",
+      "icon": "🐟",
+      "slug": "seafood"
+    },
+    {
+      "id": 10,
+      "name": "Sets",
+      "icon": "🍱",
+      "slug": "sets"
+    }
+  ],
+  "cuisineTypes": [
+    {
+      "id": 1,
+      "nameMm": "မြန်မာ အစားအသောက်",
+      "nameTh": "อาหารพม่า",
+      "nameEn": "Myanmar",
+      "slug": "myanmar-cuisine",
+      "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+    }
+  ],
+  "shopList": {
+    "success": true,
+    "message": "OK",
+    "status": 200,
+    "timestamp": "2026-03-28T10:00:00Z",
+    "data": {
+      "content": [
+        {
+          "id": 1,
+          "name": "Rangoon Tea House Bangkok",
+          "nameEn": "Rangoon Tea House Bangkok",
+          "category": "Fine Dining",
+          "cuisineType": {
+            "id": 1,
+            "nameMm": "မြန်မာ အစားအသောက်",
+            "nameTh": "อาหารพม่า",
+            "nameEn": "Myanmar",
+            "slug": "myanmar-cuisine",
+            "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+          },
+          "rating": 4.5,
+          "ratingAvg": 4.5,
+          "reviewCount": 393,
+          "ratingCount": 393,
+          "primaryPhotoUrl": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+          "logoUrl": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+          "distance": 2.4,
+          "address": "6 Soi Sangchai, Phra Khanong, Khlong Toei, Bangkok 10110",
+          "isOpen": true,
+          "estimatedTime": "25-35 min",
+          "isFavorite": false,
+          "latitude": 13.7217,
+          "longitude": 100.5783,
+          "imageUrls": [
+            "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600"
+          ],
+          "displayBaseDeliveryFee": "฿30",
+          "displayDeliveryFee": "฿30"
+        },
+        {
+          "id": 7,
+          "name": "Mandalay Food House",
+          "nameEn": "Mandalay Food House",
+          "category": "Mandalay",
+          "cuisineType": {
+            "id": 1,
+            "nameMm": "မြန်မာ အစားအသောက်",
+            "nameTh": "อาหารพม่า",
+            "nameEn": "Myanmar",
+            "slug": "myanmar-cuisine",
+            "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+          },
+          "rating": 4.4,
+          "ratingAvg": 4.4,
+          "reviewCount": 623,
+          "ratingCount": 623,
+          "primaryPhotoUrl": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+          "logoUrl": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+          "distance": 4.8,
+          "address": "P15 Market, Soi Phetchaburi 15, Ratchathewi, Bangkok 10400",
+          "isOpen": true,
+          "estimatedTime": "30-40 min",
+          "isFavorite": false,
+          "latitude": 13.7526,
+          "longitude": 100.5368,
+          "imageUrls": [
+            "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600"
+          ],
+          "displayBaseDeliveryFee": "฿30",
+          "displayDeliveryFee": "฿30"
+        }
+      ],
+      "pageable": {
+        "pageNumber": 0,
+        "pageSize": 10,
+        "offset": 0,
+        "paged": true,
+        "unpaged": false
+      },
+      "first": true,
+      "last": true,
+      "size": 2,
+      "number": 0,
+      "numberOfElements": 2,
+      "empty": false
+    }
+  },
+  "shopDetails": [
+    {
+      "success": true,
+      "message": "OK",
+      "status": 200,
+      "timestamp": "2026-03-28T10:00:00Z",
+      "data": {
+        "id": 1,
+        "name": "Rangoon Tea House Bangkok",
+        "nameEn": "Rangoon Tea House Bangkok",
+        "nameMm": "ရန်ကုန် လက်ဖက်ရည်ဆိုင် ဘန်ကောက်",
+        "category": "Fine Dining",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "rating": 4.5,
+        "ratingAvg": 4.5,
+        "reviewCount": 393,
+        "ratingCount": 393,
+        "logoUrl": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+        "coverUrl": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+        "primaryPhotoUrl": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+        "distance": 2.4,
+        "estimatedTime": "25-35 min",
+        "isOpen": true,
+        "address": "6 Soi Sangchai, Phra Khanong, Khlong Toei, Bangkok 10110",
+        "addressEn": "6 Soi Sangchai, Phra Khanong, Khlong Toei, Bangkok 10110",
+        "addressTh": "6 ซอยแสงชัย แขวงพระโขนง เขตคลองเตย กรุงเทพ 10110",
+        "addressMm": "၆ ဆိုးဆောင်ချိုင် ပြာခနောင်း ချောင်တိုေ ဘန်ကောက် ၁၀၁၁၀",
+        "phone": "+66 64 060 3536",
+        "email": "info@rangoonteahouse.com",
+        "googleMapsLink": "https://goo.gl/maps/rangoon-tea-house",
+        "latitude": 13.7217,
+        "longitude": 100.5783,
+        "isFavorite": false,
+        "operatingHours": [
+          {
+            "dayOfWeek": "MONDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 22,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "TUESDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 22,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "WEDNESDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 22,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "THURSDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 22,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "FRIDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 23,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "SATURDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 23,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "SUNDAY",
+            "openingTime": {
+              "hour": 9,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 22,
+              "minute": 0
+            },
+            "isClosed": false
+          }
+        ],
+        "photos": [
+          "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600"
+        ],
+        "popularDishes": [
+          {
+            "id": "1",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Mohinga",
+            "name": "Mohinga",
+            "nameMm": "မုန့်ဟင်းခါး",
+            "price": 180.0,
+            "originalPrice": null,
+            "displayPrice": "฿180",
+            "currency": "฿",
+            "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+            "isFavorite": false,
+            "rating": 4.8,
+            "reviewCount": 210,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "2",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Lahpet Thoke",
+            "name": "Lahpet Thoke",
+            "nameMm": "လက်ဖက်သုပ်",
+            "price": 150.0,
+            "originalPrice": null,
+            "displayPrice": "฿150",
+            "currency": "฿",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG",
+            "isFavorite": false,
+            "rating": 4.7,
+            "reviewCount": 185,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "3",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Crispy Tofu Salad",
+            "name": "Crispy Tofu Salad",
+            "nameMm": "ကြော်တိုဟူးသုပ်",
+            "price": 130.0,
+            "originalPrice": null,
+            "displayPrice": "฿130",
+            "currency": "฿",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgoODsqT6WAwaa96Ey23EQ4GHhVWMkQ2LRyolEqWOIMgM57QErT3yjDLxXkMh9R3ck2MfpTw83HOTyZRM7NR0m5qsbNd8xFSX-UjgoqG8aXsi31qF-qsrczFhZ_MHWtUkVvbGTer2UgQg4/s1600/IMG_0004.JPG",
+            "isFavorite": false,
+            "rating": 4.6,
+            "reviewCount": 142,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          }
+        ],
+        "recommendations": [
+          {
+            "id": "4",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Grilled Eggplant Salad",
+            "name": "Grilled Eggplant Salad",
+            "nameMm": "ပဲပင်ကြော်သုပ်",
+            "price": 140.0,
+            "originalPrice": null,
+            "displayPrice": "฿140",
+            "currency": "฿",
+            "imageUrl": "https://myfoodmyanmar.com/wp-content/uploads/2020/09/maxresdefault-13.jpg",
+            "isFavorite": false,
+            "rating": 4.5,
+            "reviewCount": 98,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "5",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Steamed Seabass Kachin Style",
+            "name": "Steamed Seabass Kachin Style",
+            "nameMm": "ကချင်ငါးဆိမ့်",
+            "price": 350.0,
+            "originalPrice": null,
+            "displayPrice": "฿350",
+            "currency": "฿",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+            "isFavorite": false,
+            "rating": 4.9,
+            "reviewCount": 76,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "6",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Myanmar Milk Tea",
+            "name": "Myanmar Milk Tea",
+            "nameMm": "နို့လက်ဖက်ရည်",
+            "price": 80.0,
+            "originalPrice": null,
+            "displayPrice": "฿80",
+            "currency": "฿",
+            "imageUrl": "https://myfoodmyanmar.com/wp-content/uploads/2023/03/Royal-Milk-Tea-3.jpg",
+            "isFavorite": false,
+            "rating": 4.6,
+            "reviewCount": 205,
+            "shopDistanceKm": 2.4,
+            "shopEstimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30"
+          }
+        ],
+        "hotDeals": [
+          {
+            "id": "5",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Steamed Seabass Kachin Style",
+            "name": "Steamed Seabass Kachin Style",
+            "nameMm": "ကချင်ငါးဆိမ့်",
+            "title": "Steamed Seabass Kachin Style",
+            "restaurantId": "1",
+            "restaurantName": "Rangoon Tea House Bangkok",
+            "imagePath": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+            "price": 350.0,
+            "originalPrice": 580.0,
+            "displayPrice": "฿350",
+            "displayOriginalPrice": "฿580",
+            "currency": "฿",
+            "discountPercentage": 40,
+            "discountLabel": "40% Off",
+            "rating": 4.9,
+            "reviewCount": 76,
+            "ratingCount": 76,
+            "shopDistanceKm": 2.4,
+            "distanceKm": "2.4",
+            "shopEstimatedTime": "25-35 min",
+            "estimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Seafood"
+          },
+          {
+            "id": "9",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Coconut Chicken Curry",
+            "name": "Coconut Chicken Curry",
+            "nameMm": "ကြက်သားနှင်းဆီဟင်း",
+            "title": "Coconut Chicken Curry",
+            "restaurantId": "1",
+            "restaurantName": "Rangoon Tea House Bangkok",
+            "imagePath": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+            "imageUrl": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+            "price": 200.0,
+            "originalPrice": 280.0,
+            "displayPrice": "฿200",
+            "displayOriginalPrice": "฿280",
+            "currency": "฿",
+            "discountPercentage": 29,
+            "discountLabel": "29% Off",
+            "rating": 4.6,
+            "reviewCount": 156,
+            "ratingCount": 156,
+            "shopDistanceKm": 2.4,
+            "distanceKm": "2.4",
+            "shopEstimatedTime": "25-35 min",
+            "estimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Curries"
+          },
+          {
+            "id": "1",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Mohinga",
+            "name": "Mohinga",
+            "nameMm": "မုန့်ဟင်းခါး",
+            "title": "Mohinga",
+            "restaurantId": "1",
+            "restaurantName": "Rangoon Tea House Bangkok",
+            "imagePath": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+            "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+            "price": 180.0,
+            "originalPrice": 250.0,
+            "displayPrice": "฿180",
+            "displayOriginalPrice": "฿250",
+            "currency": "฿",
+            "discountPercentage": 28,
+            "discountLabel": "28% Off",
+            "rating": 4.8,
+            "reviewCount": 210,
+            "ratingCount": 210,
+            "shopDistanceKm": 2.4,
+            "distanceKm": "2.4",
+            "shopEstimatedTime": "25-35 min",
+            "estimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Noodles"
+          },
+          {
+            "id": "7",
+            "shopId": 1,
+            "shopName": "Rangoon Tea House Bangkok",
+            "shopNameEn": "Rangoon Tea House Bangkok",
+            "nameEn": "Slow-Braised Pork Belly Curry",
+            "name": "Slow-Braised Pork Belly Curry",
+            "nameMm": "ဝက်ဝမ်းဟင်းချို",
+            "title": "Slow-Braised Pork Belly Curry",
+            "restaurantId": "1",
+            "restaurantName": "Rangoon Tea House Bangkok",
+            "imagePath": "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg",
+            "imageUrl": "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg",
+            "price": 220.0,
+            "originalPrice": 260.0,
+            "displayPrice": "฿220",
+            "displayOriginalPrice": "฿260",
+            "currency": "฿",
+            "discountPercentage": 15,
+            "discountLabel": "15% Off",
+            "rating": 4.5,
+            "reviewCount": 134,
+            "ratingCount": 134,
+            "shopDistanceKm": 2.4,
+            "distanceKm": "2.4",
+            "shopEstimatedTime": "25-35 min",
+            "estimatedTime": "25-35 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Curries"
+          }
+        ],
+        "paymentTypes": [
+          {
+            "paymentMethodId": 1,
+            "paymentMethodCode": "CASH",
+            "paymentMethodName": "Cash on Delivery",
+            "isActive": true,
+            "qrImageUrl": null,
+            "accountNumber": null,
+            "accountName": null
+          },
+          {
+            "paymentMethodId": 2,
+            "paymentMethodCode": "QR_CODE",
+            "paymentMethodName": "QR Payment",
+            "isActive": true,
+            "qrImageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Commons_QR_code.png/320px-Commons_QR_code.png",
+            "accountNumber": null,
+            "accountName": null
+          },
+          {
+            "paymentMethodId": 3,
+            "paymentMethodCode": "CREDIT_CARD",
+            "paymentMethodName": "Credit / Debit Card",
+            "isActive": true,
+            "qrImageUrl": null,
+            "accountNumber": null,
+            "accountName": null
+          }
+        ],
+        "paymentQrUrl": null,
+        "deliveryTiers": [
+          {
+            "tier": "STANDARD",
+            "fee": 30.0,
+            "displayFee": "฿30",
+            "estimatedTime": "30-45 min",
+            "icon": "🛵",
+            "label": "Standard Delivery",
+            "labelMm": "ပုံမှန်ပို့ဆောင်"
+          },
+          {
+            "tier": "EXPRESS",
+            "fee": 60.0,
+            "displayFee": "฿60",
+            "estimatedTime": "15-20 min",
+            "icon": "⚡",
+            "label": "Express Delivery",
+            "labelMm": "အမြန်ပို့ဆောင်"
+          }
+        ],
+        "minEta": 25,
+        "maxEta": 35,
+        "reviews": {
+          "totalReviews": 393,
+          "averageRating": 4.5,
+          "ratingBreakdown": {
+            "5": 198,
+            "4": 118,
+            "3": 51,
+            "2": 18,
+            "1": 8
+          },
+          "items": [
+            {
+              "id": 1001,
+              "userAvatar": "https://i.pravatar.cc/150?img=11",
+              "userName": "Thanaporn W.",
+              "rating": 5,
+              "text": "One of the best Myanmar dining experiences in Bangkok. The atmosphere is warm and elegant, service is attentive without being overbearing. Every dish came out perfectly timed.",
+              "photoUrl": null,
+              "date": "2026-03-10T12:30:00Z",
+              "tags": [
+                "Great Atmosphere",
+                "Attentive Service",
+                "Fine Dining"
+              ],
+              "helpfulCount": 47,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1002,
+              "userAvatar": "https://i.pravatar.cc/150?img=22",
+              "userName": "Kyaw Zin T.",
+              "rating": 5,
+              "text": "As a Myanmar local, this place gets everything right — the flavours, the presentation, the hospitality. It genuinely feels like eating in Yangon but with a refined touch.",
+              "photoUrl": null,
+              "date": "2026-03-05T14:15:00Z",
+              "tags": [
+                "Authentic",
+                "Feels Like Home",
+                "Highly Recommended"
+              ],
+              "helpfulCount": 62,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1003,
+              "userAvatar": "https://i.pravatar.cc/150?img=33",
+              "userName": "Sunisa P.",
+              "rating": 5,
+              "text": "Brought clients here for a business dinner and everyone was impressed. The interior is beautiful, staff speak good English, and the food quality is consistently high across the board.",
+              "photoUrl": "https://images.unsplash.com/photo-1414235077696-94d08f7d450f?w=400&h=300&fit=crop&auto=format",
+              "date": "2026-02-28T19:45:00Z",
+              "tags": [
+                "Good for Business",
+                "Great Interior",
+                "Consistent Quality"
+              ],
+              "helpfulCount": 38,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1004,
+              "userAvatar": "https://i.pravatar.cc/150?img=44",
+              "userName": "Marcus L.",
+              "rating": 4,
+              "text": "Really enjoyed the evening here. Cosy setting, well-curated menu and the staff were genuinely knowledgeable about each dish. Slightly pricey but worth it for a special occasion.",
+              "photoUrl": null,
+              "date": "2026-02-20T11:00:00Z",
+              "tags": [
+                "Special Occasion",
+                "Knowledgeable Staff",
+                "Worth the Price"
+              ],
+              "helpfulCount": 21,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1005,
+              "userAvatar": "https://i.pravatar.cc/150?img=55",
+              "userName": "Naomi K.",
+              "rating": 5,
+              "text": "The restaurant is tucked away in a quiet soi but absolutely worth finding. Clean, well-lit space with a relaxed vibe. Staff were friendly and gave great recommendations.",
+              "photoUrl": null,
+              "date": "2026-02-14T13:20:00Z",
+              "tags": [
+                "Hidden Gem",
+                "Friendly Staff",
+                "Relaxed Vibe"
+              ],
+              "helpfulCount": 29,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1006,
+              "userAvatar": "https://i.pravatar.cc/150?img=66",
+              "userName": "Wuttichai B.",
+              "rating": 4,
+              "text": "Solid fine dining spot with genuine Myanmar character. The decor is tasteful and not overdone. Only issue was parking nearby is difficult on weekends — recommend taking BTS.",
+              "photoUrl": null,
+              "date": "2026-01-30T20:10:00Z",
+              "tags": [
+                "Great Decor",
+                "No Parking",
+                "Take BTS"
+              ],
+              "helpfulCount": 34,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1007,
+              "userAvatar": "https://i.pravatar.cc/150?img=77",
+              "userName": "Preecha S.",
+              "rating": 5,
+              "text": "Celebrating my anniversary here was perfect. The staff arranged a small surprise for us without being asked. That kind of thoughtfulness is rare. Will be back for every anniversary.",
+              "photoUrl": null,
+              "date": "2026-01-18T15:30:00Z",
+              "tags": [
+                "Anniversary",
+                "Thoughtful Staff",
+                "Romantic"
+              ],
+              "helpfulCount": 18,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1008,
+              "userAvatar": "https://i.pravatar.cc/150?img=88",
+              "userName": "Elena V.",
+              "rating": 3,
+              "text": "Food quality is genuinely high and the space is lovely. But on a busy Friday evening the wait was nearly 40 minutes even with a reservation. Hope management improves the pacing.",
+              "photoUrl": null,
+              "date": "2025-12-22T18:55:00Z",
+              "tags": [
+                "Long Wait",
+                "Good Food",
+                "Needs Better Pacing"
+              ],
+              "helpfulCount": 44,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1009,
+              "userAvatar": "https://i.pravatar.cc/150?img=12",
+              "userName": "Ariya N.",
+              "rating": 5,
+              "text": "Clean, calm and full of character. The staff took time to explain the origin of each dish which made the whole experience educational as well as delicious. Highly recommend for first-timers.",
+              "photoUrl": null,
+              "date": "2025-12-10T12:00:00Z",
+              "tags": [
+                "Educational Experience",
+                "Great for First Timers",
+                "Calm Atmosphere"
+              ],
+              "helpfulCount": 53,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 1010,
+              "userAvatar": "https://i.pravatar.cc/150?img=23",
+              "userName": "James C.",
+              "rating": 4,
+              "text": "Great place to introduce friends to Myanmar cuisine. The menu is well explained, staff are patient with questions and the overall experience feels thoughtfully put together.",
+              "photoUrl": null,
+              "date": "2025-11-28T13:40:00Z",
+              "tags": [
+                "Good for Groups",
+                "Patient Staff",
+                "Well Explained Menu"
+              ],
+              "helpfulCount": 27,
+              "isVerifiedPurchase": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "success": true,
+      "message": "OK",
+      "status": 200,
+      "timestamp": "2026-03-28T10:00:00Z",
+      "data": {
+        "id": 7,
+        "name": "Mandalay Food House",
+        "nameEn": "Mandalay Food House",
+        "nameMm": "မန္တလေး အစားအစာ အိမ်",
+        "category": "Mandalay",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "rating": 4.4,
+        "ratingAvg": 4.4,
+        "reviewCount": 623,
+        "ratingCount": 623,
+        "logoUrl": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+        "coverUrl": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+        "primaryPhotoUrl": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+        "distance": 4.8,
+        "estimatedTime": "30-40 min",
+        "isOpen": true,
+        "address": "P15 Market, Soi Phetchaburi 15, Ratchathewi, Bangkok 10400",
+        "addressEn": "P15 Market, Soi Phetchaburi 15, Ratchathewi, Bangkok 10400",
+        "addressTh": "ตลาด P15 ซอยเพชรบุรี 15 เขตราชเทวี กรุงเทพ 10400",
+        "addressMm": "P15 ဈေးကွက် ဖက်ချ်ဘူရီ ၁၅ ရာချ်သဝီ ဘန်ကောက် ၁၀၄၀၀",
+        "phone": "+66 61 512 5377",
+        "email": null,
+        "googleMapsLink": "https://goo.gl/maps/mandalay-food-house",
+        "latitude": 13.7526,
+        "longitude": 100.5368,
+        "isFavorite": false,
+        "operatingHours": [
+          {
+            "dayOfWeek": "MONDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "TUESDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "WEDNESDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "THURSDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "FRIDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "SATURDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          },
+          {
+            "dayOfWeek": "SUNDAY",
+            "openingTime": {
+              "hour": 8,
+              "minute": 0
+            },
+            "closingTime": {
+              "hour": 21,
+              "minute": 0
+            },
+            "isClosed": false
+          }
+        ],
+        "photos": [
+          "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600"
+        ],
+        "popularDishes": [
+          {
+            "id": "61",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Nan Gyi Thoke (Mandalay)",
+            "name": "Nan Gyi Thoke (Mandalay)",
+            "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+            "price": 120.0,
+            "originalPrice": null,
+            "displayPrice": "฿120",
+            "currency": "฿",
+            "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+            "isFavorite": false,
+            "rating": 4.8,
+            "reviewCount": 198,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "62",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Mandalay Coconut Noodles",
+            "name": "Mandalay Coconut Noodles",
+            "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+            "price": 130.0,
+            "originalPrice": null,
+            "displayPrice": "฿130",
+            "currency": "฿",
+            "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+            "isFavorite": false,
+            "rating": 4.7,
+            "reviewCount": 174,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "63",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Shan Fish Rice",
+            "name": "Shan Fish Rice",
+            "nameMm": "ငါးထမင်းနယ်",
+            "price": 140.0,
+            "originalPrice": null,
+            "displayPrice": "฿140",
+            "currency": "฿",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+            "isFavorite": false,
+            "rating": 4.6,
+            "reviewCount": 147,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          }
+        ],
+        "recommendations": [
+          {
+            "id": "64",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Tohu Nway",
+            "name": "Tohu Nway",
+            "nameMm": "တိုဟူးနွေး",
+            "price": 90.0,
+            "originalPrice": null,
+            "displayPrice": "฿90",
+            "currency": "฿",
+            "imageUrl": "https://i.ytimg.com/vi/veQ02NDHBrw/sddefault.jpg",
+            "isFavorite": false,
+            "rating": 4.5,
+            "reviewCount": 112,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "65",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Black Sticky Rice Pudding",
+            "name": "Black Sticky Rice Pudding",
+            "nameMm": "ကောက်ညှင်းမည်း",
+            "price": 80.0,
+            "originalPrice": null,
+            "displayPrice": "฿80",
+            "currency": "฿",
+            "imageUrl": "https://www.joyfuleatingnutrition.com/joycontent/uploads/2024/08/Black-sticky-rice-coconut-milk.jpg",
+            "isFavorite": false,
+            "rating": 4.6,
+            "reviewCount": 125,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          },
+          {
+            "id": "66",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Asone Thoke Mixed Salad",
+            "name": "Asone Thoke Mixed Salad",
+            "nameMm": "အစုံသုပ်",
+            "price": 110.0,
+            "originalPrice": null,
+            "displayPrice": "฿110",
+            "currency": "฿",
+            "imageUrl": "https://www.myanmarfoodusa.com/cdn/shop/products/image_a37b6e05-8bf0-4be4-8e9b-9435629a7546.jpg?v=1677285301",
+            "isFavorite": false,
+            "rating": 4.4,
+            "reviewCount": 88,
+            "shopDistanceKm": 4.8,
+            "shopEstimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30"
+          }
+        ],
+        "hotDeals": [
+          {
+            "id": "61",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Nan Gyi Thoke (Mandalay)",
+            "name": "Nan Gyi Thoke (Mandalay)",
+            "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+            "title": "Nan Gyi Thoke (Mandalay)",
+            "restaurantId": "7",
+            "restaurantName": "Mandalay Food House",
+            "imagePath": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+            "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+            "price": 120.0,
+            "originalPrice": 200.0,
+            "displayPrice": "฿120",
+            "displayOriginalPrice": "฿200",
+            "currency": "฿",
+            "discountPercentage": 40,
+            "discountLabel": "40% Off",
+            "rating": 4.8,
+            "reviewCount": 198,
+            "ratingCount": 198,
+            "shopDistanceKm": 4.8,
+            "distanceKm": "4.8",
+            "shopEstimatedTime": "30-40 min",
+            "estimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Noodles"
+          },
+          {
+            "id": "68",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Burmese Tempura Set",
+            "name": "Burmese Tempura Set",
+            "nameMm": "မြန်မာ တင်ပူရာ",
+            "title": "Burmese Tempura Set",
+            "restaurantId": "7",
+            "restaurantName": "Mandalay Food House",
+            "imagePath": "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490",
+            "imageUrl": "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490",
+            "price": 100.0,
+            "originalPrice": 160.0,
+            "displayPrice": "฿100",
+            "displayOriginalPrice": "฿160",
+            "currency": "฿",
+            "discountPercentage": 38,
+            "discountLabel": "38% Off",
+            "rating": 4.3,
+            "reviewCount": 64,
+            "ratingCount": 64,
+            "shopDistanceKm": 4.8,
+            "distanceKm": "4.8",
+            "shopEstimatedTime": "30-40 min",
+            "estimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Snacks"
+          },
+          {
+            "id": "62",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Mandalay Coconut Noodles",
+            "name": "Mandalay Coconut Noodles",
+            "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+            "title": "Mandalay Coconut Noodles",
+            "restaurantId": "7",
+            "restaurantName": "Mandalay Food House",
+            "imagePath": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+            "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+            "price": 130.0,
+            "originalPrice": 200.0,
+            "displayPrice": "฿130",
+            "displayOriginalPrice": "฿200",
+            "currency": "฿",
+            "discountPercentage": 35,
+            "discountLabel": "35% Off",
+            "rating": 4.7,
+            "reviewCount": 174,
+            "ratingCount": 174,
+            "shopDistanceKm": 4.8,
+            "distanceKm": "4.8",
+            "shopEstimatedTime": "30-40 min",
+            "estimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Noodles"
+          },
+          {
+            "id": "63",
+            "shopId": 7,
+            "shopName": "Mandalay Food House",
+            "shopNameEn": "Mandalay Food House",
+            "nameEn": "Shan Fish Rice",
+            "name": "Shan Fish Rice",
+            "nameMm": "ငါးထမင်းနယ်",
+            "title": "Shan Fish Rice",
+            "restaurantId": "7",
+            "restaurantName": "Mandalay Food House",
+            "imagePath": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+            "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+            "price": 140.0,
+            "originalPrice": 200.0,
+            "displayPrice": "฿140",
+            "displayOriginalPrice": "฿200",
+            "currency": "฿",
+            "discountPercentage": 30,
+            "discountLabel": "30% Off",
+            "rating": 4.6,
+            "reviewCount": 147,
+            "ratingCount": 147,
+            "shopDistanceKm": 4.8,
+            "distanceKm": "4.8",
+            "shopEstimatedTime": "30-40 min",
+            "estimatedTime": "30-40 min",
+            "displayBaseDeliveryFee": "฿30",
+            "deliveryFee": "฿30",
+            "isFavorite": false,
+            "category": "Rice"
+          }
+        ],
+        "paymentTypes": [
+          {
+            "paymentMethodId": 1,
+            "paymentMethodCode": "CASH",
+            "paymentMethodName": "Cash on Delivery",
+            "isActive": true,
+            "qrImageUrl": null,
+            "accountNumber": null,
+            "accountName": null
+          },
+          {
+            "paymentMethodId": 2,
+            "paymentMethodCode": "QR_CODE",
+            "paymentMethodName": "QR Payment",
+            "isActive": true,
+            "qrImageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Commons_QR_code.png/320px-Commons_QR_code.png",
+            "accountNumber": null,
+            "accountName": null
+          },
+          {
+            "paymentMethodId": 3,
+            "paymentMethodCode": "CREDIT_CARD",
+            "paymentMethodName": "Credit / Debit Card",
+            "isActive": true,
+            "qrImageUrl": null,
+            "accountNumber": null,
+            "accountName": null
+          }
+        ],
+        "paymentQrUrl": null,
+        "deliveryTiers": [
+          {
+            "tier": "STANDARD",
+            "fee": 30.0,
+            "displayFee": "฿30",
+            "estimatedTime": "30-45 min",
+            "icon": "🛵",
+            "label": "Standard Delivery",
+            "labelMm": "ပုံမှန်ပို့ဆောင်"
+          },
+          {
+            "tier": "EXPRESS",
+            "fee": 60.0,
+            "displayFee": "฿60",
+            "estimatedTime": "15-20 min",
+            "icon": "⚡",
+            "label": "Express Delivery",
+            "labelMm": "အမြန်ပို့ဆောင်"
+          }
+        ],
+        "minEta": 30,
+        "maxEta": 40,
+        "reviews": {
+          "totalReviews": 623,
+          "averageRating": 4.4,
+          "ratingBreakdown": {
+            "5": 292,
+            "4": 187,
+            "3": 93,
+            "2": 34,
+            "1": 17
+          },
+          "items": [
+            {
+              "id": 2001,
+              "userAvatar": "https://i.pravatar.cc/150?img=34",
+              "userName": "Myo Thant K.",
+              "rating": 5,
+              "text": "This little stall inside Pratunam market is the most authentic Mandalay food spot I've found in Bangkok. No frills, no pretension — just proper home-style cooking and very fair prices.",
+              "photoUrl": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop&auto=format",
+              "date": "2026-03-15T11:30:00Z",
+              "tags": [
+                "Authentic",
+                "Great Value",
+                "No Frills"
+              ],
+              "helpfulCount": 88,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2002,
+              "userAvatar": "https://i.pravatar.cc/150?img=45",
+              "userName": "Nattida C.",
+              "rating": 5,
+              "text": "A proper neighbourhood gem. The owner is warm, always around to chat and genuinely cares that you enjoy your meal. That personal touch makes this place stand out.",
+              "photoUrl": null,
+              "date": "2026-03-08T12:50:00Z",
+              "tags": [
+                "Friendly Owner",
+                "Neighbourhood Gem",
+                "Personal Touch"
+              ],
+              "helpfulCount": 61,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2003,
+              "userAvatar": "https://i.pravatar.cc/150?img=56",
+              "userName": "Htun Linn A.",
+              "rating": 5,
+              "text": "I eat here at least once a week. The quality never drops, the portions are generous and you always leave full and happy. Best value Myanmar food in the whole Ratchathewi area.",
+              "photoUrl": null,
+              "date": "2026-02-25T15:00:00Z",
+              "tags": [
+                "Regular Customer",
+                "Generous Portions",
+                "Best Value"
+              ],
+              "helpfulCount": 42,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2004,
+              "userAvatar": "https://i.pravatar.cc/150?img=67",
+              "userName": "Ratchanee P.",
+              "rating": 4,
+              "text": "Very tasty and affordable. The market setting is lively and fun but it does get loud and crowded during lunch hour. Go early or after 1pm for a more comfortable experience.",
+              "photoUrl": null,
+              "date": "2026-02-18T13:10:00Z",
+              "tags": [
+                "Affordable",
+                "Crowded at Lunch",
+                "Go Early"
+              ],
+              "helpfulCount": 35,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2005,
+              "userAvatar": "https://i.pravatar.cc/150?img=78",
+              "userName": "Sophie M.",
+              "rating": 5,
+              "text": "Stumbled across this place while shopping at Pratunam and it completely made my day. The staff were welcoming to a foreigner, pointed me to the right dishes and the food was outstanding.",
+              "photoUrl": null,
+              "date": "2026-02-05T19:30:00Z",
+              "tags": [
+                "Welcoming to Foreigners",
+                "Great Discovery",
+                "Helpful Staff"
+              ],
+              "helpfulCount": 29,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2006,
+              "userAvatar": "https://i.pravatar.cc/150?img=89",
+              "userName": "Piyawat R.",
+              "rating": 4,
+              "text": "Consistently good food and quick service even when busy. Seating is limited so be prepared to share a table, but nobody minds — it adds to the communal market atmosphere.",
+              "photoUrl": null,
+              "date": "2026-01-22T14:40:00Z",
+              "tags": [
+                "Quick Service",
+                "Communal Seating",
+                "Consistent"
+              ],
+              "helpfulCount": 23,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2007,
+              "userAvatar": "https://i.pravatar.cc/150?img=14",
+              "userName": "Thida M.",
+              "rating": 5,
+              "text": "This place makes me feel at home every single visit. The recipes are clearly passed down and made with care. For Myanmar people living in Bangkok, this is a real comfort spot.",
+              "photoUrl": null,
+              "date": "2026-01-10T10:20:00Z",
+              "tags": [
+                "Feels Like Home",
+                "Traditional Recipes",
+                "Comfort Food"
+              ],
+              "helpfulCount": 51,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2008,
+              "userAvatar": "https://i.pravatar.cc/150?img=25",
+              "userName": "Chaiwat S.",
+              "rating": 3,
+              "text": "Food is genuinely delicious and the price is unbeatable. But the space is cramped and ventilation inside the market isn't great on hot days. Definitely worth it in cooler weather.",
+              "photoUrl": null,
+              "date": "2025-12-30T12:05:00Z",
+              "tags": [
+                "Cramped Space",
+                "Unbeatable Price",
+                "Worth It in Cool Weather"
+              ],
+              "helpfulCount": 67,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2009,
+              "userAvatar": "https://i.pravatar.cc/150?img=36",
+              "userName": "Lena F.",
+              "rating": 4,
+              "text": "One of those rare finds that locals know about but tourists haven't discovered yet. Simple setup, honest food, great prices. I've already recommended it to everyone I know in Bangkok.",
+              "photoUrl": null,
+              "date": "2025-12-15T16:00:00Z",
+              "tags": [
+                "Local Favourite",
+                "Honest Food",
+                "Underrated"
+              ],
+              "helpfulCount": 19,
+              "isVerifiedPurchase": true
+            },
+            {
+              "id": 2010,
+              "userAvatar": "https://i.pravatar.cc/150?img=47",
+              "userName": "Aung Ko H.",
+              "rating": 5,
+              "text": "Run by a family from Mandalay and it shows in every detail — the recipes, the hospitality, the pride in what they serve. One of the most genuine dining experiences in Bangkok.",
+              "photoUrl": null,
+              "date": "2025-11-20T13:25:00Z",
+              "tags": [
+                "Family Run",
+                "Genuine Experience",
+                "Highly Recommended"
+              ],
+              "helpfulCount": 94,
+              "isVerifiedPurchase": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "foodDetails": [
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 1,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Mohinga",
+        "nameEn": "Mohinga",
+        "nameMm": "မုန့်ဟင်းခါး",
+        "description": "Myanmar's national noodle soup — fish broth with rice noodles, banana stem and crispy fritters.",
+        "price": 180.0,
+        "originalPrice": 250.0,
+        "displayPrice": "฿180",
+        "displayOriginalPrice": "฿250",
+        "currency": "฿",
+        "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+        "photoUrls": [
+          "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png"
+        ],
+        "category": "Noodles",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.8,
+        "reviewCount": 210,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 11,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 180.0,
+            "displayPrice": "฿180",
+            "isAvailable": true
+          },
+          {
+            "id": 12,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 210.0,
+            "displayPrice": "฿210",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 101,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 1011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 1012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 1013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 1014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 1015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 102,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 1021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 1022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 1023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 1024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 28,
+        "discountLabel": "28% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 2,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Lahpet Thoke",
+        "nameEn": "Lahpet Thoke",
+        "nameMm": "လက်ဖက်သုပ်",
+        "description": "Fermented tea leaf salad with crunchy beans, peanuts, sesame, garlic and fresh tomato.",
+        "price": 150.0,
+        "originalPrice": null,
+        "displayPrice": "฿150",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG",
+        "photoUrls": [
+          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG"
+        ],
+        "category": "Salads",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 185,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 21,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 150.0,
+            "displayPrice": "฿150",
+            "isAvailable": true
+          },
+          {
+            "id": 22,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 180.0,
+            "displayPrice": "฿180",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 3,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Crispy Tofu Salad",
+        "nameEn": "Crispy Tofu Salad",
+        "nameMm": "ကြော်တိုဟူးသုပ်",
+        "description": "Golden pan-fried Shan tofu tossed with garlic oil, lime and coriander.",
+        "price": 130.0,
+        "originalPrice": null,
+        "displayPrice": "฿130",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgoODsqT6WAwaa96Ey23EQ4GHhVWMkQ2LRyolEqWOIMgM57QErT3yjDLxXkMh9R3ck2MfpTw83HOTyZRM7NR0m5qsbNd8xFSX-UjgoqG8aXsi31qF-qsrczFhZ_MHWtUkVvbGTer2UgQg4/s1600/IMG_0004.JPG",
+        "photoUrls": [
+          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgoODsqT6WAwaa96Ey23EQ4GHhVWMkQ2LRyolEqWOIMgM57QErT3yjDLxXkMh9R3ck2MfpTw83HOTyZRM7NR0m5qsbNd8xFSX-UjgoqG8aXsi31qF-qsrczFhZ_MHWtUkVvbGTer2UgQg4/s1600/IMG_0004.JPG"
+        ],
+        "category": "Salads",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 142,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 31,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 130.0,
+            "displayPrice": "฿130",
+            "isAvailable": true
+          },
+          {
+            "id": 32,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 160.0,
+            "displayPrice": "฿160",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 4,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Grilled Eggplant Salad",
+        "nameEn": "Grilled Eggplant Salad",
+        "nameMm": "ပဲပင်ကြော်သုပ်",
+        "description": "Charred eggplant mashed with shallots, fish sauce and roasted sesame oil.",
+        "price": 140.0,
+        "originalPrice": null,
+        "displayPrice": "฿140",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://myfoodmyanmar.com/wp-content/uploads/2020/09/maxresdefault-13.jpg",
+        "photoUrls": [
+          "https://myfoodmyanmar.com/wp-content/uploads/2020/09/maxresdefault-13.jpg"
+        ],
+        "category": "Salads",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.5,
+        "reviewCount": 98,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 41,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 140.0,
+            "displayPrice": "฿140",
+            "isAvailable": true
+          },
+          {
+            "id": 42,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 170.0,
+            "displayPrice": "฿170",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 5,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Steamed Seabass Kachin Style",
+        "nameEn": "Steamed Seabass Kachin Style",
+        "nameMm": "ကချင်ငါးဆိမ့်",
+        "description": "Whole seabass steamed with Kachin herbs, wild ginger and sour plum.",
+        "price": 350.0,
+        "originalPrice": 580.0,
+        "displayPrice": "฿350",
+        "displayOriginalPrice": "฿580",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+        "photoUrls": [
+          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg"
+        ],
+        "category": "Seafood",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.9,
+        "reviewCount": 76,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 51,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 350.0,
+            "displayPrice": "฿350",
+            "isAvailable": true
+          },
+          {
+            "id": 52,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 380.0,
+            "displayPrice": "฿380",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 501,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 5011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 5012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 5013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 5014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 5015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 502,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 5021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 5022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 5023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 5024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 40,
+        "discountLabel": "40% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 6,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Myanmar Milk Tea",
+        "nameEn": "Myanmar Milk Tea",
+        "nameMm": "နို့လက်ဖက်ရည်",
+        "description": "Brewed with condensed and evaporated milk over strong Ceylon black tea — no instant mix.",
+        "price": 80.0,
+        "originalPrice": null,
+        "displayPrice": "฿80",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://myfoodmyanmar.com/wp-content/uploads/2023/03/Royal-Milk-Tea-3.jpg",
+        "photoUrls": [
+          "https://myfoodmyanmar.com/wp-content/uploads/2023/03/Royal-Milk-Tea-3.jpg"
+        ],
+        "category": "Beverages",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 205,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 61,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 80.0,
+            "displayPrice": "฿80",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 7,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Slow-Braised Pork Belly Curry",
+        "nameEn": "Slow-Braised Pork Belly Curry",
+        "nameMm": "ဝက်ဝမ်းဟင်းချို",
+        "description": "Pork belly braised in turmeric, lemongrass and bay leaf until fork-tender.",
+        "price": 220.0,
+        "originalPrice": 260.0,
+        "displayPrice": "฿220",
+        "displayOriginalPrice": "฿260",
+        "currency": "฿",
+        "imageUrl": "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg",
+        "photoUrls": [
+          "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg"
+        ],
+        "category": "Curries",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.5,
+        "reviewCount": 134,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 71,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 220.0,
+            "displayPrice": "฿220",
+            "isAvailable": true
+          },
+          {
+            "id": 72,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 250.0,
+            "displayPrice": "฿250",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 701,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 7011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 7012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 7013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 7014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 7015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 702,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 7021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 7022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 7023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 7024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 15,
+        "discountLabel": "15% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 8,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Shan Noodle Soup",
+        "nameEn": "Shan Noodle Soup",
+        "nameMm": "ရှမ်းခေါက်ဆွဲဟင်း",
+        "description": "Flat rice noodles in a light Shan pork broth with crispy fried garlic oil.",
+        "price": 160.0,
+        "originalPrice": null,
+        "displayPrice": "฿160",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://clubrangoon.com.hk/wp-content/uploads/2025/04/shan-noodle-soup-recipe-shan-khauk-swe-1745520114.jpg",
+        "photoUrls": [
+          "https://clubrangoon.com.hk/wp-content/uploads/2025/04/shan-noodle-soup-recipe-shan-khauk-swe-1745520114.jpg"
+        ],
+        "category": "Noodles",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.5,
+        "reviewCount": 98,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 81,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 160.0,
+            "displayPrice": "฿160",
+            "isAvailable": true
+          },
+          {
+            "id": 82,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 190.0,
+            "displayPrice": "฿190",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 801,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 8011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 8012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 8013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 8014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 8015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 802,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 8021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 8022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 8023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 8024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 9,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Coconut Chicken Curry",
+        "nameEn": "Coconut Chicken Curry",
+        "nameMm": "ကြက်သားနှင်းဆီဟင်း",
+        "description": "Chicken thighs simmered in creamy coconut milk with Burmese spice paste.",
+        "price": 200.0,
+        "originalPrice": 280.0,
+        "displayPrice": "฿200",
+        "displayOriginalPrice": "฿280",
+        "currency": "฿",
+        "imageUrl": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+        "photoUrls": [
+          "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg"
+        ],
+        "category": "Curries",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 156,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 91,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 200.0,
+            "displayPrice": "฿200",
+            "isAvailable": true
+          },
+          {
+            "id": 92,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 230.0,
+            "displayPrice": "฿230",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 901,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 9011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 9012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 9013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 9014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 9015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 902,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 9021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 9022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 9023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 9024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 29,
+        "discountLabel": "29% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 10,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "name": "Shwe Gi Mont",
+        "nameEn": "Shwe Gi Mont",
+        "nameMm": "ရွှေဂျီမုန့်",
+        "description": "Steamed golden semolina cake topped with shredded coconut and poppy seeds.",
+        "price": 90.0,
+        "originalPrice": null,
+        "displayPrice": "฿90",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://lionmartjp.com/cdn/shop/files/FullSizeRender_504859d4-f6e5-474a-9793-a922868efd4d.jpg?v=1761029320&width=1946",
+        "photoUrls": [
+          "https://lionmartjp.com/cdn/shop/files/FullSizeRender_504859d4-f6e5-474a-9793-a922868efd4d.jpg?v=1761029320&width=1946"
+        ],
+        "category": "Desserts",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.4,
+        "reviewCount": 88,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 101,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 90.0,
+            "displayPrice": "฿90",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 61,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Nan Gyi Thoke (Mandalay)",
+        "nameEn": "Nan Gyi Thoke (Mandalay)",
+        "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+        "description": "Mandalay-style thick noodle salad with extra layers of dried shrimp and garlic oil.",
+        "price": 120.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿120",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+        "photoUrls": [
+          "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s"
+        ],
+        "category": "Noodles",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.8,
+        "reviewCount": 198,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 611,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 120.0,
+            "displayPrice": "฿120",
+            "isAvailable": true
+          },
+          {
+            "id": 612,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 150.0,
+            "displayPrice": "฿150",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 6101,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 61011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 61012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 61013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 61014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 61015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 6102,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 61021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 61022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 61023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 61024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 40,
+        "discountLabel": "40% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 62,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Mandalay Coconut Noodles",
+        "nameEn": "Mandalay Coconut Noodles",
+        "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+        "description": "Silky egg noodles in deep coconut-chicken broth with crispy onion and hard-boiled egg.",
+        "price": 130.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿130",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+        "photoUrls": [
+          "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg"
+        ],
+        "category": "Noodles",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 174,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 621,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 130.0,
+            "displayPrice": "฿130",
+            "isAvailable": true
+          },
+          {
+            "id": 622,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 160.0,
+            "displayPrice": "฿160",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 6201,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 62011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 62012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 62013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 62014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 62015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 6202,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 62021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 62022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 62023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 62024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 35,
+        "discountLabel": "35% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 63,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Shan Fish Rice",
+        "nameEn": "Shan Fish Rice",
+        "nameMm": "ငါးထမင်းနယ်",
+        "description": "Yellow turmeric rice, pork, tomato salad and pickles — a full Shan flavour feast.",
+        "price": 140.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿140",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+        "photoUrls": [
+          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg"
+        ],
+        "category": "Rice",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 147,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 631,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 140.0,
+            "displayPrice": "฿140",
+            "isAvailable": true
+          },
+          {
+            "id": 632,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 170.0,
+            "displayPrice": "฿170",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 6301,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 63011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 63012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 63013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 63014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 63015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          },
+          {
+            "id": 6302,
+            "name": "Add-ons",
+            "nameMm": "ထပ်ဆင့်",
+            "groupType": "MULTI_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 3,
+            "options": [
+              {
+                "id": 63021,
+                "name": "Extra Rice",
+                "nameMm": "ထမင်းတိုး",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 63022,
+                "name": "Soft Boiled Egg",
+                "nameMm": "ကြက်ဥ",
+                "price": 20.0,
+                "displayPrice": "+฿20"
+              },
+              {
+                "id": 63023,
+                "name": "Extra Sauce",
+                "nameMm": "ဆော့တိုး",
+                "price": 15.0,
+                "displayPrice": "+฿15"
+              },
+              {
+                "id": 63024,
+                "name": "Crispy Garlic",
+                "nameMm": "ကြက်သွန်ကြော်",
+                "price": 10.0,
+                "displayPrice": "+฿10"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": 30,
+        "discountLabel": "30% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 64,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Tohu Nway",
+        "nameEn": "Tohu Nway",
+        "nameMm": "တိုဟူးနွေး",
+        "description": "Mandalay speciality — warm chickpea tofu soup with shallot oil and coriander.",
+        "price": 90.0,
+        "originalPrice": null,
+        "displayPrice": "฿90",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://i.ytimg.com/vi/veQ02NDHBrw/sddefault.jpg",
+        "photoUrls": [
+          "https://i.ytimg.com/vi/veQ02NDHBrw/sddefault.jpg"
+        ],
+        "category": "Soups",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.5,
+        "reviewCount": 112,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 641,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 90.0,
+            "displayPrice": "฿90",
+            "isAvailable": true
+          },
+          {
+            "id": 642,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 120.0,
+            "displayPrice": "฿120",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [
+          {
+            "id": 6401,
+            "name": "Spice Level",
+            "nameMm": "အစပ်ဆင့်",
+            "groupType": "SINGLE_SELECT",
+            "isRequired": false,
+            "minSelection": 0,
+            "maxSelection": 1,
+            "options": [
+              {
+                "id": 64011,
+                "name": "No Spice",
+                "nameMm": "အစပ်မပါ",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 64012,
+                "name": "Mild",
+                "nameMm": "နည်းငယ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 64013,
+                "name": "Medium",
+                "nameMm": "အလတ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 64014,
+                "name": "Hot",
+                "nameMm": "စပ်",
+                "price": 0.0,
+                "displayPrice": "Free"
+              },
+              {
+                "id": 64015,
+                "name": "Extra Hot",
+                "nameMm": "အစပ်ဆုံး",
+                "price": 0.0,
+                "displayPrice": "Free"
+              }
+            ]
+          }
+        ],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 65,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Black Sticky Rice Pudding",
+        "nameEn": "Black Sticky Rice Pudding",
+        "nameMm": "ကောက်ညှင်းမည်း",
+        "description": "Steamed glutinous black rice with palm sugar syrup and fresh coconut cream.",
+        "price": 80.0,
+        "originalPrice": null,
+        "displayPrice": "฿80",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://www.joyfuleatingnutrition.com/joycontent/uploads/2024/08/Black-sticky-rice-coconut-milk.jpg",
+        "photoUrls": [
+          "https://www.joyfuleatingnutrition.com/joycontent/uploads/2024/08/Black-sticky-rice-coconut-milk.jpg"
+        ],
+        "category": "Desserts",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 125,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 651,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 80.0,
+            "displayPrice": "฿80",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 66,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Asone Thoke Mixed Salad",
+        "nameEn": "Asone Thoke Mixed Salad",
+        "nameMm": "အစုံသုပ်",
+        "description": "Mandalay-style salad bowl with noodles, tofu, tomato and tamarind dressing.",
+        "price": 110.0,
+        "originalPrice": null,
+        "displayPrice": "฿110",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://www.myanmarfoodusa.com/cdn/shop/products/image_a37b6e05-8bf0-4be4-8e9b-9435629a7546.jpg?v=1677285301",
+        "photoUrls": [
+          "https://www.myanmarfoodusa.com/cdn/shop/products/image_a37b6e05-8bf0-4be4-8e9b-9435629a7546.jpg?v=1677285301"
+        ],
+        "category": "Salads",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.4,
+        "reviewCount": 88,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 661,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 110.0,
+            "displayPrice": "฿110",
+            "isAvailable": true
+          },
+          {
+            "id": 662,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 140.0,
+            "displayPrice": "฿140",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 67,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Pheetan Thote",
+        "nameEn": "Pheetan Thote",
+        "nameMm": "ဆေးဘဲဥသုပ်",
+        "description": "Glass noodles tossed with sesame oil, lime, dried chilli and toasted peanuts.",
+        "price": 110.0,
+        "originalPrice": null,
+        "displayPrice": "฿110",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://mm.ezyqrmenu.com/thantawsint/wp-content/uploads/sites/176/2025/12/%E1%80%86%E1%80%B1%E1%80%B8%E1%80%98%E1%80%B2%E1%80%A5%E1%80%9E%E1%80%AF%E1%80%95%E1%80%BA-%E1%80%9E%E1%80%B6%E1%80%90%E1%80%B1%E1%80%AC%E1%80%BA%E1%80%86%E1%80%84%E1%80%B7%E1%80%BA-scaled.jpg",
+        "photoUrls": [
+          "https://mm.ezyqrmenu.com/thantawsint/wp-content/uploads/sites/176/2025/12/%E1%80%86%E1%80%B1%E1%80%B8%E1%80%98%E1%80%B2%E1%80%A5%E1%80%9E%E1%80%AF%E1%80%95%E1%80%BA-%E1%80%9E%E1%80%B6%E1%80%90%E1%80%B1%E1%80%AC%E1%80%BA%E1%80%86%E1%80%84%E1%80%B7%E1%80%BA-scaled.jpg"
+        ],
+        "category": "Salads",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.4,
+        "reviewCount": 76,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 671,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 110.0,
+            "displayPrice": "฿110",
+            "isAvailable": true
+          },
+          {
+            "id": 672,
+            "nameEn": "Large",
+            "nameMm": "ကြီး",
+            "price": 140.0,
+            "displayPrice": "฿140",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 68,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Burmese Tempura Set",
+        "nameEn": "Burmese Tempura Set",
+        "nameMm": "မြန်မာ တင်ပူရာ",
+        "description": "Assorted vegetable and tofu fritters in crispy rice batter with dipping sauce.",
+        "price": 100.0,
+        "originalPrice": 160.0,
+        "displayPrice": "฿100",
+        "displayOriginalPrice": "฿160",
+        "currency": "฿",
+        "imageUrl": "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490",
+        "photoUrls": [
+          "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490"
+        ],
+        "category": "Snacks",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.3,
+        "reviewCount": 64,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 681,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 100.0,
+            "displayPrice": "฿100",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": 38,
+        "discountLabel": "38% Off"
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 69,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Silon Tea",
+        "nameEn": "Silon Tea",
+        "nameMm": "စီလုံတီးလက်ဖက်ရည်",
+        "description": "Cold Shan-style fermented green tea with milk and ice.",
+        "price": 70.0,
+        "originalPrice": null,
+        "displayPrice": "฿70",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/u4kp-listing.jpg",
+        "photoUrls": [
+          "https://images.deliveryhero.io/image/fd-mm/LH/u4kp-listing.jpg"
+        ],
+        "category": "Beverages",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 141,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 691,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 70.0,
+            "displayPrice": "฿70",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    },
+    {
+      "statusCode": 200,
+      "message": "OK",
+      "data": {
+        "id": 70,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "name": "Mont Pyar Thalet",
+        "nameEn": "Mont Pyar Thalet",
+        "nameMm": "မုန့်ပြားသလပ်",
+        "description": "Crispy wafer filled with palm sugar and fresh coconut shreds.",
+        "price": 70.0,
+        "originalPrice": null,
+        "displayPrice": "฿70",
+        "displayOriginalPrice": null,
+        "currency": "฿",
+        "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Mont_Pyar_Thalet.jpg",
+        "photoUrls": [
+          "https://upload.wikimedia.org/wikipedia/commons/b/ba/Mont_Pyar_Thalet.jpg"
+        ],
+        "category": "Desserts",
+        "cuisineType": {
+          "id": 1,
+          "nameMm": "မြန်မာ အစားအသောက်",
+          "nameTh": "อาหารพม่า",
+          "nameEn": "Myanmar",
+          "slug": "myanmar-cuisine",
+          "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&h=300&fit=crop&auto=format"
+        },
+        "isFavorite": false,
+        "rating": 4.3,
+        "reviewCount": 58,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "variants": [
+          {
+            "id": 701,
+            "nameEn": "Regular",
+            "nameMm": "ပုံမှန်",
+            "price": 70.0,
+            "displayPrice": "฿70",
+            "isAvailable": true
+          }
+        ],
+        "optionGroups": [],
+        "discountPercentage": null,
+        "discountLabel": null
+      }
+    }
+  ],
+  "trending": {
+    "title": "Trending Nearby",
+    "description": "Most loved Myanmar dishes right now",
+    "items": [
+      {
+        "id": 5,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Steamed Seabass Kachin Style",
+        "name": "Steamed Seabass Kachin Style",
+        "nameMm": "ကချင်ငါးဆိမ့်",
+        "price": 350.0,
+        "originalPrice": null,
+        "displayPrice": "฿350",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+        "isFavorite": false,
+        "rating": 4.9,
+        "reviewCount": 76,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 1,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Mohinga",
+        "name": "Mohinga",
+        "nameMm": "မုန့်ဟင်းခါး",
+        "price": 180.0,
+        "originalPrice": null,
+        "displayPrice": "฿180",
+        "currency": "฿",
+        "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+        "isFavorite": false,
+        "rating": 4.8,
+        "reviewCount": 210,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 61,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Nan Gyi Thoke (Mandalay)",
+        "name": "Nan Gyi Thoke (Mandalay)",
+        "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+        "price": 120.0,
+        "originalPrice": null,
+        "displayPrice": "฿120",
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+        "isFavorite": false,
+        "rating": 4.8,
+        "reviewCount": 198,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 2,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Lahpet Thoke",
+        "name": "Lahpet Thoke",
+        "nameMm": "လက်ဖက်သုပ်",
+        "price": 150.0,
+        "originalPrice": null,
+        "displayPrice": "฿150",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG",
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 185,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 62,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Mandalay Coconut Noodles",
+        "name": "Mandalay Coconut Noodles",
+        "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+        "price": 130.0,
+        "originalPrice": null,
+        "displayPrice": "฿130",
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 174,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 69,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Silon Tea",
+        "name": "Silon Tea",
+        "nameMm": "စီလုံတီးလက်ဖက်ရည်",
+        "price": 70.0,
+        "originalPrice": null,
+        "displayPrice": "฿70",
+        "currency": "฿",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/u4kp-listing.jpg",
+        "isFavorite": false,
+        "rating": 4.7,
+        "reviewCount": 141,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 3,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Crispy Tofu Salad",
+        "name": "Crispy Tofu Salad",
+        "nameMm": "ကြော်တိုဟူးသုပ်",
+        "price": 130.0,
+        "originalPrice": null,
+        "displayPrice": "฿130",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgoODsqT6WAwaa96Ey23EQ4GHhVWMkQ2LRyolEqWOIMgM57QErT3yjDLxXkMh9R3ck2MfpTw83HOTyZRM7NR0m5qsbNd8xFSX-UjgoqG8aXsi31qF-qsrczFhZ_MHWtUkVvbGTer2UgQg4/s1600/IMG_0004.JPG",
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 142,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 6,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Myanmar Milk Tea",
+        "name": "Myanmar Milk Tea",
+        "nameMm": "နို့လက်ဖက်ရည်",
+        "price": 80.0,
+        "originalPrice": null,
+        "displayPrice": "฿80",
+        "currency": "฿",
+        "imageUrl": "https://myfoodmyanmar.com/wp-content/uploads/2023/03/Royal-Milk-Tea-3.jpg",
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 205,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 9,
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Coconut Chicken Curry",
+        "name": "Coconut Chicken Curry",
+        "nameMm": "ကြက်သားနှင်းဆီဟင်း",
+        "price": 200.0,
+        "originalPrice": null,
+        "displayPrice": "฿200",
+        "currency": "฿",
+        "imageUrl": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 156,
+        "shopDistanceKm": 2.4,
+        "shopEstimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30"
+      },
+      {
+        "id": 63,
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Shan Fish Rice",
+        "name": "Shan Fish Rice",
+        "nameMm": "ငါးထမင်းနယ်",
+        "price": 140.0,
+        "originalPrice": null,
+        "displayPrice": "฿140",
+        "currency": "฿",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+        "isFavorite": false,
+        "rating": 4.6,
+        "reviewCount": 147,
+        "shopDistanceKm": 4.8,
+        "shopEstimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30"
+      }
+    ],
+    "totalCount": 10
+  },
+  "feed": {
+    "data": {
+      "items": [
+        {
+          "id": 1,
+          "shopId": 1,
+          "shopName": "Rangoon Tea House Bangkok",
+          "shopNameEn": "Rangoon Tea House Bangkok",
+          "nameEn": "Mohinga",
+          "name": "Mohinga",
+          "nameMm": "မုန့်ဟင်းခါး",
+          "price": 180.0,
+          "originalPrice": null,
+          "displayPrice": "฿180",
+          "currency": "฿",
+          "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+          "isFavorite": false,
+          "rating": 4.8,
+          "reviewCount": 210,
+          "shopDistanceKm": 2.4,
+          "shopEstimatedTime": "25-35 min",
+          "displayBaseDeliveryFee": "฿30"
+        },
+        {
+          "id": 2,
+          "shopId": 1,
+          "shopName": "Rangoon Tea House Bangkok",
+          "shopNameEn": "Rangoon Tea House Bangkok",
+          "nameEn": "Lahpet Thoke",
+          "name": "Lahpet Thoke",
+          "nameMm": "လက်ဖက်သုပ်",
+          "price": 150.0,
+          "originalPrice": null,
+          "displayPrice": "฿150",
+          "currency": "฿",
+          "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG",
+          "isFavorite": false,
+          "rating": 4.7,
+          "reviewCount": 185,
+          "shopDistanceKm": 2.4,
+          "shopEstimatedTime": "25-35 min",
+          "displayBaseDeliveryFee": "฿30"
+        },
+        {
+          "id": 61,
+          "shopId": 7,
+          "shopName": "Mandalay Food House",
+          "shopNameEn": "Mandalay Food House",
+          "nameEn": "Nan Gyi Thoke (Mandalay)",
+          "name": "Nan Gyi Thoke (Mandalay)",
+          "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+          "price": 120.0,
+          "originalPrice": null,
+          "displayPrice": "฿120",
+          "currency": "฿",
+          "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+          "isFavorite": false,
+          "rating": 4.8,
+          "reviewCount": 198,
+          "shopDistanceKm": 4.8,
+          "shopEstimatedTime": "30-40 min",
+          "displayBaseDeliveryFee": "฿30"
+        },
+        {
+          "id": 62,
+          "shopId": 7,
+          "shopName": "Mandalay Food House",
+          "shopNameEn": "Mandalay Food House",
+          "nameEn": "Mandalay Coconut Noodles",
+          "name": "Mandalay Coconut Noodles",
+          "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+          "price": 130.0,
+          "originalPrice": null,
+          "displayPrice": "฿130",
+          "currency": "฿",
+          "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+          "isFavorite": false,
+          "rating": 4.7,
+          "reviewCount": 174,
+          "shopDistanceKm": 4.8,
+          "shopEstimatedTime": "30-40 min",
+          "displayBaseDeliveryFee": "฿30"
+        }
+      ]
+    }
+  },
+  "restaurants": [
+    {
+      "id": "1",
+      "name": "Rangoon Tea House Bangkok",
+      "category": "Fine Dining",
+      "rating": 4.5,
+      "distance": "2.4 km",
+      "image": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+      "logo": "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600",
+      "deliveryTime": "25-35 min",
+      "status": "OPEN",
+      "imageUrls": [
+        "https://lh3.googleusercontent.com/places/ANXAkqGIoJ643eeDg7vLw854ntE7Kv7FW4_uzRC-q1IU1Dn8PGgYj2j9-YrxRKc6d-m-qEu5nkReU7pYwHodQS92PQs8fVa8is72B3E=s1200-w800-h600"
+      ]
+    },
+    {
+      "id": "7",
+      "name": "Mandalay Food House",
+      "category": "Mandalay",
+      "rating": 4.4,
+      "distance": "4.8 km",
+      "image": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+      "logo": "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600",
+      "deliveryTime": "30-40 min",
+      "status": "OPEN",
+      "imageUrls": [
+        "https://lh3.googleusercontent.com/places/ANXAkqFlNj7fqY4iFw6Xo80FJmJwqfctcmjRliyNTQavpVEZBXeIJtrbg1IV5Q-p1ZJQrqPsmhCbPALIuXoBUgu-IdnKzACvZMFIX5M=s1200-w800-h600"
+      ]
+    }
+  ],
+  "togetherDeals": {
+    "title": "Up to 40% Off",
+    "subtitle": "Together Deals — limited time only",
+    "totalCount": 8,
+    "items": [
+      {
+        "id": "5",
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Steamed Seabass Kachin Style",
+        "name": "Steamed Seabass Kachin Style",
+        "nameMm": "ကချင်ငါးဆိမ့်",
+        "title": "Steamed Seabass Kachin Style",
+        "restaurantId": "1",
+        "restaurantName": "Rangoon Tea House Bangkok",
+        "imagePath": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEinZeWDNYz-nFwsyKNB3IOIFy5hyUJwLbpidQXyIa3YNQoV8BWwcjOUn5nile45NcQcDA6stoxUXo7PDvHWYfUyOj1lHcnJSbEtNKgr4IsKHdbG4dqZZxZeFthnU2c-S8HOM41hGWuOMAupb1NXhKsjsQ7AgWYIjWl9cOM3JoNBpr3ZVtV4HL0qSLad/s798/1.jpg",
+        "price": 350.0,
+        "originalPrice": 580.0,
+        "displayPrice": "฿350",
+        "displayOriginalPrice": "฿580",
+        "currency": "฿",
+        "discountPercentage": 40,
+        "discountLabel": "40% Off",
+        "rating": 4.9,
+        "reviewCount": 76,
+        "ratingCount": 76,
+        "shopDistanceKm": 2.4,
+        "distanceKm": "2.4",
+        "shopEstimatedTime": "25-35 min",
+        "estimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Seafood"
+      },
+      {
+        "id": "61",
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Nan Gyi Thoke (Mandalay)",
+        "name": "Nan Gyi Thoke (Mandalay)",
+        "nameMm": "မန္တလေးနမ်းကြီးသုပ်",
+        "title": "Nan Gyi Thoke (Mandalay)",
+        "restaurantId": "7",
+        "restaurantName": "Mandalay Food House",
+        "imagePath": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/products/274986.jpg?width=%s",
+        "price": 120.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿120",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "discountPercentage": 40,
+        "discountLabel": "40% Off",
+        "rating": 4.8,
+        "reviewCount": 198,
+        "ratingCount": 198,
+        "shopDistanceKm": 4.8,
+        "distanceKm": "4.8",
+        "shopEstimatedTime": "30-40 min",
+        "estimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Noodles"
+      },
+      {
+        "id": "68",
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Burmese Tempura Set",
+        "name": "Burmese Tempura Set",
+        "nameMm": "မြန်မာ တင်ပူရာ",
+        "title": "Burmese Tempura Set",
+        "restaurantId": "7",
+        "restaurantName": "Mandalay Food House",
+        "imagePath": "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490",
+        "imageUrl": "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000341/img/en/a0000341_parts_5850d4671097b.jpg?20200706163250&q=80&rw=686&rh=490",
+        "price": 100.0,
+        "originalPrice": 160.0,
+        "displayPrice": "฿100",
+        "displayOriginalPrice": "฿160",
+        "currency": "฿",
+        "discountPercentage": 38,
+        "discountLabel": "38% Off",
+        "rating": 4.3,
+        "reviewCount": 64,
+        "ratingCount": 64,
+        "shopDistanceKm": 4.8,
+        "distanceKm": "4.8",
+        "shopEstimatedTime": "30-40 min",
+        "estimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Snacks"
+      },
+      {
+        "id": "62",
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Mandalay Coconut Noodles",
+        "name": "Mandalay Coconut Noodles",
+        "nameMm": "မန္တလေးအုန်းနို့ခေါက်ဆွဲ",
+        "title": "Mandalay Coconut Noodles",
+        "restaurantId": "7",
+        "restaurantName": "Mandalay Food House",
+        "imagePath": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+        "imageUrl": "https://images.deliveryhero.io/image/fd-mm/LH/l7wx-listing.jpg",
+        "price": 130.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿130",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "discountPercentage": 35,
+        "discountLabel": "35% Off",
+        "rating": 4.7,
+        "reviewCount": 174,
+        "ratingCount": 174,
+        "shopDistanceKm": 4.8,
+        "distanceKm": "4.8",
+        "shopEstimatedTime": "30-40 min",
+        "estimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Noodles"
+      },
+      {
+        "id": "63",
+        "shopId": 7,
+        "shopName": "Mandalay Food House",
+        "shopNameEn": "Mandalay Food House",
+        "nameEn": "Shan Fish Rice",
+        "name": "Shan Fish Rice",
+        "nameMm": "ငါးထမင်းနယ်",
+        "title": "Shan Fish Rice",
+        "restaurantId": "7",
+        "restaurantName": "Mandalay Food House",
+        "imagePath": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+        "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_Ws3rWVIFR24OE586cg1DIkAB1aB3KwBAFiQ0HYfORpFdk0odM4QI1vbCxtCZqVSeQVtOjfeFYE0FtdCha5HTVtdL9oPM2gIlGqrcpci9vQIphSvnScbLkkzJjCyHHKEn8OL7jWcpeJaY/s1600/IMG-20141112-WA0002-1_0+%25281%2529.jpg",
+        "price": 140.0,
+        "originalPrice": 200.0,
+        "displayPrice": "฿140",
+        "displayOriginalPrice": "฿200",
+        "currency": "฿",
+        "discountPercentage": 30,
+        "discountLabel": "30% Off",
+        "rating": 4.6,
+        "reviewCount": 147,
+        "ratingCount": 147,
+        "shopDistanceKm": 4.8,
+        "distanceKm": "4.8",
+        "shopEstimatedTime": "30-40 min",
+        "estimatedTime": "30-40 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Rice"
+      },
+      {
+        "id": "9",
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Coconut Chicken Curry",
+        "name": "Coconut Chicken Curry",
+        "nameMm": "ကြက်သားနှင်းဆီဟင်း",
+        "title": "Coconut Chicken Curry",
+        "restaurantId": "1",
+        "restaurantName": "Rangoon Tea House Bangkok",
+        "imagePath": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+        "imageUrl": "https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg",
+        "price": 200.0,
+        "originalPrice": 280.0,
+        "displayPrice": "฿200",
+        "displayOriginalPrice": "฿280",
+        "currency": "฿",
+        "discountPercentage": 29,
+        "discountLabel": "29% Off",
+        "rating": 4.6,
+        "reviewCount": 156,
+        "ratingCount": 156,
+        "shopDistanceKm": 2.4,
+        "distanceKm": "2.4",
+        "shopEstimatedTime": "25-35 min",
+        "estimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Curries"
+      },
+      {
+        "id": "1",
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Mohinga",
+        "name": "Mohinga",
+        "nameMm": "မုန့်ဟင်းခါး",
+        "title": "Mohinga",
+        "restaurantId": "1",
+        "restaurantName": "Rangoon Tea House Bangkok",
+        "imagePath": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+        "imageUrl": "https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png",
+        "price": 180.0,
+        "originalPrice": 250.0,
+        "displayPrice": "฿180",
+        "displayOriginalPrice": "฿250",
+        "currency": "฿",
+        "discountPercentage": 28,
+        "discountLabel": "28% Off",
+        "rating": 4.8,
+        "reviewCount": 210,
+        "ratingCount": 210,
+        "shopDistanceKm": 2.4,
+        "distanceKm": "2.4",
+        "shopEstimatedTime": "25-35 min",
+        "estimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Noodles"
+      },
+      {
+        "id": "7",
+        "shopId": 1,
+        "shopName": "Rangoon Tea House Bangkok",
+        "shopNameEn": "Rangoon Tea House Bangkok",
+        "nameEn": "Slow-Braised Pork Belly Curry",
+        "name": "Slow-Braised Pork Belly Curry",
+        "nameMm": "ဝက်ဝမ်းဟင်းချို",
+        "title": "Slow-Braised Pork Belly Curry",
+        "restaurantId": "1",
+        "restaurantName": "Rangoon Tea House Bangkok",
+        "imagePath": "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg",
+        "imageUrl": "https://loveincorporated.blob.core.windows.net/contentimages/main/535d1636-c7d8-439e-9929-060d3fe7b3b4-pork-belly-curry.jpg",
+        "price": 220.0,
+        "originalPrice": 260.0,
+        "displayPrice": "฿220",
+        "displayOriginalPrice": "฿260",
+        "currency": "฿",
+        "discountPercentage": 15,
+        "discountLabel": "15% Off",
+        "rating": 4.5,
+        "reviewCount": 134,
+        "ratingCount": 134,
+        "shopDistanceKm": 2.4,
+        "distanceKm": "2.4",
+        "shopEstimatedTime": "25-35 min",
+        "estimatedTime": "25-35 min",
+        "displayBaseDeliveryFee": "฿30",
+        "deliveryFee": "฿30",
+        "isFavorite": false,
+        "category": "Curries"
+      }
+    ]
+  }
+}
