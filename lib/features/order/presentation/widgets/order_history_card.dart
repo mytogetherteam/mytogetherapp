@@ -27,7 +27,6 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   }
 
   Color get primaryColor => const Color(0xFFED3A72);
-  Color get greenColor => const Color(0xFF2E7D32); // Using a solid green for 'Active'
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +69,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   Widget _buildTopRow() {
     Color labelColor = Colors.grey;
     if (widget.order.type == 'completed') labelColor = primaryColor;
-    if (widget.order.type == 'active') labelColor = greenColor;
+    if (widget.order.type == 'active') labelColor = primaryColor;
 
     return Row(
       children: [
@@ -224,57 +223,27 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     if (widget.order.type == 'active') {
        return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.order.deliveryStatusTitle,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    widget.order.deliveryStatusSubtitle,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
+            Text(
+              widget.order.dateDisplay.isEmpty ? 'Order placed' : widget.order.dateDisplay,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey[500],
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-               onPressed: () {},
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: primaryColor,
-                 foregroundColor: Colors.white,
-                 elevation: 0,
-                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                 shape: RoundedRectangleBorder(
-                   borderRadius: BorderRadius.circular(100),
-                 ),
+            Container(
+               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+               decoration: BoxDecoration(
+                 color: primaryColor.withValues(alpha: 0.1),
+                 borderRadius: BorderRadius.circular(100),
                ),
-               child: Row(
-                 mainAxisSize: MainAxisSize.min,
-                 children: [
-                   Icon(PhosphorIcons.bicycle(PhosphorIconsStyle.fill), size: 14),
-                   const SizedBox(width: 6),
-                   Text(
-                     'Track order',
-                     style: GoogleFonts.poppins(
-                       fontWeight: FontWeight.w600,
-                       fontSize: 13,
-                     ),
-                   ),
-                   const SizedBox(width: 4),
-                   const Icon(Icons.chevron_right, size: 16),
-                 ],
+               child: Text(
+                 'In Progress',
+                 style: GoogleFonts.poppins(
+                   fontWeight: FontWeight.w600,
+                   fontSize: 12,
+                   color: primaryColor,
+                 ),
                ),
             ),
           ],

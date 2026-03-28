@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'news_card.dart';
 import 'view_all_icon_button.dart';
+import '../../data/fallback_data.dart';
 
 class TrendingNewsSection extends StatefulWidget {
   const TrendingNewsSection({super.key});
@@ -15,33 +16,8 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
 
   @override
   Widget build(BuildContext context) {
-    // Dummy data for Trending News
-    final List<Map<String, String>> newsItems = [
-      {
-        'title': 'The latest news, special news, world and Myanmar news, videos and audio news, articles from BBC...',
-        'imageUrl': 'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=600&auto=format&fit=crop',
-        'source': 'BBC News',
-        'timeAgo': '4min ago',
-      },
-      {
-        'title': 'Lorem ipsum dolor sit amet consectetur. Pulvinar ut sed leo risus sit ut accumsan condimen...',
-        'imageUrl': 'https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=600&auto=format&fit=crop',
-        'source': 'The Guardian',
-        'timeAgo': '10min ago',
-      },
-      {
-        'title': 'Major breakthrough in renewable energy research announced by global scientific consortium...',
-        'imageUrl': 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=600&auto=format&fit=crop',
-        'source': 'Reuters',
-        'timeAgo': '15min ago',
-      },
-      {
-        'title': 'Local community comes together to restore historic park in the heart of the city...',
-        'imageUrl': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=600&auto=format&fit=crop',
-        'source': 'City Times',
-        'timeAgo': '1hour ago',
-      },
-    ];
+    // Use high-quality fallback data
+    final List<Map<String, String>> newsItems = FallbackData.news;
 
     return Column(
       children: [

@@ -2,77 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'view_all_icon_button.dart';
+import '../../data/fallback_data.dart';
 
 class PopularBrandsSection extends StatelessWidget {
   const PopularBrandsSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> brands = [
-      {
-        'name': 'YKKO',
-        'rating': '4.7',
-        'time': '40min',
-        'distance': '2.0km',
-        'logoUrl': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx-D7wYn9S1_0N3WzS-Yk8yV_zXp9z_GgD9g&s',
-      },
-      {
-        'name': 'Sushi Place',
-        'rating': '4.7',
-        'time': '40min',
-        'distance': '2.0km',
-        'logoUrl': 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=80',
-      },
-      {
-        'name': 'Shwe Tea House',
-        'rating': '4.7',
-        'time': '40min',
-        'distance': '2.0km',
-        'logoUrl': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=100&q=80',
-      },
-      {
-        'name': 'KFC',
-        'rating': '4.5',
-        'time': '25min',
-        'distance': '1.5km',
-        'logoUrl': 'https://images_production.sgp1.digitaloceanspaces.com/logo/kfc_logo.png',
-      },
-      {
-        'name': 'Burger King',
-        'rating': '4.3',
-        'time': '30min',
-        'distance': '1.8km',
-        'logoUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Burger_King_logo_%282021%29.svg/1024px-Burger_King_logo_%282021%29.svg.png',
-      },
-      {
-        'name': "McDonald's",
-        'rating': '4.2',
-        'time': '20min',
-        'distance': '1.2km',
-        'logoUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png',
-      },
-      {
-        'name': 'Pizza Hut',
-        'rating': '4.4',
-        'time': '35min',
-        'distance': '2.2km',
-        'logoUrl': 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d2/Pizza_Hut_logo.svg/1200px-Pizza_Hut_logo.svg.png',
-      },
-      {
-        'name': 'Starbucks',
-        'rating': '4.8',
-        'time': '15min',
-        'distance': '0.5km',
-        'logoUrl': 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png',
-      },
-      {
-        'name': 'The Pizza Company',
-        'rating': '4.6',
-        'time': '45min',
-        'distance': '3.0km',
-        'logoUrl': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6_GZ-8v7z-qf9v1XzVz-fXvXw-y9fXvXw-g&s',
-      },
-    ];
+    // Use high-quality fallback data
+    final List<Map<String, dynamic>> brands = FallbackData.popularBrands;
 
     // Group brands into chunks of 3 for the horizontal scroll
     final List<List<Map<String, dynamic>>> brandChunks = [];

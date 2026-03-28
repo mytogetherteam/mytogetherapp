@@ -29,7 +29,6 @@ class FoodQuickAccessSection extends StatelessWidget {
                   title: 'Nearby Shops',
                   subtitle: 'Get it quick',
                   color: const Color(0xFFFDE6ED), // Soft pink
-                  iconAsset: 'assets/images/services/places.png', // Temporary placeholder
                   emoji: '📍',
                   onTap: onNearbyTap,
                 ),
@@ -125,7 +124,15 @@ class FoodQuickAccessSection extends StatelessWidget {
               right: 8,
               bottom: 8,
               child: iconAsset != null
-                  ? Image.asset(iconAsset, width: 36, height: 36)
+                  ? Image.asset(
+                      iconAsset,
+                      width: 36,
+                      height: 36,
+                      errorBuilder: (context, error, stackTrace) => Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 32),
+                      ),
+                    )
                   : Text(
                       emoji,
                       style: const TextStyle(fontSize: 32),

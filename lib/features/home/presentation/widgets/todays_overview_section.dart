@@ -9,6 +9,7 @@ import '../../data/models/menu_item_dto.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
+import '../../data/fallback_data.dart';
 
 class TodaysOverviewSection extends StatefulWidget {
   final String? title;
@@ -38,15 +39,20 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
   }
 
   Future<List<MenuItemDto>> _fetchTrending() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = await LocationService().getCurrentPosition();
-    
-    final section = await RestaurantRepository.instance.getTrendingItems(
-      lat: activeLoc?.latitude ?? pos.latitude,
-      lon: activeLoc?.longitude ?? pos.longitude,
-      radiusKm: 10.0,
-    );
-    return section.items.map((t) => _trendingToMenuItem(t)).toList();
+    try {
+      final activeLoc = UserLocationRepository.instance.activeLocation;
+      final pos = await LocationService().getCurrentPosition();
+      
+      final section = await RestaurantRepository.instance.getTrendingItems(
+        lat: activeLoc?.latitude ?? pos.latitude,
+        lon: activeLoc?.longitude ?? pos.longitude,
+        radiusKm: 10.0,
+      ).timeout(const Duration(seconds: 5));
+      return section.items.map((t) => _trendingToMenuItem(t)).toList();
+    } catch (e) {
+      debugPrint('TodaysOverviewSection: API error or timeout: $e');
+      return []; // Trigger fallback in builder
+    }
   }
 
   MenuItemDto _trendingToMenuItem(TrendingItemDto t) {
@@ -123,19 +129,15 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
     return FutureBuilder<List<MenuItemDto>>(
       future: _menuItemsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { // Modified condition
           return _buildSkeleton();
         }
 
-        if (snapshot.hasError) {
-          return const SizedBox.shrink();
-        }
+        final displayItems = (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) // New logic
+            ? FallbackData.trendingItems
+            : snapshot.data!;
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return _buildContent(context, snapshot.data!, widget.title ?? 'Trending Near By');
+        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By'); // Use displayItems
       },
     );
   }

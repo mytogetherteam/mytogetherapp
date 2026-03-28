@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../../presentation/widgets/image_skeleton_loader.dart';
+import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final String name;
@@ -40,10 +42,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
   bool _isScrolled = false;
   bool _isFavorite = false;
 
+  // Slideshow state
+  late List<String> _allImages;
+  int _currentImageIndex = 0;
+  Timer? _slideshowTimer;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    // Combine main image with gallery
+    _allImages = [widget.imagePath, ...widget.images];
 
     // Ken Burns Animation Setup
     _zoomController = AnimationController(
@@ -67,6 +77,21 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
       CurvedAnimation(parent: _entranceController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
     );
     _entranceController.forward();
+
+    // Slideshow Timer
+    _startSlideshow();
+  }
+
+  void _startSlideshow() {
+    if (_allImages.length > 1) {
+      _slideshowTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+        if (mounted) {
+          setState(() {
+            _currentImageIndex = (_currentImageIndex + 1) % _allImages.length;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -74,6 +99,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
     _scrollController.dispose();
     _zoomController.dispose();
     _entranceController.dispose();
+    _slideshowTimer?.cancel();
     super.dispose();
   }
 
@@ -121,18 +147,39 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                         ScaleTransition(
                           scale: _zoomAnimation,
                           child: Hero(
-                            tag: widget.name,
-                            child: CachedNetworkImage(
-                              imageUrl: widget.imagePath,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator(
+                            tag: 'top_places_${widget.name}',
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 1000),
+                              layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                                return Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                );
+                              },
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                );
+                              },
+                              child: CachedNetworkImage(
+                                key: ValueKey(_allImages[_currentImageIndex]),
+                                imageUrl: _allImages[_currentImageIndex],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => const Icon(
+                                  Icons.error,
                                   color: Colors.white,
                                 ),
-                              ),
-                              errorWidget: (context, url, error) => const Icon(
-                                Icons.error,
-                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -229,24 +276,43 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                       scrollDirection: Axis.horizontal,
                                       itemCount: widget.images.length,
                                       itemBuilder: (context, index) {
-                                        return Container(
-                                          width: 150,
-                                          margin: const EdgeInsets.only(right: 16),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(20),
-                                            child: CachedNetworkImage(
-                                              imageUrl: widget.images[index],
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) => const ImageSkeletonLoader(
-                                                height: 200,
-                                                width: 150,
+                                        return GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              PageRouteBuilder(
+                                                opaque: false,
+                                                barrierDismissible: true,
+                                                pageBuilder: (context, _, __) => FullScreenImageViewer(
+                                                  imageUrls: widget.images,
+                                                  initialIndex: index,
+                                                  heroTagPrefix: 'gallery_${widget.name}_',
+                                                ),
                                               ),
-                                              errorWidget: (context, url, error) => Container(
-                                                color: Colors.grey[200],
-                                                child: const Icon(Icons.error),
+                                            );
+                                          },
+                                          child: Container(
+                                            width: 150,
+                                            margin: const EdgeInsets.only(right: 16),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(20),
+                                              child: Hero(
+                                                tag: 'gallery_${widget.name}_${widget.images[index]}',
+                                                child: CachedNetworkImage(
+                                                  imageUrl: widget.images[index],
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => const ImageSkeletonLoader(
+                                                    height: 200,
+                                                    width: 150,
+                                                  ),
+                                                  errorWidget: (context, url, error) => Container(
+                                                    color: Colors.grey[200],
+                                                    child: const Icon(Icons.error),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),

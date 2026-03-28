@@ -131,7 +131,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     color: Colors.transparent, // Explicitly transparent to show stack background
                     padding: EdgeInsets.only(
                       top: MediaQuery.of(context).padding.top + 8,
-                      bottom: 8,
+                      bottom: 10,
                     ),
                     child: Column(
                       children: [
@@ -256,7 +256,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         // Search Bar
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),

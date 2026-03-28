@@ -40,7 +40,7 @@ class PlaceCard extends StatelessWidget {
             // Background Image
             Positioned.fill(
               child: Hero(
-                tag: name,
+                tag: 'top_places_$name',
                 child: CachedNetworkImage(
                   imageUrl: imagePath,
                   width: 240,
@@ -164,5 +164,5 @@ class PlaceCard extends StatelessWidget {
       ),
     ),
   );
-}
+  }
 }

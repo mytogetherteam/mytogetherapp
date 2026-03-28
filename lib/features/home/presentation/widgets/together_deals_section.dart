@@ -1,55 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
+import 'image_skeleton_loader.dart';
+import '../../data/fallback_data.dart';
 
 class TogetherDealsSection extends StatelessWidget {
   const TogetherDealsSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final deals = [
-      _Deal(
-        imagePath: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80',
-        price: 65,
-        originalPrice: 75,
-        name: 'Spicy Tofu Salad',
-        deliveryFee: 25,
-        minutes: 30,
-      ),
-      _Deal(
-        imagePath: 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80',
-        price: 45,
-        originalPrice: 75,
-        name: 'Avocado Toast',
-        deliveryFee: 35,
-        minutes: 20,
-      ),
-      _Deal(
-        imagePath: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80',
-        price: 95,
-        originalPrice: 120,
-        name: 'Mango Sticky Ri...',
-        deliveryFee: 40,
-        minutes: 40,
-      ),
-      _Deal(
-        imagePath: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80',
-        price: 115,
-        originalPrice: 150,
-        name: 'Pad Thai',
-        deliveryFee: 30,
-        minutes: 25,
-      ),
-      _Deal(
-        imagePath: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&q=80',
-        price: 55,
-        originalPrice: 80,
-        name: 'Pancakes Stack',
-        deliveryFee: 20,
-        minutes: 15,
-      ),
-    ];
+    // Use high-quality fallback data
+    final deals = FallbackData.togetherDeals.map((data) => _Deal(
+      imagePath: data['imagePath']!,
+      price: data['price'],
+      originalPrice: data['originalPrice'],
+      name: data['name']!,
+      deliveryFee: data['deliveryFee'],
+      minutes: data['minutes'],
+    )).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,36 +117,41 @@ class _DealCard extends StatelessWidget {
           // Food image
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              deal.imagePath,
+            child: CachedNetworkImage(
+              imageUrl: deal.imagePath,
               width: 130,
               height: 120,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  width: 130,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFFED3973),
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (_, __, ___) => Container(
+              placeholder: (context, url) => const ImageSkeletonLoader(
+                width: 130,
+                height: 120,
+              ),
+              errorWidget: (context, url, error) => Container(
                 width: 130,
                 height: 120,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.fastfood_rounded, color: Colors.grey.shade300, size: 36),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_not_supported_rounded,
+                      color: Colors.grey.shade300,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'No Image',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: Colors.grey.shade400,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/location/location_service.dart';
+import '../../data/fallback_data.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -28,13 +29,19 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
   }
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = await LocationService().getCurrentPosition();
-    
-    return RestaurantRepository.instance.getNearbyShops(
-      lat: activeLoc?.latitude ?? pos.latitude,
-      lon: activeLoc?.longitude ?? pos.longitude,
-    );
+    try {
+      final activeLoc = UserLocationRepository.instance.activeLocation;
+      final pos = await LocationService().getCurrentPosition();
+      
+      return await RestaurantRepository.instance.getNearbyShops(
+        lat: activeLoc?.latitude ?? pos.latitude,
+        lon: activeLoc?.longitude ?? pos.longitude,
+        radius: 10.0,
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('RestaurantsNearbySection: API error or timeout: $e');
+      return []; // Return empty to trigger fallback in builder
+    }
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -84,20 +91,21 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
     return FutureBuilder<List<Restaurant>>(
       future: _restaurantsFuture,
       builder: (context, snapshot) {
+        // If waiting, show skeleton
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton();
         }
 
-        if (snapshot.hasError) {
-          return const SizedBox.shrink();
+        // Determine the list of restaurants (either fetched or fallback)
+        final List<Restaurant> restaurants;
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          debugPrint('RestaurantsNearbySection: Error or no data, using fallback: ${snapshot.error}');
+          restaurants = FallbackData.restaurants;
+        } else {
+          restaurants = snapshot.data!;
         }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        final restaurants = snapshot.data!;
-
+        // Build the UI using the determined restaurants list
         return Column(
           children: [
             Padding(
@@ -128,7 +136,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 240, // Reduced height to remove empty space below cards
+              height: 240,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),

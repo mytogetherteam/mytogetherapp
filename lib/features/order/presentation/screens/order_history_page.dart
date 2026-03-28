@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/features/order/data/models/demo_order_data.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
-import 'package:mytogetherapp/features/order/presentation/widgets/delivery_tracker_strip.dart';
 // Note: we can use standard circular progress indicator or a custom skeleton. We will build a basic skeleton here for demo purposes.
 
 class OrderHistoryPage extends StatefulWidget {
@@ -99,37 +98,16 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
   }
 
   Widget _buildActiveTab() {
-    // If no active orders, this shouldn't be rendered anyway based on tabs.
-    // However, if we're here, we have active orders.
-    // The requirement says we need a list of active orders, and a persistent delivery tracker strip.
-    return Stack(
-      children: [
-        // Main list
-        RefreshIndicator(
-          onRefresh: _loadDemoData,
-          color: const Color(0xFFED3A72),
-          child: ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 200), // Extra padding for the tracker strip
-            itemCount: demoActiveOrders.length,
-            itemBuilder: (context, index) {
-               return OrderHistoryCard(order: demoActiveOrders[index]);
-            },
-          ),
-        ),
-        // Persistent Strip pinned to bottom
-        if (demoActiveOrders.isNotEmpty)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: DeliveryTrackerStrip(
-              order: demoActiveOrders.first,
-              onTrackPressed: () {
-                // Mock action
-              },
-            ),
-          ),
-      ],
+    return RefreshIndicator(
+      onRefresh: _loadDemoData,
+      color: const Color(0xFFED3A72),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: demoActiveOrders.length,
+        itemBuilder: (context, index) {
+           return OrderHistoryCard(order: demoActiveOrders[index]);
+        },
+      ),
     );
   }
 
