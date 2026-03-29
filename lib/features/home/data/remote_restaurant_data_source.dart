@@ -6,23 +6,22 @@ import 'models/trending_item_dto.dart';
 import 'models/shop_feed_item_dto.dart';
 import 'models/food_detail_dto.dart';
 
-import 'shop_storage.dart';
-
 class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
 
   Future<ApiResponseSliceShopListDto> getNearbyShops(ShopRequestDto request) async {
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/nearby',
-        queryParameters: request.toJson(),
-      );
+      // final response = await _apiClient.dio.get(
+      //   '${ApiClient.apiPrefix}/shops/nearby',
+      //   queryParameters: request.toJson(),
+      // );
       
-      if (response.statusCode == 200) {
-        return ApiResponseSliceShopListDto.fromJson(response.data);
-      } else {
-        throw Exception('Failed to load nearby shops: ${response.statusCode}');
-      }
+      // if (response.statusCode == 200) {
+      //   return ApiResponseSliceShopListDto.fromJson(response.data);
+      // } else {
+      //   throw Exception('Failed to load nearby shops: ${response.statusCode}');
+      // }
+      throw Exception('API Disabled for Fallback Testing');
     } catch (e) {
       rethrow;
     }
@@ -30,24 +29,25 @@ class RemoteRestaurantDataSource {
 
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$id',
-        queryParameters: {
-          'lat': lat,
-          'lon': lon,
-        },
-      );
+      // final response = await _apiClient.dio.get(
+      //   '${ApiClient.apiPrefix}/shops/$id',
+      //   queryParameters: {
+      //     'lat': lat,
+      //     'lon': lon,
+      //   },
+      // );
       
-      if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        if (data['data'] != null) {
-          // Save to local storage for future use (e.g. payment types in order summary)
-          ShopStorage.saveShop(id, data['data'] as Map<String, dynamic>);
-        }
-        return ApiResponseShopDetailDto.fromJson(data);
-      } else {
-        throw Exception('Failed to load shop details: ${response.statusCode}');
-      }
+      // if (response.statusCode == 200) {
+      //   final data = response.data as Map<String, dynamic>;
+      //   if (data['data'] != null) {
+      //     // Save to local storage for future use (e.g. payment types in order summary)
+      //     ShopStorage.saveShop(id, data['data'] as Map<String, dynamic>);
+      //   }
+      //   return ApiResponseShopDetailDto.fromJson(data);
+      // } else {
+      //   throw Exception('Failed to load shop details: ${response.statusCode}');
+      // }
+      throw Exception('API Disabled for Fallback Testing');
     } catch (e) {
       rethrow;
     }
@@ -60,18 +60,19 @@ class RemoteRestaurantDataSource {
     int page = 0,
     int size = 20,
   }) async {
-    final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/feed/trending-items',
-      queryParameters: {
-        'latitude': lat,
-        'longitude': lon,
-        'radiusKm': radiusKm,
-        'page': page,
-        'size': size,
-      },
-    );
-    final data = response.data['data'] as Map<String, dynamic>;
-    return TrendingSectionDto.fromJson(data);
+    // final response = await _apiClient.dio.get(
+    //   '${ApiClient.apiPrefix}/feed/trending-items',
+    //   queryParameters: {
+    //     'latitude': lat,
+    //     'longitude': lon,
+    //     'radiusKm': radiusKm,
+    //     'page': page,
+    //     'size': size,
+    //   },
+    // );
+    // final data = response.data['data'] as Map<String, dynamic>;
+    // return TrendingSectionDto.fromJson(data);
+    throw Exception('API Disabled for Fallback Testing');
   }
 
   /// Fetches one of the 5 shop feed types.
@@ -85,14 +86,15 @@ class RemoteRestaurantDataSource {
     }
 
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
-      );
-      // Explicitly throw on non-2xx so FutureBuilder snapshot.hasError = true
-      if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
-        throw Exception('Feed request failed: ${response.statusCode} for $feedType');
-      }
-      return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
+      // final response = await _apiClient.dio.get(
+      //   '${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
+      // );
+      // // Explicitly throw on non-2xx so FutureBuilder snapshot.hasError = true
+      // if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
+      //   throw Exception('Feed request failed: ${response.statusCode} for $feedType');
+      // }
+      // return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
+      throw Exception('API Disabled for Fallback Testing');
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
       if (statusCode == 401 || statusCode == 403) {
@@ -115,18 +117,19 @@ class RemoteRestaurantDataSource {
     }
 
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/food-tab/$feedType',
-        queryParameters: {
-          'latitude': lat,
-          'longitude': lon,
-          'radiusKm': radiusKm,
-        },
-      );
-      if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
-        throw Exception('Feed request failed: ${response.statusCode} for $feedType');
-      }
-      return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
+      // final response = await _apiClient.dio.get(
+      //   '${ApiClient.apiPrefix}/food-tab/$feedType',
+      //   queryParameters: {
+      //     'latitude': lat,
+      //     'longitude': lon,
+      //     'radiusKm': radiusKm,
+      //   },
+      // );
+      // if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
+      //   throw Exception('Feed request failed: ${response.statusCode} for $feedType');
+      // }
+      // return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
+      throw Exception('API Disabled for Fallback Testing');
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
       if (statusCode == 401 || statusCode == 403) {
@@ -138,12 +141,13 @@ class RemoteRestaurantDataSource {
 
   Future<FoodDetailDto?> getFoodById(int id) async {
     try {
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/foods/$id');
-      if (response.statusCode == 200) {
-        final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
-        return apiResponse.data;
-      }
-      return null;
+      // final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/foods/$id');
+      // if (response.statusCode == 200) {
+      //   final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
+      //   return apiResponse.data;
+      // }
+      // return null;
+      throw Exception('API Disabled for Fallback Testing');
     } catch (e) {
       rethrow;
     }

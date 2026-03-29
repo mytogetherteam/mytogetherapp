@@ -106,7 +106,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
       padding: const EdgeInsets.only(left: 20, right: 20),
       itemCount: 3,
       separatorBuilder: (_, _) => const SizedBox(width: 12),
-      itemBuilder: (_, __) => SizedBox(
+      itemBuilder: (_, _) => SizedBox(
         width: 130,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

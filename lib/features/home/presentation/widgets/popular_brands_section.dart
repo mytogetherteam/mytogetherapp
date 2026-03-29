@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'view_all_icon_button.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
@@ -103,12 +102,9 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                       return ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
-                        itemCount: chunks.length + 1,
+                        itemCount: chunks.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          if (index == chunks.length) {
-                            return const _MoreCard();
-                          }
                           final chunk = chunks[index];
                           return Column(
                             mainAxisSize: MainAxisSize.min,
@@ -143,7 +139,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
       scrollDirection: Axis.horizontal,
       itemCount: 2,
       separatorBuilder: (_, _) => const SizedBox(width: 12),
-      itemBuilder: (_, __) => Column(
+      itemBuilder: (context, index) => Column(
         children: List.generate(3, (i) => Padding(
           padding: EdgeInsets.only(bottom: i < 2 ? 12 : 0),
           child: Container(
@@ -155,44 +151,6 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
             ),
           ),
         )),
-      ),
-    );
-  }
-}
-
-class _MoreCard extends StatelessWidget {
-  const _MoreCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        width: 80,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-              color: Colors.black87,
-              size: 20,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'More',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -230,7 +188,7 @@ class _BrandCard extends StatelessWidget {
               child: Image.network(
                 brand.imagePath.isNotEmpty ? brand.imagePath : 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=100&h=100&fit=crop',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 28),
+                errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 28),
               ),
             ),
           ),

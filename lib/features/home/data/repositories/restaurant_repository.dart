@@ -39,20 +39,33 @@ class RestaurantRepository {
   RestaurantRepository(this._remoteDataSource);
 
   Future<void> _ensureFallbackLoaded() async {
-    if (_fallbackData != null && _fallbackData?.isNotEmpty == true && _primaryFallbackData != null) return;
+    // Only return early if both are actually loaded with data
+    if (_fallbackData != null && _primaryFallbackData != null) return;
     
-    try {
-      final jsonString = await rootBundle.loadString('assets/data/food_fallback.json');
-      _fallbackData = jsonDecode(jsonString);
-    } catch (e) {
-      _fallbackData = {};
+    debugPrint('[FALLBACK] Attempting to load assets from assets/data/ directory...');
+
+    if (_fallbackData == null) {
+      try {
+        final jsonString = await rootBundle.loadString('assets/data/food_fallback.json');
+        _fallbackData = jsonDecode(jsonString);
+        debugPrint('[FALLBACK] Successfully loaded food_fallback.json (${(_fallbackData as Map).length} root keys)');
+      } catch (e) {
+        _fallbackData = {};
+        debugPrint('[FALLBACK] FAILED to load food_fallback.json: $e');
+        debugPrint('[FALLBACK] Check if assets/data/food_fallback.json exists and is in pubspec.yaml');
+      }
     }
 
-    try {
-      final primaryString = await rootBundle.loadString('assets/data/two_restaurants_with_reviews.json');
-      _primaryFallbackData = jsonDecode(primaryString);
-    } catch (e) {
-      _primaryFallbackData = {};
+    if (_primaryFallbackData == null) {
+      try {
+        final primaryString = await rootBundle.loadString('assets/data/two_restaurants_with_reviews.json');
+        _primaryFallbackData = jsonDecode(primaryString);
+        debugPrint('[FALLBACK] Successfully loaded primary fallback: two_restaurants_with_reviews.json');
+      } catch (e) {
+        _primaryFallbackData = {};
+        debugPrint('[FALLBACK] FAILED to load two_restaurants_with_reviews.json: $e');
+        debugPrint('[FALLBACK] Check if assets/data/two_restaurants_with_reviews.json exists and is in pubspec.yaml');
+      }
     }
   }
 
@@ -105,8 +118,10 @@ class RestaurantRepository {
     }
 
     // 2. Secondary Data
+    // Always attempt to merge secondary fallback data for more variety
+
     if (_fallbackData == null || _fallbackData?.containsKey('shopList') == false) {
-      return results.isNotEmpty ? results : [];
+      return results;
     }
 
     final fallbackListRaw = _fallbackData!['shopList'];
@@ -202,12 +217,14 @@ class RestaurantRepository {
               isFavorite: item['isFavorite'] == true,
             ));
           }
-          return TrendingSectionDto(
-            title: trendingRaw['title'] as String? ?? 'Trending Near By',
-            description: trendingRaw['description'] as String? ?? 'Popular picks near you',
-            items: items,
-            totalCount: items.length,
-          );
+          if (items.isNotEmpty) {
+            return TrendingSectionDto(
+              title: trendingRaw['title'] as String? ?? 'Trending Near By',
+              description: trendingRaw['description'] as String? ?? 'Popular picks near you',
+              items: items,
+              totalCount: items.length,
+            );
+          }
         }
       } catch (e) {
         debugPrint('[FALLBACK] Error parsing primary trending: $e');
@@ -709,49 +726,26 @@ class RestaurantRepository {
       processItemList(trendingItems, '', '');
     }
 
-    // 2. Check feed items for deals
-    if (_primaryFallbackData != null && _primaryFallbackData!.containsKey('feed')) {
-      final feedItems = _primaryFallbackData!['feed']['data']?['items'] as List?;
-      processItemList(feedItems, '', '');
+    // 4. Return results if found in primary sources
+    if (deals.isNotEmpty) {
+      debugPrint('[FALLBACK] Using ${deals.length} deals from primary sources');
+      deals.shuffle();
+      return deals.take(10).toList();
     }
 
-    // 3. Check shopDetails for deals
-    for (final source in sources) {
-      if (!source.containsKey('shopDetails')) continue;
-      final detailsList = source['shopDetails'] as List?;
-      if (detailsList == null) continue;
-
-      for (final detail in detailsList) {
-        final data = detail['data'] as Map<String, dynamic>?;
-        if (data == null) continue;
-
-        final shopId = data['id']?.toString() ?? '';
-        final shopName = data['name'] as String? ?? '';
-
-        for (final k in ['popularDishes', 'recommendations', 'hotDeals']) {
-          processItemList(data[k] as List?, shopId, shopName);
-        }
-      }
-    }
-
-    if (deals.isEmpty) {
-      debugPrint('[FALLBACK] No deals found in JSON primary fallback, using hardcoded TogetherDeals');
-      return FallbackData.togetherDeals.map((data) => MenuItemDto(
-        id: 'fallback-${data['name']}',
-        restaurantId: '0',
-        restaurantName: 'Restaurant',
-        title: data['name']?.toString() ?? '',
-        price: (data['price'] as num?)?.toDouble() ?? 0.0,
-        originalPrice: (data['originalPrice'] as num?)?.toDouble() ?? 0.0,
-        currency: '฿',
-        imagePath: data['imagePath']?.toString() ?? '',
-        category: '',
-      )).toList();
-    }
-
-    debugPrint('[FALLBACK] Found ${deals.length} deals in primary fallback');
-    deals.shuffle();
-    return deals.take(10).toList();
+    // 5. Use hardcoded fallback as last resort if everything else failed
+    debugPrint('[FALLBACK] No deals found in JSON primary fallback, using hardcoded TogetherDeals');
+    return FallbackData.togetherDeals.map((data) => MenuItemDto(
+      id: 'fallback-${data['name']}',
+      restaurantId: '0',
+      restaurantName: 'Restaurant',
+      title: data['name']?.toString() ?? '',
+      price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      originalPrice: (data['originalPrice'] as num?)?.toDouble() ?? 0.0,
+      currency: '฿',
+      imagePath: data['imagePath']?.toString() ?? '',
+      category: '',
+    )).toList();
   }
 
   Future<List<Restaurant>> getTrendingShops() async {
@@ -1164,7 +1158,19 @@ class RestaurantRepository {
   Future<List<Map<String, String>>> getFallbackCategories() async {
     await _ensureFallbackLoaded();
 
-    // Primary: use the dedicated `categories` array which has proper name + icon fields
+    // 0. Primary: use the dedicated `categories` array from primary fallback
+    if (_primaryFallbackData != null && _primaryFallbackData!.containsKey('categories')) {
+      final cats = _primaryFallbackData!['categories'] as List? ?? [];
+      if (cats.isNotEmpty) {
+        return cats.map((c) {
+          final name = c['name']?.toString() ?? '';
+          final icon = c['icon']?.toString() ?? _getEmojiForCategory(name.toLowerCase());
+          return {'name': name, 'emoji': icon};
+        }).where((m) => (m['name'] as String).isNotEmpty).toList();
+      }
+    }
+
+    // 1. Secondary: use the dedicated `categories` array from secondary fallback
     if (_fallbackData != null && _fallbackData!.containsKey('categories')) {
       final cats = _fallbackData!['categories'] as List? ?? [];
       if (cats.isNotEmpty) {

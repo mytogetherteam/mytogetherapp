@@ -82,9 +82,15 @@ class ApiClient {
         },
       ));
     }
+
+    // DISABLING NON-CRITICAL API CALLS FOR FALLBACK TESTING
+    _dio.interceptors.add(DisableApiInterceptor());
   }
 
   bool _shouldRetry(DioException err) {
+    // Never retry if an API has been explicitly disabled
+    if (err.message == 'API Disabled for Fallback Testing') return false;
+
     return err.type != DioExceptionType.cancel &&
         err.type != DioExceptionType.badResponse &&
         (err.error is SocketException || 
@@ -107,4 +113,41 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+}
+
+/// A custom interceptor to block all API requests except for Auth, Orders, and Notifications.
+/// This is used to force the app to rely on local fallback JSON data for other features.
+class DisableApiInterceptor extends Interceptor {
+  // Define whitelisted paths that ARE allowed to pass through
+  static final List<String> _allowedPaths = [
+    '${ApiClient.apiPrefix}/auth/',
+    '${ApiClient.apiPrefix}/user/profile',
+    '${ApiClient.apiPrefix}/user-locations',
+    '${ApiClient.apiPrefix}/orders',
+    '${ApiClient.apiPrefix}/notifications',
+    '${ApiClient.apiPrefix}/cart',
+  ];
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final path = options.path;
+
+    // Check if the current request path matches any allowed prefix
+    final isAllowed = _allowedPaths.any((allowed) => path.startsWith(allowed));
+
+    if (isAllowed) {
+      return handler.next(options);
+    }
+
+    // Block non-allowed requests with a custom error message
+    // This will be caught by repository catch blocks and trigger fallback data loading
+    debugPrint('[API_BLOCKER] Blocking request to: ${options.uri}');
+    return handler.reject(
+      DioException(
+        requestOptions: options,
+        message: 'API Disabled for Fallback Testing',
+        type: DioExceptionType.cancel,
+      ),
+    );
+  }
 }

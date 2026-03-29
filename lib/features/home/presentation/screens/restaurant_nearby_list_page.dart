@@ -36,7 +36,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   final Map<String, GlobalKey> _itemKeys = {};
   static const LatLng _initialPosition = LatLng(13.7000, 100.5018); // Shifted north to move view "down"
   LatLng? _currentLocation;
-  Set<Polyline> _polylines = {};
+  final Set<Polyline> _polylines = {};
   bool _isRouting = false;
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _showMap = false;
@@ -185,9 +185,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     final GoogleMapController controller = await _mapController.future;
     controller.animateCamera(CameraUpdate.newLatLngZoom(LatLng(startLoc.latitude - 0.003, startLoc.longitude), 15.5));
 
-    // Using Google Maps Directions API
+    // Directions API disabled for fallback testing
+    /*
     final url = 'https://maps.googleapis.com/maps/api/directions/json';
-    
     try {
       final response = await _dio.get(url, queryParameters: {
         'origin': '${startLoc.latitude},${startLoc.longitude}',
@@ -227,7 +227,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           });
 
           // Fit camera to show both endpoints. 
-          // Map padding will automatically handle the bottom sheet offset.
           controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80.0));
         }
       } else {
@@ -236,6 +235,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     } catch (e) {
       setState(() { _isRouting = false; });
     }
+    */
+    setState(() { _isRouting = false; });
   }
 
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/news_image_viewer.dart';
 import '../../data/models/news_item.dart';
@@ -40,14 +39,14 @@ class NewsDetailPage extends StatefulWidget {
 class _NewsDetailPageState extends State<NewsDetailPage> {
   late bool _isLiked;
   late int _likesCount;
-  // Use viewportFraction 0.80 for the "peek" effect, matching the feed
   final PageController _pageController = PageController(viewportFraction: 0.80);
-  final int _currentImageIndex = 0;
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   bool _isGifPickerVisible = false;
-  List<String> _trendingGifs = [];
-  bool _isLoadingGifs = false;
+  
+  // These were causing errors after being deleted
+  final List<String> _trendingGifs = [];
+  final bool _isLoadingGifs = false;
 
   late List<NewsComment> _comments;
 
@@ -79,7 +78,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     _likesCount = widget.item.likesCount;
     _comments = List.from(_initialMocks);
 
-    // Handle auto-focus for comments if triggered from feed
     if (widget.autoFocusComment) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _commentFocusNode.requestFocus();
@@ -107,7 +105,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   }
 
   Future<void> _makeCall(String phoneNumber) async {
-    debugPrint('Attempting to call from detail: $phoneNumber');
     final Uri launchUri = Uri(
       scheme: 'tel',
       path: phoneNumber,
@@ -115,17 +112,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
-      } else {
-        debugPrint('Could not launch from detail $launchUri');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch phone dialer')),
-          );
-        }
       }
-    } catch (e) {
-      debugPrint('Error launching call from detail: $e');
-    }
+    } catch (_) {}
   }
 
   void _postComment() {
@@ -157,73 +145,31 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       _isGifPickerVisible = !_isGifPickerVisible;
       if (_isGifPickerVisible) {
         _commentFocusNode.unfocus();
-        if (_trendingGifs.isEmpty) {
-          _fetchGifsToCache();
-        }
       }
     });
-  }
-
-  Future<void> _fetchGifsToCache() async {
-    setState(() {
-      _isLoadingGifs = true;
-      _trendingGifs = []; // Clear previous errors
-    });
-    final gifs = await _fetchGifs();
-    if (mounted) {
-      setState(() {
-        _trendingGifs = gifs;
-        _isLoadingGifs = false;
-      });
-    }
   }
 
   final List<String> _fallbackGifs = [
-    'https://i.giphy.com/media/3o7TKMGpxVf7C1pG0M/200.gif', // Happy
-    'https://i.giphy.com/media/l0HlHFRbmaZtBRhXG/200.gif', // Confused
-    'https://i.giphy.com/media/3o7TKVUn7iM8FMEU24/200.gif', // Love
-    'https://i.giphy.com/media/26AHONQ79FdWzhAI0/200.gif', // Cool
-    'https://i.giphy.com/media/3o7TKV4YyM7BMrANMc/200.gif', // Excited
-    'https://i.giphy.com/media/3o7TKvaO83GZAnRE0o/200.gif', // Smile
-    'https://i.giphy.com/media/l41lTfVp2m9PZ9m1O/200.gif', // Wow
-    'https://i.giphy.com/media/3o84sq21z7SBiqpCxy/200.gif', // Celebrate
-    'https://i.giphy.com/media/26n6R4xg77ekzchRS/200.gif', // Clap
-    'https://i.giphy.com/media/l0MYvV3LXpxS8G3ug/200.gif', // Dancing
-    'https://i.giphy.com/media/3o7TKDkRoU6AN0p1u0/200.gif', // Thumbs up
-    'https://i.giphy.com/media/26AHvXn1pWvS/200.gif', // Shock
-    'https://i.giphy.com/media/3o84sq2Y10kK1G9mS0/200.gif', // Laugh
-    'https://i.giphy.com/media/l0HlUvH6yA6H3ug/200.gif', // Party
-    'https://i.giphy.com/media/l41lS9B5kQpWpH1m0/200.gif', // Cry
+    'https://i.giphy.com/media/3o7TKMGpxVf7C1pG0M/200.gif',
+    'https://i.giphy.com/media/l0HlHFRbmaZtBRhXG/200.gif',
+    'https://i.giphy.com/media/3o7TKVUn7iM8FMEU24/200.gif',
+    'https://i.giphy.com/media/26AHONQ79FdWzhAI0/200.gif',
+    'https://i.giphy.com/media/3o7TKV4YyM7BMrANMc/200.gif',
+    'https://i.giphy.com/media/3o7TKvaO83GZAnRE0o/200.gif',
+    'https://i.giphy.com/media/l41lTfVp2m9PZ9m1O/200.gif',
+    'https://i.giphy.com/media/3o84sq21z7SBiqpCxy/200.gif',
+    'https://i.giphy.com/media/26n6R4xg77ekzchRS/200.gif',
+    'https://i.giphy.com/media/l0MYvV3LXpxS8G3ug/200.gif',
+    'https://i.giphy.com/media/3o7TKDkRoU6AN0p1u0/200.gif',
+    'https://i.giphy.com/media/26AHvXn1pWvS/200.gif',
+    'https://i.giphy.com/media/3o84sq2Y10kK1G9mS0/200.gif',
+    'https://i.giphy.com/media/l0HlUvH6yA6H3ug/200.gif',
+    'https://i.giphy.com/media/l41lS9B5kQpWpH1m0/200.gif',
   ];
 
+  // Modified to return only fallbacks as all external APIs are disabled
   Future<List<String>> _fetchGifs() async {
-    try {
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ));
-      final response = await dio.get(
-        'https://tenor.googleapis.com/v2/featured',
-        queryParameters: {
-          'key': 'LIVDSRZULELA', // Public demo key
-          'limit': 15,
-        },
-      );
-      
-      if (response.statusCode == 200 && response.data != null) {
-        final List results = response.data['results'] ?? [];
-        final List<String> gifs = results.map((e) {
-          final formats = e['media_formats'] as Map<String, dynamic>;
-          final gifData = formats['tinygif'] ?? formats['gif'] ?? formats['mediumgif'];
-          return (gifData['url'] as String).replaceFirst('http:', 'https:');
-        }).toList();
-        if (gifs.isNotEmpty) return gifs;
-      }
-      return _fallbackGifs;
-    } catch (e) {
-      debugPrint('Tenor Exception: $e');
-      return _fallbackGifs;
-    }
+    return _fallbackGifs;
   }
 
   String _formatCount(int count) {
@@ -235,16 +181,12 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const double avatarRadius = 20.0;
-    const double avatarGap = 14.0;
     const double outerPadding = 16.0;
-    const double leftContentOffset = outerPadding + (avatarRadius * 2) + avatarGap; // 70
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // Header: Consistent minimalist App Bar with Author Info
           SliverAppBar(
             pinned: true,
             backgroundColor: Colors.white,
@@ -329,18 +271,15 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
               ],
             ),
             centerTitle: false,
-            titleSpacing: 0, // Reduces gap between back button and profile
+            titleSpacing: 0,
           ),
 
-          // Main Post Content (Restructured to respect new Author location)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(left: outerPadding, right: outerPadding, top: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Description text (Aligned to full width)
-                  // Description text
                   Text(
                     widget.item.content,
                     style: GoogleFonts.notoSansMyanmar(
@@ -393,7 +332,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
             ),
           ),
 
-          // Image Gallery (Edge-to-edge swiping section)
           if (widget.item.imageUrls.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -412,14 +350,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   item: widget.item,
                                 ),
                               ),
-                            ).then((_) {
-                              if (mounted) {
-                                setState(() {
-                                  _isLiked = widget.item.isLiked;
-                                  _likesCount = widget.item.likesCount;
-                                });
-                              }
-                            });
+                            );
                           },
                           child: Hero(
                             tag: widget.item.imageUrls[0],
@@ -446,7 +377,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
                           itemCount: widget.item.imageUrls.length,
-                          padding: const EdgeInsets.symmetric(horizontal: outerPadding), // Keeps initial alignment but allows swiping into "edges"
+                          padding: const EdgeInsets.symmetric(horizontal: outerPadding),
                           itemBuilder: (context, index) {
                             final imageUrl = widget.item.imageUrls[index];
                             return GestureDetector(
@@ -460,14 +391,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                       item: widget.item,
                                     ),
                                   ),
-                                ).then((_) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isLiked = widget.item.isLiked;
-                                      _likesCount = widget.item.likesCount;
-                                    });
-                                  }
-                                });
+                                );
                               },
                               child: Container(
                                 width: MediaQuery.of(context).size.width * 0.75,
@@ -496,7 +420,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
               ),
             ),
 
-          // Interaction Row & Comments
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: outerPadding),
@@ -554,8 +477,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
             ),
           ),
 
-
-          // Comments List
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -635,7 +556,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
         ],
       ),
-      // Sticky Comment Input
       bottomSheet: Container(
         padding: EdgeInsets.only(
           left: 16,
@@ -720,27 +640,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
               padding: const EdgeInsets.only(top: 12),
               child: _isLoadingGifs
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFFED3973)))
-                  : _trendingGifs.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(PhosphorIcons.warningCircle(), color: Colors.grey[400], size: 32),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Failed to load GIFs',
-                                style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
-                              ),
-                              TextButton(
-                                onPressed: _fetchGifsToCache,
-                                child: Text(
-                                  'Retry',
-                                  style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
+                  : _fallbackGifs.isEmpty
+                      ? const SizedBox.shrink()
                       : GridView.builder(
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
@@ -748,9 +649,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             mainAxisSpacing: 8,
                             childAspectRatio: 1.2,
                           ),
-                          itemCount: _trendingGifs.length,
+                          itemCount: _fallbackGifs.length,
                           itemBuilder: (context, index) {
-                            final url = _trendingGifs[index];
+                            final url = _fallbackGifs[index];
                             return GestureDetector(
                               onTap: () {
                                 _addComment(gifUrl: url);
