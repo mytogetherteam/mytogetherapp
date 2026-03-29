@@ -35,6 +35,7 @@ class RestaurantRepository {
   // High-quality Myanmar demo fallback data from local asset
   Map<String, dynamic>? _fallbackData;
   Map<String, dynamic>? _primaryFallbackData;
+  final Set<String> _primaryShopIds = {};
 
   RestaurantRepository(this._remoteDataSource);
 
@@ -114,6 +115,12 @@ class RestaurantRepository {
             results.add(_mapPrimaryShopToDomain(shop as Map<String, dynamic>));
           }
         }
+      }
+
+      // Collect primary shop IDs for prioritization
+      _primaryShopIds.clear();
+      for (final shop in results) {
+        _primaryShopIds.add(shop.id);
       }
     }
 
@@ -655,7 +662,18 @@ class RestaurantRepository {
     final shops = await _getFallbackShops();
     // Return shops with rating >= 4.4 or just a sorted list
     final popular = shops.where((s) => s.rating >= 4.4).toList();
-    popular.sort((a, b) => b.rating.compareTo(a.rating));
+    
+    popular.sort((a, b) {
+      final aIsPrimary = _primaryShopIds.contains(a.id);
+      final bIsPrimary = _primaryShopIds.contains(b.id);
+      
+      if (aIsPrimary && !bIsPrimary) return -1;
+      if (!aIsPrimary && bIsPrimary) return 1;
+      
+      // Secondary sort: Rating
+      return b.rating.compareTo(a.rating);
+    });
+    
     return popular.take(10).toList();
   }
 
@@ -1386,14 +1404,44 @@ class RestaurantRepository {
         }
       }
 
-      // If we couldn't find it or parse it, use hardcoded list
+      // 5. Try to construct from shopList if we have it but no detail
+      final allShops = await _getFallbackShops();
       try {
-        return FallbackData.restaurants.firstWhere(
+        final shop = allShops.firstWhere(
           (r) => r.id == id.toString(),
         );
+        
+        // If the shop has no dishes, try to find some for it in the JSONs
+        if (shop.popularDishes.isEmpty && shop.recommendations.isEmpty) {
+           debugPrint('[FALLBACK] Shop ${shop.name} has no dishes, searching for replacements...');
+           // This is where we could do extra searching, but for now the hardcoded 
+           // enrichment in getFallbackShops (via _mapShopDetailDtoToDomain) should handle it
+        }
+        return shop;
       } catch (_) {}
 
-      rethrow;
+      // 6. Last resort: use hardcoded list from FallbackData
+      try {
+        final hardcoded = FallbackData.restaurants.firstWhere(
+          (r) => r.id == id.toString(),
+        );
+        debugPrint('[FALLBACK] Using hardcoded restaurant data for ID $id');
+        return hardcoded;
+      } catch (_) {}
+
+      // If we really can't find it, return a generic one to avoid crash
+      debugPrint('[FALLBACK] CRITICAL: Restaurant $id not found anywhere. Returning generic.');
+      return Restaurant(
+        id: id.toString(), 
+        name: 'Restaurant', 
+        category: 'Food', 
+        rating: 4.0, 
+        distance: '0 km', 
+        imagePath: '', 
+        logoPath: '', 
+        deliveryTime: '20 min', 
+        status: 'Open'
+      );
     }
   }
 
@@ -1717,7 +1765,21 @@ class RestaurantRepository {
       }
     }
 
-    // 2. Compatibility with old structure: shops
+    // 2. Check shopDetails in secondary fallback
+    if (_fallbackData != null && _fallbackData!.containsKey('shopDetails')) {
+      final detailsList = _fallbackData!['shopDetails'] as List?;
+      if (detailsList != null) {
+        final shopJson = detailsList.firstWhere(
+          (item) => item['data']?['id']?.toString() == shopId.toString(),
+          orElse: () => null,
+        );
+        if (shopJson != null && shopJson['data']?['reviews'] != null) {
+          return shopJson['data']['reviews'] as Map<String, dynamic>;
+        }
+      }
+    }
+
+    // 3. Compatibility with old structure: shops
     if (_primaryFallbackData != null && _primaryFallbackData!.containsKey('shops')) {
       final shops = _primaryFallbackData!['shops'] as List?;
       if (shops != null) {
@@ -1730,7 +1792,14 @@ class RestaurantRepository {
         }
       }
     }
-    return null;
+
+    // Default to empty structure to prevent crashes with ! operator in UI
+    return {
+      'totalReviews': 0,
+       'averageRating': 0.0,
+       'items': [],
+       'content': [],
+    };
   }
 
   Future<List<CategoryDto>> getCategories() async {

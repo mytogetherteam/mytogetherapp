@@ -6,6 +6,8 @@ import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/menu_item_dto.dart';
+import '../screens/restaurant_detail_page.dart';
+import '../screens/today_overview_detail_page.dart';
 
 class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
@@ -67,7 +69,17 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TodayOverviewDetailPage(
+                        title: 'Together Up to 40% Off',
+                        type: 'deals',
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -132,107 +144,120 @@ class _DealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 130,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Food image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: CachedNetworkImage(
-              imageUrl: item.imagePath,
-              width: 130,
-              height: 120,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const ImageSkeletonLoader(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RestaurantDetailPage(
+              id: item.restaurantId,
+              name: item.restaurantName,
+              targetMenuItemId: item.id,
+            ),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 130,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Food image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: CachedNetworkImage(
+                imageUrl: item.imagePath,
                 width: 130,
                 height: 120,
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 130,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(14),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const ImageSkeletonLoader(
+                  width: 130,
+                  height: 120,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.image_not_supported_rounded,
-                      color: Colors.grey.shade300,
-                      size: 32,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'No Image',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
-                        fontWeight: FontWeight.w500,
+                errorWidget: (context, url, error) => Container(
+                  width: 130,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.image_not_supported_rounded,
+                        color: Colors.grey.shade300,
+                        size: 32,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'No Image',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade400,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Price row
-          Row(
-            children: [
-              Text(
-                '฿${item.price.toInt()}',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFED3973),
-                ),
-              ),
-              if (item.originalPrice != null) ...[
-                const SizedBox(width: 5),
+            const SizedBox(height: 8),
+            // Price row
+            Row(
+              children: [
                 Text(
-                  '฿${item.originalPrice!.toInt()}',
+                  '฿${item.price.toInt()}',
                   style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFED3973),
+                  ),
+                ),
+                if (item.originalPrice != null) ...[
+                  const SizedBox(width: 5),
+                  Text(
+                    '฿${item.originalPrice?.toInt() ?? 0}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            // Food name
+            Text(
+              item.title,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            // Delivery info
+            Row(
+              children: [
+                Icon(PhosphorIcons.bicycle(), size: 12, color: const Color(0xFF00A560)),
+                const SizedBox(width: 3),
+                Text(
+                  '${item.deliveryFee ?? '฿30'} · ${item.estimatedTime ?? '20'} min',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    color: Colors.grey.shade500,
                   ),
                 ),
               ],
-            ],
-          ),
-          const SizedBox(height: 2),
-          // Food name
-          Text(
-            item.title,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          // Delivery info
-          Row(
-            children: [
-              Icon(PhosphorIcons.bicycle(), size: 12, color: const Color(0xFF00A560)),
-              const SizedBox(width: 3),
-              Text(
-                '${item.deliveryFee ?? '฿30'} · ${item.estimatedTime ?? '20'} min',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
-

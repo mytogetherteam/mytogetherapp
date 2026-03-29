@@ -19,7 +19,7 @@ class MenuItemDto {
   final String? deliveryFee;
   final String? originalDeliveryFee;
 
-  MenuItemDto({
+  const MenuItemDto({
     required this.id,
     required this.restaurantId,
     required this.restaurantName,

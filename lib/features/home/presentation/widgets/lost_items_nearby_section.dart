@@ -61,15 +61,15 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
                 child: Column(
                   children: [
                     LostItemCard(
-                      description: lostItems[firstItemIndex]['description']!,
-                      imageUrl: lostItems[firstItemIndex]['imageUrl']!,
-                      timeAgo: lostItems[firstItemIndex]['timeAgo']!,
+                      description: lostItems[firstItemIndex]['description'] ?? '',
+                      imageUrl: lostItems[firstItemIndex]['imageUrl'] ?? '',
+                      timeAgo: lostItems[firstItemIndex]['timeAgo'] ?? '',
                     ),
                     if (secondItemIndex < lostItems.length)
                       LostItemCard(
-                        description: lostItems[secondItemIndex]['description']!,
-                        imageUrl: lostItems[secondItemIndex]['imageUrl']!,
-                        timeAgo: lostItems[secondItemIndex]['timeAgo']!,
+                        description: lostItems[secondItemIndex]['description'] ?? '',
+                        imageUrl: lostItems[secondItemIndex]['imageUrl'] ?? '',
+                        timeAgo: lostItems[secondItemIndex]['timeAgo'] ?? '',
                       ),
                   ],
                 ),

@@ -226,7 +226,10 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const TodayOverviewDetailPage(),
+                      builder: (context) => const TodayOverviewDetailPage(
+                        title: 'Trending Near By',
+                        type: 'trending',
+                      ),
                     ),
                   );
                 },

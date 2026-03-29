@@ -160,6 +160,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     } catch (_) {
       if (mounted) {
         setState(() {
+          _shopReviews = {
+            'totalReviews': 0,
+            'averageRating': 0.0,
+            'items': [],
+            'content': [],
+          };
           _isLoadingReviews = false;
         });
       }
@@ -288,7 +294,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                     ),
                                   )
                                 : Image.network(
-                                    _currentRestaurant!.imagePath,
+                                    _currentRestaurant?.imagePath ?? '',
                                     fit: BoxFit.cover,
                                     loadingBuilder: (context, child, loadingProgress) {
                                       if (loadingProgress == null) return child;
@@ -559,7 +565,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                   borderRadius: BorderRadius.circular(16),
                                   child: (_currentRestaurant?.logoPath ?? '').isNotEmpty
                                       ? CachedNetworkImage(
-                                          imageUrl: _currentRestaurant!.logoPath,
+                                          imageUrl: _currentRestaurant?.logoPath ?? '',
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const ImageSkeletonLoader(),
                                           errorWidget: (context, url, error) => _buildLogoFallback(_currentRestaurant?.name ?? ''),
@@ -897,12 +903,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       );
     }
 
-    final reviewsList = _shopReviews!['content'] as List? ?? _shopReviews!['items'] as List? ?? [];
+    final reviewsList = _shopReviews?['content'] as List? ?? _shopReviews?['items'] as List? ?? [];
     if (reviewsList.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final totalReviews = _shopReviews!['totalReviews']?.toString() ?? reviewsList.length.toString();
+    final totalReviews = _shopReviews?['totalReviews']?.toString() ?? reviewsList.length.toString();
     final reviews = reviewsList.take(2).map((e) => Review.fromJson(e as Map<String, dynamic>)).toList();
     
     return Padding(

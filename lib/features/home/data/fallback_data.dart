@@ -18,6 +18,40 @@ class FallbackData {
       deliveryTime: '25-35 min',
       status: 'Open',
       deliveryFee: '฿30',
+      popularDishes: [
+        MenuItemDto(
+          id: 'fb1-1',
+          restaurantId: '1',
+          restaurantName: 'Rangoon Tea House Bangkok',
+          title: 'Mohinga',
+          price: 180.0,
+          currency: '฿',
+          imagePath: 'https://delishglobe.com/wp-content/uploads/2025/02/Burmese-Mohinga-Fish-Noodle-Soup.png',
+          category: 'Noodles',
+        ),
+        MenuItemDto(
+          id: 'fb1-2',
+          restaurantId: '1',
+          restaurantName: 'Rangoon Tea House Bangkok',
+          title: 'Lahpet Thoke',
+          price: 150.0,
+          currency: '฿',
+          imagePath: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiJP_TSChaB8kcMV1epjHfE3suOqLEoNOdDl6GrK2hBrt8oTOvO7hDoSix-pFo5EZYSkL8ZDziC6ObRjChyphenhyphenZiX0Vyy02cLg1S_efG2aClJ2BDssSwRH0FYwpD-7IkMADU8ozPh08hlAPbwJ/s1600/IMG_4012.JPG',
+          category: 'Salads',
+        ),
+      ],
+      recommendations: [
+        MenuItemDto(
+          id: 'fb1-3',
+          restaurantId: '1',
+          restaurantName: 'Rangoon Tea House Bangkok',
+          title: 'Myanmar Milk Tea',
+          price: 80.0,
+          currency: '฿',
+          imagePath: 'https://myfoodmyanmar.com/wp-content/uploads/2023/03/Royal-Milk-Tea-3.jpg',
+          category: 'Beverages',
+        ),
+      ],
     ),
     const Restaurant(
       id: '2',
@@ -33,6 +67,30 @@ class FallbackData {
       deliveryTime: '20-30 min',
       status: 'Open',
       deliveryFee: '฿30',
+      popularDishes: [
+        MenuItemDto(
+          id: 'fb2-1',
+          restaurantId: '2',
+          restaurantName: 'ThaNaKa Myanmar Restaurant',
+          title: 'Chicken Curry',
+          price: 120.0,
+          currency: '฿',
+          imagePath: 'https://static01.nyt.com/images/2021/01/06/dining/04Cookbooksrex2-curry/merlin_181749069_bac75581-7b0e-4426-8d8b-1803663440fd-mediumSquareAt3X.jpg',
+          category: 'Curries',
+        ),
+      ],
+      recommendations: [
+        MenuItemDto(
+          id: 'fb2-2',
+          restaurantId: '2',
+          restaurantName: 'ThaNaKa Myanmar Restaurant',
+          title: 'Steamed Rice',
+          price: 20.0,
+          currency: '฿',
+          imagePath: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400',
+          category: 'Rice',
+        ),
+      ],
     ),
     const Restaurant(
       id: '3',
@@ -48,6 +106,30 @@ class FallbackData {
       deliveryTime: '30-40 min',
       status: 'Open',
       deliveryFee: '฿30',
+      popularDishes: [
+        MenuItemDto(
+          id: 'fb3-1',
+          restaurantId: '3',
+          restaurantName: 'The Burma Food House',
+          title: 'Shan Noodles',
+          price: 110.0,
+          currency: '฿',
+          imagePath: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400',
+          category: 'Noodles',
+        ),
+      ],
+      recommendations: [
+        MenuItemDto(
+          id: 'fb3-2',
+          restaurantId: '3',
+          restaurantName: 'The Burma Food House',
+          title: 'Papaya Salad',
+          price: 80.0,
+          currency: '฿',
+          imagePath: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=400',
+          category: 'Salads',
+        ),
+      ],
     ),
   ];
 

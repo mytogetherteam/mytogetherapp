@@ -9,7 +9,14 @@ import '../../../../core/location/location_service.dart';
 import '../../data/models/trending_item_dto.dart';
 
 class TodayOverviewDetailPage extends StatefulWidget {
-  const TodayOverviewDetailPage({super.key});
+  final String? title;
+  final String? type; // 'trending' or 'deals'
+
+  const TodayOverviewDetailPage({
+    super.key,
+    this.title,
+    this.type = 'trending',
+  });
 
   @override
   State<TodayOverviewDetailPage> createState() => _TodayOverviewDetailPageState();
@@ -55,17 +62,23 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     
     try {
       final List<MenuItemDto> items;
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
       
-      final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        page: 0,
-        size: _pageSize,
-      );
-      items = section.items.map((t) => _mapTrendingToMenuItem(t)).toList();
-      _hasMore = items.length >= _pageSize;
+      if (widget.type == 'deals') {
+        items = await RestaurantRepository.instance.getTogetherDeals();
+        _hasMore = false; // Deals are currently not paginated in the mock repository
+      } else {
+        final activeLoc = UserLocationRepository.instance.activeLocation;
+        final pos = await LocationService().getCurrentPosition();
+        
+        final section = await RestaurantRepository.instance.getTrendingItems(
+          lat: activeLoc?.latitude ?? pos.latitude,
+          lon: activeLoc?.longitude ?? pos.longitude,
+          page: 0,
+          size: _pageSize,
+        );
+        items = section.items.map((t) => _mapTrendingToMenuItem(t)).toList();
+        _hasMore = items.length >= _pageSize;
+      }
 
       if (mounted) {
         setState(() {
@@ -147,7 +160,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   }
 
   Future<void> _loadMoreData() async {
-    if (_isLoading || !_hasMore) return;
+    if (_isLoading || !_hasMore || widget.type == 'deals') return;
     setState(() => _isLoading = true);
     
     try {
@@ -179,7 +192,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const displayTitle = 'Trending Near By';
+    final displayTitle = widget.title ?? 'Trending Near By';
     final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
 
     return Scaffold(
