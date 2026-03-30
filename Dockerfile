@@ -1,31 +1,41 @@
-# Stage 1: Build Flutter Web using latest stable version
-FROM ghcr.io/cirruslabs/flutter:3.27.0 AS build
+# Stage 1: Build Flutter Web by installing the TRUE latest stable version from source
+FROM ubuntu:22.04 AS build
+
+# Configure timezone to avoid hanging prompts during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install necessary requirements for Flutter
+RUN apt-get update && \
+    apt-get install -y curl git unzip xz-utils zip libglu1-mesa && \
+    git clone https://github.com/flutter/flutter.git -b stable --depth 1 /usr/local/flutter
+
+# Set PATH for Flutter
+ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
+
+# Prepare Flutter for web
+RUN flutter config --enable-web && flutter precache --web
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files
+# Copy dependency files first to utilize caching
+COPY pubspec.* ./
+
+# Fetch dependencies
+RUN flutter pub get
+
+# Copy the entire workspace
 COPY . .
 
-# Force a clean dependency resolve to avoid exit code 1
-RUN rm -f pubspec.lock && flutter pub get
-
-# Build the web application with High-Performance CanvasKit renderer
-RUN flutter build web --release --web-renderer canvaskit
+# Build the web application flawlessly
+# Modern Flutter automatically uses CanvasKit/WASM for high-performance builds
+RUN flutter build web --release
 
 # Stage 2: Serve with Nginx
 FROM nginx:stable-alpine
 
-# Set permissions for Railway (non-root sometimes helpful)
-# Railway provides a $PORT, so we use template substitution for nginx.conf
-
-# Copy build artifacts to Nginx html directory
+# Copy the final build artifacts
 COPY --from=build /app/build/web /usr/share/nginx/html
 
-# Copy the nginx config as a template for automatic envsubst
+# Copy the nginx config template (for automatic $PORT detection)
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-
-# Official Nginx images (1.19+) handle envsubst automatically for files in /etc/nginx/templates/
-# with NGINX_ENVSUBST_OUTPUT_DIR = /etc/nginx/conf.d
-# No special CMD needed if using defaults.
-# But we must ensure $PORT is replaced.
