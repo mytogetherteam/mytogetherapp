@@ -140,15 +140,33 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
                       icon: const Icon(Icons.close, size: 20),
                       onPressed: () => setState(() => _showInstallPrompt = false),
                     ),
-                    ElevatedButton(
-                      onPressed: _isIOS ? null : _installPwa,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFED3A72),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(_isIOS ? 'Safari' : 'Install'),
-                    ),
+                    _isIOS 
+                        ? Row(
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text('1. Tap ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Icon(Icons.ios_share, size: 16, color: Colors.blue[700]),
+                                    ],
+                                  ),
+                                  const Text('2. Add to Home Screen', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          )
+                        : ElevatedButton(
+                            onPressed: _installPwa,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFED3A72),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text('Install'),
+                          ),
                   ],
                 ),
               ),
