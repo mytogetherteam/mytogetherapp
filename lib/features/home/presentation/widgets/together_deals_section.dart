@@ -155,7 +155,7 @@ class _DealCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: CachedNetworkImage(
-                imageUrl: kIsWeb ? 'https://corsproxy.io/?${Uri.encodeComponent(item.imagePath)}' : item.imagePath,
+                imageUrl: kIsWeb ? 'https://wsrv.nl/?url=${Uri.encodeComponent(item.imagePath)}' : item.imagePath,
                 width: 130,
                 height: 120,
                 fit: BoxFit.cover,

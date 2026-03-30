@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -42,7 +43,7 @@ class PlaceCard extends StatelessWidget {
               child: Hero(
                 tag: 'place_card_$name',
                 child: CachedNetworkImage(
-                  imageUrl: imagePath,
+                  imageUrl: kIsWeb ? 'https://wsrv.nl/?url=${Uri.encodeComponent(imagePath)}' : imagePath,
                   width: 240,
                   height: 320,
                   fit: BoxFit.cover,

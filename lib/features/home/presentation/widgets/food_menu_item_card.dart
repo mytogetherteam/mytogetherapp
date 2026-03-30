@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -235,7 +236,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                         ? _buildFallbackImage()
                                         : (isNetworkImage
                                             ? CachedNetworkImage(
-                                              imageUrl: widget.imagePath,
+                                              imageUrl: kIsWeb ? 'https://wsrv.nl/?url=${Uri.encodeComponent(widget.imagePath)}' : widget.imagePath,
                                               width: double.infinity,
                                               memCacheWidth: 300,
                                               fit: BoxFit.cover,

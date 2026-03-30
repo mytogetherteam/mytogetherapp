@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -242,9 +243,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       },
                                     );
                                   },
-                                  child: const CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                                  child: CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage: NetworkImage(
+                                      kIsWeb 
+                                        ? 'https://wsrv.nl/?url=${Uri.encodeComponent('https://i.pravatar.cc/150?img=5')}' 
+                                        : 'https://i.pravatar.cc/150?img=5'
+                                    ),
                                   ),
                                 ),
                               ),
