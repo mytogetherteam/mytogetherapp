@@ -5,6 +5,8 @@ import 'features/auth/presentation/screens/login_page.dart';
 import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 
+import 'core/presentation/widgets/pwa_install_prompt.dart';
+
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -25,6 +27,7 @@ class App extends StatelessWidget {
         navigatorObservers: [App.routeObserver],
         navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
+        builder: (context, child) => PWAInstallPrompt(child: child!),
         // Auth-aware initial route
         home: AuthService().isLoggedIn ? const MainNavigationScreen() : const LoginPage(),
         routes: {
