@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -41,7 +42,7 @@ class AwaitingPaymentPage extends StatefulWidget {
 class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
-  File? _receiptImage;
+  XFile? _receiptImage;
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
@@ -169,11 +170,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
-      await Gal.putImageBytes(
-        Uint8List.fromList(pngBytes),
-        album: 'MyTogether',
-        name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      if (!kIsWeb) {
+        await Gal.putImageBytes(
+          Uint8List.fromList(pngBytes),
+          album: 'MyTogether',
+          name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -239,8 +242,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     );
 
     if (picked != null && mounted) {
-      final file = File(picked.path);
-      final sizeInBytes = await file.length();
+      final sizeInBytes = await picked.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
       if (sizeInMb > 1.0) {
@@ -265,7 +267,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
         }
         return;
       }
-      setState(() => _receiptImage = file);
+      setState(() => _receiptImage = picked);
     }
   }
 
@@ -728,11 +730,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: Image.file(
-            _receiptImage!,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+          child: kIsWeb 
+            ? Image.network(
+                _receiptImage!.path,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
+            : Image.file(
+                File(_receiptImage!.path),
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
         ),
         // Remove / re-pick button
         Positioned(

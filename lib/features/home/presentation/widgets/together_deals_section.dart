@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -154,7 +155,7 @@ class _DealCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: CachedNetworkImage(
-                imageUrl: item.imagePath,
+                imageUrl: kIsWeb ? 'https://corsproxy.io/?${Uri.encodeComponent(item.imagePath)}' : item.imagePath,
                 width: 130,
                 height: 120,
                 fit: BoxFit.cover,

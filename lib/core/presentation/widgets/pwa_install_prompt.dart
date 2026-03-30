@@ -89,9 +89,31 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
 
   @override
   Widget build(BuildContext context) {
+    Widget content = widget.child;
+    
+    // Fallback native PWA safe area if webkit fails to pass env variables
+    if (kIsWeb) {
+      try {
+        bool isStandalone = html.window.matchMedia('(display-mode: standalone)').matches || 
+            (html.window.navigator as dynamic).standalone == true;
+        bool isIosWeb = html.window.navigator.userAgent.contains('iPhone') ||
+            html.window.navigator.userAgent.contains('iPad');
+            
+        if (isStandalone && isIosWeb) {
+          content = Container(
+            color: Colors.white, // Ensure the gap behind the home indicator is clean white
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 34.0), // Standard iOS bottom safe area
+              child: content,
+            ),
+          );
+        }
+      } catch (_) {}
+    }
+
     return Stack(
       children: [
-        widget.child,
+        content,
         if (_showInstallPrompt)
           Positioned(
             bottom: 20,

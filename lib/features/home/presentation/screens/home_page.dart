@@ -303,7 +303,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           // 1. Delivery Info Bar
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            padding: const EdgeInsets.only(top: 16, bottom: 8, left: 20, right: 20),
                             decoration: const BoxDecoration(
                               color: Color(0xFFBE2E5B),
                               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -323,7 +323,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 5), // Added spacing below delivery bar
                           // 2. Main White Section (Category Grid & Below)
                           Container(
                             width: double.infinity,
@@ -335,7 +334,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
+                                  padding: const EdgeInsets.fromLTRB(15, 20, 15, 12),
                                   child: GridView.count(
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
