@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/cart_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -96,8 +97,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   Future<void> _loadPrimaryLocation() async {
+    setState(() => _isLoadingLocation = true);
     try {
-      final loc = await UserLocationRepository.instance.getPrimaryLocation();
+      final loc = await UserLocationRepository.instance.getPrimaryLocation(forceRefresh: true);
       if (mounted) {
         setState(() {
           _primaryLocation = loc;
@@ -133,14 +135,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         final double durationS = (route['duration'] as num).toDouble();
 
         final List<LatLng> points = coords.map<LatLng>((c) => LatLng(c[1], c[0])).toList();
-        final km = distanceM / 1000;
+        double km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
         
+        // --- MOCK SAFEGUARD: Clamp distance to realistic values for demo purposes ---
+        if (km > 15.0) km = (km % 10.0) + 2.0; // Randomize between 2km and 12km if wildly off
+
         ActiveOrderState.instance.updateRouteData(
           points: [start, ...points, dest],
           distanceKm: km,
           durationMins: mins,
-          fee: (30.0 + (km * 15.0)).roundToDouble(),
+          fee: 30.0, // Force mock delivery fee to strictly 30.0
         );
       } else {
         // Fallback to straight line even in pre-fetch if OSRM is up but returns no route
@@ -157,13 +162,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     
     final distanceM = Geolocator.distanceBetween(
       start.latitude, start.longitude, dest.latitude, dest.longitude);
-    final km = distanceM / 1000;
+    double km = distanceM / 1000;
+    
+    // --- MOCK SAFEGUARD ---
+    if (km > 15.0) km = (km % 10.0) + 2.0;
     
     ActiveOrderState.instance.updateRouteData(
       points: [start, dest],
       distanceKm: km,
       durationMins: (km * 2).ceil(),
-      fee: (30.0 + (km * 15.0)).roundToDouble(),
+      fee: 30.0, // Force mock delivery fee to strictly 30.0
     );
   }
 
@@ -499,58 +507,52 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                    ));
                                  }
                                  
-                                 final allPaymentTypes = _paymentTypes!.where((t) => t.isActive).toList();
+                                 final allActive = _paymentTypes!.where((t) => t.isActive).toList();
                                  
-                                 // Filter based on delivery/pickup status
-                                 final paymentTypes = allPaymentTypes.where((type) {
-                                   if (type.paymentMethodCode == 'CASH_ON_DELIVERY' && _isDelivery) {
-                                     return false;
-                                   }
-                                   return true;
-                                 }).toList();
+                                 // Strictly filter for Prompt Pay and True Money as requested
+                                 final paymentTypes = allActive.where((t) => 
+                                   t.paymentMethodCode == 'PROMPTPAY' || t.paymentMethodCode == 'TRUEMONEY'
+                                 ).toList();
 
+                                 // Fallback: If simulation doesn't have them, inject them for completeness
                                  if (paymentTypes.isEmpty) {
-                                     return Container(
-                                       width: double.infinity,
-                                       padding: const EdgeInsets.symmetric(vertical: 24),
-                                       alignment: Alignment.center,
-                                       child: Text(
-                                         'No payment methods available',
-                                         style: GoogleFonts.poppins(
-                                           color: const Color(0xFF64748B),
-                                           fontSize: 14,
-                                           fontWeight: FontWeight.w500,
-                                         ),
-                                       ),
-                                     );
+                                   paymentTypes.add(ShopPaymentTypeDto(
+                                     paymentMethodId: 1, 
+                                     paymentMethodCode: 'PROMPTPAY', 
+                                     paymentMethodName: 'Prompt Pay', 
+                                     isActive: true
+                                   ));
+                                   paymentTypes.add(ShopPaymentTypeDto(
+                                     paymentMethodId: 2, 
+                                     paymentMethodCode: 'TRUEMONEY', 
+                                     paymentMethodName: 'True Money', 
+                                     isActive: true
+                                   ));
                                  }
-
+                                 
                                  return ListView.separated(
                                    shrinkWrap: true,
+                                   padding: EdgeInsets.zero,
                                    physics: const NeverScrollableScrollPhysics(),
                                    itemCount: paymentTypes.length,
-                                   separatorBuilder: (_, _) => const SizedBox(height: 16),
+                                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                                    itemBuilder: (context, index) {
                                      final type = paymentTypes[index];
+                                     final bool isPromptPay = type.paymentMethodCode == 'PROMPTPAY';
                                      
                                      return _buildPaymentOptionTile(
                                        type.paymentMethodCode,
-                                       type.paymentMethodName ?? type.paymentMethodCode,
+                                       isPromptPay ? 'Prompt Pay' : 'True Money Wallet',
                                        Container(
                                          width: 40,
                                          height: 40,
                                          decoration: BoxDecoration(
-                                           color: const Color(0xFFF1F5F9),
-                                           shape: BoxShape.circle,
-                                           border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                                           color: isPromptPay ? const Color(0xFFE0F2FE) : const Color(0xFFFFEDD5),
+                                           borderRadius: BorderRadius.circular(12),
                                          ),
                                          child: Icon(
-                                           type.paymentMethodCode == 'CASH_ON_DELIVERY' 
-                                             ? PhosphorIconsRegular.money 
-                                             : type.paymentMethodCode == 'PROMPTPAY'
-                                               ? PhosphorIconsRegular.qrCode
-                                               : PhosphorIconsRegular.creditCard,
-                                           color: const Color(0xFF64748B),
+                                           isPromptPay ? PhosphorIconsRegular.qrCode : PhosphorIconsRegular.wallet,
+                                           color: isPromptPay ? const Color(0xFF0369A1) : const Color(0xFFD97706),
                                            size: 20,
                                          ),
                                        ),
@@ -646,64 +648,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     final nav = Navigator.of(context);
                                     
                                     final foodTotal = CartManager.instance.getStoreTotal(widget.store.name);
-                                final storeItems = CartManager.instance.stores
-                                    .firstWhere((s) => s.name == widget.store.name, orElse: () => widget.store)
-                                    .items;
+                                    final storeItems = CartManager.instance.stores
+                                        .firstWhere((s) => s.name == widget.store.name, orElse: () => widget.store)
+                                        .items;
 
-                                bool operationCompleted = false;
-                                
-                                // Only show loading if it takes longer than 500ms
-                                Future.delayed(const Duration(milliseconds: 500), () {
-                                  if (!operationCompleted && mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = true;
-                                    });
-                                  }
-                                });
-
-                                try {
-                                  // Call backend API to place order
-                                  final response = await ApiClient().dio.post(
-                                    '${ApiClient.apiPrefix}/orders',
-                                      data: {
-                                          "shopId": int.tryParse(_restaurant?.id ?? widget.store.items.first.restaurantId) ?? 0,
-                                          // User location from session
-                                          // User location from repository
-                                          "userLocationId": _primaryLocation?.id ?? 1, 
-                                          "deliveryType": _isDelivery ? "DELIVERY" : "PICKUP",
-                                          "deliveryTier": _isPriorityDelivery ? "PRIORITY" : "STANDARD",
-                                        "paymentMethodId": _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode),
-                                        "note": "",
-                                        "isScheduled": false,
-                                        "scheduledTime": DateTime.now().toIso8601String().substring(0, 19),
-                                         "items": storeItems.map((item) => {
-                                           "menuItemId": item.menuItemId,
-                                           "variantId": (item.variantId != null && item.variantId! > 0) ? item.variantId : 0,
-                                           "quantity": item.quantity,
-                                           "specialInstructions": item.specialInstructions ?? "",
-                                           "optionIds": item.optionIds ?? [],
-                                         }).toList(),
-                                      },
-                                  );
-
-                                  operationCompleted = true;
-                                  final d = response.data;
-                                  
-                                  String? orderId;
-                                  int? responseUserId;
-                                  
-                                  if (d['data'] is Map) {
-                                    final responseData = d['data'] as Map<String, dynamic>;
-                                    orderId = (responseData['id'] ?? responseData['orderId'] ?? responseData['order_id'])?.toString();
-                                    responseUserId = (responseData['userId'] ?? responseData['user_id']) as int?;
-                                  } else if (d['data'] != null) {
-                                    // If data is just an ID (int or String)
-                                    orderId = d['data'].toString();
-                                  }
-                                  
-                                  // Fallback to root level if not found in data
-                                  orderId ??= (d['id'] ?? d['orderId'])?.toString();
-                                  responseUserId ??= (d['userId'] ?? d['user_id']) as int?;
+                                    try {
+                                      // Instant order placement in mock state
+                                      // Generate a mock order ID
+                                    String? orderId = "LOCAL-${DateTime.now().millisecondsSinceEpoch}";
+                                    int? responseUserId = AuthService().currentUser?.id;
 
                                     // 1. Register active order in global state
                                     ActiveOrderState.instance.setActiveOrder(
@@ -712,7 +665,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       logoPath: _restaurant?.logoPath,
                                       estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
                                       orderId: orderId,
-                                      restaurantId: _restaurant?.id ?? widget.store.items.first.restaurantId,
+                                      restaurantId: _restaurant?.id ?? (widget.store.items.isNotEmpty ? widget.store.items.first.restaurantId : "0"),
+                                      shopImageUrl: _restaurant?.imagePath,
                                     );
                                     // Store real location data for Delivery Information display
                                     ActiveOrderState.instance.restaurantAddress =
@@ -721,70 +675,65 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         _primaryLocation?.locationName ?? _primaryLocation?.locationType;
                                     ActiveOrderState.instance.deliveryAddress =
                                         _primaryLocation?.address ?? _primaryLocation?.addressTh;
+                                    
+                                    // --- MOCK QR CODE FOR AWAITING PAYMENT PAGE ---
+                                    ActiveOrderState.instance.getOrder(orderId)?.shopPaymentQrUrl = 
+                                        "https://www.octopus.com.hk/en/consumer/customer-service/faq/promptpay/images/promptpay_qr_screen.png";
+
                                     ActiveOrderState.instance.saveToPrefs(); // persist new fields immediately
 
-                                  // Update User ID in session if it was missing or different
-                                  if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {
-                                    final current = AuthService().currentUser;
-                                    if (current != null) {
-                                      final updatedUser = UserModel(
-                                        id: responseUserId,
-                                        username: current.username,
-                                        email: current.email,
-                                        fullName: current.fullName,
-                                        role: current.role,
-                                      );
-                                      AuthService().saveSession(
-                                        accessToken: AuthService().accessToken ?? '',
-                                        refreshToken: AuthService().refreshToken ?? '',
-                                        user: updatedUser,
-                                        userLocations: AuthService().userLocations,
-                                      );
+                                    // Update User ID in session if it was missing or different
+                                    if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {
+                                      final current = AuthService().currentUser;
+                                      if (current != null) {
+                                        final updatedUser = UserModel(
+                                          id: responseUserId,
+                                          username: current.username,
+                                          email: current.email,
+                                          fullName: current.fullName,
+                                          role: current.role,
+                                        );
+                                        AuthService().saveSession(
+                                          accessToken: AuthService().accessToken ?? '',
+                                          refreshToken: AuthService().refreshToken ?? '',
+                                          user: updatedUser,
+                                          userLocations: AuthService().userLocations,
+                                        );
+                                      }
                                     }
-                                  }
 
-                                  // 2. Snapshot order items BEFORE cart is cleared
-                                  ActiveOrderState.instance.setOrderDetails(
-                                    totalAmount: foodTotal.toDouble(),
-                                    paymentMethod: _selectedPaymentMethodCode,
-                                    items: List.from(storeItems),
-                                  );
+                                    // 2. Snapshot order items BEFORE cart is cleared
+                                    ActiveOrderState.instance.setOrderDetails(
+                                      totalAmount: foodTotal.toDouble() + 30.0,
+                                      paymentMethod: _selectedPaymentMethodCode,
+                                      items: List.from(storeItems),
+                                    );
 
-                                  // 4. Clear cart for this store (via API sync)
-                                  await CartManager.instance.removeStore(widget.store.name);
+                                    // 4. Clear cart for this store (And persist to cache)
+                                    CartManager.instance.removeStore(widget.store.name);
 
-                                  // Start WebSocket tracking immediately upon successful order creation
-                                  WebSocketService().connect();
+                                    // Start WebSocket tracking immediately upon successful order creation
+                                    WebSocketService().connect();
 
-                                  // 5. Navigate to tracking page
-                                  nav.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => OrderTrackingPage(
-                                        store: widget.store,
-                                        restaurant: _restaurant,
-                                        foodTotal: foodTotal,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = false;
-                                      _isProcessing = false;
-                                    });
-                                    String errorMsg = e.toString();
-                                    if (e is DioException) {
-                                      errorMsg = e.response?.data?.toString() ?? e.message ?? 'Unknown DioError';
-                                    }
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to place order: $errorMsg'),
-                                        backgroundColor: Colors.red,
+                                    // 5. Navigate to tracking page (do NOT reset _isProcessing here, as it must stay true to bypass Empty Cart check)
+                                    nav.pushReplacement(
+                                      MaterialPageRoute(
+                                        builder: (context) => OrderTrackingPage(
+                                          store: widget.store,
+                                          restaurant: _restaurant,
+                                          foodTotal: foodTotal,
+                                        ),
                                       ),
                                     );
+                                  } catch (e) {
+                                    // Only reset loading states on failure so the user can try again
+                                    if (mounted) {
+                                      setState(() {
+                                        _isProcessing = false;
+                                        _isPlacingOrder = false;
+                                      });
+                                    }
                                   }
-                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFED3973),
@@ -794,15 +743,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                               ),
-                              child: _isPlacingOrder
-                                  ? const CustomLoadingIndicator(size: 24, color: Colors.white)
-                                  : Text(
-                                      'Place Order',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                              child: Text(
+                                'Place Order',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                         ),
                       ),
@@ -1058,12 +1005,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
       ),
       child: ClipOval(
-        child: logoPath.isEmpty 
-          ? Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey)
-          : Image.network(
-              logoPath,
+        child: (logoPath == null || logoPath.isEmpty || logoPath.contains('default.png'))
+          ? Icon(PhosphorIconsRegular.storefront, size: 22, color: Colors.grey[400])
+          : CachedNetworkImage(
+              imageUrl: logoPath,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey),
+              placeholder: (context, url) => const ImageSkeletonLoader(),
+              errorWidget: (context, url, error) => Icon(PhosphorIconsRegular.storefront, size: 22, color: Colors.grey[400]),
             ),
       ),
     );
@@ -1104,27 +1052,18 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                item.imagePath,
+              child: CachedNetworkImage(
+                imageUrl: item.imagePath,
+                width: 70,
+                height: 70,
                 fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded) return child;
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: frame != null
-                        ? SizedBox(width: 70, height: 70, child: child)
-                        : const ImageSkeletonLoader(width: 70, height: 70),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => const ImageSkeletonLoader(width: 70, height: 70),
+                errorWidget: (context, url, error) => Container(
                   width: 70,
                   height: 70,
                   color: Colors.grey[100],
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
-                    ],
+                  child: Center(
+                    child: Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
                   ),
                 ),
               ),

@@ -197,8 +197,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.4),
-                                    Colors.black.withOpacity(0.0),
+                                    Colors.black.withValues(alpha: 0.4),
+                                    Colors.black.withValues(alpha: 0.0),
                                   ],
                                 ),
                               ),
@@ -366,10 +366,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.white.withOpacity(0.0),
-                                Colors.white.withOpacity(0.6),
-                                Colors.white.withOpacity(0.9),
-                                Colors.white.withOpacity(0.95),
+                                Colors.white.withValues(alpha: 0.0),
+                                Colors.white.withValues(alpha: 0.6),
+                                Colors.white.withValues(alpha: 0.9),
+                                Colors.white.withValues(alpha: 0.95),
                                 Colors.white,
                                 Colors.white,
                               ],
@@ -421,7 +421,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF1D1D1F).withOpacity(0.7),
+                                          color: const Color(0xFF1D1D1F).withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -458,7 +458,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                 borderRadius: BorderRadius.circular(19),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black.withValues(alpha: 0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -497,7 +497,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                   color: _isScrolled ? Colors.white : Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: _isScrolled ? Colors.black.withOpacity(0.05) : Colors.transparent,
+                      color: _isScrolled ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
                       width: 1,
                     ),
                   ),
@@ -563,7 +563,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
     Color? iconColorOverride,
   }) {
     final Color iconColor = iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
-    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withOpacity(0.3);
+    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withValues(alpha: 0.3);
 
     return Container(
       width: 40,

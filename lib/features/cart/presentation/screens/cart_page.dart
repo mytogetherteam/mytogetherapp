@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../data/cart_manager.dart';
@@ -241,27 +242,18 @@ class _CartPageState extends State<CartPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  displayImages[displayImages.length - 1 - index],
+                child: CachedNetworkImage(
+                  imageUrl: displayImages[displayImages.length - 1 - index],
+                  width: 50,
+                  height: 50,
                   fit: BoxFit.cover,
-                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                    if (wasSynchronouslyLoaded) return child;
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: frame != null
-                          ? SizedBox(width: 50, height: 50, child: child)
-                          : const ImageSkeletonLoader(width: 50, height: 50),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  placeholder: (context, url) => const ImageSkeletonLoader(width: 50, height: 50),
+                  errorWidget: (context, url, error) => Container(
                     width: 50,
                     height: 50,
                     color: Colors.grey[100],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
-                      ],
+                    child: Center(
+                      child: Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
                     ),
                   ),
                 ),

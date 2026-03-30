@@ -7,7 +7,7 @@ import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/nearby_restaurant_list_item.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../widgets/map_skeleton_loader.dart';
-import 'package:dio/dio.dart';
+
 import 'package:geolocator/geolocator.dart';
 import 'restaurant_detail_page.dart';
 import 'dart:async';
@@ -41,17 +41,41 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _showMap = false;
   double _currentZoom = 14.0;
-  LatLngBounds? _visibleRegion;
-
-  late final Dio _dio;
-  static const String _googleMapsApiKey = 'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
+  bool _isTransitioning = true;
 
   @override
   void initState() {
     super.initState();
-    _dio = Dio();
     _fetchRestaurants();
     _initLocationService();
+    UserLocationRepository.instance.addListener(_fetchRestaurants);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Start map rendering only after transition animation completes
+    final route = ModalRoute.of(context);
+    if (route != null && route.animation != null) {
+      if (route.animation!.status != AnimationStatus.completed) {
+        route.animation!.addStatusListener(_handleRouteAnimationStatus);
+      } else {
+        setState(() => _isTransitioning = false);
+      }
+    } else {
+      setState(() => _isTransitioning = false);
+    }
+  }
+
+  void _handleRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      if (mounted) {
+        setState(() {
+          _isTransitioning = false;
+        });
+      }
+      ModalRoute.of(context)?.animation?.removeStatusListener(_handleRouteAnimationStatus);
+    }
   }
 
   Future<void> _initLocationService() async {
@@ -283,34 +307,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     });
   }
 
-  /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
-  static List<LatLng> _decodePolyline(String encoded) {
-    final List<LatLng> points = [];
-    int index = 0;
-    int lat = 0;
-    int lng = 0;
-    while (index < encoded.length) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      final int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      final int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-      points.add(LatLng(lat / 1e5, lng / 1e5));
-    }
-    return points;
-  }
 
 
   /// Creates a custom branded map pin with a fork/spoon icon and restaurant name.
@@ -625,6 +621,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   @override
   void dispose() {
+    UserLocationRepository.instance.removeListener(_fetchRestaurants);
     _positionStreamSubscription?.cancel();
     _listScrollController.dispose();
     super.dispose();
@@ -637,9 +634,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   }
 
   Future<void> _onCameraIdle() async {
-    final GoogleMapController controller = await _mapController.future;
-    _visibleRegion = await controller.getVisibleRegion();
-    
     if (_restaurantsFuture != null) {
       final restaurants = await _restaurantsFuture!;
       _updateMarkers(restaurants);
@@ -654,47 +648,48 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         children: [
           // Google Maps Widget
           Positioned.fill(
-            child: FutureBuilder<List<Restaurant>>(
-              future: _restaurantsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const MapSkeletonLoader();
-                }
-                return AnimatedOpacity(
-                  opacity: _showMap ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 600),
-                  child: GoogleMap(
-                    mapType: MapType.normal,
-                    initialCameraPosition: const CameraPosition(
-                      target: _initialPosition,
-                      zoom: 14.0,
-                    ),
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).size.height * 0.52,
-                      top: MediaQuery.of(context).padding.top,
-                    ),
-                    onMapCreated: (GoogleMapController controller) async {
-                      _mapController.complete(controller);
-                      // Show map immediately for speed
-                      if (mounted) {
-                        setState(() => _showMap = true);
+            child: _isTransitioning 
+                ? const MapSkeletonLoader()
+                : FutureBuilder<List<Restaurant>>(
+                    future: _restaurantsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const MapSkeletonLoader();
                       }
+                      return AnimatedOpacity(
+                        opacity: _showMap ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 600),
+                        child: GoogleMap(
+                          mapType: MapType.normal,
+                          initialCameraPosition: const CameraPosition(
+                            target: _initialPosition,
+                            zoom: 14.0,
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).size.height * 0.52,
+                            top: MediaQuery.of(context).padding.top,
+                          ),
+                          onMapCreated: (GoogleMapController controller) async {
+                            _mapController.complete(controller);
+                            // Show map immediately for speed
+                            if (mounted) {
+                              setState(() => _showMap = true);
+                            }
+                          },
+                          onCameraMove: _onCameraMove,
+                          onCameraIdle: _onCameraIdle,
+                          style: AppMapTheme.defaultStyle,
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: false,
+                          mapToolbarEnabled: false,
+                          compassEnabled: false,
+                          markers: _markers,
+                          polylines: _polylines,
+                        ),
+                      );
                     },
-                    onCameraMove: _onCameraMove,
-                    onCameraIdle: _onCameraIdle,
-                    style: AppMapTheme.defaultStyle,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    compassEnabled: false,
-                    markers: _markers,
-                    polylines: _polylines,
                   ),
-                );
-              },
-
-            ),
           ),
           
           // Top Search Bar Area
@@ -872,15 +867,20 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                   ),
                   // Scrollable restaurant list
                   Expanded(
-                    child: FutureBuilder<List<Restaurant>>(
-                      future: _restaurantsFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return ListView.builder(
+                    child: _isTransitioning
+                        ? ListView.builder(
                             itemCount: 5,
                             itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
-                          );
-                        }
+                          )
+                        : FutureBuilder<List<Restaurant>>(
+                            future: _restaurantsFuture,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return ListView.builder(
+                                  itemCount: 5,
+                                  itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
+                                );
+                              }
 
                         if (snapshot.hasError) {
                           return Center(

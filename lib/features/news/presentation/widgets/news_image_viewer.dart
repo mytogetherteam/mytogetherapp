@@ -91,7 +91,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
               child: Container(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -147,7 +147,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.close, color: Colors.white, size: 24),
@@ -156,7 +156,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -182,9 +182,9 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

@@ -26,20 +26,42 @@ class _FoodHeaderState extends State<FoodHeader> {
   void initState() {
     super.initState();
     _loadPrimaryLocation();
-    UserLocationRepository.instance.addListener(_loadPrimaryLocation);
+    UserLocationRepository.instance.addListener(_handleRepositoryChange);
   }
 
   Future<void> _loadPrimaryLocation() async {
     if (!mounted) return;
 
-    // 1. Try Cache first for instant UI response
+    try {
+      // 1. Always prioritize the official primary location from the Repository
+      // In mock mode, this will return the BKK "Home" address if API fails/is empty.
+      final loc = await UserLocationRepository.instance.getPrimaryLocation(forceRefresh: true).timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => throw Exception('Primary location API timeout'),
+      );
+      
+      if (loc != null) {
+        if (mounted) {
+          setState(() {
+            _primaryLocation = loc;
+            _isLoading = false;
+          });
+          UserLocationRepository.instance.setActiveLocation(loc);
+        }
+        return; // Success
+      }
+    } catch (e) {
+      // API error or timeout, fall through to cache/GPS fallback
+    }
+
+    // 2. Try Cache for instant UI response (GPS based)
     final cachedAddr = LocationService().currentAddress;
     final cachedPos = LocationService().cachedPosition;
     
     if (cachedAddr != null && cachedPos != null) {
       if (mounted) {
         final loc = UserLocationModel(
-          id: -1, // Temporary flag for cached
+          id: -1, 
           latitude: cachedPos.latitude,
           longitude: cachedPos.longitude,
           locationName: cachedAddr.split(',').first,
@@ -53,32 +75,10 @@ class _FoodHeaderState extends State<FoodHeader> {
         });
         UserLocationRepository.instance.setActiveLocation(loc);
       }
-    } else {
-      if (mounted) setState(() => _isLoading = true);
-    }
+      return;
+    } 
 
-    try {
-      // We wrap the API call to ensure it doesn't hang the whole process indefinitely
-      final loc = await UserLocationRepository.instance.getPrimaryLocation().timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => throw Exception('Primary location API timeout'),
-      );
-      
-      if (loc != null) {
-        if (mounted) {
-          setState(() {
-            _primaryLocation = loc;
-            _isLoading = false;
-          });
-          UserLocationRepository.instance.setActiveLocation(loc);
-        }
-        return; // Success, we have the official primary
-      }
-    } catch (e) {
-      // API error or timeout, fall through to GPS fallback
-    }
-
-    // 2. If no primary found in API (or API failed), trigger robust fallback
+    // 3. Robust fallback to detecting GPS (which now defaults to BKK too)
     await _fallbackToCurrentLocation();
   }
 
@@ -133,9 +133,17 @@ class _FoodHeaderState extends State<FoodHeader> {
     }
   }
 
+  void _handleRepositoryChange() {
+    if (!mounted) return;
+    setState(() {
+      _primaryLocation = UserLocationRepository.instance.activeLocation;
+      _isLoading = false;
+    });
+  }
+
   @override
   void dispose() {
-    UserLocationRepository.instance.removeListener(_loadPrimaryLocation);
+    UserLocationRepository.instance.removeListener(_handleRepositoryChange);
     super.dispose();
   }
 

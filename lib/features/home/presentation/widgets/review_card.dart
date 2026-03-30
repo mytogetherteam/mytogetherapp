@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 
 class ReviewCard extends StatelessWidget {
@@ -38,16 +39,13 @@ class ReviewCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  userAvatar,
+                child: CachedNetworkImage(
+                  imageUrl: userAvatar,
                   width: 36,
                   height: 36,
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const ImageSkeletonLoader(width: 36, height: 36);
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  placeholder: (context, url) => const ImageSkeletonLoader(width: 36, height: 36),
+                  errorWidget: (context, url, error) => Container(
                     width: 36,
                     height: 36,
                     color: Colors.grey[200],
@@ -78,16 +76,13 @@ class ReviewCard extends StatelessWidget {
           if (image != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
-              child: Image.network(
-                image!,
+              child: CachedNetworkImage(
+                imageUrl: image!,
                 width: double.infinity,
                 height: 200,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ImageSkeletonLoader(height: 200);
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => const ImageSkeletonLoader(height: 200),
+                errorWidget: (context, url, error) => Container(
                   height: 200,
                   width: double.infinity,
                   color: Colors.grey[100],

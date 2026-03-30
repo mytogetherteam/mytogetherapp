@@ -4,6 +4,8 @@ import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
 import '../screens/place_detail_page.dart';
+import '../screens/places_list_page.dart';
+
 
 class TopPlacesNearbySection extends StatefulWidget {
   const TopPlacesNearbySection({super.key});
@@ -57,7 +59,14 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PlacesListPage(),
+                    ),
+                  );
+                },
               ),
             ],
           ),

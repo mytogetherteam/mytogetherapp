@@ -25,9 +25,16 @@ class _FoodPageState extends State<FoodPage> {
     'trending': GlobalKey(),
     'popular-dishes': GlobalKey(),
   };
+  
+  @override
+  void initState() {
+    super.initState();
+    UserLocationRepository.instance.addListener(_onRefresh);
+  }
 
   @override
   void dispose() {
+    UserLocationRepository.instance.removeListener(_onRefresh);
     _scrollController.dispose();
     super.dispose();
   }

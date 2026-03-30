@@ -70,6 +70,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   bool _isTogglingFavorite = false;
 
   Restaurant? _currentRestaurant;
+  List<Widget>? _cachedFeedSections;
 
   // Track which feed sections have reported empty/error (by feedType key)
   final Set<String> _emptySections = {};
@@ -145,6 +146,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
         }
       } catch (_) {}
     });
+
+    // Stable feed sections to prevent skeleton flicker on every rebuild
+    final shopIdForFeed = int.tryParse(widget.id) ?? 0;
+    if (shopIdForFeed > 0) {
+      _cachedFeedSections = _buildFeedSections(shopIdForFeed);
+    }
   }
 
   Future<void> _loadReviews() async {
@@ -272,7 +279,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 controller: _scrollController,
                 slivers: [
                   SliverAppBar(
-                    expandedHeight: 400,
+                    expandedHeight: 420, // Increased from 400 for better proportion
                     pinned: false,
                     stretch: true,
                     backgroundColor: Colors.transparent,
@@ -293,20 +300,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                       child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
                                     ),
                                   )
-                                : Image.network(
-                                    _currentRestaurant?.imagePath ?? '',
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const ImageSkeletonLoader();
-                                    },
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                  : CachedNetworkImage(
+                                      imageUrl: _currentRestaurant?.imagePath ?? '',
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => const ImageSkeletonLoader(),
+                                      errorWidget: (context, error, stackTrace) => Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                        ),
                                       ),
                                     ),
-                                  ),
                             Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -331,7 +335,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 20), // Overlap space
+                          const SizedBox(height: 40), // Increased from 20 for more overlap space
                           // Action Buttons
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -389,7 +393,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                           const SizedBox(height: 30),
                           const SizedBox(height: 30),
                           // ── 5 live feed sections ───────────────────────────
-                          if (int.tryParse(widget.id) != null && int.parse(widget.id) > 0) ..._buildFeedSections(int.parse(widget.id)),
+                          if (_cachedFeedSections != null) ..._cachedFeedSections!,
                           const SizedBox(height: 24),
                           _buildCustomerReviewsSection(),
                           const SizedBox(height: 120), // Bottom padding for cart summary
@@ -428,19 +432,22 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 16),
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      opacity: _isScrolled ? 1.0 : 0.0,
-                      child: Text(
-                        _currentRestaurant?.name ?? '',
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: _isScrolled ? 1.0 : 0.0,
+                        child: Text(
+                          _currentRestaurant?.name ?? '',
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
-                    const Spacer(),
                     _buildCircleIconButton(
                       icon: PhosphorIcons.shareNetwork(),
                       onPressed: () {
@@ -510,7 +517,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 }
                 
                 // Calculate dynamic position
-                double cardTop = 305 - scrollOffset;
+                double cardTop = 325 - scrollOffset; // Adjusted from 305 to match expandedHeight increase
                 
                 // Calculate dynamic opacity (fade out as it moves up)
                 // Start fading after 50px of scroll, fully gone by 250px
@@ -1000,6 +1007,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     return [
       for (int i = 0; i < sections.length; i++) ...[
         ShopFeedSection(
+          key: ValueKey('${sections[i].$1}_$shopId'),
           shopId: shopId,
           feedType: sections[i].$1,
           title: sections[i].$2,
@@ -1010,7 +1018,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
             final changed = isEmpty
                 ? _emptySections.add(sections[i].$1)
                 : _emptySections.remove(sections[i].$1);
-            if (changed && mounted) setState(() {});
+            // ONLY setState if the visibility actually changed and we are not in build phase
+            if (changed && mounted) {
+               Future.microtask(() {
+                 if (mounted) setState(() {});
+               });
+            }
           },
         ),
       ],

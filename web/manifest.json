@@ -1,11 +1,11 @@
 {
-    "name": "mytogetherapp",
-    "short_name": "mytogetherapp",
+    "name": "MyTogether",
+    "short_name": "MyTogether",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#ED3A72",
+    "description": "MyTogether - Your community app.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

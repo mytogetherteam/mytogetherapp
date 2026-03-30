@@ -12,22 +12,32 @@ class AuthRepository {
   final AuthRemoteDataSource _dataSource = AuthRemoteDataSource();
 
   Future<void> login({required String usernameOrEmail, required String password}) async {
-    try {
-      final response = await _dataSource.login(
-        LoginRequest(usernameOrEmail: usernameOrEmail, password: password),
-      );
-      
-      // After login success, we must ensure the token is set for subsequent calls
-      // The Dio interceptor usually handles this, but here we might need a manual set if not yet initialized
-      AuthService().updateAccessToken(response.token);
+    // MOCK LOGIN: Skip API calls and allow any credentials
+    print('[MOCK] Logging in with any credentials...');
+    
+    final mockResponse = AuthResponse(
+      token: 'mock_access_token_${DateTime.now().millisecondsSinceEpoch}',
+      refreshToken: 'mock_refresh_token',
+      id: 123,
+      username: usernameOrEmail.split('@')[0],
+      email: usernameOrEmail.contains('@') ? usernameOrEmail : 'mock@mytogether.com',
+      fullName: 'Together User',
+      role: 'USER',
+    );
 
-      final profile = await _dataSource.getUserProfile();
-      final locations = await _dataSource.getUserLocations();
+    final mockUser = UserModel(
+      id: mockResponse.id,
+      username: mockResponse.username,
+      email: mockResponse.email,
+      fullName: mockResponse.fullName,
+      role: mockResponse.role,
+    );
 
-      await _saveSession(response, profile: profile, locations: locations);
-    } on DioException catch (e) {
-      throw _parseError(e);
-    }
+    // Ensure the mock token is set globally
+    AuthService().updateAccessToken(mockResponse.token);
+
+    // Save session locally to enable navigation to main app
+    await _saveSession(mockResponse, profile: mockUser, locations: []);
   }
 
   Future<void> register({
@@ -36,33 +46,35 @@ class AuthRepository {
     required String password,
     required String fullName,
   }) async {
-    try {
-      final response = await _dataSource.register(
-        RegisterRequest(username: username, email: email, password: password, fullName: fullName),
-      );
-      
-      AuthService().updateAccessToken(response.token);
-      
-      final profile = await _dataSource.getUserProfile();
-      final locations = await _dataSource.getUserLocations();
+    // MOCK REGISTER: Skip API calls and allow any registration
+    print('[MOCK] Registering and logging in...');
+    
+    final mockResponse = AuthResponse(
+      token: 'mock_access_token_${DateTime.now().millisecondsSinceEpoch}',
+      refreshToken: 'mock_refresh_token',
+      id: DateTime.now().millisecondsSinceEpoch,
+      username: username,
+      email: email,
+      fullName: fullName,
+      role: 'USER',
+    );
 
-      await _saveSession(response, profile: profile, locations: locations);
-    } on DioException catch (e) {
-      throw _parseError(e);
-    }
+    final mockUser = UserModel(
+      id: mockResponse.id,
+      username: mockResponse.username,
+      email: mockResponse.email,
+      fullName: mockResponse.fullName,
+      role: mockResponse.role,
+    );
+
+    AuthService().updateAccessToken(mockResponse.token);
+    await _saveSession(mockResponse, profile: mockUser, locations: []);
   }
 
   Future<void> logout() async {
-    try {
-      if (AuthService().isLoggedIn) {
-         await _dataSource.logout();
-      }
-    } catch (_) {
-      // Ignore network errors on logout. 
-      // Main goal is ensuring the user is locally logged out.
-    } finally {
-      await AuthService().clearSession();
-    }
+    // MOCK LOGOUT: Skip API call and clear local session only
+    print('[MOCK] Logging out locally...');
+    await AuthService().clearSession();
   }
 
   Future<void> _saveSession(AuthResponse response, {UserModel? profile, List<UserLocationModel>? locations}) async {

@@ -21,11 +21,13 @@ import 'order_cancel_page.dart';
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
   final double deliveryFee;
+  final String? orderId;
 
   const OrderStatusPage({
     super.key,
     required this.foodTotal,
     required this.deliveryFee,
+    this.orderId,
   });
 
   @override
@@ -53,10 +55,12 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   @override
   void initState() {
     super.initState();
-    _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
+    final state = ActiveOrderState.instance;
+    final order = state.getOrder(widget.orderId);
+    _currentStatus = (order?.orderStatus ?? state.orderStatus).clamp(0, 4);
     
     // Auto-navigate if already completed
-    if (ActiveOrderState.instance.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
+    if (_currentStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
       Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
     }
     
@@ -74,7 +78,6 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     _animateToStatus(_currentStatus);
 
     // Initialize WebView if already on the way
-    final state = ActiveOrderState.instance;
     if (_currentStatus == 3 && state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty) {
       _initWebView(state.deliveryTrackingUrl!);
     }
@@ -83,18 +86,23 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     WebSocketService().connect(force: true);
     
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
+      final updateOrderId = update['orderId']?.toString();
+      if (widget.orderId != null && updateOrderId != widget.orderId) return;
+
       if (mounted) {
         final state = ActiveOrderState.instance;
+        final order = state.getOrder(widget.orderId);
         setState(() {
-          // Map ActiveOrderState orderStatus (0-4) to local _currentStatus (1-4)
-          _currentStatus = state.orderStatus.clamp(1, 4);
+          // Map latest orderStatus (0-4) to local _currentStatus (0-4)
+          _currentStatus = (order?.orderStatus ?? state.orderStatus).clamp(0, 4);
 
           // Trigger WebView init if status is 3 and we have a new URL
+          final trackingUrl = order?.deliveryTrackingUrl ?? state.deliveryTrackingUrl;
           if (_currentStatus == 3 && 
-              state.deliveryTrackingUrl != null && 
-              state.deliveryTrackingUrl!.isNotEmpty &&
-              state.deliveryTrackingUrl != _lastInitedUrl) {
-            _initWebView(state.deliveryTrackingUrl!);
+              trackingUrl != null && 
+              trackingUrl.isNotEmpty &&
+              trackingUrl != _lastInitedUrl) {
+            _initWebView(trackingUrl);
           }
         });
 
@@ -157,6 +165,29 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             ),
           );
         }
+      }
+    });
+
+    // Mock periodic timer for local simulation
+    Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final state = ActiveOrderState.instance;
+      if (state.orderStatus < 4) {
+        state.setOrderStatus(state.orderStatus + 1);
+        setState(() {
+          _currentStatus = state.orderStatus.clamp(1, 4);
+        });
+        if (state.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
+          Future.delayed(const Duration(seconds: 2), () {
+             if (mounted) _navigateToComplete();
+          });
+          timer.cancel();
+        }
+      } else {
+        timer.cancel();
       }
     });
 
@@ -225,6 +256,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
   void _navigateToComplete() {
     if (!mounted) return;
+    final state = ActiveOrderState.instance;
+    if (state.hasNavigatedToComplete) return;
+    
+    state.hasNavigatedToComplete = true;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const OrderCompletePage()),
     );
@@ -462,25 +497,47 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           Positioned.fill(
                             child: (hasTrackingUrl && _webController != null)
                               ? WebViewWidget(controller: _webController!)
-                              : GoogleMap(
-                                  padding: const EdgeInsets.only(bottom: 0),
-                                  initialCameraPosition: CameraPosition(
-                                    target: state.restaurantLatLng ?? const LatLng(13.7563, 100.5018),
-                                    zoom: 14,
+                                : Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: (state.shopImageUrl != null && state.shopImageUrl!.isNotEmpty)
+                                          ? CachedNetworkImage(
+                                              imageUrl: state.shopImageUrl!,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => Container(
+                                                color: Colors.grey[100],
+                                                child: const Center(child: CustomLoadingIndicator(size: 30)),
+                                              ),
+                                              errorWidget: (context, url, error) => Container(
+                                                color: Colors.grey[100],
+                                                child: const Icon(Icons.restaurant, color: Colors.grey, size: 40),
+                                              ),
+                                            )
+                                          : Container(
+                                              color: Colors.grey[100],
+                                              child: const Icon(Icons.restaurant, color: Colors.grey, size: 40),
+                                            ),
+                                      ),
+                                      Positioned(
+                                        bottom: 12,
+                                        left: 0,
+                                        right: 0,
+                                        child: Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.8),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              '(google map is now disabled in testing state)',
+                                              style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  onMapCreated: (controller) {
-                                    _mapController = controller;
-                                    _updateMarkers();
-                                    Future.delayed(const Duration(milliseconds: 400), _fitBounds);
-                                  },
-                                  markers: _markers,
-                                  polylines: _polylines,
-                                  myLocationEnabled: false,
-                                  zoomControlsEnabled: false,
-                                  mapToolbarEnabled: false,
-                                  compassEnabled: false,
-                                  style: AppMapTheme.defaultStyle,
-                                ),
                           ),
                         ],
                       ),
@@ -536,7 +593,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           )
                         else
                           Text(
-                            '$storeName is ${_currentStatus == 1 ? "checking your payment" : _currentStatus == 2 ? "preparing your order" : _currentStatus == 3 ? "delivering your order" : "completing your order"}',
+                            '$storeName is ${_currentStatus == 0 ? "checking your order" : _currentStatus == 1 ? "checking your payment" : _currentStatus == 2 ? "preparing your order" : _currentStatus == 3 ? "delivering your order" : "completing your order"}',
                             style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
                           ),
                         const SizedBox(height: 16),
@@ -997,24 +1054,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Widget _buildProgressBar() {
     return Stack(
       children: [
-        // Background track (Gray line connecting nodes)
+        // Background track (Gray/Pink thick segments connecting nodes)
         Positioned(
-          left: 18,
-          right: 18,
-          top: 18,
-          child: Container(
-            height: 3,
-            color: Colors.grey.shade200,
-          ),
-        ),
-        // Animated Segments
-        Positioned(
-          left: 18,
-          right: 18,
-          top: 18,
+          left: 20,
+          right: 20,
+          top: 16, // middle of 32px circle
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final double availableWidth = (constraints.maxWidth - 36).clamp(0.0, double.infinity);
+              final double availableWidth = (constraints.maxWidth).clamp(0.0, double.infinity);
               if (availableWidth <= 0) return const SizedBox.shrink();
               final segmentWidth = availableWidth / 3.0;
               return Row(
@@ -1022,7 +1069,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                    _buildSegment(
                      width: segmentWidth,
                      filled: _currentStatus > 1,
-                     isProcessing: _currentStatus == 1,
+                     isProcessing: _currentStatus == 0 || _currentStatus == 1,
                    ),
                    _buildSegment(
                      width: segmentWidth,
@@ -1043,10 +1090,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildStepNode(1, PhosphorIcons.package(PhosphorIconsStyle.fill)),
+            _buildStepNode(1, PhosphorIcons.wallet(PhosphorIconsStyle.fill)),
             _buildStepNode(2, PhosphorIcons.cookingPot(PhosphorIconsStyle.fill)),
-            _buildStepNode(3, PhosphorIcons.bicycle(PhosphorIconsStyle.fill)),
-            _buildStepNode(4, PhosphorIcons.house()),
+            _buildStepNode(3, PhosphorIcons.moped(PhosphorIconsStyle.fill)),
+            _buildStepNode(4, PhosphorIcons.house(PhosphorIconsStyle.fill)),
           ],
         ),
       ],
@@ -1056,57 +1103,38 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Widget _buildSegment({required double width, required bool filled, bool isProcessing = false}) {
     return SizedBox(
       width: width,
-      height: 3,
+      height: 5,
       child: Stack(
         children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(2.5),
+            ),
+          ),
           if (filled)
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFED3973),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.5),
               ),
             ),
           if (isProcessing)
             AnimatedBuilder(
               animation: _processingController,
               builder: (context, child) {
-                return Stack(
-                  children: [
-                    // Growing fill line
-                    Container(
-                      width: width * _processingController.value,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFED3973).withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(2),
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFFED3973).withValues(alpha: 0.1),
-                            const Color(0xFFED3973),
-                          ],
-                        ),
-                      ),
+                return Container(
+                  width: width * _processingController.value,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFED3973).withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(2.5),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFED3973).withValues(alpha: 0.1),
+                        const Color(0xFFED3973),
+                      ],
                     ),
-                    // Moving dot/glow at the tip
-                    Positioned(
-                      left: width * _processingController.value - 6,
-                      top: -1.5,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFED3973),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0xFFED3973),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 );
               },
             ),
@@ -1116,12 +1144,49 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   Widget _buildStepNode(int stepIndex, IconData icon) {
-    bool isCompleted = _currentStatus >= stepIndex;
+    bool isCompleted = _currentStatus > stepIndex;
+    // Step 1 represents both status 0 and 1
+    bool isProcessing = (stepIndex == 1 && (_currentStatus == 0 || _currentStatus == 1)) || (_currentStatus == stepIndex && _currentStatus > 1);
+    bool isUpcoming = (stepIndex > 1 && _currentStatus < stepIndex) || (stepIndex == 1 && _currentStatus < 0);
     
-    return Icon(
-      icon,
-      size: 26,
-      color: isCompleted ? const Color(0xFFED3973) : Colors.grey.shade400,
+    Color circleColor;
+    Color iconColor;
+    BoxBorder? border;
+
+    if (isCompleted) {
+      circleColor = const Color(0xFFED3973);
+      iconColor = Colors.white;
+    } else if (isProcessing) {
+      circleColor = Colors.white;
+      iconColor = const Color(0xFFED3973);
+      border = Border.all(color: const Color(0xFFED3973), width: 3);
+    } else {
+      circleColor = Colors.grey.shade300;
+      iconColor = Colors.white;
+    }
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: circleColor,
+        shape: BoxShape.circle,
+        border: border,
+        boxShadow: isProcessing ? [
+          BoxShadow(
+            color: const Color(0xFFED3973).withValues(alpha: 0.2),
+            blurRadius: 8,
+            spreadRadius: 2,
+          )
+        ] : null,
+      ),
+      child: Center(
+        child: Icon(
+          icon,
+          size: 16,
+          color: iconColor,
+        ),
+      ),
     );
   }
 

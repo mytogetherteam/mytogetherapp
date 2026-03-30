@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
@@ -48,20 +49,6 @@ class FoodListItemCard extends StatefulWidget {
 }
 
 class _FoodListItemCardState extends State<FoodListItemCard> {
-  bool _imageLoadFailed = false;
-
-  void _onImageError() {
-    if (mounted && !_imageLoadFailed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _imageLoadFailed = true;
-          });
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool hasInvalidImage = widget.imagePath.trim().isEmpty;
@@ -81,26 +68,18 @@ class _FoodListItemCardState extends State<FoodListItemCard> {
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               clipBehavior: Clip.antiAlias,
-              child: hasInvalidImage || _imageLoadFailed || widget.imagePath.isEmpty
+              child: hasInvalidImage || widget.imagePath.isEmpty
                   ? _buildFallbackImage()
-                  : Image.network(
-                      widget.imagePath,
+                  : CachedNetworkImage(
+                      imageUrl: widget.imagePath,
                       width: 100,
                       height: 100,
+                      memCacheWidth: 200,
                       fit: BoxFit.cover,
-                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                        if (wasSynchronouslyLoaded) return child;
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: frame != null
-                              ? SizedBox(width: 100, height: 100, child: child)
-                              : const ImageSkeletonLoader(width: 100, height: 100),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        _onImageError();
-                        return _buildFallbackImage();
-                      },
+                      fadeInDuration: Duration.zero,
+                      fadeOutDuration: Duration.zero,
+                      placeholder: (context, url) => const ImageSkeletonLoader(width: 100, height: 100),
+                      errorWidget: (context, url, error) => _buildFallbackImage(),
                     ),
             ),
             const SizedBox(width: 16),

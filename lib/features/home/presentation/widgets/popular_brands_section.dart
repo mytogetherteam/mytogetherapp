@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'view_all_icon_button.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../screens/restaurant_detail_page.dart';
@@ -58,7 +59,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           ),
           // Content
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -76,7 +77,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                           color: Colors.black,
                         ),
                       ),
-                      ViewAllIconButton(onPressed: () {}),
+
                     ],
                   ),
                 ),
@@ -104,22 +105,22 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
                         itemCount: chunks.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final chunk = chunks[index];
                           return Column(
                             mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _BrandCard(brand: chunk[0]),
-                              if (chunk.length > 1) ...[
-                                const SizedBox(height: 12),
-                                _BrandCard(brand: chunk[1]),
+                              children: [
+                                _BrandCard(brand: chunk[0]),
+                                if (chunk.length > 1) ...[
+                                  const SizedBox(height: 8),
+                                  _BrandCard(brand: chunk[1]),
+                                ],
+                                if (chunk.length > 2) ...[
+                                  const SizedBox(height: 8),
+                                  _BrandCard(brand: chunk[2]),
+                                ],
                               ],
-                              if (chunk.length > 2) ...[
-                                const SizedBox(height: 12),
-                                _BrandCard(brand: chunk[2]),
-                              ],
-                            ],
                           );
                         },
                       );
@@ -198,10 +199,11 @@ class _BrandCard extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  brand.imagePath.isNotEmpty ? brand.imagePath : 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=100&h=100&fit=crop',
+                child: CachedNetworkImage(
+                  imageUrl: brand.imagePath.isNotEmpty ? brand.imagePath : 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=100&h=100&fit=crop',
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 28),
+                  placeholder: (context, url) => Container(color: Colors.grey.shade100),
+                  errorWidget: (context, url, error) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 28),
                 ),
               ),
             ),
@@ -215,7 +217,7 @@ class _BrandCard extends StatelessWidget {
                   Text(
                     brand.name,
                     style: GoogleFonts.poppins(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),

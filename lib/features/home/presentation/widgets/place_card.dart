@@ -40,7 +40,7 @@ class PlaceCard extends StatelessWidget {
             // Background Image
             Positioned.fill(
               child: Hero(
-                tag: 'top_places_$name',
+                tag: 'place_card_$name',
                 child: CachedNetworkImage(
                   imageUrl: imagePath,
                   width: 240,
@@ -69,7 +69,7 @@ class PlaceCard extends StatelessWidget {
                 child: Container(
                     padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -93,10 +93,10 @@ class PlaceCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
@@ -123,7 +123,7 @@ class PlaceCard extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -133,13 +133,13 @@ class PlaceCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 6.0),
                               child: Text(
                                 '•',
-                                style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                               ),
                             ),
                             Icon(
                               PhosphorIcons.car(),
                               size: 14,
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -147,7 +147,7 @@ class PlaceCard extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
 

@@ -9,8 +9,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
@@ -19,6 +19,7 @@ import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/utils/price_formatter.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -75,6 +76,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               builder: (_) => OrderStatusPage(
                 foodTotal: widget.foodTotal,
                 deliveryFee: order.deliveryFee ?? widget.deliveryFee,
+                orderId: widget.orderId,
               ),
             ),
           );
@@ -305,8 +307,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     if (_receiptImage == null || _isUploading) return;
     setState(() => _isUploading = true);
 
-    final orderId = widget.orderId;
-    if (orderId == null) {
+    final currentOrderId = widget.orderId ?? ActiveOrderState.instance.orderId;
+    if (currentOrderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Order ID not found. Please try again.', style: GoogleFonts.poppins())),
       );
@@ -314,27 +316,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     }
 
     try {
-      // 1. Convert image to Base64
-      final bytes = await _receiptImage!.readAsBytes();
-      final extension = _receiptImage!.path.split('.').last.toLowerCase();
-      final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-      final base64Image = 'data:$mimeType;base64,${base64.encode(bytes)}';
-
-      // 2. Call API
-      final intId = int.tryParse(orderId) ?? 0;
-      final payload = {
-        'orderId': intId,
-        'paymentSlipUrl': base64Image,
-      };
-      
-      await ApiClient().dio.post(
-        '${ApiClient.apiPrefix}/orders/uploadPaymentSlip',
-        data: payload,
-      );
+      // Simulate fake upload delay
+      await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
         // 3. Clear states and navigate
-        final order = ActiveOrderState.instance.getOrder(widget.orderId);
+        final order = ActiveOrderState.instance.getOrder(currentOrderId);
+        
+        // Mock updating local state to "verifying" visually or directly go to status
+        // order status usually stays at 1 (PAYMENT CHECKING)
+        ActiveOrderState.instance.setPaymentChecking(true, orderId: currentOrderId);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -346,18 +338,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        String errorMsg = 'Failed to upload receipt. Please try again.';
-        if (e is DioException) {
-          errorMsg = e.response?.data?['message'] ?? e.message ?? errorMsg;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg, style: GoogleFonts.poppins()),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -545,21 +525,26 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   }
 
   Widget _buildPaymentImage() {
-    final qrUrl = ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl;
-
-    if (qrUrl == null || qrUrl.isEmpty) {
-      return const Center(
-        child: CustomLoadingIndicator(size: 40),
-      );
-    }
-
-    return CachedNetworkImage(
-      imageUrl: qrUrl,
-      fit: BoxFit.contain,
-      placeholder: (context, url) => const Center(
-        child: CustomLoadingIndicator(size: 24),
+    // GENERATE QR LOCALLY: No more network loading or blank screens
+    // This uses the qr_flutter package to render a mock PromptPay code instantly
+    return Center(
+      child: QrImageView(
+        data: '00020101021129370016A000000677010111011300669112233445802TH5303764540510.005802TH62070703***6304',
+        version: QrVersions.auto,
+        size: 260.0,
+        gapless: false,
+        embeddedImageStyle: const QrEmbeddedImageStyle(
+          size: Size(40, 40),
+        ),
+        eyeStyle: const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color: Colors.black,
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.square,
+          color: Colors.black,
+        ),
       ),
-      errorWidget: (context, url, error) => _buildNoImageState(isError: true),
     );
   }
 
@@ -865,18 +850,25 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     ),
                     const SizedBox(height: 16),
                     _summaryRow('Food Price',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0),
+                        (ActiveOrderState.instance.getOrder(widget.orderId)?.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0)).toFormattedPrice(),
                         isValue: false),
                     const SizedBox(height: 16),
                     _summaryRow('Delivery Fee',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayDeliveryFee ?? (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0),
+                        // --- MOCK SAFEGUARD --- 
+                        // Force fee to 30 if old cached distance is wildly out of bounds
+                        ((ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee) > 1000 ? '30' : (ActiveOrderState.instance.getOrder(widget.orderId)?.displayDeliveryFee ?? (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0))).toFormattedPrice(),
                         isValue: false),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
                       child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow('Total',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayTotalAmount ?? (widget.foodTotal + (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0),
+                        // --- MOCK SAFEGUARD ---
+                        // Force recalculation if fee was clamped
+                        (((ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee) > 1000) 
+                          ? (widget.foodTotal + 30).toStringAsFixed(0) 
+                          : (ActiveOrderState.instance.getOrder(widget.orderId)?.displayTotalAmount ?? (widget.foodTotal + (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0))
+                        ).toFormattedPrice(),
                         isValue: true),
                   ],
                 ),
@@ -908,9 +900,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl != null 
-                        ? _saveQrToGallery 
-                        : null,
+                    onPressed: _saveQrToGallery,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFED3973),
                       foregroundColor: Colors.white,

@@ -164,7 +164,7 @@ class FallbackData {
       'title':
           'New Skywalk connects Siam Square to MBK: A boost for Bangkok pedestrians.',
       'imageUrl':
-          'https://images.unsplash.com/photo-1512428559083-a400a4b82c97?q=80&w=1200&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=800&auto=format&fit=crop',
       'source': 'Bangkok Post',
       'timeAgo': '10m ago',
     },
@@ -172,7 +172,7 @@ class FallbackData {
       'title':
           'The Songkran Festival 2026: Official dates and main event locations announced.',
       'imageUrl':
-          'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=1000&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=800&auto=format&fit=crop',
       'source': 'Thai PBS',
       'timeAgo': '1h ago',
     },
@@ -193,13 +193,13 @@ class FallbackData {
       'category': 'Historical Landmark',
       'distance': '2.1 km',
       'imagePath':
-          'https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?q=80&w=1400&auto=format&fit=crop',
+          'https://image.umetravel.com/edit_upload/20200714/1594695690198299.jpg',
       'description':
           'A complex of buildings at the heart of Bangkok, the Grand Palace has been the official residence of the Kings of Siam since 1782.',
       'hours': '8:30 AM - 3:30 PM',
       'gallery': [
-        'https://images.unsplash.com/photo-1544015759-338276f920f3?q=80&w=800&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1569424888066-8848db9980d2?q=80&w=800&auto=format&fit=crop',
+        'https://www.travelonline.com/thailand/attractions/grand-palace/thailand-generic-grand-palace-hd-56219-banner.jpg',
+        'https://cdn.britannica.com/59/252559-050-F959E5DC/Grand-palace-and-Wat-Phra-Keaw-Bangkok.jpg',
       ],
     },
     {
@@ -207,13 +207,13 @@ class FallbackData {
       'category': 'Temple',
       'distance': '1.8 km',
       'imagePath':
-          'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?q=80&w=1400&auto=format&fit=crop',
+          'https://static.wixstatic.com/media/2cc94a_07e55de318fe41538e17cb9de596cb45~mv2.jpg/v1/fill/w_2500,h_1406,al_c/2cc94a_07e55de318fe41538e17cb9de596cb45~mv2.jpg',
       'description':
           'Wat Arun, the "Temple of Dawn", is one of Bangkok\'s most iconic symbols situated on the west bank of the Chao Phraya River.',
       'hours': '8:00 AM - 6:00 PM',
       'gallery': [
-        'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?q=80&w=800&fit=crop',
-        'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?q=80&w=800&fit=crop',
+        'https://www.agoda.com/wp-content/uploads/2024/07/Wat-Arun-at-Sunset.jpg',
+        'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhu4YkkapGaVVFdaRXfZypzqcekONZ2bNNd4orvZDpq3xY9q5Vo6SAbKbZfYTjcJ8AI-ZqrSRcj_Yi2LoxPmHmCm3DS8N8K6Z9Qn6tRs1xzkjSf7FVAUoHhRKBdnQGAt_cUVOj32a2lSxp6xmyUvwcRA-DM2mzZDrcn7SDHwuNRds7ejMSg4TmFjVJKig/s1600/Wat%20Arun-14.jpg',
       ],
     },
     {
@@ -221,12 +221,12 @@ class FallbackData {
       'category': 'City Park',
       'distance': '3.5 km',
       'imagePath':
-          'https://images.unsplash.com/photo-1583417319070-4a69db38a482?q=80&w=1400&auto=format&fit=crop',
+          'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/10/b8/3b/d3/lumpini-park-4.jpg?w=900&h=500&s=1',
       'description':
           'The first public park in Bangkok, offering a green oasis with a large artificial lake, jogging tracks, and playgrounds.',
       'hours': '4:30 AM - 9:00 PM',
       'gallery': [
-        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800',
+        'https://www.pelago.com/img/collections/lumpini-park/0710-0226_lumpini-park-bangkok.jpg',
       ],
     },
     {
@@ -234,25 +234,12 @@ class FallbackData {
       'category': 'Shopping Mall',
       'distance': '0.5 km',
       'imagePath':
-          'https://images.unsplash.com/photo-1565967511849-76a60a516170?q=80&w=1400&auto=format&fit=crop',
+          'http://fridaybangkok.com/_next/image?url=%2Fapi%2Fimage-proxy%3Furl%3Dhttps%253A%252F%252Fd1xbecb6qvn9r4.cloudfront.net%252F%252FSiam_Paragon_0c1addeb19.jpg&w=3840&q=75',
       'description':
           'One of the largest shopping malls in Thailand, featuring high-end brands, a massive aquarium, and luxury cinemas.',
       'hours': '10:00 AM - 10:00 PM',
       'gallery': [
-        'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?q=80&w=800',
-      ],
-    },
-    {
-      'name': 'Wat Phra Kaew',
-      'category': 'Temple',
-      'distance': '2.3 km',
-      'imagePath':
-          'https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=1400&auto=format&fit=crop',
-      'description':
-          'Commonly known in English as the Temple of the Emerald Buddha and officially as Wat Phra Si Rattana Satsadaram.',
-      'hours': '8:30 AM - 3:30 PM',
-      'gallery': [
-        'https://images.unsplash.com/photo-1569424888066-8848db9980d2?q=80&w=800&auto=format&fit=crop',
+        'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/24/5c/8d/5b/sealife.jpg?w=900&h=500&s=1',
       ],
     },
   ];

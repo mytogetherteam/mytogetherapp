@@ -36,8 +36,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     NavigationController.instance.tabChangeRequest.addListener(_onTabChangeRequested);
     
     // Global listener for order completion
-    _lastStatus = ActiveOrderState.instance.orderStatus;
-    ActiveOrderState.instance.addListener(_onOrderStateChanged);
+    final state = ActiveOrderState.instance;
+    _lastStatus = state.orderStatus;
+    
+    // --- MOCK SAFEGUARD ---
+    // Pre-populate notified set with existing terminal orders to avoid "auto-navigation" to cancel page on startup
+    for (var o in state.allOrdersList) {
+      if (o.orderStatus == -1 || o.orderStatus == 4) {
+        _notifiedCancelledOrders.add(o.orderId);
+      }
+    }
+
+    state.addListener(_onOrderStateChanged);
   }
 
   void _onOrderStateChanged() {
@@ -46,11 +56,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final newStatus = state.orderStatus;
     
     // Check for transition to COMPLETED (4)
-    if (newStatus == 4 && _lastStatus != 4 && !OrderCompletePage.isCurrentlyVisible) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const OrderCompletePage()),
-      );
+    // We check allOrdersList to find the specific order that just finished
+    ActiveOrderItem? completedOrder;
+    for (final o in state.allOrdersList) {
+      if (o.orderStatus == 4 && !_notifiedCancelledOrders.contains(o.orderId)) {
+        completedOrder = o;
+        break;
+      }
+    }
+
+    if (completedOrder != null && !OrderCompletePage.isCurrentlyVisible && !state.hasNavigatedToComplete) {
+      state.hasNavigatedToComplete = true;
+      final targetOrderId = completedOrder.orderId;
+      _notifiedCancelledOrders.add(targetOrderId);
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => OrderCompletePage(orderId: targetOrderId)),
+          );
+        }
+      });
     }
     
     // Check for any order that just became CANCELLED (-1)

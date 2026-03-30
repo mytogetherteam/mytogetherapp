@@ -8,8 +8,8 @@ class LocationService {
   LocationService._internal();
 
   // Bangkok fallback
-  static const double defaultLat = 13.7563;
-  static const double defaultLon = 100.5018;
+  static const double defaultLat = 13.7431;
+  static const double defaultLon = 100.5562;
 
   Position? _cachedPosition;
   String? _currentAddress;

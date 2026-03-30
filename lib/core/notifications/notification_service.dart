@@ -163,19 +163,9 @@ class NotificationService {
   }
 
   Future<void> _sendTokenToServer(String token) async {
-    try {
-      String deviceId = await _getDeviceId();
-      
-      await ApiClient().dio.post(
-        '/api/v1/mobile/notifications/register-device',
-        data: {
-          'fcmToken': token,
-          'deviceId': deviceId,
-        },
-      );
-    } catch (e) {
-      // Ignore token registration errors
-    }
+    // --- MOCK LOCAL-ONLY ---
+    debugPrint(' [FCM] Device token registration disabled for mock environment.');
+    return;
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {

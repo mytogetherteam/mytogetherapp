@@ -183,6 +183,8 @@ class ActiveOrderItem {
 class ActiveOrderState extends ChangeNotifier {
   static final ActiveOrderState instance = ActiveOrderState._();
   ActiveOrderState._();
+  
+  bool hasNavigatedToComplete = false;
 
   final Map<String, ActiveOrderItem> _orders = {};
   final Set<String> _cancellingOrders = {}; 
@@ -313,6 +315,7 @@ class ActiveOrderState extends ChangeNotifier {
     String? userLocationName,
     LatLng? restaurantLatLng,
     LatLng? userLocation,
+    String? shopImageUrl,
   }) {
     final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
     _orders[id] = ActiveOrderItem(
@@ -327,6 +330,7 @@ class ActiveOrderState extends ChangeNotifier {
       userLocationName: userLocationName,
       restaurantLatLng: restaurantLatLng,
       userLocation: userLocation,
+      shopImageUrl: shopImageUrl,
     );
     saveToPrefs();
     notifyListeners();
@@ -372,24 +376,9 @@ class ActiveOrderState extends ChangeNotifier {
 
 
   Future<void> syncActiveOrder({String? orderId}) async {
-    final targetId = orderId ?? this.orderId;
-    if (targetId == null || !hasActiveOrder) return;
-    
-    try {
-      final sanitizedOrderId = targetId.replaceAll('#', '');
-      final response = await ApiClient().dio.get(
-        '${ApiClient.apiPrefix}/orders/$sanitizedOrderId',
-        options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
-      );
-      
-      if (response.statusCode == 200 && response.data != null) {
-        final data = response.data as Map<String, dynamic>;
-        data['orderId'] = targetId;
-        updateFromSocket(data);
-      }
-    } catch (e) {
-      // Silent fail
-    }
+    // --- MOCK LOCAL-ONLY ---
+    // Background order sync disabled to prevent backend errors or stale data re-injection.
+    return;
   }
 
   void updateFromSocket(Map<String, dynamic> data) {
@@ -434,13 +423,13 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
 
-    if (data['displayFoodPrice'] != null) item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
-    if (data['displayDeliveryFee'] != null) item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
-    if (data['displayTotalAmount'] != null) item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
+    if (data['displayFoodPrice'] != null && data['displayFoodPrice'] != "") item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
+    if (data['displayDeliveryFee'] != null && data['displayDeliveryFee'] != "") item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+    if (data['displayTotalAmount'] != null && data['displayTotalAmount'] != "") item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
 
-    if (data['deliveryAddress'] != null) item.deliveryAddress = _parseSafeString(data['deliveryAddress']);
-    if (data['restaurantAddress'] != null) item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
-    if (data['userLocationName'] != null) item.userLocationName = _parseSafeString(data['userLocationName']);
+    if (data['deliveryAddress'] != null && data['deliveryAddress'] != "") item.deliveryAddress = _parseSafeString(data['deliveryAddress']);
+    if (data['restaurantAddress'] != null && data['restaurantAddress'] != "") item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
+    if (data['userLocationName'] != null && data['userLocationName'] != "") item.userLocationName = _parseSafeString(data['userLocationName']);
 
     if (data['restaurantLatitude'] != null && data['restaurantLongitude'] != null) {
       item.restaurantLatLng = LatLng(
@@ -603,18 +592,12 @@ class ActiveOrderState extends ChangeNotifier {
     final sanitizedOrderId = targetId.replaceAll('#', '');
     
     try {
-      final response = await ApiClient().dio.put(
-        '${ApiClient.apiPrefix}/orders/$sanitizedOrderId/cancel',
-        queryParameters: {'reason': reason ?? 'User cancelled'},
-        data: {},
-        options: Options(contentType: 'application/json'),
-      );
+      // --- MOCK CANCEL ACTION ---
+      await Future.delayed(const Duration(seconds: 1)); // Simulate latency
       
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        _cancellingOrders.remove(targetId);
-        clearOrder(orderId: targetId);
-        return true;
-      }
+      _cancellingOrders.remove(targetId);
+      clearOrder(orderId: targetId);
+      return true;
     } catch (e) {
       _cancellingOrders.remove(targetId);
       clearOrder(orderId: targetId);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -93,6 +94,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
     
     _startIdleAnimationSequence();
+
+    // Mock Timer for local simulation
+    Timer(const Duration(seconds: 15), () {
+      if (mounted) _navigateToPayment();
+    });
 
     WebSocketService().connect(force: true);
     
@@ -755,33 +761,78 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── MAP ──────────────────────────────────────────────────────────
+          // ── MOCK MAP ────────────────────────────────────────────────────────
           Positioned.fill(
-            child: _showMap
-                ? GoogleMap(
-                    padding: EdgeInsets.only(bottom: panelH * 1.1), // Push camera up to stay above the bottom panel
-                    initialCameraPosition: CameraPosition(
-                      target: _restaurantLatLng,
-                      zoom: 14,
+            child: Container(
+              color: const Color(0xFFF1F5F9),
+              child: Stack(
+                children: [
+                   Positioned.fill(
+                    child: Builder(
+                      builder: (context) {
+                        final String? imageUrl = widget.restaurant?.imagePath ?? ActiveOrderState.instance.getOrder(ActiveOrderState.instance.orderId)?.shopImageUrl;
+                        if (imageUrl != null && imageUrl.isNotEmpty) {
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[100],
+                              child: const Center(child: CustomLoadingIndicator(size: 30)),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[100],
+                              child: const Icon(Icons.restaurant, color: Colors.grey, size: 40),
+                            ),
+                          );
+                        }
+                        return Container(
+                          color: Colors.grey[100],
+                          child: const Icon(Icons.restaurant, color: Colors.grey, size: 40),
+                        );
+                      },
                     ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      _updateMarkersAndPolylines();
-                      if (_routePoints.isNotEmpty) {
-                        _fitBounds(_routePoints);
-                      }
-                    },
-                    markers: _markers,
-                    polylines: _polylines,
-                    myLocationEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    compassEnabled: false,
-                    tiltGesturesEnabled: false,
-                    rotateGesturesEnabled: false,
-                    style: AppMapTheme.defaultStyle,
-                  )
-                : const MapSkeletonLoader(),
+                  ),
+                  // Disclaimer
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 80,
+                    left: 20,
+                    right: 20,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(color: const Color(0xFFED3973).withValues(alpha: 0.2), width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(PhosphorIconsRegular.info, color: Color(0xFFED3973), size: 20),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Google Map is disabled in testing state',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
 
 
@@ -877,51 +928,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                         color: Colors.black),
                                   ),
                                   const SizedBox(height: 6),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'The restaurant is reviewing your order and arranging a delivery rider.',
-                                          style: GoogleFonts.poppins(
-                                              fontSize: 13,
-                                              color: Colors.grey[600],
-                                              height: 1.5),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              'Order ID',
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 10,
-                                                color: Colors.grey[600],
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            Text(
-                                              (ActiveOrderState.instance.orderId != null && !ActiveOrderState.instance.orderId!.startsWith('#')) 
-                                                  ? '#${ActiveOrderState.instance.orderId}' 
-                                                  : (ActiveOrderState.instance.orderId ?? '...'),
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 13,
-                                                color: const Color(0xFFED3973),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    Text(
+                                      'The restaurant is reviewing your order and arranging a delivery rider.',
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                          height: 1.5),
+                                    ),
                                   const SizedBox(height: 16),
 
                           LayoutBuilder(

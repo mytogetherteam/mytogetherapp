@@ -100,6 +100,33 @@ class CartManager extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<void> _cacheCartFromStores() async {
+    final carts = _stores.map((s) => CartDto(
+      shopId: int.tryParse(s.items.firstOrNull?.restaurantId ?? '0'),
+      shopName: s.name,
+      items: s.items.map((i) => CartItemDto(
+        id: int.tryParse(i.id) ?? 0,
+        menuItemId: i.menuItemId,
+        name: i.title,
+        price: i.price,
+        quantity: i.quantity,
+        total: i.price * i.quantity,
+        imageUrl: i.imageUrl,
+        variantId: i.variantId,
+        variantName: i.variantName,
+        variantNameMm: i.variantNameMm,
+        optionIds: i.optionIds,
+        optionNames: i.options?.split(', '),
+        specialInstructions: i.specialInstructions,
+      )).toList(),
+      subtotal: s.items.fold(0.0, (sum, i) => sum + (i.price * i.quantity)),
+      deliveryFee: 30.0,
+      total: s.items.fold(0.0, (sum, i) => sum + (i.price * i.quantity)) + 30.0,
+      totalItems: s.items.fold(0, (sum, i) => sum + i.quantity),
+    )).toList();
+    await _cacheCart(carts);
+  }
+
   Future<void> invalidateCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -108,17 +135,10 @@ class CartManager extends ChangeNotifier {
   }
 
   Future<void> syncWithApi() async {
-    // If cache is fresh, skip the API call entirely
-    final hitCache = await _loadCachedCart();
-    if (hitCache) return;
-
-    try {
-      final carts = await CartRepository.instance.getAllCarts();
-      _updateFromCarts(carts);
-      await _cacheCart(carts);
-    } catch (e) {
-      // Ignore sync errors
-    }
+    // --- MOCK LOCAL ONLY ---
+    // In mock mode, we only load from the fresh local cache and skip the API entirely
+    // so we don't wipe out the user's manual "Add to Cart" demo items.
+    await _loadCachedCart();
   }
 
   void _updateFromCarts(List<CartDto> carts) {
@@ -160,6 +180,7 @@ class CartManager extends ChangeNotifier {
     } else {
       _stores.add(_mapDtoToStore(dto));
     }
+    _cacheCartFromStores();
     notifyListeners();
   }
 
@@ -265,43 +286,11 @@ class CartManager extends ChangeNotifier {
             items: updatedItems,
           );
         }
+        _cacheCartFromStores();
         notifyListeners(); // Refresh UI instantly
       }
     }
-    // ----------------------------
-
-
-    try {
-      CartDto? result;
-      bool wasDeleted = false;
-      if (newQuantity <= 0) {
-        result = await CartRepository.instance.removeCartItem(cartItemId);
-        wasDeleted = true;
-      } else {
-        result = await CartRepository.instance.updateCartItem(cartItemId, UpdateCartItemRequest(
-          quantity: newQuantity,
-          specialInstructions: specialInstructions,
-          variantId: variantId,
-          optionIds: optionIds,
-        ));
-      }
-      
-      if (result != null) {
-        updateCartFromDto(result);
-        await invalidateCache();
-      } else if (wasDeleted) {
-        // API returned null on delete = success, cart is perfectly empty!
-        _stores.removeWhere((s) => s.name == storeName);
-        notifyListeners();
-        await invalidateCache();
-      }
-      
-      return result;
-    } catch (e) {
-      // If an update fails, force a sync to ensure local state matches server
-      await syncWithApi();
-      return null;
-    }
+    return null; // Local only update
   }
 
   int getStoreTotal(String storeName) {
@@ -316,34 +305,20 @@ class CartManager extends ChangeNotifier {
   }
 
   Future<void> removeStore(String storeName) async {
-    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
-    if (storeIndex == -1) return;
-
-    final itemsToRemove = List<CartItem>.from(_stores[storeIndex].items);
-    
-    try {
-      // Remove each item in this store from the backend
-      for (var item in itemsToRemove) {
-        final cartItemId = int.tryParse(item.id);
-        if (cartItemId != null) {
-          await CartRepository.instance.removeCartItem(cartItemId);
-        }
-      }
-
-      await invalidateCache();
-      // Sync with API to get fresh state
-      await syncWithApi();
-    } catch (e) {
-      // Still sync just in case some were removed
-      await invalidateCache();
-      await syncWithApi();
-    }
+    _stores.removeWhere((s) => s.name == storeName);
+    await _cacheCartFromStores();
+    notifyListeners();
   }
 
   Future<void> clearCart() async {
-    await CartRepository.instance.clearCart();
-    await invalidateCache();
-    await syncWithApi();
+    _stores.clear();
+    await _cacheCartFromStores();
+    notifyListeners();
+  }
+
+  void clearStoreLocally(String storeName) {
+    _stores.removeWhere((s) => s.name == storeName);
+    notifyListeners();
   }
 
   /// Finds a cart item matching the given criteria across all stores.

@@ -21,6 +21,7 @@ import 'package:mytogetherapp/features/notifications/presentation/screens/notifi
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/places_list_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,7 +32,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _bellAnimationController;
-  late Animation<double> _bellScaleAnimation;
 
   @override
   void initState() {
@@ -40,11 +40,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _bellScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 1.3, end: 0.9), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.0), weight: 40),
-    ]).animate(CurvedAnimation(parent: _bellAnimationController, curve: Curves.easeInOut));
 
     NotificationRepository().getUnreadCount();
     
@@ -347,7 +342,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
                                     mainAxisSpacing: 8,
                                     crossAxisSpacing: 8,
-                                    childAspectRatio: 0.95,
+                                    childAspectRatio: 0.85, // Taller to prevent text overflow on narrow devices
                                     children: [
                                       CategoryCard(
                                         title: 'Food &\nRestaurant',
@@ -361,7 +356,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         onTap: () => Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => const LostAndFoundPage(),
+                                            builder: (context) => LostAndFoundPage(),
                                           ),
                                         ),
                                       ),
@@ -371,7 +366,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         onTap: () => Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => const CurrencyExchangePage(),
+                                            builder: (context) => CurrencyExchangePage(),
                                           ),
                                         ),
                                       ),
@@ -381,13 +376,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         onTap: () => Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => const VisaPage(),
+                                            builder: (context) => VisaPage(),
                                           ),
                                         ),
                                       ),
                                       CategoryCard(
                                         title: 'Places',
                                         assetPath: 'assets/images/services/places_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => PlacesListPage(),
+                                          ),
+                                        ),
                                       ),
                                       CategoryCard(
                                         title: 'Store',
@@ -399,6 +400,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 const SizedBox(height: 12),
                                 const TogetherDealsSection(),
                                 const RestaurantsNearbySection(),
+                                const SizedBox(height: 12),
                                 const PopularBrandsSection(),
                                 const SizedBox(height: 24),
                                 const TodaysOverviewSection(),

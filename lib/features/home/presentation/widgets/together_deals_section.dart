@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'view_all_icon_button.dart';
+
 import 'image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../screens/restaurant_detail_page.dart';
-import '../screens/today_overview_detail_page.dart';
+
 
 class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
@@ -68,19 +68,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                   ],
                 ),
               ),
-              ViewAllIconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TodayOverviewDetailPage(
-                        title: 'Together Up to 40% Off',
-                        type: 'deals',
-                      ),
-                    ),
-                  );
-                },
-              ),
+
             ],
           ),
         ),

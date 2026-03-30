@@ -284,7 +284,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             });
                           },
                           child: Hero(
-                            tag: widget.item.imageUrls[0],
+                            tag: 'news_card_${widget.item.id}_${widget.item.imageUrls[0]}',
                             child: Padding(
                               // Single image: Reduced width (with extra right padding) for better proportion
                               padding: const EdgeInsets.only(left: leftContentOffset, right: 40.0),
@@ -343,7 +343,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                     right: 12.0,
                                   ),
                                   child: Hero(
-                                    tag: imageUrl,
+                                    tag: 'news_card_${widget.item.id}_$imageUrl',
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(16),
                                       child: CachedNetworkImage(

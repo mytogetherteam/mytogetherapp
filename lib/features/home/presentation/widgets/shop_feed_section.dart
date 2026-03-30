@@ -182,12 +182,14 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
 
         _hasScrolled = true;
 
-        Scrollable.ensureVisible(
-          targetContext,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOutCubic,
-          alignment: 0.3, // Centers the item nicely in the upper half of screen
-        );
+        if (context.mounted) {
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: const Duration(milliseconds: 1200),
+            curve: Curves.easeInOutCubic,
+            alignment: 0.3, // Centers the item nicely in the upper half of screen
+          );
+        }
       });
     });
   }

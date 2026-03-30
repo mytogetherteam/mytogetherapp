@@ -6,6 +6,7 @@ import '../screens/order_status_page.dart';
 import '../screens/awaiting_payment_page.dart';
 import '../screens/order_complete_page.dart';
 import '../screens/order_tracking_page.dart';
+import '../screens/order_cancel_page.dart';
 import '../../data/cart_manager.dart';
 
 class ActiveOrderBar extends StatefulWidget {
@@ -100,6 +101,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    if (OrderCompletePage.isCurrentlyVisible) return const SizedBox.shrink();
+
     return ListenableBuilder(
       listenable: Listenable.merge([ActiveOrderState.instance, _slideCtrl]),
       builder: (context, _) {
@@ -218,26 +221,56 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
   }
 
   void _handleOrderTap(ActiveOrderItem order) {
-    final s = order.orderStatus;
-    if (s == 2 || s == -1) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderStatusPage(
-        foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
-        deliveryFee: order.deliveryFee ?? 0,
-      )));
-    } else if (s == 1) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => AwaitingPaymentPage(
-      orderId: order.orderId,
-      foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
-      deliveryFee: order.deliveryFee ?? 0,
-    )));
-  } else if (s == 3 || s == 0) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderTrackingPage(
-        store: CartStore(name: order.storeName ?? '', items: order.orderItems),
-        foodTotal: (order.totalAmount ?? 0).toInt(),
-      )));
-    } else if (s == 4 && !OrderCompletePage.isCurrentlyVisible) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderCompletePage()));
-    }
+    // RESOLVE LATEST STATE: Fetch the freshest data from the repository before navigating
+    final latestOrder = ActiveOrderState.instance.getOrder(order.orderId) ?? order;
+    final s = latestOrder.orderStatus;
+    
+    // Calculate subtotal (Total - Fee)
+    final double subtotal = (latestOrder.totalAmount ?? 0) - (latestOrder.deliveryFee ?? 0);
+    final double deliveryFee = latestOrder.deliveryFee ?? 0;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      if (s == 1) {
+        // Awaiting Payment - Logic check for upload state
+        if (latestOrder.showUploadSection) {
+          // Still need to upload or show QR
+          Navigator.push(context, MaterialPageRoute(builder: (_) => AwaitingPaymentPage(
+            orderId: latestOrder.orderId,
+            foodTotal: subtotal,
+            deliveryFee: deliveryFee,
+          )));
+        } else {
+          // Already uploaded, go to verification status page
+          Navigator.push(context, MaterialPageRoute(builder: (_) => OrderStatusPage(
+            foodTotal: subtotal,
+            deliveryFee: deliveryFee,
+            orderId: latestOrder.orderId,
+          )));
+        }
+      } else if (s == 0 || s == 2 || s == 3) {
+        // Pending Confirmation, Preparing or Delivering
+        Navigator.push(context, MaterialPageRoute(builder: (_) => OrderStatusPage(
+          foodTotal: subtotal,
+          deliveryFee: deliveryFee,
+          orderId: latestOrder.orderId,
+        )));
+      } else if (s == 4 && !OrderCompletePage.isCurrentlyVisible) {
+        // Completed
+        Navigator.push(context, MaterialPageRoute(builder: (_) => OrderCompletePage(orderId: latestOrder.orderId)));
+      } else if (s == -1) {
+        // Cancelled
+        Navigator.push(context, MaterialPageRoute(builder: (_) => OrderCancelPage(
+          orderId: latestOrder.orderId,
+          shopId: latestOrder.restaurantId,
+          shopName: latestOrder.restaurantName,
+          shopLogo: latestOrder.logoPath,
+          shopImageUrl: latestOrder.shopImageUrl,
+          reason: 'The restaurant is unable to fulfill your order at this time.',
+        )));
+      }
+    });
   }
 
   Widget _buildPageIndicator(int count) {

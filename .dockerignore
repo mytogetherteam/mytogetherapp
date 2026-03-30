@@ -1,0 +1,16 @@
+.dart_tool/
+build/
+ios/
+android/
+windows/
+linux/
+macos/
+.git/
+.gitignore
+*.md
+*.log
+Dockerfile
+nginx.conf
+.idea/
+*.iml
+test/

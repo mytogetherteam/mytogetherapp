@@ -39,19 +39,25 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
   }
 
   Future<List<MenuItemDto>> _fetchTrending() async {
+    const timeout = Duration(seconds: 3);
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
       
-      final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        radiusKm: 10.0,
-      ).timeout(const Duration(seconds: 5));
-      return section.items.map((t) => _trendingToMenuItem(t)).toList();
+      return await Future.any([
+        Future(() async {
+          final pos = await LocationService().getCurrentPosition();
+          final section = await RestaurantRepository.instance.getTrendingItems(
+            lat: activeLoc?.latitude ?? pos.latitude,
+            lon: activeLoc?.longitude ?? pos.longitude,
+            radiusKm: 10.0,
+          );
+          return section.items.map((t) => _trendingToMenuItem(t)).toList();
+        }),
+        Future.delayed(timeout).then((_) => throw Exception('Location/API Timeout')),
+      ]);
     } catch (e) {
       debugPrint('TodaysOverviewSection: API error or timeout: $e');
-      return []; // Trigger fallback in builder
+      return []; // Trigger fallback to FallbackData.trendingItems in builder
     }
   }
 

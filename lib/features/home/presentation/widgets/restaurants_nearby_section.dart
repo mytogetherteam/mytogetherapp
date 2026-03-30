@@ -29,18 +29,25 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
   }
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
+    const timeout = Duration(seconds: 3); // Faster timeout for real device fallback
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
       
-      return await RestaurantRepository.instance.getNearbyShops(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        radius: 10.0,
-      ).timeout(const Duration(seconds: 5));
+      // Wrap the whole location + API fetch in a single timeout
+      return await Future.any([
+        Future(() async {
+          final pos = await LocationService().getCurrentPosition();
+          return await RestaurantRepository.instance.getNearbyShops(
+            lat: activeLoc?.latitude ?? pos.latitude,
+            lon: activeLoc?.longitude ?? pos.longitude,
+            radius: 10.0,
+          );
+        }),
+        Future.delayed(timeout).then((_) => throw Exception('Location/API Timeout')),
+      ]);
     } catch (e) {
       debugPrint('RestaurantsNearbySection: API error or timeout: $e');
-      return []; // Return empty to trigger fallback in builder
+      return []; // Return empty to trigger fallback to FallbackData.restaurants
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'lost_item_card.dart';
 import 'view_all_icon_button.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_item_detail_page.dart';
 import '../../data/fallback_data.dart';
 
 class LostItemsNearbySection extends StatefulWidget {
@@ -64,12 +65,36 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
                       description: lostItems[firstItemIndex]['description'] ?? '',
                       imageUrl: lostItems[firstItemIndex]['imageUrl'] ?? '',
                       timeAgo: lostItems[firstItemIndex]['timeAgo'] ?? '',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LostItemDetailPage(
+                              description: lostItems[firstItemIndex]['description'] ?? '',
+                              imageUrl: lostItems[firstItemIndex]['imageUrl'] ?? '',
+                              timeAgo: lostItems[firstItemIndex]['timeAgo'] ?? '',
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     if (secondItemIndex < lostItems.length)
                       LostItemCard(
                         description: lostItems[secondItemIndex]['description'] ?? '',
                         imageUrl: lostItems[secondItemIndex]['imageUrl'] ?? '',
                         timeAgo: lostItems[secondItemIndex]['timeAgo'] ?? '',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LostItemDetailPage(
+                                description: lostItems[secondItemIndex]['description'] ?? '',
+                                imageUrl: lostItems[secondItemIndex]['imageUrl'] ?? '',
+                                timeAgo: lostItems[secondItemIndex]['timeAgo'] ?? '',
+                              ),
+                            ),
+                          );
+                        },
                       ),
                   ],
                 ),

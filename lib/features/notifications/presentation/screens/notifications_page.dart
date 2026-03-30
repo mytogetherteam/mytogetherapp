@@ -37,33 +37,60 @@ class _NotificationsPageState extends State<NotificationsPage> {
       });
     }
 
-    try {
-      final newNotifications = await _repository.getNotifications(
-        page: _currentPage,
-        size: _pageSize,
-      );
+    // --- MOCK DATA INJECTION ---
+    await Future.delayed(const Duration(milliseconds: 800)); // Simulate loading
+    
+    final List<NotificationModel> mockData = [
+      NotificationModel(
+        id: 1,
+        title: 'Order Confirmed! 🍔',
+        body: 'Your order from Lotteria has been confirmed and is being prepared.',
+        type: 'ORDER',
+        sentAt: DateTime.now().subtract(const Duration(minutes: 15)),
+        read: false,
+      ),
+      NotificationModel(
+        id: 2,
+        title: 'Flash Sale! 🔥',
+        body: 'Get 50% OFF on all pizza orders for the next 2 hours. Use code PIZZA50.',
+        type: 'PROMO',
+        sentAt: DateTime.now().subtract(const Duration(hours: 2)),
+        read: false,
+      ),
+      NotificationModel(
+        id: 3,
+        title: 'Welcome to MyTogether! 🎉',
+        body: 'Start exploring the best local food and services right at your fingertips.',
+        type: 'SYSTEM',
+        sentAt: DateTime.now().subtract(const Duration(days: 1)),
+        read: true,
+      ),
+      NotificationModel(
+        id: 4,
+        title: 'Delivery Update 🛵',
+        body: 'Rider is picking up your order from The Pizza Company.',
+        type: 'ORDER',
+        sentAt: DateTime.now().subtract(const Duration(hours: 5)),
+        read: true,
+      ),
+       NotificationModel(
+        id: 5,
+        title: 'Points Earned 💎',
+        body: 'You just earned 50 loyalty points from your last purchase.',
+        type: 'WALLET',
+        sentAt: DateTime.now().subtract(const Duration(days: 2)),
+        read: true,
+      ),
+    ];
 
+    if (mounted) {
       setState(() {
-        if (newNotifications.length < _pageSize) {
-          _hasMore = false;
-        }
-        _notifications.addAll(newNotifications);
+        _notifications.clear();
+        _notifications.addAll(mockData);
         _isLoading = false;
+        _hasMore = false; // No pagination needed for mock
         _isLoadingMore = false;
       });
-      
-      // Sync unread count with server truth
-      _repository.getUnreadCount();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load notifications')),
-        );
-      }
     }
   }
 
@@ -80,52 +107,42 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markAsRead(NotificationModel notification) async {
     if (notification.read) return;
 
-    final success = await _repository.markAsRead(notification.id);
-    if (success) {
-      setState(() {
-        final index = _notifications.indexWhere((n) => n.id == notification.id);
-        if (index != -1) {
-          _notifications[index] = NotificationModel(
-            id: notification.id,
-            title: notification.title,
-            body: notification.body,
-            type: notification.type,
-            referenceId: notification.referenceId,
-            imageUrl: notification.imageUrl,
-            sentAt: notification.sentAt,
+    setState(() {
+      final index = _notifications.indexWhere((n) => n.id == notification.id);
+      if (index != -1) {
+        _notifications[index] = NotificationModel(
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
+          type: notification.type,
+          referenceId: notification.referenceId,
+          imageUrl: notification.imageUrl,
+          sentAt: notification.sentAt,
+          readAt: DateTime.now(),
+          read: true,
+        );
+      }
+    });
+  }
+
+  Future<void> _markAllAsRead() async {
+    setState(() {
+      for (int i = 0; i < _notifications.length; i++) {
+        if (!_notifications[i].read) {
+          _notifications[i] = NotificationModel(
+            id: _notifications[i].id,
+            title: _notifications[i].title,
+            body: _notifications[i].body,
+            type: _notifications[i].type,
+            referenceId: _notifications[i].referenceId,
+            imageUrl: _notifications[i].imageUrl,
+            sentAt: _notifications[i].sentAt,
             readAt: DateTime.now(),
             read: true,
           );
         }
-      });
-      // Sync global badge with server
-      _repository.getUnreadCount();
-    }
-  }
-
-  Future<void> _markAllAsRead() async {
-    final success = await _repository.markAllAsRead();
-    if (success) {
-      setState(() {
-        for (int i = 0; i < _notifications.length; i++) {
-          if (!_notifications[i].read) {
-            _notifications[i] = NotificationModel(
-              id: _notifications[i].id,
-              title: _notifications[i].title,
-              body: _notifications[i].body,
-              type: _notifications[i].type,
-              referenceId: _notifications[i].referenceId,
-              imageUrl: _notifications[i].imageUrl,
-              sentAt: _notifications[i].sentAt,
-              readAt: DateTime.now(),
-              read: true,
-            );
-          }
-        }
-      });
-      // Sync global badge immediately
-      _repository.getUnreadCount();
-    }
+      }
+    });
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
@@ -266,14 +267,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           if (img.isEmpty) {
                             return _buildNoImagePlaceholder();
                           }
-                          return Image.network(
-                            img,
+                          return CachedNetworkImage(
+                            imageUrl: img,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const ImageSkeletonLoader();
-                            },
-                            errorBuilder: (context, error, stackTrace) => _buildNoImagePlaceholder(),
+                            placeholder: (context, url) => const ImageSkeletonLoader(),
+                            errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
                           );
                         })(),
                        // Gradient Overlay for visibility when not scrolled
@@ -661,23 +661,26 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     isScrolled: _isScrolled,
                   ),
                    const SizedBox(width: 16),
-                   AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
-                    opacity: _isScrolled ? 1.0 : 0.0,
-                    child: Text(
-                      (() {
-                        final enName = _currentFood?.name ?? widget.title;
-                        final mmName = _currentFood?.nameMm ?? '';
-                        return enName.trim().isEmpty ? mmName : enName;
-                      })(),
-                      style: GoogleFonts.poppins(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: _isScrolled ? 1.0 : 0.0,
+                      child: Text(
+                        (() {
+                          final enName = _currentFood?.name ?? widget.title;
+                          final mmName = _currentFood?.nameMm ?? '';
+                          return enName.trim().isEmpty ? mmName : enName;
+                        })(),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
-                  const Spacer(),
                   _buildCircleIconButton(
                     icon: PhosphorIcons.shareNetwork(),
                     onPressed: () {},
@@ -854,72 +857,155 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         }
                         
                         try {
-                          CartDto? result;
-                          if (widget.cartItemId != null) {
-                            // Find the names for the newly selected variant
-                            String? vName;
-                            String? vNameMm;
-                            if (_selectedVariantId != null && _currentFood != null) {
+                          // --- MOCK LOCAL CART SIMULATION ---
+                          String? vName;
+                          String? vNameMm;
+                          final opts = <SelectedOptionDto>[];
+                          double basePrice = widget.price;
+                          if (_currentFood != null) {
+                            if (_selectedVariantId != null) {
                               try {
                                 final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId);
+                                basePrice = variant.price;
                                 vName = variant.name;
                                 vNameMm = variant.nameMm;
                               } catch (_) {}
+                            } else {
+                              basePrice = _currentFood!.price;
                             }
                             
-                            // Update existing item
-                            result = await CartManager.instance.updateItemQuantity(
-                              widget.restaurantName,
-                              widget.cartItemId!,
-                              _quantity,
-                              variantId: _selectedVariantId,
-                              variantName: vName,
-                              variantNameMm: vNameMm,
-                              optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
-                              specialInstructions: _instructionsController.text.trim().isEmpty 
-                                  ? null 
-                                  : _instructionsController.text.trim(),
-                            );
-                          } else {
-                            // Add new item
-                             result = await CartRepository.instance.addToCart(AddToCartRequest(
-                              menuItemId: menuItemId,
-                              quantity: _quantity,
-                              shopId: shopId,
-                              variantId: _selectedVariantId,
-                              specialInstructions: _instructionsController.text.trim().isEmpty 
-                                  ? null 
-                                  : _instructionsController.text.trim(),
-                              optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
-                            ));
+                            for (var group in _currentFood!.optionGroups) {
+                              for (var opt in group.options) {
+                                if (allOptionIds.contains(opt.id)) {
+                                  opts.add(SelectedOptionDto(id: opt.id, name: opt.name, price: opt.price));
+                                }
+                              }
+                            }
                           }
+
+                          final mockItemId = widget.cartItemId != null ? int.tryParse(widget.cartItemId!) ?? (DateTime.now().millisecondsSinceEpoch % 100000) : (DateTime.now().millisecondsSinceEpoch % 100000);
+                          final optionsTotal = opts.fold(0.0, (sum, o) => sum + o.price);
+                          final itemTotal = (basePrice + optionsTotal) * _quantity;
+
+                          final mockItem = CartItemDto(
+                            id: mockItemId,
+                            menuItemId: menuItemId,
+                            name: widget.title,
+                            quantity: _quantity,
+                            price: basePrice,
+                            total: itemTotal,
+                            imageUrl: widget.imagePath,
+                            variantId: _selectedVariantId,
+                            variantName: vName,
+                            variantNameMm: vNameMm,
+                            optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
+                            optionNames: opts.isNotEmpty ? opts.map((o) => o.name).toList() : null,
+                            specialInstructions: _instructionsController.text.trim().isEmpty ? null : _instructionsController.text.trim(),
+                          );
+
+                          // Preserve existing items in the local store
+                          final storeIndex = CartManager.instance.stores.indexWhere((s) => s.name == widget.restaurantName);
+                          final existingItems = <CartItemDto>[];
+                          if (storeIndex != -1) {
+                            for (var it in CartManager.instance.stores[storeIndex].items) {
+                              // Don't include the item we're updating
+                              if (widget.cartItemId != null && it.id == widget.cartItemId) continue;
+                              existingItems.add(CartItemDto(
+                                id: int.tryParse(it.id) ?? 0,
+                                menuItemId: it.menuItemId,
+                                name: it.title,
+                                quantity: it.quantity,
+                                price: it.price,
+                                total: it.price * it.quantity,
+                                imageUrl: it.imageUrl,
+                                variantId: it.variantId,
+                                variantName: it.variantName,
+                                variantNameMm: it.variantNameMm,
+                                optionIds: it.optionIds,
+                                optionNames: it.options != null ? it.options!.split(', ') : null,
+                                specialInstructions: it.specialInstructions,
+                              ));
+                            }
+                          }
+                          
+                          // Combine same menu items (Same ID, Variant, and Options)
+                          bool foundMatch = false;
+                          for (int i = 0; i < existingItems.length; i++) {
+                            final item = existingItems[i];
+                            if (item.menuItemId == mockItem.menuItemId && 
+                                item.variantId == mockItem.variantId) {
+                                
+                              // Check options match
+                              final itemOpts = item.optionIds?.toList() ?? [];
+                              final mockOpts = mockItem.optionIds?.toList() ?? [];
+                              
+                              if (itemOpts.length == mockOpts.length) {
+                                final setA = Set.from(itemOpts);
+                                final setB = Set.from(mockOpts);
+                                if (setA.containsAll(setB)) {
+                                  // Found exact duplicate, merge quantity
+                                  final newQty = (item.quantity ?? 0) + (mockItem.quantity ?? 0);
+                                  existingItems[i] = CartItemDto(
+                                    id: item.id,
+                                    menuItemId: item.menuItemId,
+                                    name: item.name,
+                                    quantity: newQty,
+                                    price: item.price,
+                                    total: (item.price ?? 0.0) * newQty,
+                                    imageUrl: item.imageUrl,
+                                    variantId: item.variantId,
+                                    variantName: item.variantName,
+                                    variantNameMm: item.variantNameMm,
+                                    optionIds: item.optionIds,
+                                    optionNames: item.optionNames,
+                                    specialInstructions: item.specialInstructions,
+                                  );
+                                  foundMatch = true;
+                                  break;
+                                }
+                              }
+                            }
+                          }
+                          
+                          if (!foundMatch) {
+                            existingItems.add(mockItem);
+                          }
+                          
+                          final storeTotal = existingItems.fold(0.0, (sum, it) => sum + (it.total ?? 0.0));
+                          final totalQty = existingItems.fold(0, (sum, it) => sum + (it.quantity ?? 1));
+
+                          CartDto? result = CartDto(
+                            shopId: shopId,
+                            shopName: widget.restaurantName,
+                            shopImageUrl: widget.imagePath,
+                            items: existingItems,
+                            subtotal: storeTotal,
+                            deliveryFee: 30.0,
+                            total: storeTotal + 30.0,
+                            totalItems: totalQty,
+                          );
 
                           if (result != null) {
                             // Sync local state instantly without another network request
                             CartManager.instance.updateCartFromDto(result);
                             
-                            // Also trigger a background sync just to be safe, but don't await it
-                            CartManager.instance.invalidateCache().then((_) {
-                              CartManager.instance.syncWithApi();
-                            });
+                            // Removed background sync so the simulated local item isn't wiped out by the real empty remote server.
                             
                             if (mounted) {
                               operationCompleted = true;
                               setState(() => _isAddingToCart = false);
-                              Navigator.pop(context); // Pop immediately for snappy feel
+                              if (context.mounted) Navigator.pop(context); // Pop immediately for snappy feel
                             }
                             return;
                           }
 
-                          // Fallback if result is null (shouldn't happen on success)
-                          await CartManager.instance.invalidateCache();
-                          await CartManager.instance.syncWithApi();
+                          // Fallback removed
                           if (mounted) {
                             operationCompleted = true;
                             setState(() {
                               _isAddingToCart = false;
                             });
-                            Navigator.pop(context); 
+                            if (context.mounted) Navigator.pop(context); 
                           }
                         } catch (e) {
                           if (mounted) {
@@ -932,6 +1018,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             
                             // Handle Single Shop Rule Conflict (409)
                             if (errorStr.contains('Conflict') || errorStr.contains('409')) {
+                              if (!context.mounted) return;
                               final bool? clearConfirmed = await AppDialog.show<bool>(
                                 context: context,
                                 title: 'New Cart?',
@@ -948,29 +1035,44 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   });
 
                                   await CartRepository.instance.clearCart();
-                                  // Retry adding to cart
-                                  await CartRepository.instance.addToCart(AddToCartRequest(
+                                  // Sync local state immediately
+                                  final opts = <SelectedOptionDto>[];
+                                  final mockItemId = DateTime.now().millisecondsSinceEpoch % 100000;
+                                  final mockItem = CartItemDto(
+                                    id: mockItemId,
                                     menuItemId: menuItemId,
+                                    name: widget.title,
                                     quantity: _quantity,
-                                    shopId: shopId,
+                                    price: widget.price,
+                                    total: widget.price * _quantity,
+                                    imageUrl: widget.imagePath,
                                     variantId: _selectedVariantId,
-                                    specialInstructions: _instructionsController.text.trim().isEmpty 
-                                        ? null 
-                                        : _instructionsController.text.trim(),
                                     optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
+                                  );
+                                  
+                                  CartManager.instance.updateCartFromDto(CartDto(
+                                    shopId: shopId,
+                                    shopName: widget.restaurantName,
+                                    items: [mockItem],
+                                    subtotal: mockItem.total,
+                                    deliveryFee: 30.0,
+                                    total: mockItem.total + 30.0,
+                                    totalItems: _quantity,
                                   ));
                                   // Sync local state
                                   await CartManager.instance.invalidateCache();
                                   await CartManager.instance.syncWithApi();
                                   if (mounted) {
                                     setState(() => _isAddingToCart = false);
-                                    Navigator.pop(context); // Pop details page
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Cart cleared and item added'),
-                                        backgroundColor: Color(0xFFED3973),
-                                      ),
-                                    );
+                                    if (context.mounted) {
+                                      Navigator.pop(context); // Pop details page
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Cart cleared and item added'),
+                                          backgroundColor: Color(0xFFED3973),
+                                        ),
+                                      );
+                                    }
                                   }
                                   } catch (retryErr) {
                                     if (mounted) {
@@ -990,12 +1092,14 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               return;
                             }
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to add to cart: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            if (mounted && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to add to cart: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
                         }
                       } else {
@@ -1211,19 +1315,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
                     height: 150,
                     width: 150,
+                    memCacheWidth: 400, // Optimize memory for thumbnails
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const ImageSkeletonLoader(
-                        width: 150,
-                        height: 150,
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) => _buildNoImagePlaceholder(
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
+                    placeholder: (context, url) => const ImageSkeletonLoader(
+                      width: 150,
+                      height: 150,
+                    ),
+                    errorWidget: (context, url, error) => _buildNoImagePlaceholder(
                       width: 150,
                       height: 150,
                       borderRadius: 20,
