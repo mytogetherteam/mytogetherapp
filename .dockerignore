@@ -9,8 +9,6 @@ macos/
 .gitignore
 *.md
 *.log
-Dockerfile
-nginx.conf
 .idea/
 *.iml
 test/
