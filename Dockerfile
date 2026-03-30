@@ -13,8 +13,8 @@ RUN flutter pub get
 # Generate icons (optional but good since we set it up)
 # RUN dart run flutter_launcher_icons:main || true
 
-# Build the web application
-RUN flutter build web --release
+# Build the web application with High-Performance CanvasKit renderer
+RUN flutter build web --release --web-renderer canvaskit
 
 # Stage 2: Serve with Nginx
 FROM nginx:stable-alpine

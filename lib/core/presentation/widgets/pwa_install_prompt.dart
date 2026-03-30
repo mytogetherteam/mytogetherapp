@@ -23,10 +23,28 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
     super.initState();
     if (!kIsWeb) return;
     
-    // Check if it's already running as a standalone app or browser is already handled
-    bool isStandalone = html.window.matchMedia('(display-mode: standalone)').matches || 
-        (html.window.navigator as dynamic).standalone == true;
+    // Use a small delay to ensure the engine is fully ready before running PWA logic
+    Timer(const Duration(milliseconds: 500), () {
+      try {
+        _initPwaLogic();
+      } catch (e) {
+        debugPrint(' [PWA] Error during init: $e');
+      }
+    });
+  }
+
+  void _initPwaLogic() {
+    // Check if it's already running as a standalone app
+    bool isStandalone = html.window.matchMedia('(display-mode: standalone)').matches;
     
+    // Safely check for iOS-specific standalone property
+    try {
+      final nav = html.window.navigator;
+      if ((nav as dynamic).standalone == true) {
+        isStandalone = true;
+      }
+    } catch (_) {}
+
     debugPrint(' [PWA] Status: isStandalone=$isStandalone');
     if (isStandalone) return;
 
@@ -38,19 +56,15 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
       debugPrint(' [PWA] Detected Chrome install prompt event');
       event.preventDefault();
       _deferredPrompt = event;
-      setState(() {
-        _showInstallPrompt = true;
-      });
+      if (mounted) setState(() => _showInstallPrompt = true);
     });
 
-    // For iOS, we can show it after a small delay (3 seconds is enough)
+    // For iOS, show the guide after 3 seconds
     if (_isIOS) {
       debugPrint(' [PWA] Detected iOS environment');
       Timer(const Duration(seconds: 3), () {
         if (mounted && _deferredPrompt == null) {
-          setState(() {
-            _showInstallPrompt = true;
-          });
+          setState(() => _showInstallPrompt = true);
         }
       });
     }
