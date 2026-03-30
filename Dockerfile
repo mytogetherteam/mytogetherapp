@@ -1,5 +1,5 @@
-# Stage 1: Build Flutter Web using a specific stable version
-FROM ghcr.io/cirruslabs/flutter:3.24.0 AS build
+# Stage 1: Build Flutter Web using latest stable version
+FROM ghcr.io/cirruslabs/flutter:3.27.0 AS build
 
 # Set working directory
 WORKDIR /app
