@@ -52,7 +52,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     super.initState();
     AwaitingPaymentPage.isCurrentlyVisible = true;
     // Prevent screenshots/screen recording on this sensitive payment page
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
     // Load persisted state if needed
@@ -112,7 +112,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('disable');
     }
     _orderSubscription?.cancel();

@@ -154,6 +154,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         backgroundColor: Colors.white,
+        elevation: 0,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFFED3A72),
         unselectedItemColor: Colors.grey,
