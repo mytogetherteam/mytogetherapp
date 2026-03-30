@@ -7,11 +7,10 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Fetch dependencies
-RUN flutter pub get
+# Force a clean dependency resolve to avoid exit code 1
+RUN rm -f pubspec.lock && flutter pub get
 
 # Build the web application with High-Performance CanvasKit renderer
-# Using --canvaskit as a more compatible alias for some environments
 RUN flutter build web --release --web-renderer canvaskit
 
 # Stage 2: Serve with Nginx
