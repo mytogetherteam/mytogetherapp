@@ -1,5 +1,5 @@
-# Stage 1: Build Flutter Web
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+# Stage 1: Build Flutter Web using a specific stable version
+FROM ghcr.io/cirruslabs/flutter:3.24.0 AS build
 
 # Set working directory
 WORKDIR /app
@@ -10,10 +10,8 @@ COPY . .
 # Fetch dependencies
 RUN flutter pub get
 
-# Generate icons (optional but good since we set it up)
-# RUN dart run flutter_launcher_icons:main || true
-
 # Build the web application with High-Performance CanvasKit renderer
+# Using --canvaskit as a more compatible alias for some environments
 RUN flutter build web --release --web-renderer canvaskit
 
 # Stage 2: Serve with Nginx
