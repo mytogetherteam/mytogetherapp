@@ -43,8 +43,15 @@
     body {
       margin: 0;
       min-height: 100%;
-      background-color: #FFFFFF;
-          background-size: 100% 100%;
+      /* Split background: Pink at the top for the status bar, White at the bottom for the home indicator padding */
+      background: linear-gradient(to bottom, #ED3A72 0%, #ED3A72 50%, #FFFFFF 50%, #FFFFFF 100%);
+      background-size: 100% 100%;
+    }
+
+    /* Force Flutter engine to respect bottom safe area on web by physically lifting the view */
+    flutter-view {
+      bottom: env(safe-area-inset-bottom, 34px) !important;
+      top: 0 !important;
     }
 
     .center {
@@ -102,7 +109,7 @@
   </script>
 </head>
 <body>
-  <picture id="splash">
+  <picture id="splash" style="pointer-events: none;">
       <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
       <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
       <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
