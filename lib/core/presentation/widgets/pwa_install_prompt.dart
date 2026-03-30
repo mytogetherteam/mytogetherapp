@@ -21,21 +21,21 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) return; // Completely ignore if not on web
+    if (!kIsWeb) return;
     
-    _checkPwaStatus();
+    // Check if it's already running as a standalone app or browser is already handled
+    bool isStandalone = html.window.matchMedia('(display-mode: standalone)').matches || 
+        (html.window.navigator as dynamic).standalone == true;
     
-    // Check if it's already running as a standalone app
-    if (html.window.matchMedia('(display-mode: standalone)').matches || 
-        (html.window.navigator as dynamic).standalone == true) {
-      return;
-    }
+    debugPrint(' [PWA] Status: isStandalone=$isStandalone');
+    if (isStandalone) return;
 
     _isIOS = html.window.navigator.userAgent.contains('iPhone') ||
              html.window.navigator.userAgent.contains('iPad');
 
     // Listen for the Chrome/Android install prompt
     html.window.addEventListener('beforeinstallprompt', (event) {
+      debugPrint(' [PWA] Detected Chrome install prompt event');
       event.preventDefault();
       _deferredPrompt = event;
       setState(() {
@@ -43,10 +43,11 @@ class _PWAInstallPromptState extends State<PWAInstallPrompt> {
       });
     });
 
-    // For iOS, we can show it after a small delay
+    // For iOS, we can show it after a small delay (3 seconds is enough)
     if (_isIOS) {
-      Timer(const Duration(seconds: 5), () {
-        if (mounted) {
+      debugPrint(' [PWA] Detected iOS environment');
+      Timer(const Duration(seconds: 3), () {
+        if (mounted && _deferredPrompt == null) {
           setState(() {
             _showInstallPrompt = true;
           });
