@@ -145,15 +145,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Illustration Placeholder
-          Container(
-             width: 150,
-             height: 150,
-             decoration: BoxDecoration(
-               color: Colors.grey[200],
-               shape: BoxShape.circle,
-             ),
-             child: Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+          Image.asset(
+            'assets/images/Pack.png',
+            width: 200,
+            fit: BoxFit.contain,
           ),
           const SizedBox(height: 24),
           Text(
@@ -161,7 +156,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: Colors.black87,
             ),
           ),
         ],

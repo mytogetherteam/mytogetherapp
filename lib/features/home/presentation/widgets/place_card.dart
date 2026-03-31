@@ -13,6 +13,9 @@ class PlaceCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onTap;
+  final double width;
+  final double height;
+  final EdgeInsetsGeometry margin;
 
   const PlaceCard({
     super.key,
@@ -23,6 +26,9 @@ class PlaceCard extends StatelessWidget {
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.onTap,
+    this.width = 240,
+    this.height = 320,
+    this.margin = const EdgeInsets.only(right: 16),
   });
 
   @override
@@ -30,9 +36,9 @@ class PlaceCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 240,
-        height: 320,
-        margin: const EdgeInsets.only(right: 16),
+        width: width,
+        height: height,
+        margin: margin,
         child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: Stack(
@@ -43,16 +49,16 @@ class PlaceCard extends StatelessWidget {
                 tag: 'top_places_$name',
                 child: CachedNetworkImage(
                   imageUrl: imagePath,
-                  width: 240,
-                  height: 320,
+                  width: width,
+                  height: height,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const ImageSkeletonLoader(
-                    height: 320,
-                    width: 240,
+                  placeholder: (context, url) => ImageSkeletonLoader(
+                    height: height,
+                    width: width,
                   ),
                   errorWidget: (context, url, error) => Container(
-                    width: 240,
-                    height: 320,
+                    width: width,
+                    height: height,
                     color: Colors.grey[200],
                     child: Icon(PhosphorIcons.image(), color: Colors.grey),
                   ),

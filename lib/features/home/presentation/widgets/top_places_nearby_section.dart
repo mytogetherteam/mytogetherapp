@@ -4,6 +4,7 @@ import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
 import '../screens/place_detail_page.dart';
+import '../screens/top_places_nearby_page.dart';
 
 class TopPlacesNearbySection extends StatefulWidget {
   const TopPlacesNearbySection({super.key});
@@ -45,21 +46,38 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Top Places Nearby',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: Colors.black,
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TopPlacesNearbyPage(),
                 ),
-              ),
-              ViewAllIconButton(
-                onPressed: () {},
-              ),
-            ],
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Top Places Nearby',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+                ViewAllIconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TopPlacesNearbyPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
