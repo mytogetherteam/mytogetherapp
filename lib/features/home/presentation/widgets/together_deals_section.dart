@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/fallback_data.dart';
+import '../screens/together_deals_detail_page.dart';
 
 class TogetherDealsSection extends StatelessWidget {
   const TogetherDealsSection({super.key});
@@ -27,45 +28,62 @@ class TogetherDealsSection extends StatelessWidget {
         // Header Row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Together ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Up to 40% Off ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFED3973),
-                      ),
-                    ),
-                    const WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Text(
-                        '✦',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFFED3973),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TogetherDealsDetailPage(),
+                ),
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Together ',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
                         ),
                       ),
-                    ),
-                  ],
+                      TextSpan(
+                        text: 'Up to 40% Off ',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFED3973),
+                        ),
+                      ),
+                      const WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Text(
+                          '✦',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFFED3973),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ViewAllIconButton(
-                onPressed: () {},
-              ),
-            ],
+                ViewAllIconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TogetherDealsDetailPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
