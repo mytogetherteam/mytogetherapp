@@ -10,6 +10,10 @@ import '../../../../features/cart/presentation/screens/order_complete_page.dart'
 import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../features/cart/presentation/widgets/active_order_bar.dart';
 import '../../../../core/utils/navigation_controller.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../features/auth/data/repositories/auth_repository.dart';
+import '../../../../features/auth/presentation/screens/login_page.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -99,9 +103,42 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onTabTapped(int index) {
+    if (index == 4) {
+      _handleProfileClick();
+      return;
+    }
     setState(() {
       _currentIndex = index;
     });
+  }
+
+  void _handleProfileClick() {
+    AppDialog.show(
+      context: context,
+      title: 'Logout',
+      content: 'Are you sure you want to log out?',
+      buttonText: 'Logout',
+      secondaryButtonText: 'Cancel',
+      onButtonPressed: () async {
+        Navigator.pop(context); // Close dialog
+        
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(child: CustomLoadingIndicator(size: 40)),
+        );
+        
+        await AuthRepository.instance.logout();
+        
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      },
+    );
   }
 
   @override
@@ -150,6 +187,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: Icon(PhosphorIcons.newspaper()),
             activeIcon: Icon(PhosphorIcons.newspaper(PhosphorIconsStyle.fill)),
             label: 'News',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(PhosphorIcons.user()),
+            activeIcon: Icon(PhosphorIcons.user(PhosphorIconsStyle.fill)),
+            label: 'Profile',
           ),
         ],
       ),

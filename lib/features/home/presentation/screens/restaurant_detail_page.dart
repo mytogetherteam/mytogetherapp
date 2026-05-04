@@ -190,7 +190,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       final double offset = _scrollController.offset;
       final double topPadding = MediaQuery.of(context).padding.top;
       final double toolbarHeight = kToolbarHeight + topPadding;
-      final double snapTarget = 420 - toolbarHeight;
+      final double snapTarget = 470 - toolbarHeight;
 
       // Only perform snapping if we are close to the header area but not exactly at 0
       // We also disable snapping if targetMenuItemId is present to allow free scrolling to the top
@@ -298,7 +298,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 20), // Overlap space
+                          const SizedBox(height: 70), // Overlap space
                           // Action Buttons
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -384,19 +384,23 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 16),
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      opacity: _isScrolled ? 1.0 : 0.0,
-                      child: Text(
-                        _currentRestaurant?.name ?? '',
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: _isScrolled ? 1.0 : 0.0,
+                        child: Text(
+                          _currentRestaurant?.name ?? '',
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     _buildCircleIconButton(
                       icon: PhosphorIcons.shareNetwork(),
                       onPressed: () {
@@ -466,7 +470,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 }
                 
                 // Calculate dynamic position
-                double cardTop = 305 - scrollOffset;
+                double cardTop = 300 - scrollOffset;
                 
                 // Calculate dynamic opacity (fade out as it moves up)
                 // Start fading after 50px of scroll, fully gone by 250px
