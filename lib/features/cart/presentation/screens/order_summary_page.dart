@@ -849,9 +849,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         (type) => type.paymentMethodCode == selectedCode && type.isActive,
       );
       String? imageUrl = match.qrImageUrl;
-      if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
-        const baseUrl = 'https://myshopdemoapi-production.up.railway.app';
-        imageUrl = imageUrl.startsWith('/') ? '$baseUrl$imageUrl' : '$baseUrl/$imageUrl';
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        imageUrl = imageUrl.replaceAll('\\', '/');
+        if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('http://10.0.2.2')) {
+          imageUrl = imageUrl.replaceAll(RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'), ApiClient.baseUrl);
+        } else if (!imageUrl.startsWith('http')) {
+          imageUrl = imageUrl.startsWith('/') ? '${ApiClient.baseUrl}$imageUrl' : '${ApiClient.baseUrl}/$imageUrl';
+        }
       }
       return imageUrl;
     } catch (_) {
