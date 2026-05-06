@@ -135,7 +135,7 @@ class RemoteRestaurantDataSource {
 
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/food-tab/$feedType',
+        '${ApiClient.apiPrefix}/menu/feed/$feedType',
         queryParameters: {
           'latitude': lat,
           'longitude': lon,
