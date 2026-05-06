@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/auth/auth_service.dart';
+import 'models/banner_image_dto.dart';
 import 'models/shop_dto.dart';
 import 'models/trending_item_dto.dart';
 import 'models/shop_feed_item_dto.dart';
@@ -10,6 +11,24 @@ import 'shop_storage.dart';
 
 class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
+
+  Future<List<BannerImageDto>> getBanners({String? position}) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/banners',
+        queryParameters: position != null ? {'position': position} : null,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => BannerImageDto.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load banners: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   Future<ApiResponseSliceShopListDto> getNearbyShops(ShopRequestDto request) async {
     try {

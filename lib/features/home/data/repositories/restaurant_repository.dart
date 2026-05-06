@@ -1,4 +1,5 @@
 import '../restaurant_data.dart';
+import '../models/banner_image_dto.dart';
 import '../models/trending_item_dto.dart';
 import '../models/shop_feed_item_dto.dart';
 import '../remote_restaurant_data_source.dart';
@@ -21,12 +22,38 @@ class RestaurantRepository {
   TrendingSectionDto? _cachedTrending;
   DateTime? _trendingLastFetch;
 
+  // Cache for banners
+  Map<String, List<BannerImageDto>> _cachedBanners = {};
+  DateTime? _bannersLastFetch;
+
   // Cache for shop feed sections: key = "shopId-feedType"
   final Map<String, ShopFeedSectionDto> _feedCache = {};
   final Map<String, DateTime> _feedCacheTime = {};
 
   RestaurantRepository(this._remoteDataSource);
 
+  Future<List<BannerImageDto>> getBanners({String? position}) async {
+    final cacheKey = position ?? 'all';
+    final now = DateTime.now();
+
+    if (_cachedBanners.containsKey(cacheKey) &&
+        _bannersLastFetch != null &&
+        now.difference(_bannersLastFetch!).inMinutes < 10) {
+      return _cachedBanners[cacheKey]!;
+    }
+
+    try {
+      final banners = await _remoteDataSource.getBanners(position: position);
+      _cachedBanners[cacheKey] = banners;
+      _bannersLastFetch = now;
+      return banners;
+    } catch (e) {
+      if (_cachedBanners.containsKey(cacheKey)) {
+        return _cachedBanners[cacheKey]!;
+      }
+      rethrow;
+    }
+  }
 
   Future<List<Restaurant>> getNearbyShops({
     required double lat,

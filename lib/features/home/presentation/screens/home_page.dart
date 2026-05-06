@@ -12,6 +12,9 @@ import '../widgets/trending_news_section.dart';
 import '../widgets/top_places_nearby_section.dart';
 import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
+import '../../data/models/banner_image_dto.dart';
+import '../../data/repositories/restaurant_repository.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
@@ -40,18 +43,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late ScrollController _scrollController;
   double _headerOpacity = 0.0;
 
-  final List<String> _promotionImages = [
-    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=800&auto=format&fit=crop', // Food spread
-    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop', // Food spread promo
-    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=800&auto=format&fit=crop', // Pizza promo
-    'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop', // Burger promo
-  ];
-
-  final List<String> _promoBannerImages = [
-    'https://images.unsplash.com/photo-1599481238505-b8b0537a3f77?q=80&w=800&auto=format&fit=crop', // Chips promo
-    'https://images.unsplash.com/photo-1566478433399-8474cb7bc140?q=80&w=800&auto=format&fit=crop', // Snacks/Coke
-    'https://images.unsplash.com/photo-1621447509323-5705627f45b2?q=80&w=800&auto=format&fit=crop', // Korean snacks
-  ];
+  List<BannerImageDto> _topBanners = [];
+  List<BannerImageDto> _bottomBanners = [];
+  bool _isLoadingBanners = true;
 
   @override
   void initState() {
@@ -91,6 +85,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     NotificationRepository().getUnreadCount();
     
     NotificationRepository().unreadCount.addListener(_onUnreadCountChanged);
+    _fetchBanners();
+  }
+
+  Future<void> _fetchBanners() async {
+    try {
+      final topBanners = await RestaurantRepository.instance.getBanners(position: 'Promotions');
+      final bottomBanners = await RestaurantRepository.instance.getBanners(position: 'Ads');
+      
+      if (mounted) {
+        setState(() {
+          _topBanners = topBanners;
+          _bottomBanners = bottomBanners;
+          _isLoadingBanners = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBanners = false;
+        });
+      }
+    }
+  }
+
+  String _getImageUrl(String path) {
+    if (path.startsWith('http')) return path;
+    return '${ApiClient.baseUrl}/$path';
   }
 
   void _onUnreadCountChanged() {
@@ -204,18 +225,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         child: PageView.builder(
                           controller: _bannerController,
                           onPageChanged: (index) {
+                            if (_topBanners.isEmpty) return;
                             setState(() {
-                              _currentBannerIndex = index % _promotionImages.length;
+                              _currentBannerIndex = index % _topBanners.length;
                             });
                           },
                           itemBuilder: (context, index) {
-                            final realIndex = index % _promotionImages.length;
-                            final image = _promotionImages[realIndex];
+                            if (_topBanners.isEmpty) {
+                              return Container(
+                                color: const Color(0xFFED3973).withOpacity(0.1),
+                                child: const Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final realIndex = index % _topBanners.length;
+                            final banner = _topBanners[realIndex];
+                            final image = banner.image;
                             if (image.startsWith('assets/')) {
                               return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
                             }
                             return Image.network(
-                              image,
+                              _getImageUrl(image),
                               fit: BoxFit.cover,
                               width: double.infinity,
                               errorBuilder: (context, error, stackTrace) => Container(
@@ -233,7 +262,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   // Dots Indicator
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_promotionImages.length, (index) => AnimatedContainer(
+                    children: List.generate(_topBanners.isEmpty ? 1 : _topBanners.length, (index) => AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: _currentBannerIndex == index ? 20 : 8,
@@ -332,14 +361,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           child: PageView.builder(
                                             controller: _promoController,
                                             onPageChanged: (index) {
+                                              if (_bottomBanners.isEmpty) return;
                                               setState(() {
-                                                _currentPromoIndex = index % _promoBannerImages.length;
+                                                _currentPromoIndex = index % _bottomBanners.length;
                                               });
                                             },
                                             itemBuilder: (context, index) {
-                                              final realIndex = index % _promoBannerImages.length;
+                                              if (_bottomBanners.isEmpty) {
+                                                return Container(
+                                                  color: const Color(0xFF0084FF).withOpacity(0.1),
+                                                  child: const Center(child: CircularProgressIndicator()),
+                                                );
+                                              }
+                                              final realIndex = index % _bottomBanners.length;
                                               return Image.network(
-                                                _promoBannerImages[realIndex],
+                                                _getImageUrl(_bottomBanners[realIndex].image),
                                                 fit: BoxFit.cover,
                                                 width: double.infinity,
                                               );
@@ -351,7 +387,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       // Dots Indicator for Second Banner
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
-                                        children: List.generate(_promoBannerImages.length, (index) => AnimatedContainer(
+                                        children: List.generate(_bottomBanners.isEmpty ? 1 : _bottomBanners.length, (index) => AnimatedContainer(
                                           duration: const Duration(milliseconds: 300),
                                           margin: const EdgeInsets.symmetric(horizontal: 4),
                                           width: _currentPromoIndex == index ? 24 : 8,
