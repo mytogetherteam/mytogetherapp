@@ -46,14 +46,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     setState(() { _isLoading = true; });
 
     try {
-      // Simulate network request and bypass actual API call
-      await Future.delayed(const Duration(seconds: 1));
-      /*
       await AuthRepository.instance.login(
         usernameOrEmail: _identifierController.text.trim(),
         password: _passwordController.text,
       );
-      */
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {

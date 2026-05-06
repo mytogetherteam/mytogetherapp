@@ -67,8 +67,8 @@ class ShopFeedItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
-    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
-    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
+    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'].toString();
+    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'].toString();
     return null;
   }
 

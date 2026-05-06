@@ -4,8 +4,9 @@ class LoginRequest {
 
   LoginRequest({required this.usernameOrEmail, required this.password});
 
+  // Shop API expects: { emailOrUsername, password }
   Map<String, dynamic> toJson() => {
-        'usernameOrEmail': usernameOrEmail,
+        'emailOrUsername': usernameOrEmail,
         'password': password,
       };
 }
@@ -23,11 +24,13 @@ class RegisterRequest {
     required this.fullName,
   });
 
+  // Shop API expects: { email, password, name, username, role }
   Map<String, dynamic> toJson() => {
         'username': username,
         'email': email,
         'password': password,
-        'fullName': fullName,
+        'name': fullName,      // shop API uses 'name' not 'fullName'
+        'role': 'CUSTOMER',    // always register as customer
       };
 }
 
@@ -57,8 +60,9 @@ class AuthResponse {
       id: (json['id'] ?? json['userId']) as int? ?? 0,
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      fullName: json['fullName'] as String? ?? '',
-      role: json['role'] as String? ?? 'USER',
+      // Shop API returns 'fullName' (mapped from 'name' in mapOrder)
+      fullName: json['fullName'] as String? ?? json['name'] as String? ?? '',
+      role: json['role'] as String? ?? 'CUSTOMER',
     );
   }
 }

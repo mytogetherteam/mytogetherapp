@@ -739,6 +739,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       context,
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(
+          orderId: ActiveOrderState.instance.orderId,
           foodTotal: widget.foodTotal.toDouble(),
           deliveryFee: fee,
         ),

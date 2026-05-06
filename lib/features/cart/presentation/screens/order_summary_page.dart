@@ -744,10 +744,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   }
 
                                   // 2. Snapshot order items BEFORE cart is cleared
+                                  final selectedMethodId = _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode);
+                                  final selectedMethodImage = _resolvePaymentMethodImageUrl(_paymentTypes, _selectedPaymentMethodCode);
+
                                   ActiveOrderState.instance.setOrderDetails(
                                     totalAmount: foodTotal.toDouble(),
                                     paymentMethod: _selectedPaymentMethodCode,
+                                    paymentMethodId: selectedMethodId,
+                                    paymentMethodImageUrl: selectedMethodImage,
                                     items: List.from(storeItems),
+                                    orderId: orderId,
                                   );
 
                                   // 4. Clear cart for this store (via API sync)
@@ -833,6 +839,23 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       } catch (_) {
         return 1;
       }
+    }
+  }
+
+  String? _resolvePaymentMethodImageUrl(List<ShopPaymentTypeDto>? paymentTypes, String selectedCode) {
+    if (paymentTypes == null || paymentTypes.isEmpty) return null;
+    try {
+      final match = paymentTypes.firstWhere(
+        (type) => type.paymentMethodCode == selectedCode && type.isActive,
+      );
+      String? imageUrl = match.qrImageUrl;
+      if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+        const baseUrl = 'https://myshopdemoapi-production.up.railway.app';
+        imageUrl = imageUrl.startsWith('/') ? '$baseUrl$imageUrl' : '$baseUrl/$imageUrl';
+      }
+      return imageUrl;
+    } catch (_) {
+      return null;
     }
   }
 

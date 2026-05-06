@@ -298,7 +298,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 70), // Overlap space
+                          const SizedBox(height: 20), // Overlap space
                           // Action Buttons
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -343,8 +343,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                               ],
                             ),
                           ),
-                          const SizedBox(height: 30),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 20),
                           // ── 5 live feed sections ───────────────────────────
                           if (int.tryParse(widget.id) != null && int.parse(widget.id) > 0) ..._buildFeedSections(int.parse(widget.id)),
                           const SizedBox(height: 24),
@@ -473,7 +472,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 double cardTop = 300 - scrollOffset;
                 
                 // Calculate dynamic opacity (fade out as it moves up)
-                // Start fading after 50px of scroll, fully gone by 250px
                 double opacity = 1.0;
                 if (scrollOffset > 50) {
                   opacity = (1.0 - (scrollOffset - 50) / 200).clamp(0.0, 1.0);

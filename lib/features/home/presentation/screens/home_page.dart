@@ -394,18 +394,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               right: 0,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 8),
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/top-bannner.jpg'),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    opacity: _headerOpacity,
-                    colorFilter: ColorFilter.mode(
-                      Colors.white.withValues(alpha: 0.70),
-                      BlendMode.lighten,
-                    ),
-                  ),
                   boxShadow: _headerOpacity > 0.8 ? [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -414,8 +403,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ] : [],
                 ),
-                // Top Row: Gift Icon, Logo, Notification Bell
-                child: Padding(
+                child: ClipRect(
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height,
+                          child: Image.asset(
+                            'assets/images/top-bannner.jpg',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
+                            color: Colors.white.withValues(alpha: 0.70),
+                            colorBlendMode: BlendMode.lighten,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 8),
+                        // Top Row: Gift Icon, Logo, Notification Bell
+                        child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -509,9 +519,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+    ],
         ),
       ),
     );

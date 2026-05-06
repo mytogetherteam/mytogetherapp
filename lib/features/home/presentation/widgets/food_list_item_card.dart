@@ -45,6 +45,9 @@ class FoodListItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double effectivePrice = (price == 0 && originalPrice > 0) ? originalPrice : price;
+    final bool hasDiscount = originalPrice > effectivePrice;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -134,23 +137,26 @@ class FoodListItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0')) ...[
+                  if (effectivePrice > 0 || hasDiscount || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0')) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        if (originalPrice > price) ...[
-                          Text(
-                            originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.grey[500],
-                              decoration: TextDecoration.lineThrough,
+                        if (hasDiscount) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(
+                              originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                                decoration: TextDecoration.lineThrough,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          displayPrice ?? price.toStringAsFixed(0).toFormattedPrice(currency: currency),
+                          displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -164,7 +170,7 @@ class FoodListItemCard extends StatelessWidget {
               ),
             ),
             // Add Button
-            if (price > 0 || originalPrice > price || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0'))
+            if (effectivePrice > 0 || hasDiscount || (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0'))
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: const BoxDecoration(

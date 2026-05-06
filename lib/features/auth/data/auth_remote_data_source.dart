@@ -3,6 +3,7 @@ import 'models/auth_models.dart';
 import 'models/user_location_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/auth/user_model.dart';
+import '../../../core/auth/auth_service.dart';
 
 class AuthRemoteDataSource {
   final Dio _dio;
@@ -14,7 +15,18 @@ class AuthRemoteDataSource {
       '${ApiClient.apiPrefix}/auth/login',
       data: request.toJson(),
     );
-    final data = response.data['data'];
+    final responseData = response.data;
+    if (responseData['success'] == false) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 401,
+          data: responseData,
+        ),
+      );
+    }
+    final data = responseData['data'];
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
 
@@ -23,7 +35,18 @@ class AuthRemoteDataSource {
       '${ApiClient.apiPrefix}/auth/register',
       data: request.toJson(),
     );
-    final data = response.data['data'];
+    final responseData = response.data;
+    if (responseData['success'] == false) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 400,
+          data: responseData,
+        ),
+      );
+    }
+    final data = responseData['data'];
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
 
@@ -37,18 +60,25 @@ class AuthRemoteDataSource {
   }
 
   Future<void> logout() async {
-    await _dio.post('${ApiClient.apiPrefix}/auth/logout');
+    try {
+      final token = AuthService().refreshToken;
+      await _dio.post('${ApiClient.apiPrefix}/auth/logout', data: {'refreshToken': token ?? ''});
+    } catch (_) {}
   }
 
   Future<UserModel> getUserProfile() async {
-    final response = await _dio.get('${ApiClient.apiPrefix}/user/profile');
+    final response = await _dio.get('${ApiClient.apiPrefix}/users/profile');
     final data = response.data['data'];
     return UserModel.fromJson(data as Map<String, dynamic>);
   }
 
   Future<List<UserLocationModel>> getUserLocations() async {
-    final response = await _dio.get('${ApiClient.apiPrefix}/user-locations');
-    final List<dynamic> data = response.data['data'];
-    return data.map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      final response = await _dio.get('${ApiClient.apiPrefix}/user-locations');
+      final List<dynamic> data = response.data['data'];
+      return data.map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }

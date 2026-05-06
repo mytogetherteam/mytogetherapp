@@ -38,7 +38,7 @@ class WebSocketService {
     }
 
     _isConnecting = true;
-    debugPrint(' [WS] Connecting to: wss://mytogetherapi-production.up.railway.app/ws/websocket');
+    debugPrint(' [WS] Connecting to: wss://myshopdemoapi-production.up.railway.app/ws/websocket');
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
@@ -49,7 +49,7 @@ class WebSocketService {
 
     _stompClient = StompClient(
       config: StompConfig(
-        url: 'wss://mytogetherapi-production.up.railway.app/ws/websocket',
+        url: 'wss://myshopdemoapi-production.up.railway.app/ws/websocket',
         onConnect: onConnect,
         beforeConnect: () async {
            debugPrint(' [WS] Preparing connection headers...');
@@ -100,7 +100,8 @@ class WebSocketService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    const destination = '/user/queue/order-updates';
+    // Shop API uses /user/queue/shop-order-updates
+    const destination = '/user/queue/shop-order-updates';
     debugPrint(' [WS] Subscribing to: $destination');
 
     _stompClient?.subscribe(

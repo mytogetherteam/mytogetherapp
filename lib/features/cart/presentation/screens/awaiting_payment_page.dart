@@ -57,6 +57,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     _showUploadSection = order?.showUploadSection ?? false;
 
+    // Fetch detailed payment method image if needed
+    _fetchPaymentMethodDetails();
+
     // Listen to global state for real-time rebuilds (e.g., when QR URL arrives)
     ActiveOrderState.instance.addListener(_onStateUpdated);
 
@@ -124,6 +127,49 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
           _showUploadSection = order.showUploadSection;
         }
       });
+      if (order?.paymentMethodImageUrl == null) {
+        _fetchPaymentMethodDetails();
+      }
+    }
+  }
+
+  Future<void> _fetchPaymentMethodDetails() async {
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    if (order == null || order.paymentMethodId == null) return;
+    if (order.paymentMethodImageUrl != null) return;
+
+    try {
+      // Try multiple potential endpoints and fields for robustness
+      Response? response;
+      final id = order.paymentMethodId;
+      
+      // Attempt 1: profile/payment-types (matches backend controller)
+      try {
+        response = await ApiClient().dio.get('${ApiClient.apiPrefix}/profile/payment-types/$id');
+      } catch (_) {
+        // Attempt 2: payment-methods (user's suggested path)
+        try {
+          response = await ApiClient().dio.get('${ApiClient.apiPrefix}/payment-methods/$id');
+        } catch (_) {}
+      }
+
+      if (response != null && response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        final paymentData = data['data'] ?? data;
+        
+        // Check for both possible field names: qrImageUrl (Prisma) and image (Legacy/Swagger)
+        String? imageUrl = (paymentData['qrImageUrl'] ?? paymentData['image'])?.toString();
+        
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          if (!imageUrl.startsWith('http')) {
+            const baseUrl = 'https://myshopdemoapi-production.up.railway.app';
+            imageUrl = imageUrl.startsWith('/') ? '$baseUrl$imageUrl' : '$baseUrl/$imageUrl';
+          }
+          ActiveOrderState.instance.updatePaymentMethodImage(imageUrl, orderId: widget.orderId);
+        }
+      }
+    } catch (e) {
+      // Silent fail
     }
   }
 
@@ -158,43 +204,56 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     );
   }
 
-  // Save QR to gallery
+  // Save payment image from URL directly to gallery
   Future<void> _saveQrToGallery() async {
-    // Save QR in the background
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    final imageUrl = order?.shopPaymentQrUrl ?? order?.paymentMethodImageUrl;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment image not available yet.', style: GoogleFonts.poppins(fontSize: 13)),
+            backgroundColor: Colors.black87,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     try {
-      final boundary = _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return;
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final pngBytes = byteData!.buffer.asUint8List();
-      await Gal.putImageBytes(
-        Uint8List.fromList(pngBytes),
-        album: 'MyTogether',
-        name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
+      // Download image bytes from URL
+      final response = await ApiClient().dio.get<List<int>>(
+        imageUrl,
+        options: Options(responseType: ResponseType.bytes),
       );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('QR Code saved to gallery!',
-                  style: GoogleFonts.poppins(fontSize: 13)),
-              backgroundColor: const Color(0xFFED3973),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-
-          // Transition to upload section
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            if (mounted && !_showUploadSection) {
-              setState(() => _showUploadSection = true);
-              ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
-            }
-          });
-        }
-      } catch (_) {
-        // Silent fail — gallery save is best-effort
+      final bytes = Uint8List.fromList(response.data!);
+      await Gal.putImageBytes(
+        bytes,
+        album: 'MyTogether',
+        name: 'payment_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment image saved to gallery!', style: GoogleFonts.poppins(fontSize: 13)),
+            backgroundColor: const Color(0xFFED3973),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save image. Please try again.', style: GoogleFonts.poppins(fontSize: 13)),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
+  }
 
   Future<void> _pickReceiptImage() async {
     PermissionStatus status;
@@ -305,8 +364,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     if (_receiptImage == null || _isUploading) return;
     setState(() => _isUploading = true);
 
-    final orderId = widget.orderId;
+    final orderId = widget.orderId ?? ActiveOrderState.instance.orderId;
     if (orderId == null) {
+      setState(() => _isUploading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Order ID not found. Please try again.', style: GoogleFonts.poppins())),
       );
@@ -545,7 +605,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   }
 
   Widget _buildPaymentImage() {
-    final qrUrl = ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl;
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    final qrUrl = order?.shopPaymentQrUrl ?? order?.paymentMethodImageUrl;
 
     if (qrUrl == null || qrUrl.isEmpty) {
       return const Center(
@@ -777,6 +838,12 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   @override
   Widget build(BuildContext context) {
     final bool canSubmit = _receiptImage != null;
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    final bool isVerifying = order?.isPaymentChecking == true;
+    final bool isReupload = order?.isSlipRequested == true;
+    final String pageTitle = isReupload
+        ? 'Re-upload Receipt'
+        : (isVerifying ? 'Verifying Payment' : 'Confirm Payment');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -786,21 +853,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with title and X button
+              // ── Header ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true
-                        ? 'Re-upload Receipt'
-                        : (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking == true
-                            ? 'Verifying Payment' 
-                            : (_showUploadSection ? 'Confirm payment' : 'Awaiting Payment')),
-                    style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
-                  ),
+                  Text(pageTitle,
+                      style: GoogleFonts.poppins(
+                          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
                   GestureDetector(
                     onTap: _goHome,
                     child: Container(
@@ -809,33 +868,22 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 6)
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
                       ),
-                      child: const Icon(Icons.close,
-                          color: Colors.black, size: 20),
+                      child: const Icon(Icons.close, color: Colors.black, size: 20),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Payment Summary Card
+              // ── Payment Summary Card ──
               Container(
-                padding: const EdgeInsets.all(25),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,124 +891,179 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'PAYMENT SUMMARY',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[500],
-                            letterSpacing: 0.8,
-                          ),
-                        ),
+                        Text('PAYMENT SUMMARY',
+                            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[500], letterSpacing: 0.8)),
                         if (widget.orderId != null)
-                          Text(
-                            '#${widget.orderId!}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                            ),
-                          ),
+                          Text('#${widget.orderId!}',
+                              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[500])),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     _summaryRow('Food Price',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0),
+                        order?.displayFoodPrice ?? widget.foodTotal.toStringAsFixed(0),
                         isValue: false),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     _summaryRow('Delivery Fee',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayDeliveryFee ?? (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0),
+                        order?.displayDeliveryFee ?? (order?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0),
                         isValue: false),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 12),
                       child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow('Total',
-                        ActiveOrderState.instance.getOrder(widget.orderId)?.displayTotalAmount ?? (widget.foodTotal + (ActiveOrderState.instance.getOrder(widget.orderId)?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0),
+                        order?.displayTotalAmount ?? (widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0),
                         isValue: true),
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
 
-              // Rider Info Section (If available)
-              if (ActiveOrderState.instance.getOrder(widget.orderId)?.riderName != null) ...[
+              // ── Rider Info (if available) ──
+              if (order?.riderName != null) ...[
                 _buildRiderInfoCard(),
                 const SizedBox(height: 20),
               ],
 
-              // Conditional: QR section OR Upload Receipt section OR Verifying state
-              if (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking == true)
-                _buildVerifyingSection()
-              else ...[
-                if (!_showUploadSection) _buildQrSection(),
-                if (_showUploadSection) _buildUploadReceiptSection(),
-              ],
-
-              const SizedBox(height: 28),
-
-            // --- BUTTONS ---
-            if (ActiveOrderState.instance.getOrder(widget.orderId)?.isPaymentChecking != true) ...[
-              if (!_showUploadSection) ...[
-                // Save QR Code -> switches to upload section
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: ActiveOrderState.instance.getOrder(widget.orderId)?.shopPaymentQrUrl != null 
-                        ? _saveQrToGallery 
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFED3973),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFFED3973).withValues(alpha: 0.45),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(PhosphorIcons.downloadSimple(), size: 20),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Save Payment Image',
-                          style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Yes, I have done payment
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() => _showUploadSection = true);
-                      ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: Colors.grey.shade300, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(
-                      'I have already paid',
-                      style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87),
-                    ),
-                  ),
-                ),
+              // ── VERIFYING STATE ──
+              if (isVerifying) ...[
+                _buildVerifyingSection(),
+                const SizedBox(height: 24),
               ] else ...[
-                // Submit receipt (enabled only when image is selected)
+
+                // ── STEP 1: Payment QR Image ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 28, height: 28,
+                            decoration: const BoxDecoration(color: Color(0xFFED3973), shape: BoxShape.circle),
+                            child: const Center(child: Text('1', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('Scan & Pay', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 38),
+                        child: Text('Save the QR image, then make your payment.',
+                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                      ),
+                      const SizedBox(height: 14),
+                      // Payment image
+                      RepaintBoundary(
+                        key: _qrKey,
+                        child: Container(
+                          width: double.infinity,
+                          height: 280,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: _buildPaymentImage(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // Save image button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveQrToGallery,
+                          icon: Icon(PhosphorIcons.downloadSimple(), size: 18),
+                          label: Text('Save Payment Image',
+                              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFED3973),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── STEP 2: Upload Receipt ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 28, height: 28,
+                            decoration: const BoxDecoration(color: Color(0xFFED3973), shape: BoxShape.circle),
+                            child: const Center(child: Text('2', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('Upload Receipt', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 38),
+                        child: Text('Upload a screenshot of your payment confirmation.',
+                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                      ),
+                      const SizedBox(height: 14),
+                      // Upload box
+                      GestureDetector(
+                        onTap: _pickReceiptImage,
+                        child: Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(minHeight: 160),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF0F4),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFED3973), width: 2),
+                          ),
+                          child: _receiptImage == null
+                              ? _buildUploadPlaceholder()
+                              : _buildReceiptPreview(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(PhosphorIcons.info(), size: 14, color: const Color(0xFFED3973)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isReupload
+                                  ? 'The restaurant requested a new receipt. Please re-upload clearly.'
+                                  : 'Ensure the transaction date, amount and time are clearly visible.',
+                              style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFED3973), height: 1.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Submit Button ──
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -969,25 +1072,20 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFED3973),
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          const Color(0xFFED3973).withValues(alpha: 0.45),
+                      disabledBackgroundColor: const Color(0xFFED3973).withValues(alpha: 0.4),
                       elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: _isUploading 
+                    child: _isUploading
                         ? const CustomLoadingIndicator(size: 24, color: Colors.white)
-                        : Text(
-                            'Submit receipt',
-                            style: GoogleFonts.poppins(
-                                fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
+                        : Text('Submit Receipt',
+                            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600)),
                   ),
                 ),
+                const SizedBox(height: 12),
               ],
-              const SizedBox(height: 16),
 
-              // Cancel Order Button
+              // ── Cancel Order ──
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -995,22 +1093,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                   onPressed: _isCancelling ? null : _showCancelConfirmationSheet,
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFED3973),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(
-                    'Cancel Order',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
+                  child: Text('Cancel Order', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _summaryRow(String label, String value, {required bool isValue}) {
     return Row(

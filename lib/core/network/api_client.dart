@@ -5,7 +5,9 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:io';
 
 class ApiClient {
-  static const String apiPrefix = '/api/v1/mobile';
+  // Shop API base URL and prefix
+  static const String baseUrl = 'https://myshopdemoapi-production.up.railway.app';
+  static const String apiPrefix = '/api/shop';
   
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -15,9 +17,9 @@ class ApiClient {
   ApiClient._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://mytogetherapi-production.up.railway.app',
-        connectTimeout: const Duration(seconds: 45),
-        receiveTimeout: const Duration(seconds: 45),
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',

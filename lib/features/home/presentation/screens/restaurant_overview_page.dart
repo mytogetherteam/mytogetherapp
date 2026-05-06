@@ -4,8 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/restaurant_data.dart';
-
-
+import '../../data/models/shop_dto.dart';
 class RestaurantOverviewPage extends StatelessWidget {
   final Restaurant restaurant;
 
@@ -174,48 +173,111 @@ class RestaurantOverviewPage extends StatelessWidget {
                   _buildSectionCard(
                     icon: 'assets/images/detail_overview.png',
                     title: 'Restaurant Address',
-                    content: restaurant.addressMm ?? restaurant.address ?? 'No address available',
+                    content: restaurant.addressEn ?? restaurant.addressMm ?? restaurant.address ?? 'No address available',
                   ),
                   const SizedBox(height: 16),
-                  _buildSectionCard(
-                    icon: 'assets/images/detail_chat.png', // Using bell for hours ref image if needed, or custom icon
-                    title: 'Service Hours',
-                    customContent: Column(
-                      children: restaurant.operatingHours
-                          .where((h) => !h.isClosed)
-                          .take(1) // Usually shops have same hours, or show the first one
-                          .map((h) => Text(
-                                h.displayTime,
-                                style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
-                              ))
-                          .toList(),
+                  // Service Hours List
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[200]!),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                    icon: 'assets/images/order_confirmed.png', // Ref for closing icon
-                    title: 'Regular Closing Day',
-                    customContent: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: restaurant.operatingHours
-                          .where((h) => h.isClosed)
-                          .map((h) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      children: () {
+                        if (restaurant.operatingHours.isEmpty) {
+                          return [
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Text(
+                                'Service hours not available',
+                                style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
+                              ),
+                            )
+                          ];
+                        }
+
+                        // Sort from Monday (1) to Sunday (7)
+                        int dayToNumber(String day) {
+                          final number = int.tryParse(day);
+                          if (number != null) return number;
+
+                          switch (day.toUpperCase()) {
+                            case 'MONDAY': return 1;
+                            case 'TUESDAY': return 2;
+                            case 'WEDNESDAY': return 3;
+                            case 'THURSDAY': return 4;
+                            case 'FRIDAY': return 5;
+                            case 'SATURDAY': return 6;
+                            case 'SUNDAY': return 7;
+                            default: return 8;
+                          }
+                        }
+
+                        String formatDayName(String day) {
+                          if (day == '1') return 'Monday';
+                          if (day == '2') return 'Tuesday';
+                          if (day == '3') return 'Wednesday';
+                          if (day == '4') return 'Thursday';
+                          if (day == '5') return 'Friday';
+                          if (day == '6') return 'Saturday';
+                          if (day == '7') return 'Sunday';
+                          if (day.isEmpty) return '';
+                          return day[0].toUpperCase() + day.substring(1).toLowerCase();
+                        }
+
+                        final sortedHours = List<OperatingHourDto>.from(restaurant.operatingHours)
+                          ..sort((a, b) => dayToNumber(a.dayOfWeek).compareTo(dayToNumber(b.dayOfWeek)));
+
+                        return sortedHours.asMap().entries.map((entry) {
+                          final int index = entry.key;
+                          final h = entry.value;
+                          final bool isLast = index == sortedHours.length - 1;
+
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      h.dayOfWeek,
-                                      style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
+                                    SizedBox(
+                                      width: 100,
+                                      child: Text(
+                                        formatDayName(h.dayOfWeek),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          color: const Color(0xFF2D3748),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
-                                    Text(
-                                      '10:00 AM - 9:00 PM', // Matches reference style where even closed days show range? Wait.
-                                      style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
+                                    Expanded(
+                                      child: Text(
+                                        h.isClosed ? 'Closed' : h.displayTime24h.replaceAll('-', '–'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: h.isClosed ? const Color(0xFFED3973) : const Color(0xFF718096),
+                                          fontWeight: h.isClosed ? FontWeight.w500 : FontWeight.w400,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ))
-                          .toList(),
+                              ),
+                              if (!isLast)
+                                Divider(
+                                  color: Colors.grey[200],
+                                  height: 1,
+                                  thickness: 1,
+                                  indent: 20,
+                                  endIndent: 20,
+                                ),
+                            ],
+                          );
+                        }).toList();
+                      }(),
                     ),
                   ),
                 ],

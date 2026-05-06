@@ -362,7 +362,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId, orElse: () => _currentFood!.variants.first);
                               price = variant.price;
                             } else {
-                              price = _currentFood!.price;
+                              double currentPrice = _currentFood!.price;
+                              double originalPrice = _currentFood!.originalPrice ?? 0.0;
+                              price = (currentPrice == 0 && originalPrice > 0) ? originalPrice : currentPrice;
                             }
                           } else {
                             price = widget.price;
@@ -382,11 +384,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   // Rating
                   Row(
                     children: [
-                      Text(
-                        _currentFood?.shopName ?? widget.restaurantName,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                      Flexible(
+                        child: Text(
+                          _currentFood?.shopName ?? widget.restaurantName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1036,7 +1042,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId);
                                   basePrice = variant.price;
                                 } else {
-                                  basePrice = _currentFood!.price;
+                                  double currentPrice = _currentFood!.price;
+                                  double originalPrice = _currentFood!.originalPrice ?? 0.0;
+                                  basePrice = (currentPrice == 0 && originalPrice > 0) ? originalPrice : currentPrice;
                                 }
                                 for (var group in _currentFood!.optionGroups) {
                                   final selectedIds = _selectedOptions[group.id] ?? {};

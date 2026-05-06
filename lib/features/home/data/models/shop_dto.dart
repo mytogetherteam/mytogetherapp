@@ -80,12 +80,13 @@ class SliceShopListDto {
           .map((item) => ShopListItemDto.fromJson(item))
           .toList(),
       pageable: PageableDto.fromJson(json['pageable'] ?? {}),
-      first: json['first'] ?? false,
-      last: json['last'] ?? false,
-      size: json['size'] ?? 0,
-      number: json['number'] ?? 0,
-      numberOfElements: json['numberOfElements'] ?? 0,
-      empty: json['empty'] ?? true,
+      // API sometimes returns these as strings, handle both
+      first: json['first'] == true || json['first'] == 'true',
+      last: json['last'] == true || json['last'] == 'true',
+      size: int.tryParse(json['size'].toString()) ?? 0,
+      number: int.tryParse(json['number'].toString()) ?? 0,
+      numberOfElements: int.tryParse(json['numberOfElements'].toString()) ?? 0,
+      empty: json['empty'] == true || json['empty'] == 'true',
     );
   }
 }
@@ -158,13 +159,22 @@ class ShopListItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
-    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
-    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
-    return null;
+    // API returns displayDeliveryFee as a number (e.g. 1000)
+    final raw = json['displayDeliveryFee'] ?? json['displayBaseDeliveryFee'] ?? json['baseDeliveryFee'];
+    if (raw == null) return null;
+    final num? fee = num.tryParse(raw.toString());
+    if (fee == null) return raw.toString();
+    if (fee == 0) return 'Free';
+    return '฿${fee.toStringAsFixed(0)}';
   }
 
   static String? _parseOriginalDeliveryFee(Map<String, dynamic> json) {
-    return null;
+    final raw = json['originalDeliveryFee'];
+    if (raw == null) return null;
+    final num? fee = num.tryParse(raw.toString());
+    if (fee == null) return raw.toString();
+    if (fee == 0) return null;
+    return '฿${fee.toStringAsFixed(0)}';
   }
 }
 
@@ -386,10 +396,38 @@ class OperatingHourDto {
   });
 
   factory OperatingHourDto.fromJson(Map<String, dynamic> json) {
+    // Robust parsing for int or string values
+    int? parseSafe(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      return int.tryParse(value.toString());
+    }
+
+    LocalTimeDto? openTime;
+    final hOpen = parseSafe(json['openTimeHour']);
+    final mOpen = parseSafe(json['openTimeMin']);
+    
+    if (hOpen != null && mOpen != null) {
+      openTime = LocalTimeDto(hour: hOpen, minute: mOpen);
+    } else if (json['openingTime'] != null) {
+      openTime = LocalTimeDto.fromJson(json['openingTime']);
+    }
+
+    LocalTimeDto? closeTime;
+    final hClose = parseSafe(json['closeTimeHour']);
+    final mClose = parseSafe(json['closeTimeMin']);
+
+    if (hClose != null && mClose != null) {
+      closeTime = LocalTimeDto(hour: hClose, minute: mClose);
+    } else if (json['closingTime'] != null) {
+      closeTime = LocalTimeDto.fromJson(json['closingTime']);
+    }
+
     return OperatingHourDto(
       dayOfWeek: json['dayOfWeek']?.toString() ?? '',
-      openingTime: json['openingTime'] != null ? LocalTimeDto.fromJson(json['openingTime']) : null,
-      closingTime: json['closingTime'] != null ? LocalTimeDto.fromJson(json['closingTime']) : null,
+      openingTime: openTime,
+      closingTime: closeTime,
       isClosed: json['isClosed'] ?? false,
     );
   }
@@ -398,6 +436,12 @@ class OperatingHourDto {
     if (isClosed) return 'Closed';
     if (openingTime == null || closingTime == null) return 'N/A';
     return '${openingTime!.format} - ${closingTime!.format}';
+  }
+
+  String get displayTime24h {
+    if (isClosed) return 'Closed';
+    if (openingTime == null || closingTime == null) return 'N/A';
+    return '${openingTime!.format24h} - ${closingTime!.format24h}';
   }
 }
 
@@ -419,6 +463,12 @@ class LocalTimeDto {
     final ampm = hour >= 12 ? 'PM' : 'AM';
     final m = minute.toString().padLeft(2, '0');
     return '$h:$m $ampm';
+  }
+
+  String get format24h {
+    final h = hour.toString();
+    final m = minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 }
 

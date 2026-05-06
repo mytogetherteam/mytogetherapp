@@ -4,80 +4,176 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
-import '../../data/fallback_data.dart';
+import '../../data/repositories/restaurant_repository.dart';
+import '../../data/models/shop_feed_item_dto.dart';
+import '../../../../core/location/location_service.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
 
-class TogetherDealsSection extends StatelessWidget {
+class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Use high-quality fallback data
-    final deals = FallbackData.togetherDeals.map((data) => _Deal(
-      imagePath: data['imagePath']!,
-      price: data['price'],
-      originalPrice: data['originalPrice'],
-      name: data['name']!,
-      deliveryFee: data['deliveryFee'],
-      minutes: data['minutes'],
-    )).toList();
+  State<TogetherDealsSection> createState() => _TogetherDealsSectionState();
+}
 
+class _TogetherDealsSectionState extends State<TogetherDealsSection> {
+  Future<ShopFeedSectionDto>? _dealsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dealsFuture = _loadDeals();
+  }
+
+  Future<ShopFeedSectionDto> _loadDeals() async {
+    try {
+      final activeLoc = UserLocationRepository.instance.activeLocation;
+      final pos = await LocationService().getCurrentPosition();
+      
+      return await RestaurantRepository.instance.getFoodTabFeed(
+        feedType: 'hot-deals',
+        lat: activeLoc?.latitude ?? pos.latitude,
+        lon: activeLoc?.longitude ?? pos.longitude,
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('TogetherDealsSection: API error: $e');
+      return ShopFeedSectionDto(items: []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ShopFeedSectionDto>(
+      future: _dealsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildSkeleton();
+        }
+
+        final deals = snapshot.data?.items ?? [];
+        if (deals.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Together ',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'Up to 40% Off ',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFED3973),
+                          ),
+                        ),
+                        const WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Text(
+                            '✦',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFFED3973),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ViewAllIconButton(
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Horizontal scroll cards
+            SizedBox(
+              height: 210,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 20, right: 20),
+                itemCount: deals.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _DealCard(deal: deals[index]),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSkeleton() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header Row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Together ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Up to 40% Off ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFED3973),
-                      ),
-                    ),
-                    const WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Text(
-                        '✦',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFFED3973),
-                        ),
-                      ),
-                    ),
-                  ],
+              Text(
+                'Together Deals',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
-              ViewAllIconButton(
-                onPressed: () {},
-              ),
+              ViewAllIconButton(onPressed: () {}),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        // Horizontal scroll cards
         SizedBox(
           height: 210,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20, right: 20),
-            itemCount: deals.length,
+            itemCount: 4,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => _DealCard(deal: deals[index]),
+            itemBuilder: (_, index) => SizedBox(
+              width: 130,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: const ImageSkeletonLoader(width: 130, height: 120),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 60, height: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 100, height: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 80, height: 10),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -85,26 +181,8 @@ class TogetherDealsSection extends StatelessWidget {
   }
 }
 
-class _Deal {
-  final String imagePath;
-  final int price;
-  final int originalPrice;
-  final String name;
-  final int deliveryFee;
-  final int minutes;
-
-  const _Deal({
-    required this.imagePath,
-    required this.price,
-    required this.originalPrice,
-    required this.name,
-    required this.deliveryFee,
-    required this.minutes,
-  });
-}
-
 class _DealCard extends StatelessWidget {
-  final _Deal deal;
+  final ShopFeedItemDto deal;
   const _DealCard({required this.deal});
 
   @override
@@ -118,7 +196,7 @@ class _DealCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: CachedNetworkImage(
-              imageUrl: deal.imagePath,
+              imageUrl: deal.imageUrl ?? '',
               width: 130,
               height: 120,
               fit: BoxFit.cover,
@@ -160,7 +238,7 @@ class _DealCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '฿${deal.price}',
+                '${deal.currency}${deal.price.toStringAsFixed(0)}',
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -168,14 +246,15 @@ class _DealCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 5),
-              Text(
-                '฿${deal.originalPrice}',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey,
-                  decoration: TextDecoration.lineThrough,
+              if (deal.originalPrice != null)
+                Text(
+                  '${deal.currency}${deal.originalPrice!.toStringAsFixed(0)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    decoration: TextDecoration.lineThrough,
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 2),
@@ -196,11 +275,15 @@ class _DealCard extends StatelessWidget {
             children: [
               Icon(PhosphorIcons.bicycle(), size: 12, color: Colors.grey.shade500),
               const SizedBox(width: 3),
-              Text(
-                '฿${deal.deliveryFee} · ${deal.minutes}min',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: Colors.grey.shade500,
+              Expanded(
+                child: Text(
+                  '${deal.currency}${deal.deliveryFee ?? '0'} · ${deal.estimatedTime ?? '20-30 min'}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    color: Colors.grey.shade500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

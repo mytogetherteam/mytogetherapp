@@ -6,10 +6,8 @@ import 'view_all_icon_button.dart';
 import '../screens/restaurant_detail_page.dart';
 import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
-import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/location/location_service.dart';
-import '../../data/fallback_data.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -30,17 +28,19 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
     try {
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
-      
+      // Use cached GPS position or Bangkok default — no blocking GPS wait
+      final pos = LocationService().cachedPosition;
+      final lat = pos?.latitude ?? LocationService.defaultLat;
+      final lon = pos?.longitude ?? LocationService.defaultLon;
+
       return await RestaurantRepository.instance.getNearbyShops(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
+        lat: lat,
+        lon: lon,
         radius: 10.0,
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint('RestaurantsNearbySection: API error or timeout: $e');
-      return []; // Return empty to trigger fallback in builder
+      return [];
     }
   }
 
@@ -48,7 +48,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
     final newStatus = !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
     
-    // Immediate local feedback
     setState(() {
       _localFavorites[restaurant.id] = newStatus;
     });
@@ -58,9 +57,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         int.tryParse(restaurant.id) ?? 0,
         newStatus,
       );
-      // No longer refreshing the future here to prevent flickering.
-      // The local state _localFavorites handles the immediate color change.
-      
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
@@ -71,7 +67,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         );
       }
     } catch (e) {
-      // Rollback on error
       if (mounted) {
         setState(() {
           _localFavorites[restaurant.id] = !newStatus;
@@ -91,21 +86,18 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
     return FutureBuilder<List<Restaurant>>(
       future: _restaurantsFuture,
       builder: (context, snapshot) {
-        // If waiting, show skeleton
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton();
         }
 
-        // Determine the list of restaurants (either fetched or fallback)
-        final List<Restaurant> restaurants;
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          debugPrint('RestaurantsNearbySection: Error or no data, using fallback: ${snapshot.error}');
-          restaurants = FallbackData.restaurants;
-        } else {
-          restaurants = snapshot.data!;
+        final List<Restaurant> restaurants = snapshot.data ?? [];
+
+        // If empty or error — show nothing (no hardcoded fallback)
+        if (restaurants.isEmpty) {
+          debugPrint('RestaurantsNearbySection: No data from API, hiding section.');
+          return const SizedBox.shrink();
         }
 
-        // Build the UI using the determined restaurants list
         return Column(
           children: [
             Padding(
@@ -179,6 +171,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                 },
               ),
             ),
+            const SizedBox(height: 32),
           ],
         );
       },
@@ -235,11 +228,10 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
           ),
         ),
+        const SizedBox(height: 32),
       ],
     );
   }
-
-
 
   Widget _shimmerBox({required double width, required double height, double radius = 8}) {
     return ClipRRect(

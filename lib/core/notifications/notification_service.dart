@@ -246,6 +246,7 @@ class NotificationService {
         } else if (s == 1) {
           App.navigatorKey.currentState?.push(MaterialPageRoute(
             builder: (_) => AwaitingPaymentPage(
+              orderId: state.orderId,
               foodTotal: state.totalAmount ?? 0,
               deliveryFee: state.deliveryFee ?? 0,
             ),

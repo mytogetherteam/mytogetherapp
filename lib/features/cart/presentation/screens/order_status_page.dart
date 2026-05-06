@@ -151,6 +151,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             context,
             MaterialPageRoute(
               builder: (_) => AwaitingPaymentPage(
+                orderId: state.orderId,
                 foodTotal: widget.foodTotal,
                 deliveryFee: state.deliveryFee ?? widget.deliveryFee,
               ),

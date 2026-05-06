@@ -110,7 +110,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
   @override
   Widget build(BuildContext context) {
     final bool isNetworkImage = widget.imagePath.startsWith('http');
-    final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > widget.price;
+    final double effectivePrice = (widget.price == 0 && widget.originalPrice != null && widget.originalPrice! > 0)
+        ? widget.originalPrice!
+        : widget.price;
+    final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > effectivePrice;
 
     return ListenableBuilder(
       listenable: CartManager.instance,
@@ -151,7 +154,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                           id: widget.id,
                           restaurantId: widget.restaurantId,
                           title: widget.title,
-                          price: widget.price,
+                          price: effectivePrice,
                           currency: widget.currency,
                           imagePath: widget.imagePath,
                           restaurantName: widget.restaurantName,
@@ -282,22 +285,25 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (widget.price > 0 || hasDiscount || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
+                              if (effectivePrice > 0 || hasDiscount || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
                                 const SizedBox(width: 4),
                                 if (hasDiscount) ...[
-                                  Text(
-                                    widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.grey[400],
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 9,
-                                      decoration: TextDecoration.lineThrough,
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Text(
+                                      widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.grey[400],
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 10,
+                                        decoration: TextDecoration.lineThrough,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 4),
                                 ],
                                 Text(
-                                  widget.displayPrice ?? widget.price.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
+                                  widget.displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFFED3A72),
                                     fontWeight: FontWeight.w600,

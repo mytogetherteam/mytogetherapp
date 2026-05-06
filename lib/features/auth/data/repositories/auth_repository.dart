@@ -17,6 +17,10 @@ class AuthRepository {
         LoginRequest(usernameOrEmail: usernameOrEmail, password: password),
       );
       
+      if (response.role != 'CUSTOMER') {
+        throw Exception('Access Denied: Only users can login to this app.');
+      }
+      
       // After login success, we must ensure the token is set for subsequent calls
       // The Dio interceptor usually handles this, but here we might need a manual set if not yet initialized
       AuthService().updateAccessToken(response.token);

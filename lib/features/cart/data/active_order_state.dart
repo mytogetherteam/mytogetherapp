@@ -41,6 +41,8 @@ class ActiveOrderItem {
   String? riderPhone;
   String? deliveryTrackingUrl;
   String? shopPaymentQrUrl;
+  int? paymentMethodId;
+  String? paymentMethodImageUrl;
 
   // Missing fields for backward compatibility
   String? deliveryAddress;
@@ -95,6 +97,8 @@ class ActiveOrderItem {
     this.shopNameMm,
     this.shopLogo,
     this.shopImageUrl,
+    this.paymentMethodId,
+    this.paymentMethodImageUrl,
   });
 
   Map<String, dynamic> toJson() => {
@@ -135,6 +139,8 @@ class ActiveOrderItem {
     'shopNameMm': shopNameMm,
     'shopLogo': shopLogo,
     'shopImageUrl': shopImageUrl,
+    'paymentMethodId': paymentMethodId,
+    'paymentMethodImageUrl': paymentMethodImageUrl,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -177,6 +183,8 @@ class ActiveOrderItem {
     shopNameMm: json['shopNameMm'],
     shopLogo: json['shopLogo'],
     shopImageUrl: json['shopImageUrl'],
+    paymentMethodId: json['paymentMethodId'],
+    paymentMethodImageUrl: json['paymentMethodImageUrl'],
   );
 }
 
@@ -263,6 +271,8 @@ class ActiveOrderState extends ChangeNotifier {
   String? get riderPhone => _primary?.riderPhone;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
+  int? get paymentMethodId => _primary?.paymentMethodId;
+  String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
   String? get cancelReason => _primary?.cancelReason;
   set cancelReason(String? val) { if (_primary != null) _primary!.cancelReason = val; }
 
@@ -336,6 +346,8 @@ class ActiveOrderState extends ChangeNotifier {
     required double totalAmount,
     required String paymentMethod,
     required List<CartItem> items,
+    int? paymentMethodId,
+    String? paymentMethodImageUrl,
     String? orderId,
   }) {
     final targetId = orderId ?? this.orderId;
@@ -344,6 +356,8 @@ class ActiveOrderState extends ChangeNotifier {
     final item = _orders[targetId]!;
     item.totalAmount = totalAmount;
     item.paymentMethod = paymentMethod;
+    item.paymentMethodId = paymentMethodId;
+    item.paymentMethodImageUrl = paymentMethodImageUrl;
     item.orderItems = List.from(items);
     
     saveToPrefs();
@@ -383,7 +397,11 @@ class ActiveOrderState extends ChangeNotifier {
       );
       
       if (response.statusCode == 200 && response.data != null) {
-        final data = response.data as Map<String, dynamic>;
+        Map<String, dynamic> data = response.data as Map<String, dynamic>;
+        // Unwrap success/data envelope if present
+        if (data.containsKey('data') && data['data'] is Map) {
+          data = Map<String, dynamic>.from(data['data'] as Map);
+        }
         data['orderId'] = targetId;
         updateFromSocket(data);
       }
@@ -579,6 +597,14 @@ class ActiveOrderState extends ChangeNotifier {
     item.routeDurationMins = durationMins;
     item.deliveryFee = fee;
     
+    notifyListeners();
+  }
+
+  void updatePaymentMethodImage(String url, {String? orderId}) {
+    final targetId = orderId ?? this.orderId;
+    if (targetId == null || !_orders.containsKey(targetId)) return;
+    _orders[targetId]!.paymentMethodImageUrl = url;
+    saveToPrefs();
     notifyListeners();
   }
 
