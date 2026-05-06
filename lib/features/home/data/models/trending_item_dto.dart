@@ -15,6 +15,8 @@ class TrendingItemDto {
   final String? estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  final bool isAvailable;
+  final String publishStatus;
 
   TrendingItemDto({
     required this.id,
@@ -33,6 +35,8 @@ class TrendingItemDto {
     this.estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.isAvailable = true,
+    this.publishStatus = 'PUBLISHED',
   });
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
@@ -61,6 +65,8 @@ class TrendingItemDto {
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
+      isAvailable: json['isAvailable'] as bool? ?? true,
+      publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
     );
   }
 

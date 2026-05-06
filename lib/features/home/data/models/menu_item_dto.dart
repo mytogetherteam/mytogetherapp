@@ -18,6 +18,8 @@ class MenuItemDto {
   final String? estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  final bool isAvailable;
+  final String publishStatus;
 
   MenuItemDto({
     required this.id,
@@ -37,6 +39,8 @@ class MenuItemDto {
     this.estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.isAvailable = true,
+    this.publishStatus = 'PUBLISHED',
   });
 
   factory MenuItemDto.fromJson(Map<String, dynamic> json) {
@@ -60,6 +64,8 @@ class MenuItemDto {
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: null, // Depending on if api adds it
+      isAvailable: json['isAvailable'] as bool? ?? true,
+      publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
     );
   }
 
@@ -113,6 +119,8 @@ class MenuItemDto {
           : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
+      isAvailable: json['isAvailable'] as bool? ?? true,
+      publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
     );
   }
 }

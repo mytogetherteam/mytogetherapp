@@ -32,6 +32,9 @@ class FoodMenuItemCard extends StatefulWidget {
   final bool isHighlighted;
   final bool forceRestaurantNavigation;
   final String? targetMenuItemId;
+  // Real-time status fields
+  final bool isAvailable;
+  final String publishStatus;
 
   const FoodMenuItemCard({
     super.key,
@@ -56,6 +59,8 @@ class FoodMenuItemCard extends StatefulWidget {
     this.isHighlighted = false,
     this.forceRestaurantNavigation = false,
     this.targetMenuItemId,
+    this.isAvailable = true,
+    this.publishStatus = 'PUBLISHED',
   });
 
   @override
@@ -115,11 +120,15 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
         : widget.price;
     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > effectivePrice;
 
+    final bool effectiveIsHidden = (widget.publishStatus == 'UNPUBLISHED' || widget.publishStatus == 'ARCHIVED');
+    final bool effectiveIsDisabled = !effectiveIsHidden && !widget.isAvailable;
+
+    if (effectiveIsHidden) return const SizedBox.shrink();
+
     return ListenableBuilder(
       listenable: CartManager.instance,
       builder: (context, _) {
-        // Consider it favorite/filled if explicitly favorite OR if already in cart
-        final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 && 
+        final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
             CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
         final showFilledHeart = widget.isFavorite || isInCart;
 
@@ -130,230 +139,240 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
               translation: _floatAnimation.value,
               child: Transform.scale(
                 scale: _scaleAnimation.value,
-                child: GestureDetector(
-                  onTap: () {
-                    if (widget.forceRestaurantNavigation) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RestaurantDetailPage(
-                            id: widget.restaurantId,
-                            name: widget.restaurantName,
-                            targetMenuItemId: widget.id,
-                            isFavorite: false, // Fallback
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MenuDetailPage(
-                          id: widget.id,
-                          restaurantId: widget.restaurantId,
-                          title: widget.title,
-                          price: effectivePrice,
-                          currency: widget.currency,
-                          imagePath: widget.imagePath,
-                          restaurantName: widget.restaurantName,
-                          displayPrice: widget.displayPrice,
-                          description: '', // Will be fetched via API in MenuDetailPage
-                          isFavorite: showFilledHeart,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image Section
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: AnimatedBuilder(
-                                animation: _borderController,
-                                builder: (context, child) {
-                                  return ShaderMask(
-                                    blendMode: BlendMode.srcATop,
-                                    shaderCallback: (Rect bounds) {
-                                      // Sweep a diagonal shine from top-left to bottom-right
-                                      // Animation goes from -1.0 to 1.0 (hidden to hidden)
-                                      final double slide = (_borderController.value * 3) - 1.5; 
-                                      
-                                      return LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Colors.white.withValues(alpha: 0.0),
-                                          Colors.white.withValues(alpha: 0.0),
-                                          Colors.white.withValues(alpha: 0.6), // The shine core
-                                          Colors.white.withValues(alpha: 0.8), // The shine center
-                                          Colors.white.withValues(alpha: 0.6), // The shine core
-                                          Colors.white.withValues(alpha: 0.0),
-                                          Colors.white.withValues(alpha: 0.0),
-                                        ],
-                                        stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
-                                        transform: GradientRotation(0.35), // Slight tilt
-                                        // Move the gradient based on slide
-                                        tileMode: TileMode.clamp,
-                                      ).createShader(
-                                        Rect.fromLTWH(
-                                          bounds.width * slide, 
-                                          bounds.height * slide, 
-                                          bounds.width, 
-                                          bounds.height
-                                        ),
-                                      );
-                                    },
-                                    child: child,
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
+                child: _OutOfStockWrapper(
+                  isDisabled: effectiveIsDisabled,
+                  child: GestureDetector(
+                    onTap: effectiveIsDisabled
+                        ? null
+                        : () {
+                            if (widget.forceRestaurantNavigation) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RestaurantDetailPage(
+                                    id: widget.restaurantId,
+                                    name: widget.restaurantName,
+                                    targetMenuItemId: widget.id,
+                                    isFavorite: false,
                                   ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                      ? _buildFallbackImage()
-                                      : (isNetworkImage
-                                          ? CachedNetworkImage(
-                                            imageUrl: widget.imagePath,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) => const ImageSkeletonLoader(),
-                                            errorWidget: (context, url, error) => _buildFallbackImage(),
-                                            fadeInDuration: const Duration(milliseconds: 300),
-                                          )
-                                        : Image.asset(
-                                            widget.imagePath,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return _buildFallbackImage();
-                                            },
-                                          )),
+                                ),
+                              );
+                              return;
+                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MenuDetailPage(
+                                  id: widget.id,
+                                  restaurantId: widget.restaurantId,
+                                  title: widget.title,
+                                  price: effectivePrice,
+                                  currency: widget.currency,
+                                  imagePath: widget.imagePath,
+                                  restaurantName: widget.restaurantName,
+                                  displayPrice: widget.displayPrice,
+                                  description: '',
+                                  isFavorite: showFilledHeart,
+                                ),
+                              ),
+                            );
+                          },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image Section
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: AnimatedBuilder(
+                                  animation: _borderController,
+                                  builder: (context, child) {
+                                    return ShaderMask(
+                                      blendMode: BlendMode.srcATop,
+                                      shaderCallback: (Rect bounds) {
+                                        final double slide = (_borderController.value * 3) - 1.5;
+                                        return LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Colors.white.withValues(alpha: 0.0),
+                                            Colors.white.withValues(alpha: 0.0),
+                                            Colors.white.withValues(alpha: 0.6),
+                                            Colors.white.withValues(alpha: 0.8),
+                                            Colors.white.withValues(alpha: 0.6),
+                                            Colors.white.withValues(alpha: 0.0),
+                                            Colors.white.withValues(alpha: 0.0),
+                                          ],
+                                          stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
+                                          transform: GradientRotation(0.35),
+                                          tileMode: TileMode.clamp,
+                                        ).createShader(
+                                          Rect.fromLTWH(
+                                            bounds.width * slide,
+                                            bounds.height * slide,
+                                            bounds.width,
+                                            bounds.height,
+                                          ),
+                                        );
+                                      },
+                                      child: child,
+                                    );
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
+                                          ? _buildFallbackImage()
+                                          : (isNetworkImage
+                                              ? CachedNetworkImage(
+                                                  imageUrl: widget.imagePath,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => const ImageSkeletonLoader(),
+                                                  errorWidget: (context, url, error) => _buildFallbackImage(),
+                                                  fadeInDuration: const Duration(milliseconds: 300),
+                                                )
+                                              : Image.asset(
+                                                  widget.imagePath,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                                                )),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          Positioned(
-                            top: 10,
-                            right: 10,
-                            child: GestureDetector(
-                              onTap: widget.onFavoriteToggle,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  showFilledHeart ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                                  color: showFilledHeart ? const Color(0xFFED3A72) : Colors.white,
-                                  size: 16,
+                              Positioned(
+                                top: 10,
+                                right: 10,
+                                child: GestureDetector(
+                                  onTap: widget.onFavoriteToggle,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      showFilledHeart
+                                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                                          : PhosphorIcons.heart(),
+                                      color: showFilledHeart ? const Color(0xFFED3A72) : Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          ],
                         ),
-                      ),
-                    // Text Info Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          Row(
+                        // Text Info Section
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  widget.title,
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      widget.title,
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                        color: Colors.black,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (effectivePrice > 0 ||
+                                      hasDiscount ||
+                                      (widget.displayPrice != null &&
+                                          widget.displayPrice != '฿ 0' &&
+                                          widget.displayPrice != '฿0' &&
+                                          widget.displayPrice != '0')) ...[
+                                    const SizedBox(width: 4),
+                                    if (hasDiscount) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2.0),
+                                        child: Text(
+                                          widget.originalPrice!
+                                              .toStringAsFixed(0)
+                                              .toFormattedPrice(currency: widget.currency),
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.grey[400],
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 10,
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Text(
+                                      widget.displayPrice ??
+                                          effectivePrice
+                                              .toStringAsFixed(0)
+                                              .toFormattedPrice(currency: widget.currency),
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFFED3A72),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
+                                Text(
+                                  widget.restaurantName,
                                   style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    color: Colors.black,
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w400,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              if (effectivePrice > 0 || hasDiscount || (widget.displayPrice != null && widget.displayPrice != '฿ 0' && widget.displayPrice != '฿0' && widget.displayPrice != '0')) ...[
-                                const SizedBox(width: 4),
-                                if (hasDiscount) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2.0),
-                                    child: Text(
-                                      widget.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.grey[400],
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 10,
-                                        decoration: TextDecoration.lineThrough,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  widget.displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: widget.currency),
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFFED3A72),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
                               ],
+                              const SizedBox(height: 4),
+                              Transform.translate(
+                                offset: const Offset(-1.5, 0),
+                                child: ShopItemMetadataRow(
+                                  rating: widget.rating > 0 ? widget.rating : null,
+                                  reviewCount: widget.reviewCount,
+                                  distanceKm: widget.distanceKm,
+                                  deliveryTime: widget.estimatedTime,
+                                  deliveryFee: widget.deliveryFee,
+                                  originalDeliveryFee: widget.originalDeliveryFee,
+                                  fontSize: 10,
+                                  iconSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
-                            Text(
-                              widget.restaurantName,
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w400,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          const SizedBox(height: 4),
-                          Transform.translate(
-                            offset: const Offset(-1.5, 0),
-                            child: ShopItemMetadataRow(
-                              rating: widget.rating > 0 ? widget.rating : null,
-                              reviewCount: widget.reviewCount,
-                              distanceKm: widget.distanceKm,
-                              deliveryTime: widget.estimatedTime,
-                              deliveryFee: widget.deliveryFee,
-                              originalDeliveryFee: widget.originalDeliveryFee,
-                              fontSize: 10,
-                              iconSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 
   Widget _buildFallbackImage() {
     return Container(
@@ -386,4 +405,52 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
   }
 }
 
-// Previous _BorderPainter removed in favor of mirror reflection ShaderMask logic inside Build.
+class _OutOfStockWrapper extends StatelessWidget {
+  final bool isDisabled;
+  final Widget child;
+
+  const _OutOfStockWrapper({required this.isDisabled, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isDisabled) return child;
+    return Stack(
+      children: [
+        ColorFiltered(
+          colorFilter: const ColorFilter.matrix(<double>[
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0,      0,      0,      1, 0,
+          ]),
+          child: Opacity(opacity: 0.6, child: child),
+        ),
+        Positioned.fill(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Out of Stock',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

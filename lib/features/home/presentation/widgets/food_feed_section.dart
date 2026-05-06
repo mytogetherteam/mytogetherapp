@@ -139,6 +139,8 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
               displayPrice: item.displayPrice,
               onFavoriteToggle: () => _toggleFavorite(item),
               forceRestaurantNavigation: true,
+              isAvailable: item.isAvailable,
+              publishStatus: item.publishStatus,
             );
           },
         ),
@@ -279,6 +281,9 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                   estimatedTime: item.estimatedTime,
                   deliveryFee: item.deliveryFee,
                   originalDeliveryFee: item.originalDeliveryFee,
+                  id: item.id.toString(),
+                  isAvailable: item.isAvailable,
+                  publishStatus: item.publishStatus,
                   onFavoriteToggle: () => _toggleFavorite(item),
                   onTap: () {
                     Navigator.push(

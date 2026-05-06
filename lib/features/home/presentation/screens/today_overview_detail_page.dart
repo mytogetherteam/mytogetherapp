@@ -97,6 +97,8 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       estimatedTime: t.estimatedTime,
       deliveryFee: t.deliveryFee,
       originalDeliveryFee: t.originalDeliveryFee,
+      isAvailable: t.isAvailable,
+      publishStatus: t.publishStatus,
     );
   }
 
@@ -258,6 +260,8 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                     originalDeliveryFee: item.originalDeliveryFee,
                     onFavoriteToggle: () => _toggleFavorite(item),
                     forceRestaurantNavigation: true,
+                    isAvailable: item.isAvailable,
+                    publishStatus: item.publishStatus,
                   );
                 },
               ),

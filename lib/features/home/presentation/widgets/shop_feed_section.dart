@@ -144,6 +144,8 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               deliveryFee: item.deliveryFee,
               originalDeliveryFee: item.originalDeliveryFee,
               onFavoriteToggle: () => _toggleFavorite(item),
+              isAvailable: item.isAvailable,
+              publishStatus: item.publishStatus,
             );
             
             return isTarget 

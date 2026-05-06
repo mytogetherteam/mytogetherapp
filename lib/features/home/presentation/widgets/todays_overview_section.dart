@@ -74,6 +74,8 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
       originalDeliveryFee: t.originalDeliveryFee,
       originalPrice: t.originalPrice,
       displayPrice: t.displayPrice,
+      isAvailable: t.isAvailable,
+      publishStatus: t.publishStatus,
     );
   }
 
@@ -265,6 +267,8 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
               displayPrice: item.displayPrice,
               onFavoriteToggle: () => _toggleFavorite(item),
               forceRestaurantNavigation: true,
+              isAvailable: item.isAvailable,
+              publishStatus: item.publishStatus,
             );
           },
         ),

@@ -19,6 +19,9 @@ class ShopFeedItemDto {
   final String? estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  // Real-time status fields (from API, updated by WebSocket)
+  final bool isAvailable;
+  final String publishStatus;
 
   ShopFeedItemDto({
     required this.id,
@@ -37,6 +40,8 @@ class ShopFeedItemDto {
     this.estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.isAvailable = true,
+    this.publishStatus = 'PUBLISHED',
   });
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
@@ -63,6 +68,8 @@ class ShopFeedItemDto {
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
+      isAvailable: json['isAvailable'] as bool? ?? true,
+      publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
     );
   }
 

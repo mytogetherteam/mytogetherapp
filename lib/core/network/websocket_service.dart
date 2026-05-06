@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
 import '../../features/cart/data/active_order_state.dart';
+import '../../features/cart/data/active_order_state.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -114,8 +115,20 @@ class WebSocketService {
         if (frame.body == null) return;
         
         try {
-          dynamic payload = json.decode(frame.body!);
-          
+          final decoded = json.decode(frame.body!);
+          if (decoded is! Map) return;
+
+          final raw = Map<String, dynamic>.from(decoded as Map);
+          final messageType = raw['type']?.toString();
+
+          // ── MENU_ITEM_UPDATE (removed cache for demo) ────────────────────
+          if (messageType == 'MENU_ITEM_UPDATE') {
+            return;
+          }
+
+          // ── ORDER_UPDATE (existing logic) ─────────────────────────────────
+          dynamic payload = raw;
+
           // Unmarshall if wrapped
           if (payload is Map && payload.containsKey('order') && payload['order'] is Map) {
             payload = payload['order'];
@@ -124,14 +137,14 @@ class WebSocketService {
           }
 
           if (payload is Map) {
-            final Map<String, dynamic> raw = payload as Map<String, dynamic>;
+            final Map<String, dynamic> orderRaw = Map<String, dynamic>.from(payload as Map);
             
             // Smarter status extraction: check root then nested
-            String? status = (raw['statusName'] ?? raw['statusLabel'] ?? raw['status'])?.toString();
+            String? status = (orderRaw['statusName'] ?? orderRaw['statusLabel'] ?? orderRaw['status'])?.toString();
             
             // Fallback: search in nested fields if still null
             if (status == null) {
-              final nested = raw['order'] ?? raw['data'] ?? raw['status'];
+              final nested = orderRaw['order'] ?? orderRaw['data'] ?? orderRaw['status'];
               if (nested is Map) {
                 status = (nested['statusName'] ?? nested['statusLabel'] ?? nested['status'] ?? nested['name'] ?? nested['code'])?.toString();
               }
@@ -139,14 +152,13 @@ class WebSocketService {
 
             final displayStatus = (status ?? 'UNKNOWN').toUpperCase();
             debugPrint(' 📡 [WS] STATUS: $displayStatus 🔔 ✨');
-            debugPrint(' [WS] Message Content: $raw');
+            debugPrint(' [WS] Message Content: $orderRaw');
 
-            ActiveOrderState.instance.updateFromSocket(raw);
-            _orderUpdateController.add(raw);
+            ActiveOrderState.instance.updateFromSocket(orderRaw);
+            _orderUpdateController.add(orderRaw);
           }
         } catch (e) {
-          debugPrint(' [WS] Error processing update: $e');
-          debugPrint(' [WS] Raw body: ${frame.body}');
+          // Silent fail for demo
         }
       },
     );
