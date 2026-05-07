@@ -1,3 +1,5 @@
+import '../../../../core/utils/image_utils.dart';
+
 class TrendingItemDto {
   final int id;
   final String name;
@@ -47,7 +49,7 @@ class TrendingItemDto {
     return TrendingItemDto(
       id: json['id'] as int? ?? 0,
       name: name,
-      imageUrl: json['imageUrl'] as String? ?? '',
+      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',
       shopId: json['shopId'] as int? ?? 0,
       shopName: shopName,
       price: _parsePrice(json['price']),

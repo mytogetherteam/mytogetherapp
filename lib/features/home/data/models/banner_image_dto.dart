@@ -1,3 +1,5 @@
+import '../../../../core/utils/image_utils.dart';
+
 class BannerImageDto {
   final int id;
   final String image;
@@ -16,7 +18,7 @@ class BannerImageDto {
   factory BannerImageDto.fromJson(Map<String, dynamic> json) {
     return BannerImageDto(
       id: json['id'],
-      image: json['image'],
+      image: ImageUtils.cleanImageUrl(json['image']) ?? '',
       link: json['link'],
       position: json['position'],
       status: json['status'],

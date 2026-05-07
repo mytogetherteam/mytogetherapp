@@ -3,6 +3,11 @@
   "public": true,
   "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/assets/packages/phosphor_flutter/lib/fonts/(.*)",
+      "destination": "/assets/packages/phosphor_flutter/lib/fonts/$1"
+    },
     { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }
+
