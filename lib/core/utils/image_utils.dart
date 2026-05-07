@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../network/api_client.dart';
 
 class ImageUtils {
@@ -9,17 +10,35 @@ class ImageUtils {
       cleanUrl = '$url.png';
     }
     
-    return ensureFullUrl(cleanUrl);
+    final fullUrl = ensureFullUrl(cleanUrl);
+    if (kDebugMode) {
+      debugPrint('[ImageUtils] Original: $url -> Final: $fullUrl');
+    }
+    return fullUrl;
   }
 
   static String? ensureFullUrl(String? path) {
     if (path == null || path.trim().isEmpty) return null;
-    if (path.startsWith('http') || path.startsWith('assets/')) return path;
     
-    // Prepend base URL
-    const baseUrl = ApiClient.baseUrl;
-    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // If it's already a full URL, just return it
+    if (path.startsWith('http')) return path;
+    
+    // If it's an asset path, return as is
+    if (path.startsWith('assets/')) return path;
+    
+    // Ensure base URL doesn't have trailing slash and path doesn't have leading slash
+    String baseUrl = ApiClient.baseUrl;
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    }
+    
+    String cleanPath = path.trim();
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+    
     return '$baseUrl/$cleanPath';
   }
 }
+
 

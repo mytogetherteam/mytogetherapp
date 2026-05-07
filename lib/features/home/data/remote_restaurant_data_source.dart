@@ -16,7 +16,7 @@ class RemoteRestaurantDataSource {
   Future<List<BannerImageDto>> getBanners({String? position}) async {
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/banners',
+        '${ApiClient.baseUrl}${ApiClient.apiPrefix}/banners',
         queryParameters: position != null ? {'position': position} : null,
       );
 
@@ -34,7 +34,7 @@ class RemoteRestaurantDataSource {
   Future<ApiResponseSliceShopListDto> getNearbyShops(ShopRequestDto request) async {
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/nearby',
+        '${ApiClient.baseUrl}${ApiClient.apiPrefix}/shops/nearby',
         queryParameters: request.toJson(),
       );
       
@@ -51,7 +51,7 @@ class RemoteRestaurantDataSource {
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$id',
+        '${ApiClient.baseUrl}${ApiClient.apiPrefix}/shops/$id',
         queryParameters: {
           'lat': lat,
           'lon': lon,
@@ -81,7 +81,7 @@ class RemoteRestaurantDataSource {
     int size = 20,
   }) async {
     final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/feed/trending-items',
+      '${ApiClient.baseUrl}${ApiClient.apiPrefix}/feed/trending-items',
       queryParameters: {
         'latitude': lat,
         'longitude': lon,
@@ -106,7 +106,7 @@ class RemoteRestaurantDataSource {
 
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
+        '${ApiClient.baseUrl}${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
       );
       // Explicitly throw on non-2xx so FutureBuilder snapshot.hasError = true
       if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
@@ -136,7 +136,7 @@ class RemoteRestaurantDataSource {
 
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/menu/feed/$feedType',
+        '${ApiClient.baseUrl}${ApiClient.apiPrefix}/menu/feed/$feedType',
         queryParameters: {
           'latitude': lat,
           'longitude': lon,
@@ -158,7 +158,7 @@ class RemoteRestaurantDataSource {
 
   Future<FoodDetailDto?> getFoodById(int id) async {
     try {
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/foods/$id');
+      final response = await _apiClient.dio.get('${ApiClient.baseUrl}${ApiClient.apiPrefix}/foods/$id');
       if (response.statusCode == 200) {
         final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
         return apiResponse.data;
@@ -172,19 +172,19 @@ class RemoteRestaurantDataSource {
   // ── Favorites ─────────────────────────────────────────────────────────────
 
   Future<void> addShopFavorite(int shopId) async {
-    await _apiClient.dio.post('${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
+    await _apiClient.dio.post('${ApiClient.baseUrl}${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
   }
 
   Future<void> removeShopFavorite(int shopId) async {
-    await _apiClient.dio.delete('${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
+    await _apiClient.dio.delete('${ApiClient.baseUrl}${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
   }
 
   Future<void> addMenuFavorite(int menuItemId) async {
-    await _apiClient.dio.post('${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
+    await _apiClient.dio.post('${ApiClient.baseUrl}${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
   }
 
   Future<void> removeMenuFavorite(int menuItemId) async {
-    await _apiClient.dio.delete('${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
+    await _apiClient.dio.delete('${ApiClient.baseUrl}${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
   }
 
   Future<void> trackConversion(int shopId, String action) async {
