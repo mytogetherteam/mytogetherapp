@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.mytogether.app</string>
+	<string>com.example.mytogetherapp</string>
 	<key>PROJECT_ID</key>
 	<string>mytogether-daf3f</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:972280179999:ios:8103298b60c9327a69542a</string>
+	<string>1:972280179999:ios:1fda6519abeb5e5a69542a</string>
 </dict>
 </plist>
