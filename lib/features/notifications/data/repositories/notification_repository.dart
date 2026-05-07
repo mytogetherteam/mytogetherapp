@@ -4,23 +4,24 @@ import '../../../../core/network/api_client.dart';
 import '../models/notification_model.dart';
 
 class NotificationRepository {
-  static final NotificationRepository _instance = NotificationRepository._internal();
+  static final NotificationRepository _instance =
+      NotificationRepository._internal();
   factory NotificationRepository() => _instance;
   NotificationRepository._internal();
 
   final Dio _dio = ApiClient().dio;
-  
+
   /// Reactive unread count for real-time UI updates
   final ValueNotifier<int> unreadCount = ValueNotifier<int>(0);
 
-  Future<List<NotificationModel>> getNotifications({int page = 0, int size = 20}) async {
+  Future<List<NotificationModel>> getNotifications({
+    int page = 0,
+    int size = 20,
+  }) async {
     try {
       final response = await _dio.get(
         '/api/v1/mobile/notifications',
-        queryParameters: {
-          'page': page,
-          'size': size,
-        },
+        queryParameters: {'page': page, 'size': size},
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -29,13 +30,15 @@ class NotificationRepository {
       }
       return [];
     } catch (e) {
-      rethrow;
+      return [];
     }
   }
 
   Future<int> getUnreadCount() async {
     try {
-      final response = await _dio.get('/api/v1/mobile/notifications/unread-count');
+      final response = await _dio.get(
+        '/api/v1/mobile/notifications/unread-count',
+      );
       if (response.statusCode == 200 && response.data != null) {
         final count = response.data['data'] as int;
         unreadCount.value = count;

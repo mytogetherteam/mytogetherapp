@@ -22,16 +22,20 @@ class NotificationService {
   NotificationService._internal();
 
   FirebaseMessaging? _fcm;
-  FirebaseMessaging get fcm {
-    try {
-      _fcm ??= FirebaseMessaging.instance;
-    } catch (e) {
-      debugPrint('Firebase Messaging not available: $e');
+  FirebaseMessaging? get fcm {
+    if (_fcm == null) {
+      try {
+        _fcm = FirebaseMessaging.instance;
+      } catch (e) {
+        debugPrint('Firebase Messaging not available: $e');
+      }
     }
-    return _fcm!; 
+    return _fcm;
   }
+
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
@@ -39,12 +43,15 @@ class NotificationService {
     if (_isInitialized) return;
 
     // Initialize local notifications
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings();
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/launcher_icon');
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
@@ -60,12 +67,20 @@ class NotificationService {
       importance: Importance.high,
     );
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
+
+    // Skip FCM setup if Firebase isn't available
+    if (fcm == null) {
+      _isInitialized = true;
+      return;
+    }
 
     // Request permissions
     try {
-      await FirebaseMessaging.instance.requestPermission(
+      await fcm!.requestPermission(
         alert: true,
         announcement: false,
         badge: true,
@@ -80,17 +95,24 @@ class NotificationService {
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final String? type = message.data['type'] ?? message.data['notificationType'];
-      
+      final String? type =
+          message.data['type'] ?? message.data['notificationType'];
+
       // 1. Process Order Data regardless of notification display
       if (type == 'ORDER_STATUS') {
         final String? refId = message.data['referenceId']?.toString();
         if (message.data['order'] != null) {
           try {
-            final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-            ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+            final Map<String, dynamic> rawOrder = json.decode(
+              message.data['order'] as String,
+            );
+            ActiveOrderState.instance.updateFromSocket({
+              'type': 'ORDER_UPDATE',
+              'order': rawOrder,
+            });
           } catch (_) {}
-        } else if (refId != null && ActiveOrderState.instance.orderId == refId) {
+        } else if (refId != null &&
+            ActiveOrderState.instance.orderId == refId) {
           ActiveOrderState.instance.syncActiveOrder();
         }
       }
@@ -117,7 +139,7 @@ class NotificationService {
     // Check if the app was opened from a terminated state via a notification
     // Add a timeout to prevent hanging the initialization if Firebase is unresponsive
     try {
-      RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage().timeout(
+      RemoteMessage? initialMessage = await fcm!.getInitialMessage().timeout(
         const Duration(seconds: 2),
       );
       if (initialMessage != null) {
@@ -134,7 +156,7 @@ class NotificationService {
 
     // Listen for token refreshes
     try {
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      fcm!.onTokenRefresh.listen((newToken) {
         if (AuthService().isLoggedIn) {
           _sendTokenToServer(newToken);
         }
@@ -153,7 +175,7 @@ class NotificationService {
 
   Future<void> _registerDeviceInBackground() async {
     try {
-      String? token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 5));
+      String? token = await fcm!.getToken().timeout(const Duration(seconds: 5));
       if (token != null) {
         await _sendTokenToServer(token);
       }
@@ -165,13 +187,17 @@ class NotificationService {
   Future<void> _sendTokenToServer(String token) async {
     try {
       String deviceId = await _getDeviceId();
-      
+
       await ApiClient().dio.post(
         '/api/v1/mobile/notifications/register-device',
         data: {
           'fcmToken': token,
           'deviceId': deviceId,
-          'platform': kIsWeb ? 'WEB' : (defaultTargetPlatform == TargetPlatform.android ? 'ANDROID' : 'IOS'),
+          'platform': kIsWeb
+              ? 'WEB'
+              : (defaultTargetPlatform == TargetPlatform.android
+                    ? 'ANDROID'
+                    : 'IOS'),
         },
       );
     } catch (e) {
@@ -180,18 +206,29 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
-    final String title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
-    final String body = message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? 'You have a new message';
+    final String title =
+        message.notification?.title ??
+        message.data['title'] ??
+        'New Notification';
+    final String body =
+        message.notification?.body ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'You have a new message';
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      channelDescription: 'This channel is used for important notifications.',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription:
+              'This channel is used for important notifications.',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
       message.hashCode,
       title,
@@ -214,15 +251,21 @@ class NotificationService {
   }
 
   void _handleNotificationClick(RemoteMessage? message) {
-    final String? type = message?.data['type'] ?? message?.data['notificationType'];
-    
+    final String? type =
+        message?.data['type'] ?? message?.data['notificationType'];
+
     if (message != null && type == 'ORDER_STATUS') {
       try {
         final String? refId = message.data['referenceId']?.toString();
-        
+
         if (message.data['order'] != null) {
-          final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-          ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+          final Map<String, dynamic> rawOrder = json.decode(
+            message.data['order'] as String,
+          );
+          ActiveOrderState.instance.updateFromSocket({
+            'type': 'ORDER_UPDATE',
+            'order': rawOrder,
+          });
         } else if (refId != null) {
           // Store reference if we're not already tracking it
           if (ActiveOrderState.instance.orderId != refId) {
@@ -232,41 +275,50 @@ class NotificationService {
           // Trigger sync to get full order details for the UI
           ActiveOrderState.instance.syncActiveOrder();
         }
-        
+
         final context = App.navigatorKey.currentState?.context;
         if (context == null) return;
         final state = ActiveOrderState.instance;
         final s = state.orderStatus;
 
         if (s == 0) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderTrackingPage(
-              store: CartStore(name: state.storeName ?? '', items: state.orderItems),
-              foodTotal: (state.totalAmount ?? 0).toInt(),
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderTrackingPage(
+                store: CartStore(
+                  name: state.storeName ?? '',
+                  items: state.orderItems,
+                ),
+                foodTotal: (state.totalAmount ?? 0).toInt(),
+              ),
             ),
-          ));
+          );
         } else if (s == 1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => AwaitingPaymentPage(
-              orderId: state.orderId,
-              foodTotal: state.totalAmount ?? 0,
-              deliveryFee: state.deliveryFee ?? 0,
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => AwaitingPaymentPage(
+                orderId: state.orderId,
+                foodTotal: state.totalAmount ?? 0,
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
             ),
-          ));
+          );
         } else if (s == 2 || s == 3 || s == -1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderStatusPage(
-              foodTotal: state.totalAmount ?? 0,
-              deliveryFee: state.deliveryFee ?? 0,
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderStatusPage(
+                foodTotal: state.totalAmount ?? 0,
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
             ),
-          ));
+          );
         } else if (s == 4) {
           OrderCompletePage.navigateWithState(App.navigatorKey.currentState);
         }
         return; // Handled order routing
       } catch (e) {
-          // Ignore FCM routing errors
-        }
+        // Ignore FCM routing errors
+      }
     }
 
     App.navigatorKey.currentState?.push(

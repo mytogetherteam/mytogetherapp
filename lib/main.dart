@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,29 +14,44 @@ import 'app.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {}
 }
 
 void main() async {
   print('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   print('[BOOT] WidgetsBinding initialized.');
-  
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   print('[BOOT] Splash preserved.');
 
   try {
     print('[BOOT] Initializing Firebase...');
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: kIsWeb
+          ? const FirebaseOptions(
+              apiKey: 'AIzaSyBhxWsaCQlGoiUNQF6oZXx7uMltxF6Dg-s',
+              appId: '1:972280179999:web:0000000000000000',
+              messagingSenderId: '972280179999',
+              projectId: 'mytogether-daf3f',
+              authDomain: 'mytogether-daf3f.firebaseapp.com',
+              storageBucket: 'mytogether-daf3f.firebasestorage.app',
+            )
+          : null,
+    );
     print('[BOOT] Firebase initialized successfully.');
   } catch (e) {
     print('[BOOT] Firebase initialization failed: $e');
   }
-  
+
   print('[BOOT] Initializing AuthService...');
   await AuthService().initialize();
-  print('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
-  
+  print(
+    '[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}',
+  );
+
   print('[BOOT] Initializing NotificationService (background)...');
   NotificationService().initialize();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -60,7 +76,7 @@ void main() async {
     ),
   );
 
-  GoogleFonts.config.allowRuntimeFetching = false;
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   print('[BOOT] Calling runApp()...');
   runApp(const App());

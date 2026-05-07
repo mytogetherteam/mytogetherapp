@@ -9,6 +9,7 @@ import '../../../home/data/restaurant_data.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import '../../../../core/utils/image_utils.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
@@ -59,10 +60,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (restaurantId != null) {
         // 1. Try to load from cache immediately for instant UI
         ShopStorage.getPaymentTypes(restaurantId).then((cachedPaymentTypes) {
-          if (mounted && cachedPaymentTypes != null && cachedPaymentTypes.isNotEmpty) {
+          if (mounted &&
+              cachedPaymentTypes != null &&
+              cachedPaymentTypes.isNotEmpty) {
             setState(() {
               _paymentTypes = cachedPaymentTypes;
-              final firstActive = cachedPaymentTypes.where((t) => t.isActive).firstOrNull;
+              final firstActive = cachedPaymentTypes
+                  .where((t) => t.isActive)
+                  .firstOrNull;
               if (firstActive != null) {
                 _selectedPaymentMethodCode = firstActive.paymentMethodCode;
               }
@@ -78,10 +83,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               _paymentTypes = shop.paymentTypes;
               if (shop.paymentTypes.isNotEmpty) {
                 // Only override if the currently selected one is not in the new list or we haven't selected anything yet
-                final firstActive = shop.paymentTypes.where((t) => t.isActive).firstOrNull;
+                final firstActive = shop.paymentTypes
+                    .where((t) => t.isActive)
+                    .firstOrNull;
                 if (firstActive != null) {
                   // If the currently selected code is NOT in the fresh list, or it's just the default, update it
-                  final currentStillExists = shop.paymentTypes.any((t) => t.paymentMethodCode == _selectedPaymentMethodCode && t.isActive);
+                  final currentStillExists = shop.paymentTypes.any(
+                    (t) =>
+                        t.paymentMethodCode == _selectedPaymentMethodCode &&
+                        t.isActive,
+                  );
                   if (!currentStillExists) {
                     _selectedPaymentMethodCode = firstActive.paymentMethodCode;
                   }
@@ -112,30 +123,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   Future<void> _preFetchRoute() async {
     if (_restaurant == null || _primaryLocation == null) return;
-    if (_primaryLocation!.latitude == null || _primaryLocation!.longitude == null) return;
+    if (_primaryLocation!.latitude == null ||
+        _primaryLocation!.longitude == null)
+      return;
     if (_restaurant!.latitude == null || _restaurant!.longitude == null) return;
-    
-    final start = LatLng(_primaryLocation!.latitude!, _primaryLocation!.longitude!);
+
+    final start = LatLng(
+      _primaryLocation!.latitude!,
+      _primaryLocation!.longitude!,
+    );
     final dest = LatLng(_restaurant!.latitude!, _restaurant!.longitude!);
-    
+
     // Only pre-fetch if we don't have route data yet
     if (ActiveOrderState.instance.routePoints.isNotEmpty) return;
 
     try {
       final dio = Dio();
-      final url = 'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?geometries=geojson';
+      final url =
+          'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?geometries=geojson';
       final response = await dio.get(url).timeout(const Duration(seconds: 5));
-      
-      if (response.statusCode == 200 && response.data['routes'] != null && (response.data['routes'] as List).isNotEmpty) {
+
+      if (response.statusCode == 200 &&
+          response.data['routes'] != null &&
+          (response.data['routes'] as List).isNotEmpty) {
         final route = response.data['routes'][0];
         final List coords = route['geometry']['coordinates'];
         final double distanceM = (route['distance'] as num).toDouble();
         final double durationS = (route['duration'] as num).toDouble();
 
-        final List<LatLng> points = coords.map<LatLng>((c) => LatLng(c[1], c[0])).toList();
+        final List<LatLng> points = coords
+            .map<LatLng>((c) => LatLng(c[1], c[0]))
+            .toList();
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
-        
+
         ActiveOrderState.instance.updateRouteData(
           points: [start, ...points, dest],
           distanceKm: km,
@@ -154,11 +175,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   void _setFallbackRoute(LatLng start, LatLng dest) {
     if (ActiveOrderState.instance.routePoints.isNotEmpty) return;
-    
+
     final distanceM = Geolocator.distanceBetween(
-      start.latitude, start.longitude, dest.latitude, dest.longitude);
+      start.latitude,
+      start.longitude,
+      dest.latitude,
+      dest.longitude,
+    );
     final km = distanceM / 1000;
-    
+
     ActiveOrderState.instance.updateRouteData(
       points: [start, dest],
       distanceKm: km,
@@ -180,7 +205,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-
   bool _isProcessing = false;
   bool _hasShownEmptyToast = false;
 
@@ -190,16 +214,23 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       listenable: CartManager.instance,
       builder: (context, _) {
         // Find store in current state to ensure reactivity
-        final currentStoreIdx = CartManager.instance.stores.indexWhere((s) => s.name == widget.store.name);
-        
+        final currentStoreIdx = CartManager.instance.stores.indexWhere(
+          (s) => s.name == widget.store.name,
+        );
+
         // Show empty state if store not found or items empty (unless we are performing an action)
-        if ((currentStoreIdx == -1 || CartManager.instance.stores[currentStoreIdx].items.isEmpty) && !_isProcessing) {
+        if ((currentStoreIdx == -1 ||
+                CartManager.instance.stores[currentStoreIdx].items.isEmpty) &&
+            !_isProcessing) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted && !_hasShownEmptyToast) {
               _hasShownEmptyToast = true;
               App.scaffoldMessengerKey.currentState?.showSnackBar(
                 SnackBar(
-                  content: Text('Your cart is empty now!', style: GoogleFonts.poppins()),
+                  content: Text(
+                    'Your cart is empty now!',
+                    style: GoogleFonts.poppins(),
+                  ),
                   backgroundColor: const Color(0xFFED3973),
                   duration: const Duration(seconds: 2),
                 ),
@@ -209,15 +240,20 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           });
           return const Scaffold(backgroundColor: Colors.white);
         }
-        // Use safe access for the current store. If not found in manager (e.g. just removed), 
+        // Use safe access for the current store. If not found in manager (e.g. just removed),
         // fallback to the snapshot in widget.store to avoid crashes during transitions.
-        final currentStore = (currentStoreIdx != -1) 
-            ? CartManager.instance.stores[currentStoreIdx] 
+        final currentStore = (currentStoreIdx != -1)
+            ? CartManager.instance.stores[currentStoreIdx]
             : widget.store;
 
         final totalStorePrice = (currentStoreIdx != -1)
             ? CartManager.instance.getStoreTotal(currentStore.name)
-            : widget.store.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toInt();
+            : widget.store.items
+                  .fold<double>(
+                    0,
+                    (sum, item) => sum + (item.price * item.quantity),
+                  )
+                  .toInt();
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -263,7 +299,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1.5),
+                          border: Border.all(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            width: 1.5,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +310,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             // Header Row
                             Row(
                               children: [
-                                _buildStoreLogo(currentStore.items.first.restaurantId),
+                                _buildStoreLogo(
+                                  currentStore.items.first.restaurantId,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -288,10 +329,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => RestaurantDetailPage(
-                                          id: currentStore.items.first.restaurantId,
-                                          name: currentStore.name,
-                                        ),
+                                        builder: (context) =>
+                                            RestaurantDetailPage(
+                                              id: currentStore
+                                                  .items
+                                                  .first
+                                                  .restaurantId,
+                                              name: currentStore.name,
+                                            ),
                                       ),
                                     );
                                   },
@@ -309,28 +354,38 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             const SizedBox(height: 16),
                             const Divider(height: 1, color: Color(0xFFE2E8F0)),
                             const SizedBox(height: 16),
-                            
+
                             // Items List
-                            ...currentStore.items.map((item) => _buildSummaryItem(currentStore.name, item)),
+                            ...currentStore.items.map(
+                              (item) =>
+                                  _buildSummaryItem(currentStore.name, item),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       // Deliver Information Section
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1.5),
+                          border: Border.all(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            width: 1.5,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Image.asset('assets/images/delivery_bike.png', width: 28, height: 28),
+                                Image.asset(
+                                  'assets/images/delivery_bike.png',
+                                  width: 28,
+                                  height: 28,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Deliver Information',
@@ -348,10 +403,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               children: [
                                 Expanded(
                                   child: Material(
-                                    color: _isDelivery ? const Color(0xFFED3973) : const Color(0xFFCBD5E1),
+                                    color: _isDelivery
+                                        ? const Color(0xFFED3973)
+                                        : const Color(0xFFCBD5E1),
                                     borderRadius: BorderRadius.circular(12),
                                     child: InkWell(
-                                      onTap: () => setState(() => _isDelivery = true),
+                                      onTap: () =>
+                                          setState(() => _isDelivery = true),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
                                         height: 50,
@@ -371,10 +429,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Material(
-                                    color: !_isDelivery ? const Color(0xFFED3973) : const Color(0xFFCBD5E1),
+                                    color: !_isDelivery
+                                        ? const Color(0xFFED3973)
+                                        : const Color(0xFFCBD5E1),
                                     borderRadius: BorderRadius.circular(12),
                                     child: InkWell(
-                                      onTap: () => setState(() => _isDelivery = false),
+                                      onTap: () =>
+                                          setState(() => _isDelivery = false),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
                                         height: 50,
@@ -394,35 +455,45 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               ],
                             ),
                             const SizedBox(height: 20),
-                            
+
                             // Divider before location
                             if (_isDelivery) ...[
-                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFE2E8F0),
+                              ),
                               const SizedBox(height: 20),
-                              
+
                               // Address Box
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9), // Light grayish blue
+                                  color: const Color(
+                                    0xFFF1F5F9,
+                                  ), // Light grayish blue
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(PhosphorIconsRegular.mapPin, color: Color(0xFFED3973), size: 24),
+                                    const Icon(
+                                      PhosphorIconsRegular.mapPin,
+                                      color: Color(0xFFED3973),
+                                      size: 24,
+                                    ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: _isLoadingLocation
                                           ? const LocationSkeletonLoader()
                                           : Text(
-                                              _primaryLocation?.address ?? 'No address set',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: Colors.black87,
-                                          height: 1.5,
-                                        ),
-                                      ),
+                                              _primaryLocation?.address ??
+                                                  'No address set',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                color: Colors.black87,
+                                                height: 1.5,
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -440,9 +511,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFE2E8F0),
+                              ),
                               const SizedBox(height: 20),
-                              
+
                               // Delivery Options
                               _buildDeliveryOption(
                                 title: 'Priority',
@@ -474,7 +548,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1.5),
+                          border: Border.all(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            width: 1.5,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,77 +565,95 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            
-                             // Dynamic Payment Options from Cache/API
-                             Builder(
-                               builder: (context) {
-                                 if (_paymentTypes == null) {
-                                   return const Center(child: Padding(
-                                     padding: EdgeInsets.all(20.0),
-                                     child: CustomLoadingIndicator(size: 30),
-                                   ));
-                                 }
-                                 
-                                 final allPaymentTypes = _paymentTypes!.where((t) => t.isActive).toList();
-                                 
-                                 // Filter based on delivery/pickup status
-                                 final paymentTypes = allPaymentTypes.where((type) {
-                                   if (type.paymentMethodCode == 'CASH_ON_DELIVERY' && _isDelivery) {
-                                     return false;
-                                   }
-                                   return true;
-                                 }).toList();
 
-                                 if (paymentTypes.isEmpty) {
-                                     return Container(
-                                       width: double.infinity,
-                                       padding: const EdgeInsets.symmetric(vertical: 24),
-                                       alignment: Alignment.center,
-                                       child: Text(
-                                         'No payment methods available',
-                                         style: GoogleFonts.poppins(
-                                           color: const Color(0xFF64748B),
-                                           fontSize: 14,
-                                           fontWeight: FontWeight.w500,
-                                         ),
-                                       ),
-                                     );
-                                 }
+                            // Dynamic Payment Options from Cache/API
+                            Builder(
+                              builder: (context) {
+                                if (_paymentTypes == null) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(20.0),
+                                      child: CustomLoadingIndicator(size: 30),
+                                    ),
+                                  );
+                                }
 
-                                 return ListView.separated(
-                                   shrinkWrap: true,
-                                   physics: const NeverScrollableScrollPhysics(),
-                                   itemCount: paymentTypes.length,
-                                   separatorBuilder: (_, _) => const SizedBox(height: 16),
-                                   itemBuilder: (context, index) {
-                                     final type = paymentTypes[index];
-                                     
-                                     return _buildPaymentOptionTile(
-                                       type.paymentMethodCode,
-                                       type.paymentMethodName ?? type.paymentMethodCode,
-                                       Container(
-                                         width: 40,
-                                         height: 40,
-                                         decoration: BoxDecoration(
-                                           color: const Color(0xFFF1F5F9),
-                                           shape: BoxShape.circle,
-                                           border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                                         ),
-                                         child: Icon(
-                                           type.paymentMethodCode == 'CASH_ON_DELIVERY' 
-                                             ? PhosphorIconsRegular.money 
-                                             : type.paymentMethodCode == 'PROMPTPAY'
-                                               ? PhosphorIconsRegular.qrCode
-                                               : PhosphorIconsRegular.creditCard,
-                                           color: const Color(0xFF64748B),
-                                           size: 20,
-                                         ),
-                                       ),
-                                     );
-                                   },
-                                 );
-                               },
-                             ),
+                                final allPaymentTypes = _paymentTypes!
+                                    .where((t) => t.isActive)
+                                    .toList();
+
+                                // Filter based on delivery/pickup status
+                                final paymentTypes = allPaymentTypes.where((
+                                  type,
+                                ) {
+                                  if (type.paymentMethodCode ==
+                                          'CASH_ON_DELIVERY' &&
+                                      _isDelivery) {
+                                    return false;
+                                  }
+                                  return true;
+                                }).toList();
+
+                                if (paymentTypes.isEmpty) {
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 24,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'No payment methods available',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF64748B),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: paymentTypes.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final type = paymentTypes[index];
+
+                                    return _buildPaymentOptionTile(
+                                      type.paymentMethodCode,
+                                      type.paymentMethodName ??
+                                          type.paymentMethodCode,
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          type.paymentMethodCode ==
+                                                  'CASH_ON_DELIVERY'
+                                              ? PhosphorIconsRegular.money
+                                              : type.paymentMethodCode ==
+                                                    'PROMPTPAY'
+                                              ? PhosphorIconsRegular.qrCode
+                                              : PhosphorIconsRegular.creditCard,
+                                          color: const Color(0xFF64748B),
+                                          size: 20,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -566,14 +661,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   ),
                 ),
               ),
-              
+
               // Bottom Checkout Bar
               Container(
                 padding: EdgeInsets.zero,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   border: Border(
-                    top: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+                    top: BorderSide(
+                      color: Colors.black.withValues(alpha: 0.05),
+                    ),
                   ),
                 ),
                 child: SafeArea(
@@ -584,8 +681,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       if (_isDelivery)
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                          color: const Color(0xFFFEF3C7), // Yellowish orange background
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 16,
+                          ),
+                          color: const Color(
+                            0xFFFEF3C7,
+                          ), // Yellowish orange background
                           child: Text(
                             'Delivery fee is calculated based on distance.',
                             style: GoogleFonts.poppins(
@@ -640,176 +742,280 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         child: SizedBox(
                           width: double.infinity,
                           height: 64,
-                                child: ElevatedButton(
-                                  onPressed: (_isPlacingOrder || _isProcessing) ? null : () async {
+                          child: ElevatedButton(
+                            onPressed: (_isPlacingOrder || _isProcessing)
+                                ? null
+                                : () async {
                                     setState(() => _isProcessing = true);
                                     final nav = Navigator.of(context);
-                                    
-                                    final foodTotal = CartManager.instance.getStoreTotal(widget.store.name);
-                                final storeItems = CartManager.instance.stores
-                                    .firstWhere((s) => s.name == widget.store.name, orElse: () => widget.store)
-                                    .items;
 
-                                bool operationCompleted = false;
-                                
-                                // Only show loading if it takes longer than 500ms
-                                Future.delayed(const Duration(milliseconds: 500), () {
-                                  if (!operationCompleted && mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = true;
-                                    });
-                                  }
-                                });
+                                    final foodTotal = CartManager.instance
+                                        .getStoreTotal(widget.store.name);
+                                    final storeItems = CartManager
+                                        .instance
+                                        .stores
+                                        .firstWhere(
+                                          (s) => s.name == widget.store.name,
+                                          orElse: () => widget.store,
+                                        )
+                                        .items;
 
-                                try {
-                                  // Call backend API to place order
-                                  final response = await ApiClient().dio.post(
-                                    '${ApiClient.apiPrefix}/orders',
-                                      data: {
-                                          "shopId": int.tryParse(_restaurant?.id ?? widget.store.items.first.restaurantId) ?? 0,
+                                    bool operationCompleted = false;
+
+                                    // Only show loading if it takes longer than 500ms
+                                    Future.delayed(
+                                      const Duration(milliseconds: 500),
+                                      () {
+                                        if (!operationCompleted && mounted) {
+                                          setState(() {
+                                            _isPlacingOrder = true;
+                                          });
+                                        }
+                                      },
+                                    );
+
+                                    try {
+                                      // Call backend API to place order
+                                      final response = await ApiClient().dio.post(
+                                        '${ApiClient.apiPrefix}/orders',
+                                        data: {
+                                          "shopId":
+                                              int.tryParse(
+                                                _restaurant?.id ??
+                                                    widget
+                                                        .store
+                                                        .items
+                                                        .first
+                                                        .restaurantId,
+                                              ) ??
+                                              0,
                                           // User location from session
                                           // User location from repository
-                                          "userLocationId": _primaryLocation?.id ?? 1, 
-                                          "deliveryType": _isDelivery ? "DELIVERY" : "PICKUP",
-                                          "deliveryTier": _isPriorityDelivery ? "PRIORITY" : "STANDARD",
-                                        "paymentMethodId": _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode),
-                                        "note": "",
-                                        "isScheduled": false,
-                                        "scheduledTime": DateTime.now().toIso8601String().substring(0, 19),
-                                         "items": storeItems.map((item) => {
-                                           "menuItemId": item.menuItemId,
-                                           "variantId": (item.variantId != null && item.variantId! > 0) ? item.variantId : 0,
-                                           "quantity": item.quantity,
-                                           "specialInstructions": item.specialInstructions ?? "",
-                                           "optionIds": item.optionIds ?? [],
-                                         }).toList(),
-                                      },
-                                  );
-
-                                  operationCompleted = true;
-                                  final d = response.data;
-                                  
-                                  String? orderId;
-                                  int? responseUserId;
-                                  
-                                  if (d['data'] is Map) {
-                                    final responseData = d['data'] as Map<String, dynamic>;
-                                    orderId = (responseData['id'] ?? responseData['orderId'] ?? responseData['order_id'])?.toString();
-                                    responseUserId = (responseData['userId'] ?? responseData['user_id']) as int?;
-                                  } else if (d['data'] != null) {
-                                    // If data is just an ID (int or String)
-                                    orderId = d['data'].toString();
-                                  }
-                                  
-                                  // Fallback to root level if not found in data
-                                  orderId ??= (d['id'] ?? d['orderId'])?.toString();
-                                  responseUserId ??= (d['userId'] ?? d['user_id']) as int?;
-
-                                    // 1. Register active order in global state
-                                    ActiveOrderState.instance.setActiveOrder(
-                                      storeName: widget.store.name,
-                                      restaurantName: _restaurant?.name ?? widget.store.name,
-                                      logoPath: _restaurant?.logoPath,
-                                      estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
-                                      orderId: orderId,
-                                      restaurantId: _restaurant?.id ?? widget.store.items.first.restaurantId,
-                                    );
-                                    // Store real location data for Delivery Information display
-                                    ActiveOrderState.instance.restaurantAddress =
-                                        _restaurant?.address ?? _restaurant?.addressEn ?? _restaurant?.addressTh;
-                                    ActiveOrderState.instance.userLocationName =
-                                        _primaryLocation?.locationName ?? _primaryLocation?.locationType;
-                                    ActiveOrderState.instance.deliveryAddress =
-                                        _primaryLocation?.address ?? _primaryLocation?.addressTh;
-                                    ActiveOrderState.instance.saveToPrefs(); // persist new fields immediately
-
-                                  // Update User ID in session if it was missing or different
-                                  if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {
-                                    final current = AuthService().currentUser;
-                                    if (current != null) {
-                                      final updatedUser = UserModel(
-                                        id: responseUserId,
-                                        username: current.username,
-                                        email: current.email,
-                                        fullName: current.fullName,
-                                        role: current.role,
+                                          "userLocationId":
+                                              _primaryLocation?.id ?? 1,
+                                          "deliveryType": _isDelivery
+                                              ? "DELIVERY"
+                                              : "PICKUP",
+                                          "deliveryTier": _isPriorityDelivery
+                                              ? "PRIORITY"
+                                              : "STANDARD",
+                                          "paymentMethodId":
+                                              _resolvePaymentMethodId(
+                                                _paymentTypes,
+                                                _selectedPaymentMethodCode,
+                                              ),
+                                          "note": "",
+                                          "isScheduled": false,
+                                          "scheduledTime": DateTime.now()
+                                              .toIso8601String()
+                                              .substring(0, 19),
+                                          "items": storeItems
+                                              .map(
+                                                (item) => {
+                                                  "menuItemId": item.menuItemId,
+                                                  "variantId":
+                                                      (item.variantId != null &&
+                                                          item.variantId! > 0)
+                                                      ? item.variantId
+                                                      : 0,
+                                                  "quantity": item.quantity,
+                                                  "specialInstructions":
+                                                      item.specialInstructions ??
+                                                      "",
+                                                  "optionIds":
+                                                      item.optionIds ?? [],
+                                                },
+                                              )
+                                              .toList(),
+                                        },
                                       );
-                                      AuthService().saveSession(
-                                        accessToken: AuthService().accessToken ?? '',
-                                        refreshToken: AuthService().refreshToken ?? '',
-                                        user: updatedUser,
-                                        userLocations: AuthService().userLocations,
+
+                                      operationCompleted = true;
+                                      final d = response.data;
+
+                                      String? orderId;
+                                      int? responseUserId;
+
+                                      if (d['data'] is Map) {
+                                        final responseData =
+                                            d['data'] as Map<String, dynamic>;
+                                        orderId =
+                                            (responseData['id'] ??
+                                                    responseData['orderId'] ??
+                                                    responseData['order_id'])
+                                                ?.toString();
+                                        responseUserId =
+                                            (responseData['userId'] ??
+                                                    responseData['user_id'])
+                                                as int?;
+                                      } else if (d['data'] != null) {
+                                        // If data is just an ID (int or String)
+                                        orderId = d['data'].toString();
+                                      }
+
+                                      // Fallback to root level if not found in data
+                                      orderId ??= (d['id'] ?? d['orderId'])
+                                          ?.toString();
+                                      responseUserId ??=
+                                          (d['userId'] ?? d['user_id']) as int?;
+
+                                      // 1. Register active order in global state
+                                      ActiveOrderState.instance.setActiveOrder(
+                                        storeName: widget.store.name,
+                                        restaurantName:
+                                            _restaurant?.name ??
+                                            widget.store.name,
+                                        logoPath: _restaurant?.logoPath,
+                                        estimatedTime:
+                                            _restaurant?.deliveryTime ??
+                                            '~30 mins',
+                                        orderId: orderId,
+                                        restaurantId:
+                                            _restaurant?.id ??
+                                            widget
+                                                .store
+                                                .items
+                                                .first
+                                                .restaurantId,
                                       );
+                                      // Store real location data for Delivery Information display
+                                      ActiveOrderState
+                                              .instance
+                                              .restaurantAddress =
+                                          _restaurant?.address ??
+                                          _restaurant?.addressEn ??
+                                          _restaurant?.addressTh;
+                                      ActiveOrderState
+                                              .instance
+                                              .userLocationName =
+                                          _primaryLocation?.locationName ??
+                                          _primaryLocation?.locationType;
+                                      ActiveOrderState
+                                              .instance
+                                              .deliveryAddress =
+                                          _primaryLocation?.address ??
+                                          _primaryLocation?.addressTh;
+                                      ActiveOrderState.instance
+                                          .saveToPrefs(); // persist new fields immediately
+
+                                      // Update User ID in session if it was missing or different
+                                      if (responseUserId != null &&
+                                          responseUserId != 0 &&
+                                          AuthService().currentUser?.id !=
+                                              responseUserId) {
+                                        final current =
+                                            AuthService().currentUser;
+                                        if (current != null) {
+                                          final updatedUser = UserModel(
+                                            id: responseUserId,
+                                            username: current.username,
+                                            email: current.email,
+                                            fullName: current.fullName,
+                                            role: current.role,
+                                          );
+                                          AuthService().saveSession(
+                                            accessToken:
+                                                AuthService().accessToken ?? '',
+                                            refreshToken:
+                                                AuthService().refreshToken ??
+                                                '',
+                                            user: updatedUser,
+                                            userLocations:
+                                                AuthService().userLocations,
+                                          );
+                                        }
+                                      }
+
+                                      // 2. Snapshot order items BEFORE cart is cleared
+                                      final selectedMethodId =
+                                          _resolvePaymentMethodId(
+                                            _paymentTypes,
+                                            _selectedPaymentMethodCode,
+                                          );
+                                      final selectedMethodImage =
+                                          _resolvePaymentMethodImageUrl(
+                                            _paymentTypes,
+                                            _selectedPaymentMethodCode,
+                                          );
+
+                                      ActiveOrderState.instance.setOrderDetails(
+                                        totalAmount: foodTotal.toDouble(),
+                                        paymentMethod:
+                                            _selectedPaymentMethodCode,
+                                        paymentMethodId: selectedMethodId,
+                                        paymentMethodImageUrl:
+                                            selectedMethodImage,
+                                        items: List.from(storeItems),
+                                        orderId: orderId,
+                                      );
+
+                                      // 4. Clear cart for this store (via API sync)
+                                      await CartManager.instance.removeStore(
+                                        widget.store.name,
+                                      );
+
+                                      // Start WebSocket tracking immediately upon successful order creation
+                                      WebSocketService().connect();
+
+                                      // 5. Navigate to tracking page
+                                      nav.pushReplacement(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              OrderTrackingPage(
+                                                store: widget.store,
+                                                restaurant: _restaurant,
+                                                foodTotal: foodTotal,
+                                              ),
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isPlacingOrder = false;
+                                          _isProcessing = false;
+                                        });
+                                        String errorMsg = e.toString();
+                                        if (e is DioException) {
+                                          errorMsg =
+                                              e.response?.data?.toString() ??
+                                              e.message ??
+                                              'Unknown DioError';
+                                        }
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Failed to place order: $errorMsg',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
                                     }
-                                  }
-
-                                  // 2. Snapshot order items BEFORE cart is cleared
-                                  final selectedMethodId = _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode);
-                                  final selectedMethodImage = _resolvePaymentMethodImageUrl(_paymentTypes, _selectedPaymentMethodCode);
-
-                                  ActiveOrderState.instance.setOrderDetails(
-                                    totalAmount: foodTotal.toDouble(),
-                                    paymentMethod: _selectedPaymentMethodCode,
-                                    paymentMethodId: selectedMethodId,
-                                    paymentMethodImageUrl: selectedMethodImage,
-                                    items: List.from(storeItems),
-                                    orderId: orderId,
-                                  );
-
-                                  // 4. Clear cart for this store (via API sync)
-                                  await CartManager.instance.removeStore(widget.store.name);
-
-                                  // Start WebSocket tracking immediately upon successful order creation
-                                  WebSocketService().connect();
-
-                                  // 5. Navigate to tracking page
-                                  nav.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => OrderTrackingPage(
-                                        store: widget.store,
-                                        restaurant: _restaurant,
-                                        foodTotal: foodTotal,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = false;
-                                      _isProcessing = false;
-                                    });
-                                    String errorMsg = e.toString();
-                                    if (e is DioException) {
-                                      errorMsg = e.response?.data?.toString() ?? e.message ?? 'Unknown DioError';
-                                    }
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to place order: $errorMsg'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFED3973),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFED3973),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              child: _isPlacingOrder
-                                  ? const CustomLoadingIndicator(size: 24, color: Colors.white)
-                                  : Text(
-                                      'Place Order',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
                             ),
+                            child: _isPlacingOrder
+                                ? const CustomLoadingIndicator(
+                                    size: 24,
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    'Place Order',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
                         ),
                       ),
                     ],
@@ -823,11 +1029,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  int _resolvePaymentMethodId(List<ShopPaymentTypeDto>? paymentTypes, String selectedCode) {
+  int _resolvePaymentMethodId(
+    List<ShopPaymentTypeDto>? paymentTypes,
+    String selectedCode,
+  ) {
     if (paymentTypes == null || paymentTypes.isEmpty) {
       return 1;
     }
-    
+
     try {
       final match = paymentTypes.firstWhere(
         (type) => type.paymentMethodCode == selectedCode && type.isActive,
@@ -842,7 +1051,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
-  String? _resolvePaymentMethodImageUrl(List<ShopPaymentTypeDto>? paymentTypes, String selectedCode) {
+  String? _resolvePaymentMethodImageUrl(
+    List<ShopPaymentTypeDto>? paymentTypes,
+    String selectedCode,
+  ) {
     if (paymentTypes == null || paymentTypes.isEmpty) return null;
     try {
       final match = paymentTypes.firstWhere(
@@ -851,11 +1063,18 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       String? imageUrl = match.qrImageUrl;
       if (imageUrl != null && imageUrl.isNotEmpty) {
         imageUrl = imageUrl.replaceAll('\\', '/');
-        if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('http://10.0.2.2')) {
-          imageUrl = imageUrl.replaceAll(RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'), ApiClient.baseUrl);
+        if (imageUrl.startsWith('http://localhost') ||
+            imageUrl.startsWith('http://10.0.2.2')) {
+          imageUrl = imageUrl.replaceAll(
+            RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
+            ApiClient.baseUrl,
+          );
         } else if (!imageUrl.startsWith('http')) {
-          imageUrl = imageUrl.startsWith('/') ? '${ApiClient.baseUrl}$imageUrl' : '${ApiClient.baseUrl}/$imageUrl';
+          imageUrl = imageUrl.startsWith('/')
+              ? '${ApiClient.baseUrl}$imageUrl'
+              : '${ApiClient.baseUrl}/$imageUrl';
         }
+        imageUrl = ImageUtils.cleanImageUrl(imageUrl);
       }
       return imageUrl;
     } catch (_) {
@@ -890,20 +1109,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFED3973) : const Color(0xFF94A3B8),
+                  color: isSelected
+                      ? const Color(0xFFED3973)
+                      : const Color(0xFF94A3B8),
                   width: 1.5,
                 ),
               ),
-              child: isSelected ? Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFED3973),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ) : null,
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFED3973),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
@@ -924,7 +1147,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.asset('assets/images/pickup_bag.png', width: 60, height: 60),
+              Image.asset(
+                'assets/images/pickup_bag.png',
+                width: 60,
+                height: 60,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -977,20 +1204,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: isSelected ? const Color(0xFFED3973) : const Color(0xFF94A3B8),
+                color: isSelected
+                    ? const Color(0xFFED3973)
+                    : const Color(0xFF94A3B8),
                 width: 1.5,
               ),
             ),
-            child: isSelected ? Center(
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFED3973),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ) : null,
+            child: isSelected
+                ? Center(
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFED3973),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1010,7 +1241,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     if (hasPromo) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFFED3A72), Color(0xFFF97316)],
@@ -1020,7 +1254,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(PhosphorIconsRegular.percent, color: Colors.white, size: 14),
+                            const Icon(
+                              PhosphorIconsRegular.percent,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Promotion',
@@ -1039,30 +1277,52 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(PhosphorIconsRegular.money, color: Color(0xFF94A3B8), size: 18),
+                    const Icon(
+                      PhosphorIconsRegular.money,
+                      color: Color(0xFF94A3B8),
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Estimated Delivery Fee  •  ',
-                      style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 13),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       fee.toFormattedPrice(),
-                      style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFED3973),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(PhosphorIconsRegular.clock, color: Color(0xFF94A3B8), size: 18),
+                    const Icon(
+                      PhosphorIconsRegular.clock,
+                      color: Color(0xFF94A3B8),
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Estimated Time  •  ',
-                      style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 13),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       time,
-                      style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFED3973),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -1075,7 +1335,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   Widget _buildStoreLogo(String restaurantId) {
-    final logoPath = _restaurant?.logoPath ?? 'https://mytogether.app/api/restaurant/logo/default.png';
+    final logoPath =
+        _restaurant?.logoPath ??
+        'https://mytogether.app/api/restaurant/logo/default.png';
     return Container(
       width: 36,
       height: 36,
@@ -1085,13 +1347,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
       ),
       child: ClipOval(
-        child: logoPath.isEmpty 
-          ? Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey)
-          : Image.network(
-              logoPath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey),
-            ),
+        child: logoPath.isEmpty
+            ? Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey)
+            : Image.network(
+                logoPath,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  PhosphorIcons.storefront(),
+                  size: 24,
+                  color: Colors.grey,
+                ),
+              ),
       ),
     );
   }
@@ -1150,7 +1416,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
+                      Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.grey[400],
+                        size: 24,
+                      ),
                     ],
                   ),
                 ),
@@ -1158,7 +1428,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Item Details & Controls
           Expanded(
             child: Column(
@@ -1171,9 +1441,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(top: 0), // Align text baseline/top with image
+                        padding: const EdgeInsets.only(
+                          top: 0,
+                        ), // Align text baseline/top with image
                         child: Text(
-                          item.title.trim().isNotEmpty ? item.title : (item.nameMm ?? ''),
+                          item.title.trim().isNotEmpty
+                              ? item.title
+                              : (item.nameMm ?? ''),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -1188,27 +1462,31 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           context: context,
                           child: ConfirmRemoveModal(
                             title: 'Remove Item',
-                            message: 'Are you sure you want to remove ${item.title} from your order?',
+                            message:
+                                'Are you sure you want to remove ${item.title} from your order?',
                             onConfirm: () async {
-                                await CartManager.instance.updateItemQuantity(
-                                  storeName, 
-                                  item.id, 
-                                  0,
-                                  options: item.options,
-                                  optionIds: item.optionIds,
-                                  specialInstructions: item.specialInstructions,
-                                  variantId: item.variantId,
-                                );
+                              await CartManager.instance.updateItemQuantity(
+                                storeName,
+                                item.id,
+                                0,
+                                options: item.options,
+                                optionIds: item.optionIds,
+                                specialInstructions: item.specialInstructions,
+                                variantId: item.variantId,
+                              );
                             },
                           ),
                         );
                       },
                       child: Container(
-                        padding: const EdgeInsets.only(top: 2), // Visual adjustment to match text cap height
+                        padding: const EdgeInsets.only(
+                          top: 2,
+                        ), // Visual adjustment to match text cap height
                         color: Colors.transparent,
                         child: Icon(
                           PhosphorIcons.x(),
-                          size: 18, // Slightly smaller icon for better alignment with text
+                          size:
+                              18, // Slightly smaller icon for better alignment with text
                           color: Colors.grey[400],
                         ),
                       ),
@@ -1217,7 +1495,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 ),
                 const SizedBox(height: 5),
                 // Dynamic Add-ons / Description
-                if ((item.variantName?.isNotEmpty ?? false) || (item.variantNameMm?.isNotEmpty ?? false) || (item.options?.isNotEmpty ?? false))
+                if ((item.variantName?.isNotEmpty ?? false) ||
+                    (item.variantNameMm?.isNotEmpty ?? false) ||
+                    (item.options?.isNotEmpty ?? false))
                   Text(
                     '${item.variantName ?? item.variantNameMm ?? ''}${((item.variantName != null || item.variantNameMm != null) && item.options != null && item.options!.isNotEmpty) ? '\n' : ''}${item.options ?? ''}',
                     style: GoogleFonts.poppins(
@@ -1226,21 +1506,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       height: 1.4,
                     ),
                   ),
-                
+
                 if (item.specialInstructions?.isNotEmpty ?? false) ...[
-                  if ((item.variantName?.isNotEmpty ?? false) || (item.options?.isNotEmpty ?? false))
+                  if ((item.variantName?.isNotEmpty ?? false) ||
+                      (item.options?.isNotEmpty ?? false))
                     const SizedBox(height: 4),
                   Text(
                     item.specialInstructions!,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: const Color(0xFFED3973), // Use brand color for visibility
+                      color: const Color(
+                        0xFFED3973,
+                      ), // Use brand color for visibility
                       fontWeight: FontWeight.w500,
                       height: 1.4,
                     ),
                   ),
                 ],
-                
+
                 // Price & Quantity Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1286,14 +1569,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     restaurantName: storeName,
                                     initialVariantId: item.variantId,
                                     initialOptionIds: item.optionIds,
-                                    initialInstructions: item.specialInstructions,
+                                    initialInstructions:
+                                        item.specialInstructions,
                                     cartItemId: item.id,
                                   ),
                                 ),
                               );
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 2.0,
+                              ),
                               child: Text(
                                 'Edit',
                                 style: GoogleFonts.poppins(
@@ -1307,7 +1593,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         ),
                       ],
                     ),
-                    
+
                     // Total + Controls
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -1326,7 +1612,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           height: 38,
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9), // Light blue-ish gray
+                            color: const Color(
+                              0xFFF1F5F9,
+                            ), // Light blue-ish gray
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -1338,30 +1626,34 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     context: context,
                                     child: ConfirmRemoveModal(
                                       title: 'Remove Item',
-                                      message: 'Are you sure you want to remove ${item.title} from your order?',
+                                      message:
+                                          'Are you sure you want to remove ${item.title} from your order?',
                                       onConfirm: () async {
-                                        await CartManager.instance.updateItemQuantity(
-                                          storeName, 
-                                          item.id, 
-                                          0,
-                                          options: item.options,
-                                          optionIds: item.optionIds,
-                                          specialInstructions: item.specialInstructions,
-                                          variantId: item.variantId,
-                                        );
+                                        await CartManager.instance
+                                            .updateItemQuantity(
+                                              storeName,
+                                              item.id,
+                                              0,
+                                              options: item.options,
+                                              optionIds: item.optionIds,
+                                              specialInstructions:
+                                                  item.specialInstructions,
+                                              variantId: item.variantId,
+                                            );
                                       },
                                     ),
                                   );
                                 } else {
-                                    await CartManager.instance.updateItemQuantity(
-                                      storeName, 
-                                      item.id, 
-                                      item.quantity - 1,
-                                      options: item.options,
-                                      optionIds: item.optionIds,
-                                      specialInstructions: item.specialInstructions,
-                                      variantId: item.variantId,
-                                    );
+                                  await CartManager.instance.updateItemQuantity(
+                                    storeName,
+                                    item.id,
+                                    item.quantity - 1,
+                                    options: item.options,
+                                    optionIds: item.optionIds,
+                                    specialInstructions:
+                                        item.specialInstructions,
+                                    variantId: item.variantId,
+                                  );
                                 }
                               }),
                               Container(
@@ -1378,8 +1670,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               ),
                               _buildPillQtyBtn(PhosphorIcons.plus(), () async {
                                 await CartManager.instance.updateItemQuantity(
-                                  storeName, 
-                                  item.id, 
+                                  storeName,
+                                  item.id,
                                   item.quantity + 1,
                                   options: item.options,
                                   optionIds: item.optionIds,
@@ -1401,6 +1693,4 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
     );
   }
-
-
 }

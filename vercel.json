@@ -4,24 +4,8 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/assets/(.*)",
-      "destination": "/public/assets/$1"
-    },
-    {
-      "source": "/icons/(.*)",
-      "destination": "/public/icons/$1"
-    },
-    {
-      "source": "/favicon.png",
-      "destination": "/public/favicon.png"
-    },
-    {
-      "source": "/manifest.json",
-      "destination": "/public/manifest.json"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     }
   ]
 }
