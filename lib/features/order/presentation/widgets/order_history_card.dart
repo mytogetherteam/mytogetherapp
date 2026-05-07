@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:mytogetherapp/features/order/data/models/demo_order_data.dart';
+import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 
 class OrderHistoryCard extends StatefulWidget {
-  final DemoOrder order;
+  final OrderHistoryDto order;
 
   const OrderHistoryCard({
     super.key,
@@ -22,8 +21,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   @override
   void initState() {
     super.initState();
-    _isRated = widget.order.isRated;
-    _ratingScore = widget.order.ratingScore;
+    _isRated = false; // Real API might need this field later
+    _ratingScore = 0;
   }
 
   Color get primaryColor => const Color(0xFFED3A72);
@@ -60,7 +59,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ],
             ),
           ),
-          if (widget.order.type == 'completed' && widget.order.hasRatingRow) _buildRatingStrip(),
+          if (widget.order.status == 'DELIVERED') _buildRatingStrip(),
         ],
       ),
     );
@@ -68,8 +67,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
 
   Widget _buildTopRow() {
     Color labelColor = Colors.grey;
-    if (widget.order.type == 'completed') labelColor = primaryColor;
-    if (widget.order.type == 'active') labelColor = primaryColor;
+    if (widget.order.ongoing) labelColor = primaryColor;
+    if (widget.order.status == 'DELIVERED') labelColor = primaryColor;
 
     return Row(
       children: [
@@ -82,18 +81,20 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: Image.network(
-              widget.order.shopLogoUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Container(color: Colors.grey[200]),
-            ),
+            child: widget.order.shopImageUrl != null
+                ? Image.network(
+                    widget.order.shopImageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Container(color: Colors.grey[200]),
+                  )
+                : Container(color: Colors.grey[200]),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            widget.order.shopName,
+            widget.order.shopName ?? 'Shop',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -104,7 +105,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
         ),
         Text(
-          widget.order.type == 'completed' ? 'Completed' : (widget.order.type == 'cancelled' ? 'Cancelled' : 'Active'),
+          widget.order.statusLabel ?? widget.order.status,
           style: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -129,7 +130,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              widget.order.priceDisplay,
+              widget.order.displayTotalAmount ?? '฿${widget.order.totalAmount}',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -140,7 +141,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             Row(
               children: [
                 Text(
-                  '${widget.order.itemCount} Items ',
+                  '${widget.order.items.length} Items ',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -162,11 +163,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   List<Widget> _buildThumbnails() {
     List<Widget> thumbs = [];
     int maxDisplayCount = 3;
-    bool hasOverflow = widget.order.itemThumbnails.length > maxDisplayCount;
+    bool hasOverflow = widget.order.items.length > maxDisplayCount;
 
-    for (int i = 0; i < (hasOverflow ? maxDisplayCount : widget.order.itemThumbnails.length); i++) {
-        bool isLast = i == widget.order.itemThumbnails.length - 1;
+    for (int i = 0; i < (hasOverflow ? maxDisplayCount : widget.order.items.length); i++) {
+        bool isLast = i == widget.order.items.length - 1;
         bool isThird = i == maxDisplayCount - 1;
+        final item = widget.order.items[i];
 
         Widget img = Container(
           width: 60,
@@ -178,12 +180,14 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
           child: ClipRRect(
              borderRadius: BorderRadius.circular(8),
-             child: Image.network(
-                widget.order.itemThumbnails[i],
-                fit: BoxFit.cover,
-                 errorBuilder: (context, error, stackTrace) =>
-                  Container(color: Colors.grey[200]),
-             ),
+             child: item.menuItemImageUrl != null
+                ? Image.network(
+                    item.menuItemImageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Container(color: Colors.grey[200]),
+                  )
+                : Container(color: Colors.grey[200]),
           ),
         );
 
@@ -200,7 +204,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                   ),
                   child: Center(
                     child: Text(
-                      '+${widget.order.itemThumbnails.length - maxDisplayCount}', // +X overlay
+                      '+${widget.order.items.length - maxDisplayCount}', // +X overlay
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -220,14 +224,14 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   }
 
   Widget _buildBottomRow(BuildContext context) {
-    if (widget.order.type == 'active') {
+    if (widget.order.ongoing) {
        return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              widget.order.dateDisplay.isEmpty ? 'Order placed' : widget.order.dateDisplay,
+              'Last updated: ${widget.order.updatedAt ?? widget.order.createdAt}',
               style: GoogleFonts.poppins(
-                fontSize: 13,
+                fontSize: 11,
                 color: Colors.grey[500],
               ),
             ),
@@ -251,7 +255,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     }
 
     // For completed and cancelled
-    String btnLabel = widget.order.type == 'completed' ? 'Re-order' : 'Buy Again';
+    String btnLabel = widget.order.status == 'DELIVERED' ? 'Re-order' : 'Buy Again';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

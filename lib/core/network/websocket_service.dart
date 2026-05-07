@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
 import '../../features/cart/data/active_order_state.dart';
-import '../../features/cart/data/active_order_state.dart';
+import '../../features/home/data/repositories/restaurant_repository.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -19,7 +19,13 @@ class WebSocketService {
   final StreamController<Map<String, dynamic>> _orderUpdateController =
       StreamController<Map<String, dynamic>>.broadcast();
 
-  Stream<Map<String, dynamic>> get orderUpdates => _orderUpdateController.stream;
+  Stream<Map<String, dynamic>> get orderUpdates =>
+      _orderUpdateController.stream;
+
+  final StreamController<Map<String, dynamic>> _menuUpdateController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get menuUpdates => _menuUpdateController.stream;
 
   bool _isConnecting = false;
 
@@ -56,12 +62,17 @@ class WebSocketService {
            debugPrint(' [WS] Preparing connection headers...');
         },
         onWebSocketError: (dynamic error) {
-          debugPrint(' [WS] WebSocket Error: $error');
+          debugPrint(' 🚨 [WS] WebSocket Error: $error');
+          _isConnecting = false;
+          connectionStatus.value = false;
+        },
+        onWebSocketDone: () {
+          debugPrint(' 🔌 [WS] WebSocket Connection Closed.');
           _isConnecting = false;
           connectionStatus.value = false;
         },
         onDebugMessage: (String message) {
-          // debugPrint(' [WS] [STOMP] $message');
+          debugPrint(' ⚙️ [WS] [STOMP] $message');
         },
         stompConnectHeaders: {
           'Authorization': 'Bearer $token',
@@ -121,8 +132,19 @@ class WebSocketService {
           final raw = Map<String, dynamic>.from(decoded as Map);
           final messageType = raw['type']?.toString();
 
-          // ── MENU_ITEM_UPDATE (removed cache for demo) ────────────────────
+          // ── MENU_ITEM_UPDATE (Real-time Menu synchronization) ─────────────
           if (messageType == 'MENU_ITEM_UPDATE') {
+            final shopId = raw['shopId'];
+            final itemId = raw['itemId'];
+            debugPrint(' 📡 [WS] MENU_ITEM_UPDATE RECEIVED: shopId=$shopId, itemId=$itemId');
+            if (shopId != null) {
+              final id = int.tryParse(shopId.toString());
+              if (id != null) {
+                debugPrint(' ✨ [WS] Triggering cache invalidation for Shop: $id');
+                RestaurantRepository.instance.clearCache(shopId: id);
+                _menuUpdateController.add(raw);
+              }
+            }
             return;
           }
 

@@ -5,6 +5,7 @@ import '../models/shop_feed_item_dto.dart';
 import '../remote_restaurant_data_source.dart';
 import '../models/shop_dto.dart';
 import '../models/food_detail_dto.dart';
+import '../models/shop_review_dto.dart';
 
 class RestaurantRepository {
   static final RestaurantRepository instance = RestaurantRepository(
@@ -154,9 +155,9 @@ class RestaurantRepository {
       imagePath = dto.primaryPhotoUrl!;
     }
     
-    // If still empty, use a curated food placeholder for premium feel
+    // If still empty, return empty string so UI can show "No Image" fallback
     if (imagePath.isEmpty) {
-      imagePath = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop';
+      imagePath = '';
     }
 
     return Restaurant(
@@ -227,9 +228,9 @@ class RestaurantRepository {
 
   /// Fires all 5 feed requests in parallel. Call this on page entry for
   /// best performance — results land in cache before the user scrolls down.
-  void prefetchShopFeeds(int shopId) {
+  void prefetchShopFeeds(int shopId, {bool forceRefresh = false}) {
     for (final type in _feedTypes) {
-      getShopFeed(shopId: shopId, feedType: type);
+      getShopFeed(shopId: shopId, feedType: type, forceRefresh: forceRefresh);
     }
   }
 
@@ -238,14 +239,17 @@ class RestaurantRepository {
   Future<ShopFeedSectionDto> getShopFeed({
     required int shopId,
     required String feedType,
+    bool forceRefresh = false,
   }) async {
     final key = '$shopId-$feedType';
     final now = DateTime.now();
     final cached = _feedCache[key];
     final cacheTime = _feedCacheTime[key];
-    if (cached != null &&
+    
+    if (!forceRefresh && 
+        cached != null &&
         cacheTime != null &&
-        now.difference(cacheTime).inMinutes < 5) {
+        now.difference(cacheTime).inMinutes < 1) {
       return cached;
     }
     final result = await _remoteDataSource.getShopFeed(
@@ -309,5 +313,29 @@ class RestaurantRepository {
 
   Future<void> trackConversion(int shopId, String action) async {
     await _remoteDataSource.trackConversion(shopId, action);
+  }
+
+  /// Clears the feed cache for a specific shop or all shops.
+  void clearCache({int? shopId}) {
+    if (shopId != null) {
+      _feedCache.removeWhere((key, _) => key.startsWith('$shopId-'));
+      _feedCacheTime.removeWhere((key, _) => key.startsWith('$shopId-'));
+      _cachedNearbyShops = null; // Clear nearby shops as status might have changed
+    } else {
+      _feedCache.clear();
+      _feedCacheTime.clear();
+      _cachedNearbyShops = null;
+      _cachedTrending = null;
+      _cachedBanners.clear();
+      _bannersLastFetch = null;
+    }
+  }
+
+  Future<List<ShopReviewDto>> getShopReviews(int shopId) {
+    return _remoteDataSource.getShopReviews(shopId);
+  }
+
+  Future<ShopReviewSummaryDto> getShopReviewSummary(int shopId) {
+    return _remoteDataSource.getShopReviewSummary(shopId);
   }
 }

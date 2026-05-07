@@ -120,7 +120,9 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
         : widget.price;
     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > effectivePrice;
 
-    final bool effectiveIsHidden = (widget.publishStatus == 'UNPUBLISHED' || widget.publishStatus == 'ARCHIVED');
+    final bool effectiveIsHidden = (widget.publishStatus == 'UNPUBLISHED' || 
+                                   widget.publishStatus == 'ARCHIVED' || 
+                                   widget.publishStatus == 'DRAFT');
     final bool effectiveIsDisabled = !effectiveIsHidden && !widget.isAvailable;
 
     if (effectiveIsHidden) return const SizedBox.shrink();
@@ -416,6 +418,7 @@ class _OutOfStockWrapper extends StatelessWidget {
     if (!isDisabled) return child;
     return Stack(
       children: [
+        // Grayscale effect for the whole card when disabled
         ColorFiltered(
           colorFilter: const ColorFilter.matrix(<double>[
             0.2126, 0.7152, 0.0722, 0, 0,
@@ -423,31 +426,41 @@ class _OutOfStockWrapper extends StatelessWidget {
             0.2126, 0.7152, 0.0722, 0, 0,
             0,      0,      0,      1, 0,
           ]),
-          child: Opacity(opacity: 0.6, child: child),
+          child: Opacity(opacity: 0.5, child: child),
         ),
+        // "Unavailable" overlay centered specifically over the image area
         Positioned.fill(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.75),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Out of Stock',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // The image section usually takes the top ~60-70% of the card
+              // We want to center the label in that area.
+              return Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white24, width: 1),
+                        ),
+                        child: Text(
+                          'Unavailable',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                  const Spacer(), // Pushes the center above the text info area
+                ],
+              );
+            },
           ),
         ),
       ],

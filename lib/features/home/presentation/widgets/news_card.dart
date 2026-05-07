@@ -8,6 +8,7 @@ class NewsCard extends StatelessWidget {
   final String imageUrl;
   final String source;
   final String timeAgo;
+  final VoidCallback? onTap;
 
   const NewsCard({
     super.key,
@@ -15,12 +16,15 @@ class NewsCard extends StatelessWidget {
     required this.imageUrl,
     required this.source,
     required this.timeAgo,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -94,6 +98,7 @@ class NewsCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

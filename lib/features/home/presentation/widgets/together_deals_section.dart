@@ -154,7 +154,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: const ImageSkeletonLoader(width: 130, height: 120),
+                    child: const ImageSkeletonLoader(width: 130, height: 120, showLogo: true),
                   ),
                   const SizedBox(height: 8),
                   ClipRRect(
@@ -203,6 +203,7 @@ class _DealCard extends StatelessWidget {
               placeholder: (context, url) => const ImageSkeletonLoader(
                 width: 130,
                 height: 120,
+                showLogo: true,
               ),
               errorWidget: (context, url, error) => Container(
                 width: 130,

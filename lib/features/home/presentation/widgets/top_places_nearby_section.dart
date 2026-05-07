@@ -4,6 +4,7 @@ import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
 import '../screens/place_detail_page.dart';
+import '../screens/places_list_page.dart';
 
 class TopPlacesNearbySection extends StatefulWidget {
   const TopPlacesNearbySection({super.key});
@@ -57,7 +58,12 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PlacesListPage()),
+                  );
+                },
               ),
             ],
           ),
@@ -72,34 +78,41 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
             itemCount: _places.length,
             itemBuilder: (context, index) {
               final place = _places[index];
-              return PlaceCard(
-                name: place['name']!,
-                category: place['category']!,
-                distance: place['distance']!,
-                imagePath: place['imagePath']!,
-                isFavorite: _favoriteIndices.contains(index),
-                onFavoriteToggle: () => _toggleFavorite(index),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PlaceDetailPage(
-                        name: place['name']!,
-                        category: place['category']!,
-                        distance: place['distance']!,
-                        imagePath: place['imagePath']!,
-                        description: place['description']!,
-                        openingHours: place['hours'],
-                        images: List<String>.from(place['gallery']),
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: SizedBox(
+                  width: 240,
+                  height: 320,
+                  child: PlaceCard(
+                    name: place['name']!,
+                  category: place['category']!,
+                  distance: place['distance']!,
+                  imagePath: place['imagePath']!,
+                  isFavorite: _favoriteIndices.contains(index),
+                  onFavoriteToggle: () => _toggleFavorite(index),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlaceDetailPage(
+                          name: place['name']!,
+                          category: place['category']!,
+                          distance: place['distance']!,
+                          imagePath: place['imagePath']!,
+                          description: place['description']!,
+                          openingHours: place['hours'],
+                          images: List<String>.from(place['gallery']),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 }

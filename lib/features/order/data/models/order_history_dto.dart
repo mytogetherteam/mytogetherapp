@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 class OrderHistoryGroupedDto {
   final List<OrderHistoryDto> currentOrders;
   final List<OrderHistoryDto> pastOrders;
@@ -58,6 +61,15 @@ class OrderHistoryDto {
     this.deliveryFee,
     this.displayDeliveryFee,
   });
+
+  String get dateDisplay {
+    try {
+      final date = DateTime.parse(createdAt);
+      return DateFormat('dd MMM yyyy, HH:mm').format(date);
+    } catch (e) {
+      return createdAt;
+    }
+  }
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
     return OrderHistoryDto(

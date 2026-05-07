@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
@@ -14,6 +15,7 @@ import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../../../../features/auth/presentation/screens/login_page.dart';
+import '../../../../core/network/websocket_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -42,6 +44,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Global listener for order completion
     _lastStatus = ActiveOrderState.instance.orderStatus;
     ActiveOrderState.instance.addListener(_onOrderStateChanged);
+    
+    // Connect WebSocket for real-time updates
+    WebSocketService().connect();
   }
 
   void _onOrderStateChanged() {
@@ -50,11 +55,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final newStatus = state.orderStatus;
     
     // Check for transition to COMPLETED (4)
-    if (newStatus == 4 && _lastStatus != 4 && !OrderCompletePage.isCurrentlyVisible) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const OrderCompletePage()),
-      );
+    if (newStatus == 4 && _lastStatus != 4) {
+      OrderCompletePage.navigateTo(context);
     }
     
     // Check for any order that just became CANCELLED (-1)
@@ -154,46 +156,95 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 0,
+            bottom: 70 + MediaQuery.of(context).padding.bottom, // Push above custom nav bar
             child: const ActiveOrderBar(),
           ),
         ],
       ),
       floatingActionButton: const StyledCartFab(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFED3A72),
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(PhosphorIcons.house()),
-            activeIcon: Icon(PhosphorIcons.house(PhosphorIconsStyle.fill)),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(PhosphorIcons.forkKnife()),
-            activeIcon: Icon(PhosphorIcons.forkKnife(PhosphorIconsStyle.fill)),
-            label: 'Food',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(PhosphorIcons.receipt()),
-            activeIcon: Icon(PhosphorIcons.receipt(PhosphorIconsStyle.fill)),
-            label: 'Order History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(PhosphorIcons.newspaper()),
-            activeIcon: Icon(PhosphorIcons.newspaper(PhosphorIconsStyle.fill)),
-            label: 'News',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(PhosphorIcons.user()),
-            activeIcon: Icon(PhosphorIcons.user(PhosphorIconsStyle.fill)),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        height: 70 + MediaQuery.of(context).padding.bottom,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, PhosphorIcons.house(), PhosphorIcons.house(PhosphorIconsStyle.fill), 'Home'),
+            _buildNavItem(1, PhosphorIcons.forkKnife(), PhosphorIcons.forkKnife(PhosphorIconsStyle.fill), 'Food'),
+            _buildNavItem(2, PhosphorIcons.receipt(), PhosphorIcons.receipt(PhosphorIconsStyle.fill), 'Orders'),
+            _buildNavItem(3, PhosphorIcons.newspaper(), PhosphorIcons.newspaper(PhosphorIconsStyle.fill), 'News'),
+            _buildNavItem(4, PhosphorIcons.user(), PhosphorIcons.user(PhosphorIconsStyle.fill), 'Profile'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => _onTabTapped(index),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width / 5,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSelected)
+              Column(
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xFFED3973), Color(0xFFF96232)],
+                    ).createShader(bounds),
+                    child: Icon(activeIcon, color: Colors.white, size: 26),
+                  ),
+                  const SizedBox(height: 4),
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xFFED3973), Color(0xFFF96232)],
+                    ).createShader(bounds),
+                    child: Text(
+                      label,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  Icon(icon, color: Colors.grey.shade400, size: 26),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey.shade400,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

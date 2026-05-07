@@ -65,6 +65,17 @@ class _NearbyRestaurantListItemSkeletonState extends State<NearbyRestaurantListI
                   borderRadius: BorderRadius.circular(16),
                   gradient: shimmerGradient,
                 ),
+                child: Center(
+                  child: Opacity(
+                    opacity: 0.2,
+                    child: Image.asset(
+                      'assets/images/icon.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               // Right: Content Placeholders

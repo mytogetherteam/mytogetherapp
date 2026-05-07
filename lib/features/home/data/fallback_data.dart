@@ -69,21 +69,27 @@ class FallbackData {
   static List<Map<String, String>> get news => [
     {
       'title': 'New Skywalk connects Siam Square to MBK: A boost for Bangkok pedestrians.',
-      'imageUrl': 'https://images.unsplash.com/photo-1512428559083-a400a4b82c97?q=80&w=1200&auto=format&fit=crop',
+      'imageUrl': 'https://picsum.photos/seed/skywalk/800/600',
       'source': 'Bangkok Post',
       'timeAgo': '10m ago',
     },
     {
       'title': 'The Songkran Festival 2026: Official dates and main event locations announced.',
-      'imageUrl': 'https://images.unsplash.com/photo-1504711432869-b39743a4be9a?q=80&w=1000&auto=format&fit=crop',
+      'imageUrl': 'https://picsum.photos/seed/songkran/800/600',
       'source': 'Thai PBS',
       'timeAgo': '1h ago',
     },
     {
       'title': 'Local startups receive major funding boost to develop eco-friendly food packaging.',
-      'imageUrl': 'https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1400&auto=format&fit=crop',
+      'imageUrl': 'https://picsum.photos/seed/startup/800/600',
       'source': 'Reuters',
       'timeAgo': '3h ago',
+    },
+    {
+      'title': 'Bangkok Food Festival 2026 kicks off with hundreds of local and international stalls.',
+      'imageUrl': 'https://picsum.photos/seed/food/800/600',
+      'source': 'Mytogether News',
+      'timeAgo': '5h ago',
     },
   ];
 

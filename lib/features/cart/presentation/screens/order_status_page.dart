@@ -56,7 +56,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     
     // Auto-navigate if already completed
-    if (ActiveOrderState.instance.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
+    if (ActiveOrderState.instance.orderStatus == 4) {
       Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
     }
     
@@ -99,7 +99,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         });
 
         // Auto-navigate when status becomes COMPLETED (4)
-        if (state.orderStatus == 4 && !OrderCompletePage.isCurrentlyVisible) {
+        if (state.orderStatus == 4) {
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
@@ -226,9 +226,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
   void _navigateToComplete() {
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const OrderCompletePage()),
-    );
+    // navigateTo atomically guards against duplicates; it uses push so we
+    // manually replace by popping this page afterward if navigation succeeded.
+    if (OrderCompletePage.navigateTo(context)) {
+      // Pop this OrderStatusPage so the complete page is the only one on stack
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).removeRoute(ModalRoute.of(context)!);
+      });
+    }
   }
 
   void _goHome() {

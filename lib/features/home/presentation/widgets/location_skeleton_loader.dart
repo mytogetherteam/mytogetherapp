@@ -51,13 +51,28 @@ class _LocationSkeletonLoaderState extends State<LocationSkeletonLoader>
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        return Container(
-          height: 16,
-          width: widget.isList ? 140 : double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-            gradient: _shimmerGradient(),
-          ),
+        return Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            Container(
+              height: 18,
+              width: widget.isList ? 140 : double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                gradient: _shimmerGradient(),
+              ),
+            ),
+            if (!widget.isList)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Image.asset(
+                  'assets/images/logo_white.png',
+                  height: 12,
+                  fit: BoxFit.contain,
+                  opacity: const AlwaysStoppedAnimation(0.6),
+                ),
+              ),
+          ],
         );
       },
     );

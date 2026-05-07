@@ -30,9 +30,6 @@ class PlaceCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 240,
-        height: 320,
-        margin: const EdgeInsets.only(right: 16),
         child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: Stack(
@@ -43,8 +40,6 @@ class PlaceCard extends StatelessWidget {
                 tag: 'top_places_$name',
                 child: CachedNetworkImage(
                   imageUrl: imagePath,
-                  width: 240,
-                  height: 320,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => const ImageSkeletonLoader(
                     height: 320,
@@ -91,7 +86,7 @@ class PlaceCard extends StatelessWidget {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.35),
                       borderRadius: BorderRadius.circular(24),
@@ -107,7 +102,7 @@ class PlaceCard extends StatelessWidget {
                         Text(
                           name,
                           style: GoogleFonts.poppins(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
@@ -121,7 +116,7 @@ class PlaceCard extends StatelessWidget {
                               child: Text(
                                 category,
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white.withOpacity(0.9),
                                 ),
@@ -145,7 +140,7 @@ class PlaceCard extends StatelessWidget {
                             Text(
                               distance,
                               style: GoogleFonts.poppins(
-                                fontSize: 13,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.white.withOpacity(0.9),
                               ),

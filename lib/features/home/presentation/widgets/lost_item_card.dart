@@ -8,6 +8,7 @@ class LostItemCard extends StatelessWidget {
   final String imageUrl;
   final String timeAgo;
   final VoidCallback? onOptionsTap;
+  final VoidCallback? onTap;
 
   const LostItemCard({
     super.key,
@@ -15,12 +16,15 @@ class LostItemCard extends StatelessWidget {
     required this.imageUrl,
     required this.timeAgo,
     this.onOptionsTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -94,6 +98,7 @@ class LostItemCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

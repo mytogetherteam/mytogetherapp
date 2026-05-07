@@ -13,6 +13,8 @@ import '../widgets/top_places_nearby_section.dart';
 import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
@@ -21,6 +23,7 @@ import 'package:mytogetherapp/features/notifications/presentation/screens/notifi
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
+import 'places_list_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,6 +49,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<BannerImageDto> _topBanners = [];
   List<BannerImageDto> _bottomBanners = [];
   bool _isLoadingBanners = true;
+  int _refreshKey = 0;
 
   @override
   void initState() {
@@ -172,13 +176,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             
             // Scrollable Content
             Positioned.fill(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                child: Column(
-                  children: [
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  RestaurantRepository.instance.clearCache();
+                  setState(() {
+                    _isLoadingBanners = true;
+                    _refreshKey++;
+                  });
+                  await _fetchBanners();
+                },
+                color: const Color(0xFFED3973),
+                displacement: MediaQuery.of(context).padding.top + 80,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  child: Column(
+                    children: [
                     SizedBox(height: MediaQuery.of(context).padding.top + 70), // Push content below fixed header
                     
                     // Search Bar
@@ -231,10 +246,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             });
                           },
                           itemBuilder: (context, index) {
+                            if (_isLoadingBanners) {
+                              return const ImageSkeletonLoader(showLogo: true);
+                            }
                             if (_topBanners.isEmpty) {
                               return Container(
-                                color: const Color(0xFFED3973).withOpacity(0.1),
-                                child: const Center(child: CircularProgressIndicator()),
+                                color: Colors.grey.shade100,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
                               );
                             }
                             final realIndex = index % _topBanners.length;
@@ -243,11 +262,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             if (image.startsWith('assets/')) {
                               return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
                             }
-                            return Image.network(
-                              _getImageUrl(image),
+                            return CachedNetworkImage(
+                              imageUrl: _getImageUrl(image),
                               fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
+                              errorWidget: (context, url, error) => Container(
                                 color: const Color(0xFFED3973),
                                 alignment: Alignment.center,
                                 child: const Icon(Icons.broken_image, color: Colors.white),
@@ -260,19 +279,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 12),
                   // Dots Indicator
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_topBanners.isEmpty ? 1 : _topBanners.length, (index) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentBannerIndex == index ? 20 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _currentBannerIndex == index ? const Color(0xFFED3973) : const Color(0xFFFFC0CB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    )),
-                  ),
+                  if (!_isLoadingBanners && _topBanners.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_topBanners.length, (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentBannerIndex == index ? 20 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _currentBannerIndex == index ? const Color(0xFFED3973) : const Color(0xFFFFC0CB),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      )),
+                    ),
                     
                     const SizedBox(height: 10), // Added back small spacer for better rhythm
                     // Main White Section (Category Grid & Below)
@@ -334,10 +354,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       CategoryCard(
                                         title: 'Places',
                                         assetPath: 'assets/images/services/places_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const PlacesListPage()),
+                                        ),
                                       ),
                                       CategoryCard(
                                         title: 'Store',
                                         assetPath: 'assets/images/services/store_3d.png',
+                                        isComingSoon: true,
                                       ),
                                     ],
                                   ),
@@ -354,7 +379,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: const Color(0xFF0084FF), width: 2), // Blue border from screenshot
                                         ),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(18),
@@ -367,17 +391,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               });
                                             },
                                             itemBuilder: (context, index) {
+                                              if (_isLoadingBanners) {
+                                                return const ImageSkeletonLoader(showLogo: true);
+                                              }
                                               if (_bottomBanners.isEmpty) {
                                                 return Container(
-                                                  color: const Color(0xFF0084FF).withOpacity(0.1),
-                                                  child: const Center(child: CircularProgressIndicator()),
+                                                  color: Colors.grey.shade100,
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
                                                 );
                                               }
                                               final realIndex = index % _bottomBanners.length;
-                                              return Image.network(
-                                                _getImageUrl(_bottomBanners[realIndex].image),
+                                              return CachedNetworkImage(
+                                                imageUrl: _getImageUrl(_bottomBanners[realIndex].image),
                                                 fit: BoxFit.cover,
                                                 width: double.infinity,
+                                                placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
+                                                errorWidget: (context, url, error) => Container(
+                                                  color: const Color(0xFF0084FF),
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(Icons.broken_image, color: Colors.white),
+                                                ),
                                               );
                                             },
                                           ),
@@ -385,36 +419,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       ),
                                       const SizedBox(height: 12),
                                       // Dots Indicator for Second Banner
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: List.generate(_bottomBanners.isEmpty ? 1 : _bottomBanners.length, (index) => AnimatedContainer(
-                                          duration: const Duration(milliseconds: 300),
-                                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                                          width: _currentPromoIndex == index ? 24 : 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: _currentPromoIndex == index ? const Color(0xFFED3973) : const Color(0xFFD1D1D1),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                        )),
-                                      ),
+                                      if (!_isLoadingBanners && _bottomBanners.isNotEmpty)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(_bottomBanners.length, (index) => AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                                            width: _currentPromoIndex == index ? 24 : 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: _currentPromoIndex == index ? const Color(0xFFED3973) : const Color(0xFFD1D1D1),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                          )),
+                                        ),
                                     ],
                                   ),
                                 ),
                                 
                                 const SizedBox(height: 24),
-                                const TogetherDealsSection(),
-                                const RestaurantsNearbySection(),
-                                const PopularBrandsSection(),
+                                TogetherDealsSection(key: ValueKey('deals_$_refreshKey')),
+                                RestaurantsNearbySection(key: ValueKey('nearby_$_refreshKey')),
+                                PopularBrandsSection(key: ValueKey('brands_$_refreshKey')),
                                 const SizedBox(height: 24),
-                                const TodaysOverviewSection(),
+                                TodaysOverviewSection(key: ValueKey('overview_$_refreshKey')),
                                 const SizedBox(height: 24),
-                                const LostItemsNearbySection(),
+                                LostItemsNearbySection(key: ValueKey('lost_$_refreshKey')),
                                 const SizedBox(height: 24),
-                                const TopPlacesNearbySection(),
+                                TopPlacesNearbySection(key: ValueKey('places_$_refreshKey')),
                                 const SizedBox(height: 32),
-                                const TrendingNewsSection(),
-                                const SizedBox(height: 24),
+                                TrendingNewsSection(key: ValueKey('news_$_refreshKey')),
+                                const SizedBox(height: 40),
+                                Center(
+                                  child: Text(
+                                    'demo 0.0.1',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey.withValues(alpha: 0.5),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 40),
                               ],
                             ),
                           ),
@@ -422,6 +468,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+            ),
             
             // Fixed Header
             Positioned(

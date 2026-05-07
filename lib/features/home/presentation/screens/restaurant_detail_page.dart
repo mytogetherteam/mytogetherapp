@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../cart/data/cart_manager.dart';
@@ -12,7 +13,9 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../../../core/location/location_service.dart';
+import '../../../../core/network/websocket_service.dart';
 import 'restaurant_overview_page.dart';
+import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
@@ -65,11 +68,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   bool _isScrolled = false;
   bool _isFavorite = false;
   bool _isTogglingFavorite = false;
+  StreamSubscription? _menuUpdateSubscription;
 
   Restaurant? _currentRestaurant;
 
   // Track which feed sections have reported empty/error (by feedType key)
   final Set<String> _emptySections = {};
+  Key _feedRefreshKey = UniqueKey();
   static const _allFeedTypes = [
     'right-now', 'for-you', 'hot-deals', 'trending', 'popular-dishes'
   ];
@@ -117,7 +122,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
 
     // Kick off parallel pre-fetch of all 5 feed sections right away
     if (shopId > 0) {
-      RestaurantRepository.instance.prefetchShopFeeds(shopId);
+      RestaurantRepository.instance.clearCache(shopId: shopId);
+      RestaurantRepository.instance.prefetchShopFeeds(shopId, forceRefresh: true);
     }
 
     // Also refresh the shop detail header (name, logo, rating etc.)
@@ -137,6 +143,25 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
         }
       } catch (_) {}
     });
+
+    // Listen for real-time menu updates
+    _menuUpdateSubscription = WebSocketService().menuUpdates.listen((event) {
+      final updatedShopId = event['shopId']?.toString();
+      if (updatedShopId == widget.id && mounted) {
+        debugPrint(' [RestaurantDetailPage] Real-time menu update detected. Refreshing feeds...');
+        
+        final shopIdInt = int.tryParse(widget.id) ?? 0;
+        if (shopIdInt > 0) {
+          RestaurantRepository.instance.clearCache(shopId: shopIdInt);
+          RestaurantRepository.instance.prefetchShopFeeds(shopIdInt, forceRefresh: true);
+        }
+
+        setState(() {
+          _feedRefreshKey = UniqueKey(); // Force ShopFeedSection to re-init
+          _emptySections.clear();
+        });
+      }
+    });
   }
 
   @override
@@ -145,9 +170,32 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     App.routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
   }
 
+  Future<void> _handleRefresh() async {
+    final shopId = int.tryParse(widget.id);
+    if (shopId != null) {
+      debugPrint(' [RestaurantDetailPage] Manual refresh triggered. Clearing cache...');
+      RestaurantRepository.instance.clearCache(shopId: shopId);
+      
+      // Update local state to trigger rebuilds of feed sections
+      setState(() {
+        _feedRefreshKey = UniqueKey();
+        _emptySections.clear();
+      });
+
+      // Also re-fetch the shop detail itself
+      final updatedRestaurant = await RestaurantRepository.instance.getShopById(shopId);
+      if (mounted) {
+        setState(() {
+          _currentRestaurant = updatedRestaurant;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     App.routeObserver.unsubscribe(this);
+    _menuUpdateSubscription?.cancel();
     _scrollController.dispose();
     _basketAnimationController.dispose();
     super.dispose();
@@ -186,41 +234,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   }
 
   bool _onScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollEndNotification) {
-      final double offset = _scrollController.offset;
-      final double topPadding = MediaQuery.of(context).padding.top;
-      final double toolbarHeight = kToolbarHeight + topPadding;
-      final double snapTarget = 470 - toolbarHeight;
-
-      // Only perform snapping if we are close to the header area but not exactly at 0
-      // We also disable snapping if targetMenuItemId is present to allow free scrolling to the top
-      if (offset > 50 && offset < snapTarget && widget.targetMenuItemId == null) {
-        // Only snap if we were not already in a programmatic scroll (best effort check)
-        if (notification.dragDetails != null || offset > snapTarget * 0.2) {
-          if (offset > snapTarget * 0.4) {
-            Future.microtask(() {
-              if (mounted) {
-                _scrollController.animateTo(
-                  snapTarget,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                );
-              }
-            });
-          } else {
-            Future.microtask(() {
-              if (mounted) {
-                _scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                );
-              }
-            });
-          }
-        }
-      }
-    }
+    // Disabled snapping behavior to prevent click blockers during scroll state
     return false;
   }
 
@@ -233,11 +247,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
         backgroundColor: Colors.white,
         body: Stack(
           children: [
-            NotificationListener<ScrollNotification>(
-              onNotification: _onScrollNotification,
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: [
+            RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: const Color(0xFFED3A72),
+              displacement: 80,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScrollNotification,
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
                   SliverAppBar(
                     expandedHeight: 400,
                     pinned: false,
@@ -335,6 +354,19 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_reviews.png',
                                   label: 'Reviews',
+                                  onTap: () {
+                                    if (_currentRestaurant != null) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => RestaurantReviewsPage(
+                                            shopId: int.parse(_currentRestaurant!.id),
+                                            restaurantName: _currentRestaurant!.name,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_chat.png',
@@ -355,6 +387,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 ],
               ),
             ),
+          ),
             
             // Custom App Bar
             Positioned(
@@ -476,129 +509,130 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 if (scrollOffset > 50) {
                   opacity = (1.0 - (scrollOffset - 50) / 200).clamp(0.0, 1.0);
                 }
-
                 if (opacity <= 0) return const SizedBox.shrink();
 
                 return Positioned(
                   top: cardTop,
                   left: 15,
                   right: 15,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: BackdropFilter(
-                        filter: ColorFilter.mode(
-                          Colors.white.withValues(alpha: 0.7),
-                          BlendMode.srcOver,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: opacity,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: BackdropFilter(
+                          filter: ColorFilter.mode(
+                            Colors.white.withValues(alpha: 0.7),
+                            BlendMode.srcOver,
                           ),
-                          child: Row(
-                            children: [
-                              // Logo Container
-                              Container(
-                                width: 70,
-                                height: 70,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: (_currentRestaurant?.logoPath ?? '').isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: _currentRestaurant!.logoPath,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) => const ImageSkeletonLoader(),
-                                          errorWidget: (context, url, error) => _buildLogoFallback(_currentRestaurant?.name ?? ''),
-                                        )
-                                      : _buildLogoFallback(_currentRestaurant?.name ?? ''),
-                                ),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                width: 1,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _currentRestaurant?.name ?? '',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                            ),
+                            child: Row(
+                              children: [
+                                // Logo Container
+                                Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.1),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
-                                      children: [
-                                        Text(
-                                          _currentRestaurant?.category ?? '',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: Colors.grey[700],
-                                          ),
-                                        ),
-                                        Text('  •  ', style: TextStyle(color: Colors.grey[500])),
-                                        Text(
-                                          '${_currentRestaurant?.rating ?? 0.0}',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
-                                      spacing: 4,
-                                      children: [
-                                        Icon(PhosphorIcons.car(), size: 16, color: Colors.grey[700]),
-                                        Text(
-                                          _currentRestaurant?.distance ?? '',
-                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
-                                        ),
-                                        Text('  •  ', style: TextStyle(color: Colors.grey[500])),
-                                        Icon(PhosphorIcons.clock(), size: 16, color: Colors.grey[700]),
-                                        Text(
-                                          _currentRestaurant?.deliveryTime ?? '',
-                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
-                                        ),
-                                        Text('  •  ', style: TextStyle(color: Colors.grey[500])),
-                                        Text(
-                                          _currentRestaurant?.status ?? '',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: const Color(0xFF10B981),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: (_currentRestaurant?.logoPath ?? '').isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: _currentRestaurant!.logoPath,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => const ImageSkeletonLoader(),
+                                            errorWidget: (context, url, error) => _buildLogoFallback(_currentRestaurant?.name ?? ''),
+                                          )
+                                        : _buildLogoFallback(_currentRestaurant?.name ?? ''),
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _currentRestaurant?.name ?? '',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(
+                                            _currentRestaurant?.category ?? '',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
+                                          Text(
+                                            '${_currentRestaurant?.rating ?? 0.0}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 4,
+                                        children: [
+                                          Icon(PhosphorIcons.car(), size: 16, color: Colors.grey[700]),
+                                          Text(
+                                            _currentRestaurant?.distance ?? '',
+                                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
+                                          ),
+                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
+                                          Icon(PhosphorIcons.clock(), size: 16, color: Colors.grey[700]),
+                                          Text(
+                                            _currentRestaurant?.deliveryTime ?? '',
+                                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
+                                          ),
+                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
+                                          Text(
+                                            _currentRestaurant?.status ?? '',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: const Color(0xFF10B981),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -871,6 +905,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     return [
       for (int i = 0; i < sections.length; i++) ...[
         ShopFeedSection(
+          key: ValueKey('${_feedRefreshKey.toString()}-${sections[i].$1}'),
           shopId: shopId,
           feedType: sections[i].$1,
           title: sections[i].$2,

@@ -6,6 +6,7 @@ import 'models/shop_dto.dart';
 import 'models/trending_item_dto.dart';
 import 'models/shop_feed_item_dto.dart';
 import 'models/food_detail_dto.dart';
+import 'models/shop_review_dto.dart';
 
 import 'shop_storage.dart';
 
@@ -194,6 +195,33 @@ class RemoteRestaurantDataSource {
       );
     } catch (e) {
       // Ignore non-critical tracking errors
+    }
+  }
+
+  // ── Reviews ───────────────────────────────────────────────────────────────
+
+  Future<List<ShopReviewDto>> getShopReviews(int shopId) async {
+    try {
+      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/shops/$shopId/reviews');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => ShopReviewDto.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<ShopReviewSummaryDto> getShopReviewSummary(int shopId) async {
+    try {
+      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/shops/$shopId/reviews/summary');
+      if (response.statusCode == 200) {
+        return ShopReviewSummaryDto.fromJson(response.data);
+      }
+      throw Exception('Failed to load review summary');
+    } catch (e) {
+      rethrow;
     }
   }
 }

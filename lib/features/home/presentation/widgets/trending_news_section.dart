@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'news_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
+import '../../../../features/news/presentation/screens/news_page.dart';
+import '../../../../features/news/data/models/news_item.dart';
+import '../../../../features/news/presentation/screens/news_detail_page.dart';
 
 class TrendingNewsSection extends StatefulWidget {
   const TrendingNewsSection({super.key});
@@ -13,6 +16,24 @@ class TrendingNewsSection extends StatefulWidget {
 
 class _TrendingNewsSectionState extends State<TrendingNewsSection> {
   final PageController _pageController = PageController();
+
+  void _navigateToDetail(BuildContext context, Map<String, String> item) {
+    final newsItem = NewsItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      authorName: item['source']!,
+      authorAvatar: '',
+      content: item['title']!,
+      imageUrls: [item['imageUrl']!],
+      likesCount: 156,
+      commentsCount: 24,
+      timeAgo: item['timeAgo']!,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => NewsDetailPage(item: newsItem)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +56,10 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () {},
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NewsPage()),
+                ),
               ),
             ],
           ),
@@ -59,6 +83,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                       imageUrl: newsItems[firstItemIndex]['imageUrl']!,
                       source: newsItems[firstItemIndex]['source']!,
                       timeAgo: newsItems[firstItemIndex]['timeAgo']!,
+                      onTap: () => _navigateToDetail(context, newsItems[firstItemIndex]),
                     ),
                     if (secondItemIndex < newsItems.length)
                       NewsCard(
@@ -66,6 +91,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                         imageUrl: newsItems[secondItemIndex]['imageUrl']!,
                         source: newsItems[secondItemIndex]['source']!,
                         timeAgo: newsItems[secondItemIndex]['timeAgo']!,
+                        onTap: () => _navigateToDetail(context, newsItems[secondItemIndex]),
                       ),
                   ],
                 ),

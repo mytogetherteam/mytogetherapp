@@ -9,6 +9,28 @@ import '../../../../core/utils/price_formatter.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
+
+  /// Atomically checks the guard and pushes the page.
+  /// Returns true if navigation was initiated, false if already visible.
+  static bool navigateTo(BuildContext context) {
+    if (isCurrentlyVisible) return false;
+    isCurrentlyVisible = true; // Lock immediately (before async gap)
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+    );
+    return true;
+  }
+
+  /// Version for use with a NavigatorState (e.g. App.navigatorKey)
+  static bool navigateWithState(NavigatorState? nav) {
+    if (nav == null || isCurrentlyVisible) return false;
+    isCurrentlyVisible = true; // Lock immediately
+    nav.push(
+      MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+    );
+    return true;
+  }
+
   const OrderCompletePage({super.key});
 
   @override
@@ -21,6 +43,8 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   @override
   void initState() {
     super.initState();
+    // isCurrentlyVisible is already set to true by navigateTo() before push.
+    // Set it here as a fallback for any direct constructor usage.
     OrderCompletePage.isCurrentlyVisible = true;
     // We don't clear the order here anymore so it remains in the tracking card
     WidgetsBinding.instance.addPostFrameCallback((_) {

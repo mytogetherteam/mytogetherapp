@@ -258,10 +258,8 @@ class NotificationService {
               deliveryFee: state.deliveryFee ?? 0,
             ),
           ));
-        } else if (s == 4 && !OrderCompletePage.isCurrentlyVisible) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => const OrderCompletePage(),
-          ));
+        } else if (s == 4) {
+          OrderCompletePage.navigateWithState(App.navigatorKey.currentState);
         }
         return; // Handled order routing
       } catch (e) {

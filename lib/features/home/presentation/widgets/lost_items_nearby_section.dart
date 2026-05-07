@@ -4,6 +4,8 @@ import 'lost_item_card.dart';
 import 'view_all_icon_button.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import '../../data/fallback_data.dart';
+import '../../../../features/news/data/models/news_item.dart';
+import '../../../../features/news/presentation/screens/news_detail_page.dart';
 
 class LostItemsNearbySection extends StatefulWidget {
   const LostItemsNearbySection({super.key});
@@ -14,6 +16,25 @@ class LostItemsNearbySection extends StatefulWidget {
 
 class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
   final PageController _pageController = PageController();
+
+  void _navigateToDetail(BuildContext context, Map<String, String> item) {
+    final newsItem = NewsItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      authorName: 'Mytogether User',
+      authorAvatar: '',
+      content: item['description']!,
+      imageUrls: [item['imageUrl']!],
+      likesCount: 12,
+      commentsCount: 4,
+      timeAgo: item['timeAgo']!,
+      location: 'Nearby',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => NewsDetailPage(item: newsItem)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,12 +85,14 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
                       description: lostItems[firstItemIndex]['description']!,
                       imageUrl: lostItems[firstItemIndex]['imageUrl']!,
                       timeAgo: lostItems[firstItemIndex]['timeAgo']!,
+                      onTap: () => _navigateToDetail(context, lostItems[firstItemIndex]),
                     ),
                     if (secondItemIndex < lostItems.length)
                       LostItemCard(
                         description: lostItems[secondItemIndex]['description']!,
                         imageUrl: lostItems[secondItemIndex]['imageUrl']!,
                         timeAgo: lostItems[secondItemIndex]['timeAgo']!,
+                        onTap: () => _navigateToDetail(context, lostItems[secondItemIndex]),
                       ),
                   ],
                 ),

@@ -6,6 +6,7 @@ class CategoryCard extends StatelessWidget {
   final String title;
   final String assetPath;
   final String? badgeText;
+  final bool isComingSoon;
   final VoidCallback? onTap;
 
   const CategoryCard({
@@ -13,6 +14,7 @@ class CategoryCard extends StatelessWidget {
     required this.title,
     required this.assetPath,
     this.badgeText,
+    this.isComingSoon = false,
     this.onTap,
   });
 
@@ -20,13 +22,15 @@ class CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF0F6), // Light pink from mockup
+        color: isComingSoon ? Colors.grey[100] : const Color(0xFFFFF0F6), // Faded background if coming soon
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Material(
+      child: Opacity(
+        opacity: isComingSoon ? 0.5 : 1.0,
+        child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: isComingSoon ? null : onTap,
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
@@ -88,6 +92,7 @@ class CategoryCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

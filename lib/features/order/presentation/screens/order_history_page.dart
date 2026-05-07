@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mytogetherapp/features/order/data/models/demo_order_data.dart';
+import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
+import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
-// Note: we can use standard circular progress indicator or a custom skeleton. We will build a basic skeleton here for demo purposes.
 
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
@@ -14,23 +14,32 @@ class OrderHistoryPage extends StatefulWidget {
 class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProviderStateMixin {
   bool _isLoading = true;
   TabController? _tabController;
+  List<OrderHistoryDto> _activeOrders = [];
+  List<OrderHistoryDto> _completedOrders = [];
+  List<OrderHistoryDto> _cancelledOrders = [];
   
   @override
   void initState() {
     super.initState();
-    _loadDemoData();
+    _loadData();
   }
   
-  Future<void> _loadDemoData() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
     });
     
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
+    final grouped = await OrderRepository().getGroupedOrders();
     
     if (mounted) {
       setState(() {
+        if (grouped != null) {
+          _activeOrders = grouped.currentOrders;
+          // Further split past orders into completed and cancelled if possible, 
+          // or just show them in separate lists by status
+          _completedOrders = grouped.pastOrders.where((o) => o.status == 'DELIVERED').toList();
+          _cancelledOrders = grouped.pastOrders.where((o) => o.status == 'CANCELLED').toList();
+        }
         _isLoading = false;
         _initTabController();
       });
@@ -42,7 +51,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
       _tabController!.dispose();
     }
     
-    int tabCount = demoActiveOrders.isNotEmpty ? 3 : 2;
+    int tabCount = _activeOrders.isNotEmpty ? 3 : 2;
     _tabController = TabController(length: tabCount, vsync: this);
   }
 
@@ -54,7 +63,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final bool hasActiveOrders = demoActiveOrders.isNotEmpty;
+    final bool hasActiveOrders = _activeOrders.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -89,46 +98,31 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
         : TabBarView(
             controller: _tabController,
             children: [
-              if (hasActiveOrders) _buildActiveTab(),
-              _buildOrdersList(demoCompletedOrders, 'No Completed Orders'),
-              _buildOrdersList(demoCancelledOrders, 'No Cancelled Orders'),
+              if (hasActiveOrders) _buildOrdersList(_activeOrders, 'No Active Orders'),
+              _buildOrdersList(_completedOrders, 'No Completed Orders'),
+              _buildOrdersList(_cancelledOrders, 'No Cancelled Orders'),
             ],
           ),
     );
   }
 
-  Widget _buildActiveTab() {
-    return RefreshIndicator(
-      onRefresh: _loadDemoData,
-      color: const Color(0xFFED3A72),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: demoActiveOrders.length,
-        itemBuilder: (context, index) {
-           return OrderHistoryCard(order: demoActiveOrders[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildOrdersList(List<DemoOrder> orders, String emptyTitle) {
+  Widget _buildOrdersList(List<OrderHistoryDto> orders, String emptyTitle) {
     if (orders.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _loadDemoData,
+        onRefresh: _loadData,
         color: const Color(0xFFED3A72),
-        // Need a scrollable widget so RefreshIndicator works even when empty
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.6,
-            child: _buildEmptyState(),
+            child: _buildEmptyState(emptyTitle),
           ),
         ),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadDemoData,
+      onRefresh: _loadData,
       color: const Color(0xFFED3A72),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -140,7 +134,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(String title) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

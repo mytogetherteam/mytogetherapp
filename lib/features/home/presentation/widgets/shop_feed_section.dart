@@ -254,7 +254,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: const ImageSkeletonLoader(),
+                  child: const ImageSkeletonLoader(showLogo: true),
                 ),
               ),
               const SizedBox(height: 6),

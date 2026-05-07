@@ -171,25 +171,20 @@ class RestaurantOverviewPage extends StatelessWidget {
               child: Column(
                 children: [
                   _buildSectionCard(
-                    icon: 'assets/images/detail_overview.png',
+                    icon: 'assets/images/detail_direction.png',
                     title: 'Restaurant Address',
                     content: restaurant.addressEn ?? restaurant.addressMm ?? restaurant.address ?? 'No address available',
                   ),
                   const SizedBox(height: 16),
-                  // Service Hours List
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Column(
+                  _buildSectionCard(
+                    icon: 'assets/images/detail_overview.png',
+                    title: 'Opening - Closing hours',
+                    customContent: Column(
                       children: () {
                         if (restaurant.operatingHours.isEmpty) {
                           return [
                             Padding(
-                              padding: const EdgeInsets.all(20.0),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
                               child: Text(
                                 'Service hours not available',
                                 style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
@@ -230,32 +225,47 @@ class RestaurantOverviewPage extends StatelessWidget {
                         final sortedHours = List<OperatingHourDto>.from(restaurant.operatingHours)
                           ..sort((a, b) => dayToNumber(a.dayOfWeek).compareTo(dayToNumber(b.dayOfWeek)));
 
+                        final currentDay = DateTime.now().weekday;
+
                         return sortedHours.asMap().entries.map((entry) {
                           final int index = entry.key;
                           final h = entry.value;
                           final bool isLast = index == sortedHours.length - 1;
+                          final bool isToday = dayToNumber(h.dayOfWeek) == currentDay;
 
                           return Column(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    SizedBox(
-                                      width: 100,
-                                      child: Text(
-                                        formatDayName(h.dayOfWeek),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 15,
-                                          color: const Color(0xFF2D3748),
-                                          fontWeight: FontWeight.w600,
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          formatDayName(h.dayOfWeek),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            color: isToday ? const Color(0xFFED3973) : const Color(0xFF2D3748),
+                                            fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
+                                        if (isToday)
+                                          Text(
+                                            h.isClosed ? '(Closed Today)' : '(Open Today)',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: h.isClosed ? Colors.red : const Color(0xFF10B981),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     Expanded(
                                       child: Text(
                                         h.isClosed ? 'Closed' : h.displayTime24h.replaceAll('-', '–'),
+                                        textAlign: TextAlign.right,
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           color: h.isClosed ? const Color(0xFFED3973) : const Color(0xFF718096),
@@ -271,8 +281,6 @@ class RestaurantOverviewPage extends StatelessWidget {
                                   color: Colors.grey[200],
                                   height: 1,
                                   thickness: 1,
-                                  indent: 20,
-                                  endIndent: 20,
                                 ),
                             ],
                           );
@@ -334,7 +342,7 @@ class RestaurantOverviewPage extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.poppins(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ImageSkeletonLoader extends StatefulWidget {
   final double width;
   final double height;
+  final bool showLogo;
 
   const ImageSkeletonLoader({
     super.key,
     this.width = double.infinity,
     this.height = double.infinity,
+    this.showLogo = false,
   });
 
   @override
@@ -42,22 +44,37 @@ class _ImageSkeletonLoaderState extends State<ImageSkeletonLoader>
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              begin: Alignment(_animation.value - 1, -0.3),
-              end: Alignment(_animation.value + 1, 0.3),
-              colors: [
-                Colors.grey[300]!,
-                Colors.grey[100]!,
-                Colors.grey[300]!,
-              ],
-              stops: const [0.1, 0.5, 0.9],
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: widget.width,
+              height: widget.height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  begin: Alignment(_animation.value - 1, -0.3),
+                  end: Alignment(_animation.value + 1, 0.3),
+                  colors: [
+                    Colors.grey[300]!,
+                    Colors.grey[100]!,
+                    Colors.grey[300]!,
+                  ],
+                  stops: const [0.1, 0.5, 0.9],
+                ),
+              ),
             ),
-          ),
+            if (widget.showLogo)
+              Opacity(
+                opacity: 0.2,
+                child: Image.asset(
+                  'assets/images/icon.png',
+                  width: widget.width > 0 ? widget.width * 0.25 : 30,
+                  height: widget.height > 0 ? widget.height * 0.25 : 30,
+                  fit: BoxFit.contain,
+                ),
+              ),
+          ],
         );
       },
     );
