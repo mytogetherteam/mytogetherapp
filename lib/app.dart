@@ -26,7 +26,12 @@ class App extends StatelessWidget {
         navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
         // Auth-aware initial route
-        home: AuthService().isLoggedIn ? const MainNavigationScreen() : const LoginPage(),
+      home: AnimatedBuilder(
+        animation: AuthService(),
+        builder: (context, _) {
+          return AuthService().isLoggedIn ? const MainNavigationScreen() : const LoginPage();
+        },
+      ),
         routes: {
           '/home': (context) => const MainNavigationScreen(),
           '/login': (context) => const LoginPage(),

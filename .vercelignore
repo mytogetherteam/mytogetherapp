@@ -1,0 +1,14 @@
+android/
+ios/
+linux/
+macos/
+windows/
+test/
+lib/
+build/
+.git/
+.dart_tool/
+pubspec.yaml
+pubspec.lock
+analysis_options.yaml
+*.dart

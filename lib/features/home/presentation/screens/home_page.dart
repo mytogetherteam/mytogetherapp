@@ -266,10 +266,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               imageUrl: _getImageUrl(image),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
-                              errorWidget: (context, url, error) => Container(
-                                color: const Color(0xFFED3973),
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.broken_image, color: Colors.white),
+                              errorWidget: (context, url, error) => Image.asset(
+                                'assets/images/top-bannner.jpg',
+                                fit: BoxFit.cover,
+                                width: double.infinity,
                               ),
                             );
                           },
@@ -407,10 +407,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 fit: BoxFit.cover,
                                                 width: double.infinity,
                                                 placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
-                                                errorWidget: (context, url, error) => Container(
-                                                  color: const Color(0xFF0084FF),
-                                                  alignment: Alignment.center,
-                                                  child: const Icon(Icons.broken_image, color: Colors.white),
+                                                errorWidget: (context, url, error) => Image.asset(
+                                                  'assets/images/top-bannner.jpg',
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
                                                 ),
                                               );
                                             },
@@ -495,7 +495,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         right: 0,
                         child: SizedBox(
                           width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
+                          height: 120, // Fixed height to prevent blocking touches
                           child: Image.asset(
                             'assets/images/top-bannner.jpg',
                             fit: BoxFit.cover,

@@ -8,7 +8,7 @@ import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
 import 'jwt_utils.dart';
 
-class AuthService {
+class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
@@ -132,6 +132,7 @@ class AuthService {
 
     // Register FCM token for the new session
     await NotificationService().registerDevice();
+    notifyListeners();
   }
 
   Future<void> clearSession() async {
@@ -146,6 +147,7 @@ class AuthService {
     // Clear remaining profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    notifyListeners();
   }
 
   void updateAccessToken(String newToken) {

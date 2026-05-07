@@ -208,22 +208,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       end: Alignment.centerRight,
                       colors: [Color(0xFFED3973), Color(0xFFF96232)],
                     ).createShader(bounds),
-                    child: Icon(activeIcon, color: Colors.white, size: 26),
+                    child: Icon(
+                      activeIcon, 
+                      color: const Color(0xFFED3973), // Use solid color for better web compatibility
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Color(0xFFED3973), Color(0xFFF96232)],
-                    ).createShader(bounds),
-                    child: Text(
-                      label,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFED3973),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -231,12 +228,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             else
               Column(
                 children: [
-                  Icon(icon, color: Colors.grey.shade400, size: 26),
+                  Icon(icon, color: Colors.grey.shade500, size: 26),
                   const SizedBox(height: 4),
                   Text(
                     label,
                     style: GoogleFonts.poppins(
-                      color: Colors.grey.shade400,
+                      color: Colors.grey.shade500,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
