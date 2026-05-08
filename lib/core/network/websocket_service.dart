@@ -29,7 +29,6 @@ class WebSocketService {
 
   bool _isConnecting = false;
 
-  void connect({bool force = false}) {
   Future<void> connect({bool force = false}) async {
     if (_isConnecting && !force) return;
 

@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
 
