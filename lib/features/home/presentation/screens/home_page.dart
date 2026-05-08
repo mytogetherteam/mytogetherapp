@@ -487,22 +487,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       if (!_isLoadingBanners && _bottomBanners.isNotEmpty)
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
-                                          children: List.generate(_bottomBanners.length, (index) => AnimatedContainer(
-                                            duration: const Duration(milliseconds: 300),
-                                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                                            width: _currentPromoIndex == index ? 24 : 8,
-                                            height: 8,
-                                            decoration: BoxDecoration(
-                                              color: _currentPromoIndex == index ? AppColors.primary : const Color(0xFFD1D1D1),
-                                              borderRadius: BorderRadius.circular(4),
+                                          children: List.generate(
+                                            _bottomBanners.length,
+                                            (index) => AnimatedContainer(
+                                              duration: const Duration(milliseconds: 300),
+                                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                                              width: _currentPromoIndex == index ? 24 : 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                color: _currentPromoIndex == index
+                                                    ? AppColors.primary
+                                                    : const Color(0xFFD1D1D1),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                                    ],
+                                  ),
+                                ),
 
                             const SizedBox(height: 24),
                             TogetherDealsSection(
@@ -596,105 +599,105 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         // Top Row: Gift Icon, Logo, Notification Bell
                         child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Gift Icon (Top Left)
-                        Image.asset(
-                          'assets/images/gift.gif',
-                          width: 34,
-                          height: 34,
-                          fit: BoxFit.contain,
-                        ),
-                        // Logo (Center)
-                        Row(
-                          children: [
-                            Image.asset(
-                              'assets/images/icon.png',
-                              height: 32,
-                              width: 32,
-                            ),
-                            const SizedBox(width: 8),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: ShaderMask(
-                                shaderCallback: (bounds) => LinearGradient(
-                                  colors: [AppColors.primary, const Color(0xFFF96232)],
-                                ).createShader(bounds),
-                                child: Text(
-                                  'MyTogether',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 22,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Gift Icon (Top Left)
+                              Image.asset(
+                                'assets/images/gift.gif',
+                                width: 34,
+                                height: 34,
+                                fit: BoxFit.contain,
                               ),
-                            ),
-                          ],
-                        ),
-                        // Notification Bell (Top Right)
-                        ValueListenableBuilder<int>(
-                          valueListenable: NotificationRepository().unreadCount,
-                          builder: (context, count, _) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const NotificationsPage(),
-                                  ),
-                                );
-                              },
-                              child: Stack(
+                              // Logo (Center)
+                              Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      PhosphorIcons.bell(),
-                                      size: 24,
-                                      color: Colors.black,
-                                    ),
+                                  Image.asset(
+                                    'assets/images/icon.png',
+                                    height: 32,
+                                    width: 32,
                                   ),
-                                  Positioned(
-                                    top: -2,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 1.5),
-                                      ),
+                                  const SizedBox(width: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: ShaderMask(
+                                      shaderCallback: (bounds) => LinearGradient(
+                                        colors: [AppColors.primary, const Color(0xFFF96232)],
+                                      ).createShader(bounds),
                                       child: Text(
-                                        count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
-                                        style: const TextStyle(
+                                        'MyTogether',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 22,
                                           color: Colors.white,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                              // Notification Bell (Top Right)
+                              ValueListenableBuilder<int>(
+                                valueListenable: NotificationRepository().unreadCount,
+                                builder: (context, count, _) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const NotificationsPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            PhosphorIcons.bell(),
+                                            size: 24,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: -2,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 1.5),
+                                            ),
+                                            child: Text(
+                                              count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
       // Active Order Bar (Floating at bottom, home page only)
       Positioned(
         left: 0,

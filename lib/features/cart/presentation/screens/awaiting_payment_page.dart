@@ -378,12 +378,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               Navigator.pop(context);
               openAppSettings();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFED3973),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
+            borderRadius: BorderRadius.circular(8),
+            height: 42,
             child: Text('Open Settings', style: GoogleFonts.poppins()),
           ),
         ],
