@@ -38659,10 +38659,8 @@ break
 case 3:r+="="
 break
 default:return null}return B.ax.dJ(0,B.hl.bY(r))},
-bBo(a){var s
-if(B.c.q(a.toLowerCase(),"corsproxy.io"))return!1
-s=a.toLowerCase()
-return B.c.q(s,"myshopdemoapi")||B.c.q(s,"i.pinimg.com")},
+bBo(a){if(B.c.q(a.toLowerCase(),"corsproxy.io"))return!1
+return B.c.q(a.toLowerCase(),"i.pinimg.com")},
 hO(a){var s
 if(a==null||B.c.b4(a).length===0)return null
 s=A.bBp(B.c.q(a,"placehold.co")&&!B.c.jL(a,".png")&&!B.c.jL(a,".jpg")?a+".png":a)

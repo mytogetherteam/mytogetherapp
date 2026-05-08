@@ -3,9 +3,9 @@
     "short_name": "MyTogether",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#ED3973",
-    "theme_color": "#ED3973",
-    "description": "The community app for MyTogether ecosystem.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#ED3A72",
+    "description": "The ultimate community platform for the MyTogether ecosystem, connecting people and places.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

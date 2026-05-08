@@ -7,7 +7,7 @@ class ImageUtils {
   static bool _needsProxy(String url) {
     if (url.toLowerCase().contains('corsproxy.io')) return false;
     final lower = url.toLowerCase();
-    return lower.contains('myshopdemoapi') || lower.contains('i.pinimg.com');
+    return lower.contains('i.pinimg.com');
   }
 
   static String? cleanImageUrl(String? url) {
