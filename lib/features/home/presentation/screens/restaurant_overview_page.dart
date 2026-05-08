@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
@@ -70,7 +71,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFED3973), width: 2.5),
+                        border: Border.all(color: AppColors.primary, width: 2.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -247,7 +248,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                                           formatDayName(h.dayOfWeek),
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
-                                            color: isToday ? const Color(0xFFED3973) : const Color(0xFF2D3748),
+                                            color: isToday ? AppColors.primary : const Color(0xFF2D3748),
                                             fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
                                           ),
                                         ),
@@ -268,7 +269,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                                         textAlign: TextAlign.right,
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
-                                          color: h.isClosed ? const Color(0xFFED3973) : const Color(0xFF718096),
+                                          color: h.isClosed ? AppColors.primary : const Color(0xFF718096),
                                           fontWeight: h.isClosed ? FontWeight.w500 : FontWeight.w400,
                                         ),
                                       ),
@@ -369,14 +370,7 @@ class RestaurantOverviewPage extends StatelessWidget {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFED3973),
-            Color(0xFFF97316),
-          ],
-        ),
+        gradient: AppColors.primaryGradient,
       ),
       child: Center(
         child: Text(

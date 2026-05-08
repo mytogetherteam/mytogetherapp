@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'visa_detail_page.dart';
@@ -82,7 +83,7 @@ class _ServiceCategory {
 // Static data
 // ---------------------------------------------------------------------------
 
-const _pink = Color(0xFFED3973);
+final _pink = AppColors.primary;
 const _orange = Color(0xFFFBA15C);
 const _bgColor = Color(0xFFF5F5F5);
 
@@ -421,7 +422,7 @@ class _VisaPageState extends State<VisaPage>
       flexibleSpace: FlexibleSpaceBar(
         collapseMode: CollapseMode.parallax,
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [_pink, _orange],
               begin: Alignment.topLeft,

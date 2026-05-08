@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 class ReviewSuccessBottomSheet {
   static Future<dynamic> show(BuildContext context) {
@@ -37,7 +39,7 @@ class ReviewSuccessBottomSheet {
                     width: 80,
                     height: 80,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFED3A72),
+                      gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -57,30 +59,19 @@ class ReviewSuccessBottomSheet {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // User can pop the bottom sheet.
-                        // For the UI flow, they might also need to pop the WriteReview screen,
-                        // so we return true to indicate success to the caller.
-                        Navigator.of(context).pop(true);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFED3A72),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Back',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  PrimaryGradientButton(
+                    onPressed: () {
+                      // User can pop the bottom sheet.
+                      // For the UI flow, they might also need to pop the WriteReview screen,
+                      // so we return true to indicate success to the caller.
+                      Navigator.of(context).pop(true);
+                    },
+                    child: Text(
+                      'Back',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

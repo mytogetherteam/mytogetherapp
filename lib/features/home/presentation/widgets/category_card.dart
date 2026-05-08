@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 
 class CategoryCard extends StatelessWidget {
@@ -43,14 +44,14 @@ class CategoryCard extends StatelessWidget {
                     Center(
                       child: Image.asset(
                         assetPath,
-                        width: 65, // Using user's latest preferred size
-                        height: 65,
+                        width: 60, // Slightly reduced to prevent overflow
+                        height: 60,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                           const Icon(Icons.apps, size: 40, color: Colors.grey),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     // Title Section
                     Text(
                       title,
@@ -74,7 +75,7 @@ class CategoryCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFED3973),
+                      gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),

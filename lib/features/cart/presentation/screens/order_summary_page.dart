@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/cart_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -26,6 +27,9 @@ import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../home/presentation/widgets/location_selection_modal.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/theme/app_colors.dart';
 
 import '../../../home/data/shop_storage.dart';
 
@@ -200,7 +204,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               App.scaffoldMessengerKey.currentState?.showSnackBar(
                 SnackBar(
                   content: Text('Your cart is empty now!', style: GoogleFonts.poppins()),
-                  backgroundColor: const Color(0xFFED3973),
+                  backgroundColor: AppColors.primary,
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -347,9 +351,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Material(
-                                    color: _isDelivery ? const Color(0xFFED3973) : const Color(0xFFCBD5E1),
-                                    borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: _isDelivery ? AppColors.primaryGradient : null,
+                                      color: _isDelivery ? null : const Color(0xFFCBD5E1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     child: InkWell(
                                       onTap: () => setState(() => _isDelivery = true),
                                       borderRadius: BorderRadius.circular(12),
@@ -370,9 +377,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Material(
-                                    color: !_isDelivery ? const Color(0xFFED3973) : const Color(0xFFCBD5E1),
-                                    borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: !_isDelivery ? AppColors.primaryGradient : null,
+                                      color: !_isDelivery ? null : const Color(0xFFCBD5E1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     child: InkWell(
                                       onTap: () => setState(() => _isDelivery = false),
                                       borderRadius: BorderRadius.circular(12),
@@ -410,7 +420,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(PhosphorIconsRegular.mapPin, color: Color(0xFFED3973), size: 24),
+                                    Icon(PhosphorIconsRegular.mapPin, color: AppColors.primary, size: 24),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: _isLoadingLocation
@@ -433,7 +443,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 child: Text(
                                   'Edit Location',
                                   style: GoogleFonts.poppins(
-                                    color: const Color(0xFFED3973),
+                                    color: AppColors.primary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -612,19 +622,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               crossAxisAlignment: CrossAxisAlignment.baseline,
                               textBaseline: TextBaseline.alphabetic,
                               children: [
-                                Text(
+                                GradientText(
                                   totalStorePrice.toFormattedPrice(),
                                   style: GoogleFonts.poppins(
-                                    color: const Color(0xFFED3973),
+
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 if (_isDelivery)
-                                  Text(
+                                  GradientText(
                                     ' + Delivery Fee',
                                     style: GoogleFonts.poppins(
-                                      color: const Color(0xFFED3973),
+
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -634,182 +644,170 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 12),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 64,
-                                child: ElevatedButton(
-                                  onPressed: (_isPlacingOrder || _isProcessing) ? null : () async {
-                                    setState(() => _isProcessing = true);
-                                    final nav = Navigator.of(context);
-                                    
-                                    final foodTotal = CartManager.instance.getStoreTotal(widget.store.name);
-                                final storeItems = CartManager.instance.stores
-                                    .firstWhere((s) => s.name == widget.store.name, orElse: () => widget.store)
-                                    .items;
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: PrimaryGradientButton(
+                          onPressed: (_isPlacingOrder || _isProcessing) ? null : () async {
+                            setState(() => _isProcessing = true);
+                            final nav = Navigator.of(context);
+                            
+                            final foodTotal = CartManager.instance.getStoreTotal(widget.store.name);
+                            final storeItems = CartManager.instance.stores
+                                .firstWhere((s) => s.name == widget.store.name, orElse: () => widget.store)
+                                .items;
 
-                                bool operationCompleted = false;
-                                
-                                // Only show loading if it takes longer than 500ms
-                                Future.delayed(const Duration(milliseconds: 500), () {
-                                  if (!operationCompleted && mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = true;
-                                    });
-                                  }
+                            bool operationCompleted = false;
+                            
+                            // Only show loading if it takes longer than 500ms
+                            Future.delayed(const Duration(milliseconds: 500), () {
+                              if (!operationCompleted && mounted) {
+                                setState(() {
+                                  _isPlacingOrder = true;
                                 });
+                              }
+                            });
 
-                                try {
-                                  // Call backend API to place order
-                                  final response = await ApiClient().dio.post(
-                                    '${ApiClient.apiPrefix}/orders',
-                                      data: {
-                                          "shopId": int.tryParse(_restaurant?.id ?? widget.store.items.first.restaurantId) ?? 0,
-                                          // User location from session
-                                          // User location from repository
-                                          "userLocationId": _primaryLocation?.id ?? 1, 
-                                          "deliveryType": _isDelivery ? "DELIVERY" : "PICKUP",
-                                          "deliveryTier": _isPriorityDelivery ? "PRIORITY" : "STANDARD",
-                                        "paymentMethodId": _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode),
-                                        "note": "",
-                                        "isScheduled": false,
-                                        "scheduledTime": DateTime.now().toIso8601String().substring(0, 19),
-                                         "items": storeItems.map((item) => {
-                                           "menuItemId": item.menuItemId,
-                                           "variantId": (item.variantId != null && item.variantId! > 0) ? item.variantId : 0,
-                                           "quantity": item.quantity,
-                                           "specialInstructions": item.specialInstructions ?? "",
-                                           "optionIds": item.optionIds ?? [],
-                                         }).toList(),
-                                      },
+                            try {
+                              // Call backend API to place order
+                              final response = await ApiClient().dio.post(
+                                '${ApiClient.apiPrefix}/orders',
+                                  data: {
+                                      "shopId": int.tryParse(_restaurant?.id ?? widget.store.items.first.restaurantId) ?? 0,
+                                      // User location from session
+                                      // User location from repository
+                                      "userLocationId": _primaryLocation?.id ?? 1, 
+                                      "deliveryType": _isDelivery ? "DELIVERY" : "PICKUP",
+                                      "deliveryTier": _isPriorityDelivery ? "PRIORITY" : "STANDARD",
+                                    "paymentMethodId": _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode),
+                                    "note": "",
+                                    "isScheduled": false,
+                                    "scheduledTime": DateTime.now().toIso8601String().substring(0, 19),
+                                     "items": storeItems.map((item) => {
+                                       "menuItemId": item.menuItemId,
+                                       "variantId": (item.variantId != null && item.variantId! > 0) ? item.variantId : 0,
+                                       "quantity": item.quantity,
+                                       "specialInstructions": item.specialInstructions ?? "",
+                                       "optionIds": item.optionIds ?? [],
+                                     }).toList(),
+                                  },
+                              );
+
+                              operationCompleted = true;
+                              final d = response.data;
+                              
+                              String? orderId;
+                              int? responseUserId;
+                              
+                              if (d['data'] is Map) {
+                                final responseData = d['data'] as Map<String, dynamic>;
+                                orderId = (responseData['id'] ?? responseData['orderId'] ?? responseData['order_id'])?.toString();
+                                responseUserId = (responseData['userId'] ?? responseData['user_id']) as int?;
+                              } else if (d['data'] != null) {
+                                // If data is just an ID (int or String)
+                                orderId = d['data'].toString();
+                              }
+                              
+                              // Fallback to root level if not found in data
+                              orderId ??= (d['id'] ?? d['orderId'])?.toString();
+                              responseUserId ??= (d['userId'] ?? d['user_id']) as int?;
+
+                                // 1. Register active order in global state
+                                ActiveOrderState.instance.setActiveOrder(
+                                  storeName: widget.store.name,
+                                  restaurantName: _restaurant?.name ?? widget.store.name,
+                                  logoPath: _restaurant?.logoPath,
+                                  estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
+                                  orderId: orderId,
+                                  restaurantId: _restaurant?.id ?? widget.store.items.first.restaurantId,
+                                );
+                                // Store real location data for Delivery Information display
+                                ActiveOrderState.instance.restaurantAddress =
+                                    _restaurant?.address ?? _restaurant?.addressEn ?? _restaurant?.addressTh;
+                                ActiveOrderState.instance.userLocationName =
+                                    _primaryLocation?.locationName ?? _primaryLocation?.locationType;
+                                ActiveOrderState.instance.deliveryAddress =
+                                    _primaryLocation?.address ?? _primaryLocation?.addressTh;
+                                ActiveOrderState.instance.saveToPrefs(); // persist new fields immediately
+
+                              // Update User ID in session if it was missing or different
+                              if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {
+                                final current = AuthService().currentUser;
+                                if (current != null) {
+                                  final updatedUser = UserModel(
+                                    id: responseUserId,
+                                    username: current.username,
+                                    email: current.email,
+                                    fullName: current.fullName,
+                                    role: current.role,
                                   );
-
-                                  operationCompleted = true;
-                                  final d = response.data;
-                                  
-                                  String? orderId;
-                                  int? responseUserId;
-                                  
-                                  if (d['data'] is Map) {
-                                    final responseData = d['data'] as Map<String, dynamic>;
-                                    orderId = (responseData['id'] ?? responseData['orderId'] ?? responseData['order_id'])?.toString();
-                                    responseUserId = (responseData['userId'] ?? responseData['user_id']) as int?;
-                                  } else if (d['data'] != null) {
-                                    // If data is just an ID (int or String)
-                                    orderId = d['data'].toString();
-                                  }
-                                  
-                                  // Fallback to root level if not found in data
-                                  orderId ??= (d['id'] ?? d['orderId'])?.toString();
-                                  responseUserId ??= (d['userId'] ?? d['user_id']) as int?;
-
-                                    // 1. Register active order in global state
-                                    ActiveOrderState.instance.setActiveOrder(
-                                      storeName: widget.store.name,
-                                      restaurantName: _restaurant?.name ?? widget.store.name,
-                                      logoPath: _restaurant?.logoPath,
-                                      estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
-                                      orderId: orderId,
-                                      restaurantId: _restaurant?.id ?? widget.store.items.first.restaurantId,
-                                    );
-                                    // Store real location data for Delivery Information display
-                                    ActiveOrderState.instance.restaurantAddress =
-                                        _restaurant?.address ?? _restaurant?.addressEn ?? _restaurant?.addressTh;
-                                    ActiveOrderState.instance.userLocationName =
-                                        _primaryLocation?.locationName ?? _primaryLocation?.locationType;
-                                    ActiveOrderState.instance.deliveryAddress =
-                                        _primaryLocation?.address ?? _primaryLocation?.addressTh;
-                                    ActiveOrderState.instance.saveToPrefs(); // persist new fields immediately
-
-                                  // Update User ID in session if it was missing or different
-                                  if (responseUserId != null && responseUserId != 0 && AuthService().currentUser?.id != responseUserId) {
-                                    final current = AuthService().currentUser;
-                                    if (current != null) {
-                                      final updatedUser = UserModel(
-                                        id: responseUserId,
-                                        username: current.username,
-                                        email: current.email,
-                                        fullName: current.fullName,
-                                        role: current.role,
-                                      );
-                                      AuthService().saveSession(
-                                        accessToken: AuthService().accessToken ?? '',
-                                        refreshToken: AuthService().refreshToken ?? '',
-                                        user: updatedUser,
-                                        userLocations: AuthService().userLocations,
-                                      );
-                                    }
-                                  }
-
-                                  // 2. Snapshot order items BEFORE cart is cleared
-                                  final selectedMethodId = _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode);
-                                  final selectedMethodImage = _resolvePaymentMethodImageUrl(_paymentTypes, _selectedPaymentMethodCode);
-
-                                  ActiveOrderState.instance.setOrderDetails(
-                                    totalAmount: foodTotal.toDouble(),
-                                    paymentMethod: _selectedPaymentMethodCode,
-                                    paymentMethodId: selectedMethodId,
-                                    paymentMethodImageUrl: selectedMethodImage,
-                                    items: List.from(storeItems),
-                                    orderId: orderId,
+                                  AuthService().saveSession(
+                                    accessToken: AuthService().accessToken ?? '',
+                                    refreshToken: AuthService().refreshToken ?? '',
+                                    user: updatedUser,
+                                    userLocations: AuthService().userLocations,
                                   );
-
-                                  // 4. Clear cart for this store (via API sync)
-                                  await CartManager.instance.removeStore(widget.store.name);
-
-                                  // Start WebSocket tracking immediately upon successful order creation
-                                  WebSocketService().connect();
-
-                                  // 5. Navigate to tracking page
-                                  nav.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => OrderTrackingPage(
-                                        store: widget.store,
-                                        restaurant: _restaurant,
-                                        foodTotal: foodTotal,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isPlacingOrder = false;
-                                      _isProcessing = false;
-                                    });
-                                    String errorMsg = e.toString();
-                                    if (e is DioException) {
-                                      errorMsg = e.response?.data?.toString() ?? e.message ?? 'Unknown DioError';
-                                    }
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to place order: $errorMsg'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
                                 }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFED3973),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
+                              }
+
+                              // 2. Snapshot order items BEFORE cart is cleared
+                              final selectedMethodId = _resolvePaymentMethodId(_paymentTypes, _selectedPaymentMethodCode);
+                              final selectedMethodImage = _resolvePaymentMethodImageUrl(_paymentTypes, _selectedPaymentMethodCode);
+
+                              ActiveOrderState.instance.setOrderDetails(
+                                totalAmount: foodTotal.toDouble(),
+                                paymentMethod: _selectedPaymentMethodCode,
+                                paymentMethodId: selectedMethodId,
+                                paymentMethodImageUrl: selectedMethodImage,
+                                items: List.from(storeItems),
+                                orderId: orderId,
+                              );
+
+                              // 4. Clear cart for this store (via API sync)
+                              await CartManager.instance.removeStore(widget.store.name);
+
+                              // Start WebSocket tracking immediately upon successful order creation
+                              WebSocketService().connect();
+
+                              // 5. Navigate to tracking page
+                              nav.pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => OrderTrackingPage(
+                                    store: widget.store,
+                                    restaurant: _restaurant,
+                                    foodTotal: foodTotal,
+                                  ),
                                 ),
-                              ),
-                              child: _isPlacingOrder
-                                  ? const CustomLoadingIndicator(size: 24, color: Colors.white)
-                                  : Text(
-                                      'Place Order',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                              );
+                            } catch (e) {
+                              if (mounted) {
+                                setState(() {
+                                  _isPlacingOrder = false;
+                                  _isProcessing = false;
+                                });
+                                String errorMsg = e.toString();
+                                if (e is DioException) {
+                                  errorMsg = e.response?.data?.toString() ?? e.message ?? 'Unknown DioError';
+                                }
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to place order: $errorMsg'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          isLoading: _isPlacingOrder,
+                          child: Text(
+                            'Place Order',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
                         ),
                       ),
                     ],
@@ -890,7 +888,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFED3973) : const Color(0xFF94A3B8),
+                  color: isSelected ? AppColors.primary : const Color(0xFF94A3B8),
                   width: 1.5,
                 ),
               ),
@@ -898,8 +896,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 child: Container(
                   width: 10,
                   height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFED3973),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -977,7 +975,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: isSelected ? const Color(0xFFED3973) : const Color(0xFF94A3B8),
+                color: isSelected ? AppColors.primary : const Color(0xFF94A3B8),
                 width: 1.5,
               ),
             ),
@@ -985,8 +983,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               child: Container(
                 width: 10,
                 height: 10,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFED3973),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1012,9 +1010,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFED3A72), Color(0xFFF97316)],
-                          ),
+                          gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -1045,9 +1041,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       'Estimated Delivery Fee  •  ',
                       style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 13),
                     ),
-                    Text(
+                    GradientText(
                       fee.toFormattedPrice(),
-                      style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1060,9 +1056,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       'Estimated Time  •  ',
                       style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 13),
                     ),
-                    Text(
+                    GradientText(
                       time,
-                      style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1234,7 +1230,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     item.specialInstructions!,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: const Color(0xFFED3973), // Use brand color for visibility
+                      color: AppColors.primary, // Use brand color for visibility
                       fontWeight: FontWeight.w500,
                       height: 1.4,
                     ),
@@ -1317,7 +1313,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFFED3973),
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: 4),

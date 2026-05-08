@@ -129,6 +129,8 @@ class RemoteRestaurantDataSource {
     required double lat,
     required double lon,
     double radiusKm = 10.0,
+    int page = 0,
+    int size = 20,
   }) async {
     if (!AuthService().isLoggedIn) {
       return ShopFeedSectionDto(items: []);
@@ -141,6 +143,8 @@ class RemoteRestaurantDataSource {
           'latitude': lat,
           'longitude': lon,
           'radiusKm': radiusKm,
+          'page': page,
+          'size': size,
         },
       );
       if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {

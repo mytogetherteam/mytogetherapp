@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/nearby_restaurant_list_item.dart';
+import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../widgets/map_skeleton_loader.dart';
 import 'package:dio/dio.dart';
@@ -215,7 +218,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
               Polyline(
                 polylineId: const PolylineId('route'),
                 points: finalPoints,
-                color: const Color(0xFFED3973),
+                color: AppColors.primary,
                 width: 5,
                 jointType: JointType.round,
                 endCap: Cap.roundCap,
@@ -341,7 +344,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       style: GoogleFonts.poppins(
         fontSize: fontSize,
         fontWeight: FontWeight.w800,
-        color: selected ? Colors.white : const Color(0xFFED3973),
+        color: selected ? Colors.white : AppColors.primary,
       ),
     );
     final textPainter = TextPainter(
@@ -359,7 +362,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           fontSize: showText ? 14 : 12,
           fontFamily: PhosphorIcons.forkKnife().fontFamily,
           package: PhosphorIcons.forkKnife().fontPackage,
-          color: selected ? const Color(0xFFED3973) : Colors.white,
+          color: selected ? AppColors.primary : Colors.white,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -407,7 +410,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
 
     // Pill background
-    final bgPaint = Paint()..color = selected ? const Color(0xFFED3973) : (showText ? Colors.transparent : const Color(0xFFED3973));
+    final bgPaint = Paint()..color = selected ? AppColors.primary : (showText ? Colors.transparent : AppColors.primary);
     if (selected) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -420,7 +423,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     // Icon Circle
     if (showText || selected) {
-      final circlePaint = Paint()..color = selected ? Colors.white : const Color(0xFFED3973);
+      final circlePaint = Paint()..color = selected ? Colors.white : AppColors.primary;
       canvas.drawCircle(Offset(vPad/2 + iconCircleSize/2, pillH / 2), iconCircleSize / 2, circlePaint);
       
       // Icon inside circle
@@ -446,7 +449,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     // Tail triangle
     if (selected) {
       final tailPaint = Paint()
-        ..color = const Color(0xFFED3973)
+        ..color = AppColors.primary
         ..style = PaintingStyle.fill;
       final path = Path()
         ..moveTo(pillW / 2 - 4, pillH)
@@ -600,7 +603,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: const Color(0xFFED3A72),
+            backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -777,11 +780,12 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                         decoration: BoxDecoration(
-                          color: _isRouting ? Colors.white : const Color(0xFFED3973),
+                          color: _isRouting ? Colors.white : null,
+                          gradient: _isRouting ? null : AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFED3973).withValues(alpha: 0.35),
+                              color: AppColors.primary.withValues(alpha: 0.35),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -804,7 +808,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   ? 'Finding route…'
                                   : (_polylines.isNotEmpty ? 'See full route' : 'Show me the way'),
                               style: GoogleFonts.poppins(
-                                color: _isRouting ? const Color(0xFFED3973) : Colors.white,
+                                color: _isRouting ? AppColors.primary : Colors.white,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -863,7 +867,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return ListView.builder(
-                            itemCount: 5,
+                            padding: const EdgeInsets.only(top: 10),
+                            itemCount: 3,
                             itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
                           );
                         }
@@ -881,15 +886,18 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   const SizedBox(height: 8),
                                   Text('Couldn\'t load restaurants.', style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13), textAlign: TextAlign.center),
                                   const SizedBox(height: 16),
-                                  ElevatedButton(
+                                  PrimaryGradientButton(
                                     onPressed: _fetchRestaurants,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFED3973),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      elevation: 0,
+                                    height: 42,
+                                    width: 100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Text(
+                                      'Retry', 
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    child: Text('Retry', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                                   ),
                                 ],
                               ),
@@ -916,7 +924,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                             final data = restaurants[index];
                             final key = _itemKeys.putIfAbsent(data.id, () => GlobalKey());
 
-                            return NearbyRestaurantListItem(
+                            return RestaurantCard(
                               key: key,
                               name: data.name,
                               category: data.category,
@@ -927,68 +935,20 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               deliveryTime: data.deliveryTime,
                               deliveryFee: data.deliveryFee,
                               originalDeliveryFee: data.originalDeliveryFee,
-                              status: data.status,
-                              imageUrls: data.imageUrls,
-                              isExpanded: _expandedRestaurantId == data.id,
                               isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                              onViewMenu: () => _navigateToDetail(data),
                               onFavoriteToggle: () => _toggleFavorite(data),
-                              onDirectionTap: () async {
-                                if (_expandedRestaurantId != data.id) {
-                                  setState(() {
-                                    _expandedRestaurantId = data.id;
-                                  });
-                                  if (data.latitude != null && data.longitude != null) {
-                                    final controller = await _mapController.future;
-                                    controller.animateCamera(
-                                      CameraUpdate.newLatLngZoom(
-                                        LatLng(data.latitude!, data.longitude!),
-                                        15,
-                                      ),
-                                    );
-                                  }
-                                }
-                                _onCurrentLocationTapped();
-                              },
-                              onCallTap: () {
-                                // TODO: Implement call functionality
-                              },
-                              onShareTap: () {
-                                // TODO: Implement share functionality
-                              },
                               onTap: () {
+                                // First select/expand for map interaction
                                 setState(() {
-                                  if (_expandedRestaurantId == data.id) {
-                                    _expandedRestaurantId = null;
-                                    _polylines.clear();
-                                    _routeBounds = null;
-                                  } else {
-                                    _expandedRestaurantId = data.id;
-                                    _polylines.clear();
-                                    _routeBounds = null;
-
-                                    if (data.latitude != null && data.longitude != null) {
-                                      _centerMapOnRestaurant(data, isExpandedAtTarget: true);
-                                    }
-
-                                    // Scroll to this item in list
-                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                      final ctx = key.currentContext;
-                                      if (ctx != null) {
-                                        Scrollable.ensureVisible(
-                                          ctx,
-                                          duration: const Duration(milliseconds: 400),
-                                          curve: Curves.easeInOut,
-                                          alignment: 0.0,
-                                        );
-                                      }
-                                    });
-
-                                    // Re-render markers to reflect selection
-                                    _restaurantsFuture?.then((rs) => _updateMarkers(rs));
-                                  }
+                                  _expandedRestaurantId = data.id;
+                                  _centerMapOnRestaurant(data, isExpandedAtTarget: true);
+                                  _updateMarkers(restaurants);
                                 });
+                                // Then navigate to detail
+                                _navigateToDetail(data);
                               },
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
                             );
                           },
                         );

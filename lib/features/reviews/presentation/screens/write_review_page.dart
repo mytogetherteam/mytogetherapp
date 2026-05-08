@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/review_demo_data.dart';
 import '../widgets/review_success_bottom_sheet.dart';
@@ -128,10 +130,11 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFED3A72) : Colors.grey[100],
+                          gradient: isSelected ? AppColors.primaryGradient : null,
+                          color: isSelected ? null : Colors.grey[100],
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFFED3A72) : Colors.grey[300]!,
+                            color: isSelected ? AppColors.primary : Colors.grey[300]!,
                             width: 1,
                           ),
                         ),
@@ -240,7 +243,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                                 ),
                                 child: const Icon(
                                   Icons.refresh_rounded,
-                                  color: Color(0xFFED3A72),
+                                  color: AppColors.primary,
                                   size: 18,
                                 ),
                               ),
@@ -284,17 +287,8 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                 ],
               ),
               child: SafeArea(
-                child: ElevatedButton(
+                child: PrimaryGradientButton(
                   onPressed: _rating > 0 ? _submitReview : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3A72),
-                    disabledBackgroundColor: const Color(0xFFED3A72).withValues(alpha: 0.5),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
                   child: Text(
                     'Submit Review',
                     style: GoogleFonts.poppins(

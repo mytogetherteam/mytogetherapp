@@ -65,8 +65,8 @@ class FoodDetailDto {
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
       description: json['description'],
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      originalPrice: json['originalPrice'] != null ? (json['originalPrice'] as num).toDouble() : null,
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      originalPrice: double.tryParse(json['originalPrice']?.toString() ?? '') ?? 0.0,
       currency: json['currency'] as String? ?? '฿',
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
@@ -112,7 +112,7 @@ class MenuItemVariantDto {
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
       isAvailable: json['isAvailable'] ?? true,
     );
@@ -177,7 +177,7 @@ class MenuItemOptionDto {
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
       nameMm: json['nameMm'] as String?,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
     );
   }

@@ -47,90 +47,55 @@ class _NearbyRestaurantListItemSkeletonState extends State<NearbyRestaurantListI
         );
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1),
-            ),
             color: Colors.white,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: Image Placeholder
+              // Top: Image Placeholder
               Container(
-                height: 80,
-                width: 80,
+                height: 160,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(24),
                   gradient: shimmerGradient,
                 ),
                 child: Center(
                   child: Opacity(
-                    opacity: 0.2,
+                    opacity: 0.1,
                     child: Image.asset(
                       'assets/images/icon.png',
-                      width: 32,
-                      height: 32,
+                      width: 48,
+                      height: 48,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              // Right: Content Placeholders
-              Expanded(
+              const SizedBox(height: 16),
+              // Bottom: Content Placeholders
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name Placeholder
                     Container(
-                      height: 16,
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(right: 40),
+                      height: 18,
+                      width: 200,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(6),
                         gradient: shimmerGradient,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Category & Rating Placeholder
+                    // Metadata Row Placeholder
                     Row(
                       children: [
                         Container(
-                          height: 12,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            gradient: shimmerGradient,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          height: 12,
-                          width: 30,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            gradient: shimmerGradient,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Distance, Time, Status Placeholder
-                    Row(
-                      children: [
-                        Container(
-                          height: 12,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            gradient: shimmerGradient,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          height: 12,
+                          height: 14,
                           width: 60,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
@@ -139,7 +104,16 @@ class _NearbyRestaurantListItemSkeletonState extends State<NearbyRestaurantListI
                         ),
                         const SizedBox(width: 12),
                         Container(
-                          height: 12,
+                          height: 14,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            gradient: shimmerGradient,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          height: 14,
                           width: 40,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),

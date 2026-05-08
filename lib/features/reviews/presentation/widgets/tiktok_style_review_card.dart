@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/review_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 
 class TiktokStyleReviewCard extends StatefulWidget {
   final Review review;
@@ -86,7 +88,7 @@ class _TiktokStyleReviewCardState extends State<TiktokStyleReviewCard> {
               placeholder: (context, url) => Container(
                 height: 250,
                 color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator(color: Color(0xFFED3A72))),
+                child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
               ),
               errorWidget: (context, url, error) => Container(
                 height: 250,
@@ -123,12 +125,11 @@ class _TiktokStyleReviewCardState extends State<TiktokStyleReviewCard> {
                       if (!_isExpanded && widget.review.text.length > 100) // Rough estimation for 3 lines
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(
+                          child: GradientText(
                             'Show more',
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFED3A72),
                             ),
                           ),
                         ),

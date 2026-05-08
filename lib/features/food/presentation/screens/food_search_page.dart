@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -551,7 +552,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                   Icon(
                                     isPromo ? PhosphorIcons.sealPercent(PhosphorIconsStyle.fill) : PhosphorIcons.bicycle(),
                                     size: 14,
-                                    color: isPromo ? const Color(0xFF22C55E) : const Color(0xFFED3A72),
+                                    color: isPromo ? const Color(0xFF22C55E) : AppColors.primary,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -559,7 +560,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                     style: GoogleFonts.poppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: isPromo ? const Color(0xFF22C55E) : const Color(0xFFED3A72),
+                                      color: isPromo ? const Color(0xFF22C55E) : AppColors.primary,
                                     ),
                                   ),
                                 ],
@@ -619,7 +620,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFED3A72), // Pink color
+              color: AppColors.primary, // Pink color
               height: 1.2,
             ),
           ),

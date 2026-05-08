@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 class ConfirmRemoveModal extends StatelessWidget {
   final String title;
@@ -35,14 +37,14 @@ class ConfirmRemoveModal extends StatelessWidget {
           height: 120,
           width: 120,
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF2F2),
+            color: AppColors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Icon(
               Icons.delete_outline,
               size: 60,
-              color: const Color(0xFFED3973),
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -84,27 +86,17 @@ class ConfirmRemoveModal extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onConfirm();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3973),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    confirmLabel,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: PrimaryGradientButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  onConfirm();
+                },
+                child: Text(
+                  confirmLabel,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ),

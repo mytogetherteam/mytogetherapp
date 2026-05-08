@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
 import '../widgets/food_menu_item_skeleton.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -123,7 +124,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: const Color(0xFFED3A72),
+            backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -213,7 +214,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        color: const Color(0xFFED3973),
+        color: AppColors.primary,
         child: _items.isEmpty && _isLoading
             ? GridView.builder(
                 padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 48.0),

@@ -38,7 +38,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
   @override
   Widget build(BuildContext context) {
     // Use high-quality fallback data
-    final List<Map<String, String>> newsItems = FallbackData.news;
+    final List<Map<String, String>> newsItems = FallbackData.news.take(10).toList();
 
     return Column(
       children: [

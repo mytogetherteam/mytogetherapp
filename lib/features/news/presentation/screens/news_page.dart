@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/news_feed_item.dart';
 import '../../data/models/news_item.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class NewsPage extends StatefulWidget {
@@ -150,7 +151,7 @@ class _NewsPageState extends State<NewsPage> {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        color: const Color(0xFFED3973),
+        color: AppColors.primary,
         edgeOffset: 60, // Start below the app bar
         child: CustomScrollView(
           controller: _scrollController,

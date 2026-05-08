@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -412,7 +413,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                     children: [
                                       Icon(
                                         PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
-                                        color: const Color(0xFFED3A72),
+                                        color: AppColors.primary,
                                         size: 14,
                                       ),
                                       const SizedBox(width: 4),
@@ -454,7 +455,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                               height: 38,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFED3A72),
+                                color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(19),
                                 boxShadow: [
                                   BoxShadow(
@@ -538,12 +539,12 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                             content: Text(_isFavorite ? 'Saved to favorites' : 'Removed from favorites'),
                             duration: const Duration(seconds: 1),
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFFED3A72),
+                            backgroundColor: AppColors.primary,
                           ),
                         );
                       },
                       isScrolled: _isScrolled,
-                      iconColorOverride: _isFavorite ? const Color(0xFFED3A72) : null,
+                      iconColorOverride: _isFavorite ? AppColors.primary : null,
                     ),
                     const SizedBox(width: 16),
                   ],

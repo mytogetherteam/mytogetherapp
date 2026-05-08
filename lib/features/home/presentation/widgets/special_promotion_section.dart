@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 import 'special_promotion_card.dart';
 import 'view_all_icon_button.dart';
@@ -113,8 +114,8 @@ class _SpecialPromotionSectionState extends State<SpecialPromotionSection> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               height: 8,
               width: isSelected ? 24 : 8,
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFED3A72) : Colors.grey[300],
+                gradient: isSelected ? AppColors.primaryGradient : null,
+                color: isSelected ? null : Colors.grey[300],
                 borderRadius: BorderRadius.circular(4),
               ),
             );

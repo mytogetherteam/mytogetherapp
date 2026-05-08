@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
@@ -17,6 +18,8 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -61,7 +64,19 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   LatLng get _restaurantLatLng {
     final lat = widget.restaurant?.latitude;
     final lon = widget.restaurant?.longitude;
-    if (lat != null && lon != null) return LatLng(lat, lon);
+    
+    // Demo Safety: If the restaurant is way too far (e.g. in Yangon while user is in Bangkok),
+    // we fallback to a local Bangkok location for a realistic demo route.
+    if (lat != null && lon != null && lat != 0) {
+      final userLat = _currentLocation?.latitude ?? _defaultLocation.latitude;
+      final userLon = _currentLocation?.longitude ?? _defaultLocation.longitude;
+      
+      final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
+      if (dist > 100000) { // > 100km
+        return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
+      }
+      return LatLng(lat, lon);
+    }
     return const LatLng(13.7600, 100.5050);
   }
 
@@ -134,7 +149,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       ),
                     ],
                   ),
-                  backgroundColor: const Color(0xFFED3973),
+                  backgroundColor: AppColors.primary,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -316,20 +331,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Future<void> _buildCustomMarkers() async {
     _homeIcon = await _drawMarkerBitmap(
       icon: Icons.home_rounded,
-      bgColor: const Color(0xFFED3973),
+      bgColor: AppColors.primary,
       iconColor: Colors.white,
       size: 45, // Reduced from 60
     );
     _shopIcon = await _drawMarkerBitmap(
       icon: Icons.restaurant,
-      bgColor: const Color(0xFFED3973),
+      bgColor: AppColors.primary,
       iconColor: Colors.white,
       size: 45, // Reduced from 60
     );
     if (mounted) setState(() {});
   }
 
-  Future<BitmapDescriptor> _drawMarkerBitmap({
+   Future<BitmapDescriptor> _drawMarkerBitmap({
     required IconData icon,
     required Color bgColor,
     required Color iconColor,
@@ -353,11 +368,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       Paint()..color = Colors.white,
     );
 
-    // Coloured fill
+    // Gradient fill
+    final paint = Paint()
+      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, size, size));
     canvas.drawCircle(
       Offset(r, r),
       r - 4,
-      Paint()..color = bgColor,
+      paint,
     );
 
     // Icon
@@ -485,13 +502,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final Path fullBubble = Path.combine(
         PathOperation.union, Path()..addRRect(bubbleRRect), pointerPath);
 
-    final Paint pinkPaint = Paint()..color = const Color(0xFFED3973);
+    final Paint gradientPaint = Paint()
+      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, totalWidth, boxHeight));
     final Paint whiteBorderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
-    canvas.drawPath(fullBubble, pinkPaint);
+    canvas.drawPath(fullBubble, gradientPaint);
     canvas.drawPath(fullBubble, whiteBorderPaint);
 
     // Draw Texts vertically centered inside the fixed boxHeight
@@ -510,8 +528,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     // Home Icon Base
     canvas.drawCircle(Offset(centerX, centerOfHomeY), r,
         Paint()..color = Colors.white);
+    
+    final Paint homeGradientPaint = Paint()
+      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(centerX - r, centerOfHomeY - r, iconSize, iconSize));
     canvas.drawCircle(
-        Offset(centerX, centerOfHomeY), r - 4, pinkPaint);
+        Offset(centerX, centerOfHomeY), r - 4, homeGradientPaint);
 
     final TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr)
       ..text = TextSpan(
@@ -579,7 +600,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       polySet.add(Polyline(
         polylineId: const PolylineId('route'),
         points: _routePoints,
-        color: const Color(0xFFED3973),
+        color: AppColors.primary,
         width: 3,
         jointType: JointType.round,
         startCap: Cap.roundCap,
@@ -602,7 +623,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final all = [
       ...points,
       _restaurantLatLng,
-      ?_currentLocation,
+      if (_currentLocation != null) _currentLocation!,
     ];
 
     double minLat = all.first.latitude;
@@ -611,6 +632,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     double maxLng = all.first.longitude;
 
     for (var p in all) {
+      if (p.latitude == 0 && p.longitude == 0) continue; // Ignore invalid points
       if (p.latitude < minLat) minLat = p.latitude;
       if (p.latitude > maxLat) maxLat = p.latitude;
       if (p.longitude < minLng) minLng = p.longitude;
@@ -647,11 +669,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
+        
+        // Demo Safety: Cap fee if distance is unrealistic for food delivery
+        final actualKm = km > 100 ? 5.0 : km; 
+        
         // Prefer backend delivery fee from WebSocket if available; otherwise estimate
         final backendFee = ActiveOrderState.instance.deliveryFee;
-        final fee = (backendFee != null && backendFee > 0)
+        final fee = (backendFee != null && backendFee > 0 && backendFee < 1000)
             ? backendFee
-            : (30.0 + (km * 15.0)).roundToDouble();
+            : (30.0 + (actualKm * 15.0)).roundToDouble();
 
         if (mounted) {
           final polyPoints = [start, ...points, dest];
@@ -870,12 +896,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                                  Text(
+                                  GradientText(
                                     'Awaiting Restaurant Confirmation',
                                     style: GoogleFonts.poppins(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black),
+                                        color: Colors.white),
                                   ),
                                   const SizedBox(height: 6),
                                   Row(
@@ -908,13 +934,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
-                                            Text(
+                                            GradientText(
                                               (ActiveOrderState.instance.orderId != null && !ActiveOrderState.instance.orderId!.startsWith('#')) 
                                                   ? '#${ActiveOrderState.instance.orderId}' 
                                                   : (ActiveOrderState.instance.orderId ?? '...'),
                                               style: GoogleFonts.poppins(
                                                 fontSize: 13,
-                                                color: const Color(0xFFED3973),
+                                                color: Colors.white,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -950,7 +976,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             height: 10,
                                             width: totalLightTrailWidth,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFFB3C6),
+                                              color: AppColors.primary.withValues(alpha: 0.15),
                                               borderRadius: BorderRadius.circular(5),
                                             ),
                                           ),
@@ -960,12 +986,8 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             height: 10,
                                             width: idleSolidWidth,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFED3973),
+                                              gradient: AppColors.primaryGradient,
                                               borderRadius: BorderRadius.circular(5),
-                                              gradient: const LinearGradient(
-                                                colors: [Color(0xFFED3973), Color(0xFFFFB3C6)],
-                                                stops: [0.8, 1.0], // Feather the tip
-                                              ),
                                             ),
                                           ),
                                       ],
@@ -989,6 +1011,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           _buildDeliveryFeeRow(),
 
+                          const SizedBox(height: 12),
+
+                           _buildInfoRow(
+                            label: 'Total Amount',
+                            value: '฿ ${(widget.foodTotal + (ActiveOrderState.instance.deliveryFee ?? 0)).toInt()}',
+                            isGradientValue: true,
+                          ),
+
                           const SizedBox(height: 28),
 
                           Center(
@@ -996,7 +1026,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFF1F2),
+                                color: AppColors.primary.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(50),
                               ),
                               child: Row(
@@ -1004,13 +1034,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Icon(Icons.access_time,
-                                      size: 16, color: Color(0xFFED3973)),
+                                      size: 16, color: AppColors.primary),
                                   const SizedBox(width: 8),
                                   Text('This usually takes 1–2 minutes.',
                                       style: GoogleFonts.poppins(
                                           fontSize: 13, 
                                           fontWeight: FontWeight.w500,
-                                          color: const Color(0xFFED3973))),
+                                          color: AppColors.primary)),
                                 ],
                               ),
                             ),
@@ -1044,21 +1074,32 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildInfoRow(
-      {required String label, required String value, Color? valueColor}) {
+      {required String label, required String value, Color? valueColor, bool isGradientValue = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87)),
-        Text(value,
+        if (isGradientValue)
+          GradientText(
+            value,
             style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? Colors.black)),
+                color: Colors.white),
+          )
+        else
+          Text(value,
+              style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? Colors.black)),
       ],
     );
   }
 
   Widget _buildDeliveryFeeRow() {
+    final fee = ActiveOrderState.instance.deliveryFee;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1070,22 +1111,32 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
           ],
         ),
-        AnimatedBuilder(
-          animation: _dotsAnimController,
-          builder: (context, _) {
-            final step = (_dotsAnimController.value * 4).floor() % 4;
-            final dots = '.' * step;
-            final spaces = ' ' * (3 - step);
-            return Text(
-              'Calculating$dots$spaces',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFFED3973),
-              ),
-            );
-          },
-        ),
+        if (fee != null && fee > 0)
+          Text(
+            '฿ ${fee.toInt()}',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          )
+        else
+          AnimatedBuilder(
+            animation: _dotsAnimController,
+            builder: (context, _) {
+              final step = (_dotsAnimController.value * 4).floor() % 4;
+              final dots = '.' * step;
+              final spaces = ' ' * (3 - step);
+              return Text(
+                'Calculating$dots$spaces',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -1141,7 +1192,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
+                    child: PrimaryGradientButton(
                       onPressed: _isCancelling ? null : () async {
                         setState(() => _isCancelling = true);
                         setModalState(() => {}); // Rebuild button to show disabled state
@@ -1176,19 +1227,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           }
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFED3973),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      isLoading: _showCancelLoading,
+                      child: Text(
+                        'Cancel Order',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                      child: _showCancelLoading 
-                        ? const CustomLoadingIndicator(size: 20, color: Colors.white)
-                        : Text('Cancel Order',
-                            style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],

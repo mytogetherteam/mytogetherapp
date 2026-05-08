@@ -39,7 +39,7 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
   @override
   Widget build(BuildContext context) {
     // Use high-quality fallback data
-    final List<Map<String, String>> lostItems = FallbackData.lostItems;
+    final List<Map<String, String>> lostItems = FallbackData.lostItems.take(10).toList();
 
     return Column(
       children: [

@@ -6,8 +6,11 @@ import '../../../../core/utils/price_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'dart:ui' as ui;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -16,7 +19,9 @@ import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import 'package:geolocator/geolocator.dart';
 import 'order_cancel_page.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -141,7 +146,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     ),
                   ],
                 ),
-                backgroundColor: const Color(0xFFED3973),
+                backgroundColor: AppColors.primary,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -236,6 +241,24 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     }
   }
 
+  LatLng get _restaurantLatLng {
+    final state = ActiveOrderState.instance;
+    final lat = state.restaurantLatLng?.latitude;
+    final lon = state.restaurantLatLng?.longitude;
+
+    if (lat != null && lon != null && lat != 0) {
+      final userLat = state.userLocation?.latitude ?? 13.7563;
+      final userLon = state.userLocation?.longitude ?? 100.5018;
+
+      final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
+      if (dist > 100000) { // > 100km mismatch
+        return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
+      }
+      return LatLng(lat, lon);
+    }
+    return const LatLng(13.7563, 100.5018); // Default Bangkok
+  }
+
   void _goHome() {
     _orderSubscription?.cancel();
     NavigationController.instance.goToFoodTab();
@@ -247,19 +270,19 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Future<void> _buildCustomMarkers() async {
     _homeIcon = await _drawMarkerBitmap(
       icon: Icons.home_rounded,
-      bgColor: const Color(0xFFED3973),
+      bgColor: AppColors.primary,
       iconColor: Colors.white,
       size: 75,
     );
     _shopIcon = await _drawMarkerBitmap(
       icon: Icons.restaurant,
-      bgColor: const Color(0xFFED3973),
+      bgColor: AppColors.primary,
       iconColor: Colors.white,
       size: 75,
     );
   }
 
-  Future<BitmapDescriptor> _drawMarkerBitmap({
+   Future<BitmapDescriptor> _drawMarkerBitmap({
     required IconData icon,
     required Color bgColor,
     required Color iconColor,
@@ -271,7 +294,11 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
     canvas.drawCircle(Offset(r, r + 4), r * 0.85, Paint()..color = Colors.black.withValues(alpha: 0.18));
     canvas.drawCircle(Offset(r, r), r, Paint()..color = Colors.white);
-    canvas.drawCircle(Offset(r, r), r - 4, Paint()..color = bgColor);
+    
+    // Gradient fill
+    final paint = Paint()
+      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, size, size));
+    canvas.drawCircle(Offset(r, r), r - 4, paint);
 
     final tp = TextPainter(textDirection: TextDirection.ltr)
       ..text = TextSpan(
@@ -318,7 +345,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
       polySet.add(Polyline(
         polylineId: const PolylineId('route'),
         points: state.routePoints,
-        color: const Color(0xFFED3973),
+        color: AppColors.primary,
         width: 5,
         jointType: JointType.round,
         startCap: Cap.roundCap,
@@ -338,8 +365,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     if (_mapController == null) return;
     final state = ActiveOrderState.instance;
     final all = [
-      if (state.restaurantLatLng != null) state.restaurantLatLng!,
-      if (state.userLocation != null) state.userLocation!,
+      if (state.restaurantLatLng != null && state.restaurantLatLng!.latitude != 0) state.restaurantLatLng!,
+      if (state.userLocation != null && state.userLocation!.latitude != 0) state.userLocation!,
       ...state.routePoints,
     ];
     if (all.isEmpty) return;
@@ -350,6 +377,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     double maxLng = all.first.longitude;
 
     for (var p in all) {
+      if (p.latitude == 0 && p.longitude == 0) continue; // Ignore invalid points
       if (p.latitude < minLat) minLat = p.latitude;
       if (p.latitude > maxLat) maxLat = p.latitude;
       if (p.longitude < minLng) minLng = p.longitude;
@@ -403,15 +431,25 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             // Animated Header text
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
-              child: Text(
-                _statusTitle,
-                key: ValueKey<int>(_currentStatus),
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: _currentStatus == -1 ? const Color(0xFFEF4444) : Colors.black,
-                ),
-              ),
+              child: _currentStatus == -1
+                  ? Text(
+                      _statusTitle,
+                      key: ValueKey<int>(_currentStatus),
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    )
+                  : GradientText(
+                      _statusTitle,
+                      key: ValueKey<int>(_currentStatus),
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
             const SizedBox(height: 8),
             if (_currentStatus != -1) ...[
@@ -471,7 +509,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                               : GoogleMap(
                                   padding: const EdgeInsets.only(bottom: 0),
                                   initialCameraPosition: CameraPosition(
-                                    target: state.restaurantLatLng ?? const LatLng(13.7563, 100.5018),
+                                    target: _restaurantLatLng,
                                     zoom: 14,
                                   ),
                                   onMapCreated: (controller) {
@@ -523,9 +561,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF2F2),
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFFECACA)),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                             ),
                             child: Row(
                               children: [
@@ -832,9 +870,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 child: const SizedBox(width: 2),
                               ),
                             ),
-                            const Icon(
-                              Icons.location_on,
-                              color: Color(0xFFED3973),
+                             const GradientIcon(
+                              icon: Icons.location_on,
                               size: 22,
                             ),
                           ],
@@ -973,24 +1010,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             
             // Reorder/Cancel Actions
             if (_currentStatus == -1)
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ActiveOrderState.instance.clearOrder();
-                    _goHome();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3973),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    'Order Again',
-                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+              PrimaryGradientButton(
+                onPressed: () {
+                  ActiveOrderState.instance.clearOrder();
+                  _goHome();
+                },
+                child: Text(
+                  'Order Again',
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             const SizedBox(height: 32),
@@ -1007,7 +1034,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         Positioned(
           left: 18,
           right: 18,
-          top: 18,
+          top: 20,
           child: Container(
             height: 3,
             color: Colors.grey.shade200,
@@ -1017,7 +1044,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         Positioned(
           left: 18,
           right: 18,
-          top: 18,
+          top: 20,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final double availableWidth = (constraints.maxWidth - 36).clamp(0.0, double.infinity);
@@ -1068,7 +1095,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           if (filled)
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFED3973),
+                gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1082,12 +1109,11 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     Container(
                       width: width * _processingController.value,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFED3973).withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(2),
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFFED3973).withValues(alpha: 0.1),
-                            const Color(0xFFED3973),
+                            AppColors.primary.withValues(alpha: 0.1),
+                            AppColors.primary,
+                            AppColors.secondary,
                           ],
                         ),
                       ),
@@ -1099,12 +1125,12 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                       child: Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFED3973),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Color(0xFFED3973),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                               blurRadius: 6,
                               spreadRadius: 2,
                             )
@@ -1124,10 +1150,28 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Widget _buildStepNode(int stepIndex, IconData icon) {
     bool isCompleted = _currentStatus >= stepIndex;
     
-    return Icon(
-      icon,
-      size: 26,
-      color: isCompleted ? const Color(0xFFED3973) : Colors.grey.shade400,
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: isCompleted ? AppColors.primaryGradient : null,
+        color: isCompleted ? null : Colors.grey.shade200,
+        boxShadow: isCompleted ? [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ] : null,
+      ),
+      child: Center(
+        child: Icon(
+          icon,
+          size: 20,
+          color: isCompleted ? Colors.white : Colors.grey.shade500,
+        ),
+      ),
     );
   }
 
@@ -1135,11 +1179,11 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   Widget _buildSmallCircleButton(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFEBF1),
+       decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, color: const Color(0xFFED3973), size: 18),
+      child: GradientIcon(icon: icon, size: 18),
     );
   }
 

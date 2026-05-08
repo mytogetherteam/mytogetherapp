@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'shop_item_metadata_row.dart';
 
 class NearbyRestaurantListItem extends StatelessWidget {
@@ -112,7 +115,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                             onTap: onFavoriteToggle,
                             child: Icon(
                               isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                              color: isFavorite ? const Color(0xFFED3A72) : Colors.grey[400],
+                              color: isFavorite ? AppColors.primary : Colors.grey[400],
                               size: 20,
                             ),
                           ),
@@ -170,25 +173,24 @@ class NearbyRestaurantListItem extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
+                                    GradientText(
                                       'Direction',
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: const Color(0xFFED3973),
                                       ),
                                     ),
                                     const SizedBox(width: 4),
                                     const Icon(
                                       Icons.near_me_rounded,
                                       size: 14,
-                                      color: Color(0xFFED3973),
+                                      color: AppColors.primary,
                                     ),
                                   ],
                                 ),
@@ -202,7 +204,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -220,7 +222,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -275,25 +277,15 @@ class NearbyRestaurantListItem extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onViewMenu,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3973),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'View Menu',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+              PrimaryGradientButton(
+                onPressed: onViewMenu,
+                height: 48,
+                child: Text(
+                  'View Menu',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ),

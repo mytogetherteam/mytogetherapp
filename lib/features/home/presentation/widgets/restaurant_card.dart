@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class RestaurantCard extends StatelessWidget {
   final String name;
@@ -18,6 +20,8 @@ class RestaurantCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onTap;
+  final double? width;
+  final EdgeInsetsGeometry? margin;
 
   const RestaurantCard({
     super.key,
@@ -33,6 +37,8 @@ class RestaurantCard extends StatelessWidget {
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.onTap,
+    this.width,
+    this.margin,
   });
 
   @override
@@ -40,8 +46,8 @@ class RestaurantCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 240,
-      margin: const EdgeInsets.only(right: 16),
+        width: width ?? 240,
+        margin: margin ?? const EdgeInsets.only(right: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -69,7 +75,7 @@ class RestaurantCard extends StatelessWidget {
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: onFavoriteToggle,
+                  onTap: () => AppDialog.showUnavailable(context),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -78,7 +84,7 @@ class RestaurantCard extends StatelessWidget {
                     ),
                     child: Icon(
                       isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                      color: isFavorite ? const Color(0xFFED3A72) : Colors.white,
+                      color: isFavorite ? AppColors.primary : Colors.white,
                       size: 20,
                     ),
                   ),

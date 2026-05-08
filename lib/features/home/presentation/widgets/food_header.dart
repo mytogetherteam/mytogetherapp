@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
@@ -146,14 +147,7 @@ class _FoodHeaderState extends State<FoodHeader> {
     return Container(
       padding: EdgeInsets.fromLTRB(16, statusBarHeight + 8, 16, 8),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFED3973),
-            Color(0xFFEFA240),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColors.primaryGradient,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

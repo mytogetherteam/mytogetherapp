@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 /// A skeleton loader that mimics a real map with roads, blocks and pin placeholders.
 class MapSkeletonLoader extends StatefulWidget {
@@ -146,7 +147,7 @@ class _MapSkeletonLoaderState extends State<MapSkeletonLoader>
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFED3973).withValues(alpha: 0.35),
+                    color: AppColors.primary.withValues(alpha: 0.35),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -166,14 +167,14 @@ class _MapSkeletonLoaderState extends State<MapSkeletonLoader>
           Container(
             width: 2,
             height: 8,
-            color: const Color(0xFFED3973).withValues(alpha: 0.4),
+            color: AppColors.primary.withValues(alpha: 0.4),
           ),
           // Dot
           Container(
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: const Color(0xFFED3973).withValues(alpha: 0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
           ),

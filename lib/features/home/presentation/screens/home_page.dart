@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../widgets/category_card.dart';
 import '../widgets/together_deals_section.dart';
@@ -14,6 +16,7 @@ import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -24,6 +27,8 @@ import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -103,13 +108,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           _bottomBanners = bottomBanners;
           _isLoadingBanners = false;
         });
+
+        // After setting state, precache the first image of each to ensure they are ready
+        // then remove splash
+        _removeSplashAfterImagesLoaded();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingBanners = false;
         });
+        FlutterNativeSplash.remove(); // Remove even on error
       }
+    }
+  }
+
+  Future<void> _removeSplashAfterImagesLoaded() async {
+    try {
+      final List<Future> precacheTasks = [];
+      
+      if (_topBanners.isNotEmpty) {
+        final firstTop = _topBanners.first.image;
+        if (!firstTop.startsWith('assets/')) {
+          precacheTasks.add(precacheImage(
+            CachedNetworkImageProvider(_getImageUrl(firstTop)),
+            context,
+          ));
+        }
+      }
+      
+      if (_bottomBanners.isNotEmpty) {
+        final firstBottom = _bottomBanners.first.image;
+        if (!firstBottom.startsWith('assets/')) {
+          precacheTasks.add(precacheImage(
+            CachedNetworkImageProvider(_getImageUrl(firstBottom)),
+            context,
+          ));
+        }
+      }
+
+      // Wait for at most 2 seconds for images to load, then remove splash anyway
+      await Future.wait(precacheTasks).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => [],
+      );
+    } catch (_) {
+      // Ignore errors in precaching
+    } finally {
+      FlutterNativeSplash.remove();
     }
   }
 
@@ -185,7 +231,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   });
                   await _fetchBanners();
                 },
-                color: const Color(0xFFED3973),
+                color: AppColors.primary,
                 displacement: MediaQuery.of(context).padding.top + 80,
                 child: SingleChildScrollView(
                   controller: _scrollController,
@@ -199,32 +245,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     // Search Bar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey.shade500, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Search food, restaurants & more ...',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey.shade500,
-                              fontSize: 14,
+                    child: GestureDetector(
+                      onTap: () => AppDialog.showUnavailable(context),
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey.shade500, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Search food, restaurants & more ...',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey.shade500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -267,7 +316,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               fit: BoxFit.cover,
                               placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
                               errorWidget: (context, url, error) => Container(
-                                color: const Color(0xFFED3973),
+                                color: AppColors.primary,
                                 alignment: Alignment.center,
                                 child: const Icon(Icons.broken_image, color: Colors.white),
                               ),
@@ -288,7 +337,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         width: _currentBannerIndex == index ? 20 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: _currentBannerIndex == index ? const Color(0xFFED3973) : const Color(0xFFFFC0CB),
+                          color: _currentBannerIndex == index ? AppColors.primary : AppColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       )),
@@ -313,7 +362,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
                               mainAxisSpacing: 8,
                               crossAxisSpacing: 8,
-                              childAspectRatio: 0.95,
+                              childAspectRatio: 0.85,
                               children: [
                                       CategoryCard(
                                         title: 'Food &\nRestaurant',
@@ -375,7 +424,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   child: Column(
                                     children: [
                                       Container(
-                                        height: 160,
+                                        height: 200,
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(20),
@@ -408,7 +457,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 width: double.infinity,
                                                 placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
                                                 errorWidget: (context, url, error) => Container(
-                                                  color: const Color(0xFF0084FF),
+                                                  color: AppColors.primary,
                                                   alignment: Alignment.center,
                                                   child: const Icon(Icons.broken_image, color: Colors.white),
                                                 ),
@@ -428,7 +477,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             width: _currentPromoIndex == index ? 24 : 8,
                                             height: 8,
                                             decoration: BoxDecoration(
-                                              color: _currentPromoIndex == index ? const Color(0xFFED3973) : const Color(0xFFD1D1D1),
+                                              color: _currentPromoIndex == index ? AppColors.primary : const Color(0xFFD1D1D1),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                           )),
@@ -532,8 +581,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
-                                  colors: [Color(0xFFED3973), Color(0xFFF96232)],
+                                shaderCallback: (bounds) => LinearGradient(
+                                  colors: [AppColors.primary, const Color(0xFFF96232)],
                                 ).createShader(bounds),
                                 child: Text(
                                   'MyTogether',
@@ -580,7 +629,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     child: Container(
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFED3973),
+                                        color: AppColors.primary,
                                         shape: BoxShape.circle,
                                         border: Border.all(color: Colors.white, width: 1.5),
                                       ),
@@ -608,9 +657,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
       ),
-    ],
-        ),
+      // Active Order Bar (Floating at bottom, home page only)
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 4 + MediaQuery.of(context).padding.bottom, 
+        child: const ActiveOrderBar(),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 }

@@ -6,6 +6,7 @@ import '../remote_restaurant_data_source.dart';
 import '../models/shop_dto.dart';
 import '../models/food_detail_dto.dart';
 import '../models/shop_review_dto.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 
 class RestaurantRepository {
   static final RestaurantRepository instance = RestaurantRepository(
@@ -32,6 +33,12 @@ class RestaurantRepository {
   final Map<String, DateTime> _feedCacheTime = {};
 
   RestaurantRepository(this._remoteDataSource);
+
+  String _getImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http') || path.startsWith('assets/')) return path;
+    return '${ApiClient.baseUrl}/$path';
+  }
 
   Future<List<BannerImageDto>> getBanners({String? position}) async {
     final cacheKey = position ?? 'all';
@@ -140,17 +147,21 @@ class RestaurantRepository {
   Restaurant _mapShopDtoToDomain(ShopListItemDto dto) {
     String imagePath = '';
     
-    // 1. Prioritize imageUrls list (as requested by user)
-    if (dto.imageUrls.isNotEmpty) {
+    // 1. Prioritize coverUrl (Banner image) as requested
+    if (dto.coverUrl != null && dto.coverUrl!.isNotEmpty) {
+      imagePath = dto.coverUrl!;
+    }
+    // 2. Fallback to imageUrls list
+    else if (dto.imageUrls.isNotEmpty) {
       imagePath = dto.imageUrls.first;
     } 
-    // 2. Fallback to logoUrl if available and NOT a Pinterest link
+    // 3. Fallback to logoUrl if available and NOT a Pinterest link
     else if (dto.logoUrl != null && 
              dto.logoUrl!.isNotEmpty && 
              !dto.logoUrl!.contains('pinterest.com')) {
       imagePath = dto.logoUrl!;
     }
-    // 3. Last fallback to primaryPhotoUrl
+    // 4. Last fallback to primaryPhotoUrl
     else if (dto.primaryPhotoUrl != null && dto.primaryPhotoUrl!.isNotEmpty) {
       imagePath = dto.primaryPhotoUrl!;
     }
@@ -167,17 +178,17 @@ class RestaurantRepository {
       rating: dto.rating,
       reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
-      imagePath: imagePath,
-      logoPath: (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
+      imagePath: _getImageUrl(imagePath),
+      logoPath: _getImageUrl((dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
           ? dto.logoUrl! 
-          : '', 
+          : ''), 
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
       deliveryFee: dto.displayDeliveryFee,
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
       latitude: dto.latitude,
       longitude: dto.longitude,
-      imageUrls: dto.imageUrls,
+      imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
       isFavorite: dto.isFavorite,
     );
   }
@@ -196,15 +207,15 @@ class RestaurantRepository {
       rating: dto.rating,
       reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
-      imagePath: imagePath,
-      logoPath: (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
+      imagePath: _getImageUrl(imagePath),
+      logoPath: _getImageUrl((dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
           ? dto.logoUrl! 
-          : '',
+          : ''),
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
       status: dto.isOpen ? 'Open' : 'Closed',
       latitude: dto.latitude,
       longitude: dto.longitude,
-      imageUrls: dto.photos,
+      imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),
       popularDishes: dto.popularDishes,
       recommendations: dto.recommendations,
       hotDeals: dto.hotDeals,
@@ -268,8 +279,10 @@ class RestaurantRepository {
     required double lat,
     required double lon,
     double radiusKm = 10.0,
+    int page = 0,
+    int size = 20,
   }) async {
-    final key = 'food-tab-$feedType';
+    final key = 'food-tab-$feedType-$page-$size';
     final now = DateTime.now();
     final cached = _feedCache[key];
     final cacheTime = _feedCacheTime[key];
@@ -283,6 +296,8 @@ class RestaurantRepository {
       lat: lat,
       lon: lon,
       radiusKm: radiusKm,
+      page: page,
+      size: size,
     );
     _feedCache[key] = result;
     _feedCacheTime[key] = now;

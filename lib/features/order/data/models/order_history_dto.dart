@@ -72,6 +72,16 @@ class OrderHistoryDto {
   }
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
+    final shop = json['shop'] as Map<String, dynamic>?;
+    final shopName = json['shopName'] as String? ?? 
+                     shop?['name'] as String? ?? 
+                     shop?['nameEn'] as String?;
+    final shopImageUrl = json['shopImageUrl'] as String? ?? 
+                         json['imageUrl'] as String? ?? 
+                         shop?['imageUrl'] as String? ?? 
+                         shop?['logoUrl'] as String? ??
+                         shop?['image'] as String?;
+
     return OrderHistoryDto(
       id: json['id'].toString(),
       lastOrderNo: json['lastOrderNo']?.toString(),
@@ -83,8 +93,8 @@ class OrderHistoryDto {
       updatedAt: json['updatedAt'] as String?,
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       displayTotalAmount: json['displayTotalAmount'] as String?,
-      shopName: json['shopName'] as String?,
-      shopImageUrl: json['shopImageUrl'] as String?,
+      shopName: shopName,
+      shopImageUrl: shopImageUrl,
       shopId: json['shopId'] as int?,
       items: (json['items'] as List<dynamic>?)
               ?.map((e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>))

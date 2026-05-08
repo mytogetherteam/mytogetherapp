@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../screens/place_detail_page.dart';
 import '../screens/places_list_page.dart';
 
@@ -16,7 +17,7 @@ class TopPlacesNearbySection extends StatefulWidget {
 class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
   final Set<int> _favoriteIndices = {};
 
-  List<Map<String, dynamic>> get _places => FallbackData.topPlaces;
+  List<Map<String, dynamic>> get _places => FallbackData.topPlaces.take(10).toList();
 
   void _toggleFavorite(int index) {
     setState(() {
@@ -33,7 +34,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
         SnackBar(
           content: Text(isAdded ? 'Added to favorites' : 'Removed from favorites'),
           duration: const Duration(seconds: 2),
-          backgroundColor: const Color(0xFFED3A72),
+          backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
         ),
       );
