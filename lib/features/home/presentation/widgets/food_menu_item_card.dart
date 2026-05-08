@@ -234,13 +234,15 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
                                           ? _buildFallbackImage()
                                           : (isNetworkImage
-                                              ? CachedNetworkImage(
-                                                  imageUrl: widget.imagePath,
+                                              ? Image.network(
+                                                  widget.imagePath,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const ImageSkeletonLoader(),
-                                                  errorWidget: (context, url, error) => _buildFallbackImage(),
-                                                  fadeInDuration: const Duration(milliseconds: 300),
+                                                  errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                                                  loadingBuilder: (context, child, loadingProgress) {
+                                                    if (loadingProgress == null) return child;
+                                                    return const ImageSkeletonLoader();
+                                                  },
                                                 )
                                               : Image.asset(
                                                   widget.imagePath,

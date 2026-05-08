@@ -58,16 +58,16 @@ class RestaurantCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 child: imagePath.trim().isEmpty
                     ? _buildFallbackImage()
-                    : CachedNetworkImage(
-                        imageUrl: imagePath,
+                    : Image.network(
+                        imagePath,
                         height: 160,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const ImageSkeletonLoader(
-                          height: 160,
-                        ),
-                        errorWidget: (context, url, error) => _buildFallbackImage(),
-                        fadeInDuration: const Duration(milliseconds: 300),
+                        errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const ImageSkeletonLoader(height: 160);
+                        },
                       ),
               ),
 

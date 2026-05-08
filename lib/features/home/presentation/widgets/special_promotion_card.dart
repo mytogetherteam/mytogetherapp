@@ -100,16 +100,26 @@ class SpecialPromotionCard extends StatelessWidget {
                   flex: 2,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      imagePath,
-                      fit: BoxFit.contain,
-                      height: 90,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.fastfood,
-                              color: Colors.grey, size: 40),
+                    child: Builder(
+                      builder: (context) {
+                        final bool isNetwork = imagePath.startsWith('http');
+                        if (isNetwork) {
+                          return Image.network(
+                            imagePath,
+                            fit: BoxFit.cover,
+                            height: 90,
+                            errorBuilder: (context, error, stackTrace) => _buildErrorIcon(),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                            },
+                          );
+                        }
+                        return Image.asset(
+                          imagePath,
+                          fit: BoxFit.contain,
+                          height: 90,
+                          errorBuilder: (context, error, stackTrace) => _buildErrorIcon(),
                         );
                       },
                     ),
@@ -120,6 +130,14 @@ class SpecialPromotionCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildErrorIcon() {
+    return Container(
+      height: 90,
+      color: Colors.grey[200],
+      child: const Icon(Icons.fastfood, color: Colors.grey, size: 40),
     );
   }
 }

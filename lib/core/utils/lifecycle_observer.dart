@@ -29,8 +29,10 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // 1. Immediate disconnect on background/lock to prevent stale connections
-      WebSocketService().disconnect();
+      // On Web, we don't want to disconnect just because the tab lost focus briefly
+      if (!kIsWeb) {
+        WebSocketService().disconnect();
+      }
     } else if (state == AppLifecycleState.resumed) {
       // 2. Foreground: Robust Sync then Reconnect
       _handleForegroundResumed();

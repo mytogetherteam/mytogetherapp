@@ -201,17 +201,12 @@ class _DealCard extends StatelessWidget {
           // Food image
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: CachedNetworkImage(
-              imageUrl: deal.imageUrl ?? '',
+            child: Image.network(
+              deal.imageUrl ?? '',
               width: 130,
               height: 120,
               fit: BoxFit.cover,
-              placeholder: (context, url) => const ImageSkeletonLoader(
-                width: 130,
-                height: 120,
-                showLogo: true,
-              ),
-              errorWidget: (context, url, error) => Container(
+              errorBuilder: (context, error, stackTrace) => Container(
                 width: 130,
                 height: 120,
                 decoration: BoxDecoration(
@@ -238,6 +233,14 @@ class _DealCard extends StatelessWidget {
                   ],
                 ),
               ),
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const ImageSkeletonLoader(
+                  width: 130,
+                  height: 120,
+                  showLogo: true,
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),

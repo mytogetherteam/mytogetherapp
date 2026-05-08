@@ -7,7 +7,10 @@ class ImageUtils {
   static bool _needsProxy(String url) {
     if (url.toLowerCase().contains('corsproxy.io')) return false;
     final lower = url.toLowerCase();
-    return lower.contains('i.pinimg.com');
+    // Broaden the proxy check for Pinterest and other image hosts that block CORS
+    return lower.contains('i.pinimg.com') || 
+           lower.contains('pinterest.com') ||
+           lower.contains('googleusercontent.com');
   }
 
   static String? cleanImageUrl(String? url) {

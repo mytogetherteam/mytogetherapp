@@ -373,8 +373,8 @@ class ActiveOrderState extends ChangeNotifier {
     
     // Disconnect WebSocket only if ALL orders are terminal
     if (status == 4 || status == -1) {
-      final allTerminal = _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
-      if (allTerminal) {
+      final allTerminal = _orders.isNotEmpty && _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
+      if (allTerminal && !kIsWeb) {
         WebSocketService().disconnect();
       }
     }
@@ -550,8 +550,8 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     // Disconnect if ALL orders are terminal
-    final allTerminal = _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
-    if (allTerminal) {
+    final allTerminal = _orders.isNotEmpty && _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
+    if (allTerminal && !kIsWeb) {
        WebSocketService().disconnect();
     }
 
@@ -659,7 +659,7 @@ class ActiveOrderState extends ChangeNotifier {
       _orders.clear();
     }
     
-    if (_orders.isEmpty) {
+    if (_orders.isEmpty && !kIsWeb) {
       WebSocketService().disconnect();
     }
     

@@ -20,6 +20,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
+  GoogleFonts.config.allowRuntimeFetching = true;
   print('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   print('[BOOT] WidgetsBinding initialized.');
@@ -75,8 +76,6 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-
-  GoogleFonts.config.allowRuntimeFetching = true;
 
   print('[BOOT] Calling runApp()...');
   runApp(const App());

@@ -30,6 +30,7 @@ class WebSocketService {
   bool _isConnecting = false;
 
   void connect({bool force = false}) {
+  Future<void> connect({bool force = false}) async {
     if (_isConnecting && !force) return;
 
     if (isConnected && !force) return;
@@ -37,7 +38,10 @@ class WebSocketService {
     if (_stompClient != null) {
       if (force) {
         debugPrint(' [WS] Force reconnecting...');
+        _stompClient?.deactivate();
         _stompClient = null;
+        // Add a small delay to allow the socket to fully close and prevent a rapid loop
+        await Future.delayed(const Duration(milliseconds: 3000));
       } else {
         _stompClient?.activate();
         return;
