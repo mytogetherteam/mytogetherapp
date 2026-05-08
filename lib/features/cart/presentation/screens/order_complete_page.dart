@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
 
@@ -214,7 +216,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFED3973),
+                              color: AppColors.primary,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -226,11 +228,37 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Items ordered will be displayed here.', 
-                                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                              )
-                            ],
+                            children: state.orderItems.isEmpty 
+                                ? [
+                                    Text('Items ordered will be displayed here.', 
+                                      style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+                                    )
+                                  ]
+                                : state.orderItems.map((item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${item.quantity}x ${item.title}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          item.total.toFormattedPrice(),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )).toList(),
                           ),
                         ),
                       ],
@@ -241,23 +269,17 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             ),
             const SizedBox(height: 16),
             // "Done" button to clear order and go home
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () {
-                  ActiveOrderState.instance.clearOrder();
-                  _goToFoodTab();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFED3973),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Text(
-                  'Done',
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+            PrimaryGradientButton(
+              onPressed: () {
+                ActiveOrderState.instance.clearOrder();
+                _goToFoodTab();
+              },
+              child: Text(
+                'Done',
+                style: GoogleFonts.poppins(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -296,7 +318,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
       width: 36,
       height: 36,
       decoration: const BoxDecoration(
-        color: Color(0xFFED3973),
+        gradient: AppColors.primaryGradient,
         shape: BoxShape.circle,
       ),
       child: Icon(icon, size: 18, color: Colors.white),
@@ -307,7 +329,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     return Expanded(
       child: Container(
         height: 3,
-        color: const Color(0xFFED3973),
+        decoration: const BoxDecoration(
+          gradient: AppColors.primaryGradient,
+        ),
       ),
     );
   }

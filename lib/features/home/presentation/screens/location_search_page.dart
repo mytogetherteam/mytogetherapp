@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
@@ -142,7 +143,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 _searchController.clear();
                 setState(() => _searchResults = []);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Location saved successfully'), backgroundColor: Color(0xFFED3973)),
+                  const SnackBar(content: Text('Location saved successfully'), backgroundColor: AppColors.primary),
                 );
               }
             } catch (e) {
@@ -177,7 +178,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       _hasChanges = true;
       if (mounted && fullUpdate != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location updated successfully'), backgroundColor: Color(0xFFED3973)),
+          const SnackBar(content: Text('Location updated successfully'), backgroundColor: AppColors.primary),
         );
       }
     } catch (e) {
@@ -210,7 +211,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       _hasChanges = true;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location deleted successfully'), backgroundColor: Color(0xFFED3973)),
+          const SnackBar(content: Text('Location deleted successfully'), backgroundColor: AppColors.primary),
         );
       }
     } catch (e) {
@@ -280,7 +281,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           Container(
             width: 30,
             height: 30,
-            decoration: const BoxDecoration(color: Color(0xFFED3973), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
             child: const Icon(PhosphorIconsFill.mapPin, color: Colors.white, size: 14),
           ),
           const SizedBox(width: 10),
@@ -426,13 +427,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: location.isPrimary ? const Color(0xFFED3973).withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
+                color: location.isPrimary ? AppColors.primary.withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 location.locationType == 'HOME' ? PhosphorIcons.house() : location.locationType == 'WORK' ? PhosphorIcons.briefcase() : PhosphorIcons.mapPin(),
                 size: 18,
-                color: location.isPrimary ? const Color(0xFFED3973) : Colors.grey.shade600,
+                color: location.isPrimary ? AppColors.primary : Colors.grey.shade600,
               ),
             ),
             const SizedBox(width: 14),
@@ -454,7 +455,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -462,7 +463,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFED3973),
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -534,7 +535,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 ],
               ),
             ),
-            const Icon(Icons.add_circle_outline, color: Color(0xFFED3973), size: 20),
+            const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20),
           ],
         ),
       ),

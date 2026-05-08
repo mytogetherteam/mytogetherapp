@@ -69,8 +69,12 @@ class _ImageSkeletonLoaderState extends State<ImageSkeletonLoader>
                 opacity: 0.2,
                 child: Image.asset(
                   'assets/images/icon.png',
-                  width: widget.width > 0 ? widget.width * 0.25 : 30,
-                  height: widget.height > 0 ? widget.height * 0.25 : 30,
+                  width: (widget.width > 0 && widget.width != double.infinity) 
+                      ? widget.width * 0.15 
+                      : 40,
+                  height: (widget.height > 0 && widget.height != double.infinity) 
+                      ? widget.height * 0.15 
+                      : 40,
                   fit: BoxFit.contain,
                 ),
               ),

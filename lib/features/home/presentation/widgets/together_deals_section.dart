@@ -4,10 +4,12 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
@@ -34,6 +36,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
         feedType: 'hot-deals',
         lat: activeLoc?.latitude ?? pos.latitude,
         lon: activeLoc?.longitude ?? pos.longitude,
+        size: 10,
       ).timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('TogetherDealsSection: API error: $e');
@@ -50,7 +53,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
           return _buildSkeleton();
         }
 
-        final deals = snapshot.data?.items ?? [];
+        final deals = (snapshot.data?.items ?? []).take(10).toList();
         if (deals.isEmpty) return const SizedBox.shrink();
 
         return Column(
@@ -73,21 +76,24 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                             color: Colors.black,
                           ),
                         ),
-                        TextSpan(
-                          text: 'Up to 40% Off ',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFED3973),
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.baseline,
+                          baseline: TextBaseline.alphabetic,
+                          child: GradientText(
+                            'Up to 40% Off ',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        const WidgetSpan(
+                        WidgetSpan(
                           alignment: PlaceholderAlignment.middle,
                           child: Text(
                             '✦',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFFED3973),
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -238,12 +244,11 @@ class _DealCard extends StatelessWidget {
           // Price row
           Row(
             children: [
-              Text(
+              GradientText(
                 '${deal.currency}${deal.price.toStringAsFixed(0)}',
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFED3973),
                 ),
               ),
               const SizedBox(width: 5),

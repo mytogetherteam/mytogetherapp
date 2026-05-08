@@ -17,6 +17,8 @@ import '../../../../core/network/websocket_service.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -249,7 +251,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
           children: [
             RefreshIndicator(
               onRefresh: _handleRefresh,
-              color: const Color(0xFFED3A72),
+              color: AppColors.primary,
               displacement: 80,
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
@@ -344,12 +346,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                   imageAsset: 'assets/images/detail_direction.png',
                                   label: 'Direction',
                                   isActive: true,
-                                  onTap: () {
-                                    final shopId = int.tryParse(widget.id);
-                                    if (shopId != null) {
-                                      RestaurantRepository.instance.trackConversion(shopId, 'DIRECTIONS');
-                                    }
-                                  },
+                                  onTap: () => AppDialog.showUnavailable(context),
                                 ),
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_reviews.png',
@@ -371,6 +368,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                 _buildActionButton(
                                   imageAsset: 'assets/images/detail_chat.png',
                                   label: 'Chat',
+                                  onTap: () => AppDialog.showUnavailable(context),
                                 ),
                               ],
                             ),
@@ -435,56 +433,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     const SizedBox(width: 8),
                     _buildCircleIconButton(
                       icon: PhosphorIcons.shareNetwork(),
-                      onPressed: () {
-                        final shopId = int.tryParse(widget.id);
-                        if (shopId != null) {
-                          RestaurantRepository.instance.trackConversion(shopId, 'SHARES');
-                        }
-                      },
+                      onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 12),
                     _buildCircleIconButton(
                       icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                      onPressed: () async {
-                        if (_isTogglingFavorite) return;
-                        _isTogglingFavorite = true;
-                        
-                        setState(() {
-                          _isFavorite = !_isFavorite;
-                        });
-                        final messenger = ScaffoldMessenger.of(context);
-                        try {
-                           await RestaurantRepository.instance.toggleShopFavorite(
-                            int.tryParse(widget.id) ?? 0, 
-                            _isFavorite,
-                          );
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
-                                backgroundColor: const Color(0xFFED3A72),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          // Rollback on error
-                          if (mounted) {
-                            setState(() => _isFavorite = !_isFavorite);
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: const Text('Failed to update favorite. Please try again.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } finally {
-                          _isTogglingFavorite = false;
-                        }
-                      },
+                      onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
-                      iconColorOverride: _isFavorite ? const Color(0xFFED3A72) : null,
+                      iconColorOverride: _isFavorite ? AppColors.primary : null,
                     ),
                     const SizedBox(width: 16),
                   ],
@@ -697,9 +654,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     color: Color(0xFFFFEFEB),
                   ),
                   child: ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Color(0xFFED3A72), Color(0xFFF97316)],
-                    ).createShader(bounds),
+                    shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
                     child: Text(
                       'Add More Items — No Extra Delivery Fee.',
                       style: GoogleFonts.poppins(
@@ -717,9 +672,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     top: false,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                      child: Material(
-                        color: const Color(0xFFED3973),
-                        borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                         child: InkWell(
                           onTap: () {
                             final storeIdx = CartManager.instance.stores.indexWhere((s) => s.name == storeName);
@@ -779,14 +736,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFED3973),
-            Color(0xFFF97316),
-          ],
-        ),
+        gradient: AppColors.primaryGradient,
       ),
       child: Center(
         child: Text(
@@ -843,14 +793,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
             height: 65,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFED3A72), // Primary Pink
-                  Color(0xFFF97316), // Vibrant Orange
-                ],
-              ),
+              gradient: AppColors.primaryGradient,
             ),
             child: Container(
               margin: const EdgeInsets.all(1.5), // This creates the border thickness
@@ -866,7 +809,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     )
                   : Icon(
                       icon,
-                      color: const Color(0xFFED3A72),
+                      color: AppColors.primary,
                       size: 26,
                     ),
             ),

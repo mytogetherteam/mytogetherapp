@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/currency_rate_model.dart';
@@ -14,9 +16,9 @@ class CurrencyExchangePage extends StatefulWidget {
 }
 
 class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
-  static const Color _primary = Color(0xFFED3973);
-  static const Color _secondary = Color(0xFFEFA240);
-  static const List<Color> _primaryGradient = [_primary, _secondary];
+  static Color get _primary => AppColors.primary;
+  static Color get _secondary => AppColors.secondary;
+  static List<Color> get _primaryGradient => AppColors.primaryGradient.colors;
   static const Color _bgColor = Color(0xFFF5F5F5);
 
   List<CurrencyRateModel> _rates = [];
@@ -160,11 +162,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         appBar: AppBar(
           flexibleSpace: Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: _primaryGradient,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+                gradient: AppColors.primaryGradient,
             ),
           ),
           elevation: 0,
@@ -213,14 +211,13 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                         style: GoogleFonts.poppins(color: Colors.red),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primary,
-                        ),
+                      PrimaryGradientButton(
+                        width: 120,
+                        height: 45,
                         onPressed: () => _fetchRates(forceRefresh: true),
                         child: const Text(
                           'Retry',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -246,11 +243,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
 
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: _primaryGradient,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColors.primaryGradient,
       ),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(
@@ -407,7 +400,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               decoration: BoxDecoration(
                 color: _isBuy ? null : Colors.transparent,
                 gradient: _isBuy
-                    ? const LinearGradient(
+                    ? LinearGradient(
                         colors: _primaryGradient,
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -432,7 +425,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               decoration: BoxDecoration(
                 color: !_isBuy ? null : Colors.transparent,
                 gradient: !_isBuy
-                    ? const LinearGradient(
+                    ? LinearGradient(
                         colors: _primaryGradient,
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -577,16 +570,19 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         children: [
           // Flag & Name
           Expanded(
-            flex: 2,
+            flex: 5,
             child: Row(
               children: [
                 Text(rate.flagEmoji, style: const TextStyle(fontSize: 22)),
                 const SizedBox(width: 10),
-                Text(
-                  rate.currency,
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    rate.currency,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -600,30 +596,33 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Buy',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Buy',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.all(1.5),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
-                        shape: BoxShape.circle,
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.all(1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.remove,
+                          size: 9,
+                          color: Colors.orange.shade800,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.remove,
-                        size: 9,
-                        color: Colors.orange.shade800,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 2),
                 FittedBox(
@@ -649,30 +648,33 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Sell',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Sell',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.all(1.5),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade100,
-                        shape: BoxShape.circle,
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.all(1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_outward_rounded,
+                          size: 9,
+                          color: Colors.green.shade800,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.arrow_outward_rounded,
-                        size: 9,
-                        color: Colors.green.shade800,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 2),
                 FittedBox(
@@ -709,11 +711,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: _primaryGradient,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+                gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(32),
                 bottomRight: Radius.circular(32),

@@ -7,6 +7,7 @@ import '../screens/awaiting_payment_page.dart';
 import '../screens/order_complete_page.dart';
 import '../screens/order_tracking_page.dart';
 import '../../data/cart_manager.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ActiveOrderBar extends StatefulWidget {
   const ActiveOrderBar({super.key});
@@ -171,7 +172,15 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!, width: 1),
+          image: const DecorationImage(
+            image: AssetImage('assets/images/top-bannner.jpg'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Color.fromRGBO(255, 255, 255, 0.85),
+              BlendMode.lighten,
+            ),
+          ),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -255,7 +264,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
               width: size,
               height: 6,
               decoration: BoxDecoration(
-                color: delta < 0.5 ? const Color(0xFFED3973) : Colors.grey[300],
+                color: delta < 0.5 ? AppColors.primary : Colors.grey[300],
                 borderRadius: BorderRadius.circular(3),
               ),
             );
@@ -314,19 +323,22 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
   }
 
   Widget _buildTrackButton() {
-    return Row(
-      children: [
-        Text(
-          'Track order',
-          style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFED3973)),
-        ),
-        const SizedBox(width: 2),
-        const Icon(Icons.arrow_forward,
-            size: 14, color: Color(0xFFED3973)),
-      ],
+    return ShaderMask(
+      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+      child: Row(
+        children: [
+          Text(
+            'Track order',
+            style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white),
+          ),
+          const SizedBox(width: 2),
+          const Icon(Icons.arrow_forward,
+              size: 14, color: Colors.white),
+        ],
+      ),
     );
   }
 
@@ -357,8 +369,10 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
           height: 32,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFED3973) : Colors.grey[200],
+            color: active ? null : Colors.white,
+            gradient: active ? AppColors.primaryGradient : null,
             shape: BoxShape.circle,
+            border: active ? null : Border.all(color: Colors.grey[200]!, width: 1),
           ),
           child: Stack(
             children: [
@@ -412,7 +426,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFED3973),
+                      gradient: AppColors.primaryGradient,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -426,7 +440,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                           Container(
                             width: constraints.maxWidth * _progressCtrl.value,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFED3973),
+                              gradient: AppColors.primaryGradient,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -438,11 +452,11 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                               width: 6,
                               height: 6,
                               decoration: const BoxDecoration(
-                                color: Color(0xFFED3973),
+                                color: Color(0xFFF96232),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Color(0xFFED3973),
+                                    color: Color(0xFFF96232),
                                     blurRadius: 4,
                                     spreadRadius: 1,
                                   )

@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
 class PlaceCard extends StatelessWidget {
   final String name;
@@ -60,7 +62,7 @@ class PlaceCard extends StatelessWidget {
               top: 16,
               right: 16,
               child: GestureDetector(
-                onTap: onFavoriteToggle,
+                onTap: () => AppDialog.showUnavailable(context),
                 child: Container(
                     padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -69,7 +71,7 @@ class PlaceCard extends StatelessWidget {
                   ),
                   child: Icon(
                     isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                    color: isFavorite ? const Color(0xFFED3A72) : Colors.white,
+                    color: isFavorite ? AppColors.primary : Colors.white,
                     size: 20,
                   ),
                 ),

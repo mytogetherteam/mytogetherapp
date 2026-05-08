@@ -6,9 +6,12 @@ import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/data/cart_manager.dart';
 import 'shop_item_metadata_row.dart';
 
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
 class FoodMenuItemCard extends StatefulWidget {
   final String id;
@@ -253,7 +256,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                 top: 10,
                                 right: 10,
                                 child: GestureDetector(
-                                  onTap: widget.onFavoriteToggle,
+                                  onTap: () => AppDialog.showUnavailable(context),
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
@@ -264,7 +267,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       showFilledHeart
                                           ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
                                           : PhosphorIcons.heart(),
-                                      color: showFilledHeart ? const Color(0xFFED3A72) : Colors.white,
+                                      color: showFilledHeart ? AppColors.primary : Colors.white,
                                       size: 16,
                                     ),
                                   ),
@@ -319,13 +322,12 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       ),
                                       const SizedBox(width: 4),
                                     ],
-                                    Text(
+                                    GradientText(
                                       widget.displayPrice ??
                                           effectivePrice
                                               .toStringAsFixed(0)
                                               .toFormattedPrice(currency: widget.currency),
                                       style: GoogleFonts.poppins(
-                                        color: const Color(0xFFED3A72),
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),

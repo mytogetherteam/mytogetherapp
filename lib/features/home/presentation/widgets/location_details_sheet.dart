@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
 
@@ -103,7 +105,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(PhosphorIconsFill.mapPin, size: 20, color: Color(0xFFED3973)),
+                Icon(PhosphorIconsFill.mapPin, size: 20, color: AppColors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -166,34 +168,25 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               maxLines: 2,
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  final updated = widget.location.copyWith(
-                    locationName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null,
-                    locationType: _selectedType,
-                    buildingName: _buildingController.text.trim().isNotEmpty ? _buildingController.text.trim() : null,
-                    floor: _floorController.text.trim().isNotEmpty ? _floorController.text.trim() : null,
-                    note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
-                    postalCode: _postalController.text.trim().isNotEmpty ? _postalController.text.trim() : null,
-                  );
-                  Navigator.pop(context);
-                  widget.onSave(updated);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFED3973),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: Text(
-                  widget.isEdit ? 'Update Location' : 'Save Location',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+            PrimaryGradientButton(
+              onPressed: () {
+                final updated = widget.location.copyWith(
+                  locationName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null,
+                  locationType: _selectedType,
+                  buildingName: _buildingController.text.trim().isNotEmpty ? _buildingController.text.trim() : null,
+                  floor: _floorController.text.trim().isNotEmpty ? _floorController.text.trim() : null,
+                  note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
+                  postalCode: _postalController.text.trim().isNotEmpty ? _postalController.text.trim() : null,
+                );
+                Navigator.pop(context);
+                widget.onSave(updated);
+              },
+              child: Text(
+                widget.isEdit ? 'Update Location' : 'Save Location',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -263,17 +256,17 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFED3973).withValues(alpha: 0.1) : Colors.white,
+              color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? const Color(0xFFED3973) : const Color(0xFFE2E8F0),
+                color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
               ),
             ),
             child: Column(
               children: [
                 Icon(
                   icon,
-                  color: isSelected ? const Color(0xFFED3973) : Colors.grey[600],
+                  color: isSelected ? AppColors.primary : Colors.grey[600],
                   size: 20,
                 ),
                 const SizedBox(height: 4),
@@ -282,7 +275,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? const Color(0xFFED3973) : Colors.grey[600],
+                    color: isSelected ? AppColors.primary : Colors.grey[600],
                   ),
                 ),
               ],

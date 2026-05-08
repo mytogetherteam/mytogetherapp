@@ -13,6 +13,9 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -351,7 +354,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   // Price
                   Row(
                     children: [
-                      Text(
+                      GradientText(
                         (() {
                           if (widget.displayPrice != null && _selectedVariantId == null) {
                             return widget.displayPrice!;
@@ -373,7 +376,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         })(),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          color: const Color(0xFFED3973),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -471,34 +473,30 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                   // Option Groups
                   if (_currentFood != null && _currentFood!.optionGroups.isNotEmpty) ...[
+                    Text(
+                      'Add On',
+                      style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     ..._currentFood!.optionGroups.map((group) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                group.name.trim().isNotEmpty ? group.name : (group.nameMm ?? ''),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
+                          if (group.isRequired) ...[
+                            Text(
+                              group.name.trim().isNotEmpty ? group.name : (group.nameMm ?? ''),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[800],
                               ),
-                              if (group.isRequired) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  '(Required)',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: const Color(0xFFED3973),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           ...group.options.map((option) {
                             final isSelected = _selectedOptions[group.id]?.contains(option.id) ?? false;
                             final isRadio = group.groupType == 'SINGLE_SELECT' || group.groupType == 'RADIO';
@@ -533,11 +531,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               },
                             );
                           }),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
                         ],
                       );
                     }),
                   ],
+                  const SizedBox(height: 20),
 
                   // Special Instructions
                   Text(
@@ -709,7 +708,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
-                            backgroundColor: const Color(0xFFED3A72),
+                            backgroundColor: AppColors.primary,
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -730,7 +729,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     }
                   },
                     isScrolled: _isScrolled,
-                    iconColorOverride: _isFavorite ? const Color(0xFFED3A72) : null,
+                    iconColorOverride: _isFavorite ? AppColors.primary : null,
                   ),
                   const SizedBox(width: 16),
                 ],
@@ -797,10 +796,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               const SizedBox(width: 16),
               // Add to Cart / Save Changes Button
               Expanded(
-                child: Material(
-                  color: const Color(0xFFED3973),
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
                     onTap: _isAddingToCart ? null : () async {
                       if (_currentFood != null) {
                         /* 
@@ -974,7 +978,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Cart cleared and item added'),
-                                        backgroundColor: Color(0xFFED3973),
+                                        backgroundColor: AppColors.primary,
                                       ),
                                     );
                                   }
@@ -1070,7 +1074,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   ),
                 ),
               ),
-            ],
+            ),
+          ],
           ),
         ),
       ),
@@ -1110,13 +1115,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCE4EC), // Light pink
+        color: AppColors.primary.withValues(alpha: 0.1), // Light pink/branded
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
         style: GoogleFonts.poppins(
-          color: const Color(0xFFED3973),
+          color: AppColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -1135,7 +1140,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       onTap: () => onChanged(!isSelected),
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
             // Custom Radio/Checkbox
@@ -1143,11 +1148,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               height: 20,
               width: 20,
               decoration: BoxDecoration(
-                color: isSelected && !isRadio ? const Color(0xFFED3973) : Colors.transparent,
+                color: isSelected && !isRadio ? AppColors.primary : Colors.transparent,
                 shape: isRadio ? BoxShape.circle : BoxShape.rectangle,
                 borderRadius: isRadio ? null : BorderRadius.circular(6),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFED3973) : const Color(0xFF94A3B8),
+                  color: isSelected ? AppColors.primary : const Color(0xFF94A3B8),
                   width: 1.5,
                 ),
               ),
@@ -1157,8 +1162,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         ? Container(
                             width: 10,
                             height: 10,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFED3973),
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
                               shape: BoxShape.circle,
                             ),
                           )
@@ -1176,15 +1181,16 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[600],
+                height: 1.0,
               ),
             ),
             const Spacer(),
-            Text(
+            GradientText(
               price,
               style: GoogleFonts.poppins(
                 fontSize: 15,
-                color: const Color(0xFFED3973),
                 fontWeight: FontWeight.w600,
+                height: 1.0,
               ),
             ),
           ],
@@ -1244,8 +1250,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   child: Container(
                     width: 32,
                     height: 32,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFED3973),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1268,12 +1274,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(
+            GradientText(
               price.toStringAsFixed(0),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFFED3973),
               ),
             ),
           ],

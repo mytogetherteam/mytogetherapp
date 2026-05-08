@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 class SpecialPromotionCard extends StatelessWidget {
   final String title;
@@ -15,7 +17,7 @@ class SpecialPromotionCard extends StatelessWidget {
     required this.highlightText,
     required this.subtitle,
     required this.imagePath,
-    this.highlightColor = const Color(0xFFED3A72),
+    this.highlightColor = AppColors.primary,
     this.buttonColor = const Color(0xFF212121),
   });
 
@@ -76,23 +78,17 @@ class SpecialPromotionCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
-                      ElevatedButton(
+                      PrimaryGradientButton(
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: buttonColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          elevation: 0,
-                        ),
+                        height: 36,
+                        width: 130,
+                        borderRadius: BorderRadius.circular(20),
                         child: Text(
                           'ORDER NOW',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                       ),

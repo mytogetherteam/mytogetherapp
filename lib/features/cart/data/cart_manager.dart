@@ -11,6 +11,7 @@ class CartItem {
   final String title;
   final String? nameMm;
   final double price; // Using double for precision
+  final double total; // Total for this item (price * quantity + options)
   final String imagePath;
   final String? imageUrl;
   final int quantity;
@@ -27,6 +28,7 @@ class CartItem {
     required this.restaurantId,
     required this.title,
     required this.price,
+    required this.total,
     required this.imagePath,
     this.nameMm,
     this.imageUrl,
@@ -45,12 +47,14 @@ class CartItem {
 class CartStore {
   final String name;
   final List<CartItem> items;
+  final double total;
   final String distance;
   final String time;
 
   CartStore({
     required this.name,
     required this.items,
+    this.total = 0,
     this.distance = '2 km',
     this.time = '20 Mins',
   });
@@ -132,6 +136,7 @@ class CartManager extends ChangeNotifier {
   CartStore _mapDtoToStore(CartDto cart) {
     return CartStore(
       name: cart.shopName ?? 'Unknown Store',
+      total: cart.total,
       items: cart.items.map((item) => CartItem(
         id: item.id.toString(),
         menuItemId: item.menuItemId,
@@ -139,6 +144,7 @@ class CartManager extends ChangeNotifier {
         title: item.name,
         nameMm: item.nameMm,
         price: item.price,
+        total: item.total,
         imagePath: item.imageUrl ?? '',
         imageUrl: item.imageUrl,
         quantity: item.quantity,
@@ -236,6 +242,7 @@ class CartManager extends ChangeNotifier {
                distance: store.distance,
                time: store.time,
                items: updatedItems,
+               total: updatedItems.fold(0, (sum, item) => sum + item.total),
             );
           }
         } else {
@@ -246,23 +253,25 @@ class CartManager extends ChangeNotifier {
             menuItemId: oldItem.menuItemId,
             restaurantId: oldItem.restaurantId,
             title: oldItem.title,
-            price: oldItem.price, // Technically price could change based on variants/options, but the API sync will fix this in ~500ms
+            price: oldItem.price, 
+            total: (oldItem.total / oldItem.quantity) * newQuantity, // Scale total with quantity
             imagePath: oldItem.imagePath,
             nameMm: oldItem.nameMm,
             imageUrl: oldItem.imageUrl,
             quantity: newQuantity,
-            options: options ?? oldItem.options, // Use new options if provided
-            optionIds: optionIds ?? oldItem.optionIds, // Use new optionIds if provided
-            specialInstructions: specialInstructions ?? oldItem.specialInstructions, // Use new instructions if provided
-            variantId: variantId ?? oldItem.variantId, // Use new variantId if provided
-            variantName: variantName ?? oldItem.variantName, // Use new variantName if provided
-            variantNameMm: variantNameMm ?? oldItem.variantNameMm, // Use new variantNameMm if provided
+            options: options ?? oldItem.options, 
+            optionIds: optionIds ?? oldItem.optionIds, 
+            specialInstructions: specialInstructions ?? oldItem.specialInstructions, 
+            variantId: variantId ?? oldItem.variantId, 
+            variantName: variantName ?? oldItem.variantName, 
+            variantNameMm: variantNameMm ?? oldItem.variantNameMm, 
           );
           _stores[storeIndex] = CartStore(
             name: store.name,
             distance: store.distance,
             time: store.time,
             items: updatedItems,
+            total: updatedItems.fold(0, (sum, item) => sum + item.total),
           );
         }
         notifyListeners(); // Refresh UI instantly
@@ -309,7 +318,7 @@ class CartManager extends ChangeNotifier {
     int storeIndex = _stores.indexWhere((s) => s.name == storeName);
     if (storeIndex != -1) {
       for (var item in _stores[storeIndex].items) {
-        total += (item.priceValue * item.quantity);
+        total += item.total.round();
       }
     }
     return total;

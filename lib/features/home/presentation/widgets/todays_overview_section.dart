@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'food_menu_item_card.dart';
 import 'image_skeleton_loader.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'view_all_icon_button.dart';
 import '../screens/today_overview_detail_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -47,6 +48,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
         lat: activeLoc?.latitude ?? pos.latitude,
         lon: activeLoc?.longitude ?? pos.longitude,
         radiusKm: 10.0,
+        size: 10,
       ).timeout(const Duration(seconds: 5));
       return section.items.map((t) => _trendingToMenuItem(t)).toList();
     } catch (e) {
@@ -100,7 +102,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: const Color(0xFFED3A72),
+            backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -135,9 +137,9 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
           return _buildSkeleton();
         }
 
-        final displayItems = (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) // New logic
-            ? FallbackData.trendingItems
-            : snapshot.data!;
+        final displayItems = (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty)
+            ? FallbackData.trendingItems.take(10).toList()
+            : snapshot.data!.take(10).toList();
 
         return _buildContent(context, displayItems, widget.title ?? 'Trending Near By'); // Use displayItems
       },

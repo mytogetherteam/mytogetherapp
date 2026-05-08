@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -201,24 +204,16 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                     const SizedBox(height: 32),
 
                     // Register Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFED3973),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(0xFFED3973).withValues(alpha: 0.6),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    PrimaryGradientButton(
+                      onPressed: _isLoading ? null : _handleRegister,
+                      isLoading: _isLoading,
+                      child: Text(
+                        'Create Account',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16, 
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
-                        child: _isLoading
-                            ? const CustomLoadingIndicator(size: 22, color: Colors.white)
-                            : Text(
-                                'Create Account',
-                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-                              ),
                       ),
                     ),
 
@@ -233,10 +228,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                           GestureDetector(
                             onTap: () => Navigator.of(context).pop(),
-                            child: Text(
+                            child: GradientText(
                               'Login',
                               style: GoogleFonts.poppins(
-                                color: const Color(0xFFED3973),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -309,7 +303,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey[200]!, width: 1)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey[200]!, width: 1)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFED3973), width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.red, width: 1)),
         focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
       ),

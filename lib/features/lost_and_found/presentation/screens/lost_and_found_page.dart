@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../news/presentation/widgets/news_feed_item.dart';
 import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
@@ -196,7 +197,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        color: const Color(0xFFED3973),
+        color: AppColors.primary,
         edgeOffset: 60,
         child: CustomScrollView(
           controller: _scrollController,
@@ -219,12 +220,12 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFED3973).withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.fill),
-                      color: const Color(0xFFED3973),
+                      color: AppColors.primary,
                       size: 18,
                     ),
                   ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
 class FoodListItemCard extends StatelessWidget {
   final String title;
@@ -120,10 +123,10 @@ class FoodListItemCard extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: onFavoriteToggle,
+                          onTap: () => AppDialog.showUnavailable(context),
                           child: Icon(
                             isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                            color: isFavorite ? const Color(0xFFED3A72) : Colors.grey[400],
+                            color: isFavorite ? AppColors.primary : Colors.grey[400],
                             size: 20,
                           ),
                         ),
@@ -170,12 +173,11 @@ class FoodListItemCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                           ],
-                          Text(
+                          GradientText(
                             displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFED3973),
                             ),
                           ),
                         ],
@@ -191,7 +193,7 @@ class FoodListItemCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFED3973),
+                    gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

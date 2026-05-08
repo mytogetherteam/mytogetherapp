@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/news_image_viewer.dart';
 import '../../data/models/news_item.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 class NewsComment {
   final String authorName;
@@ -300,11 +302,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFED3973), Color(0xFFFBA15C)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -355,7 +353,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     Row(
                       children: [
                         Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), 
-                          color: const Color(0xFFED3973), size: 18),
+                          color: AppColors.primary, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -512,7 +510,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           onTap: _toggleLike,
                           child: Icon(
                             _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                            color: _isLiked ? const Color(0xFFED3973) : Colors.black87,
+                            color: _isLiked ? AppColors.primary : Colors.black87,
                             size: 22,
                           ),
                         ),
@@ -685,7 +683,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             padding: const EdgeInsets.all(8),
                             child: Icon(
                               PhosphorIcons.gif(PhosphorIconsStyle.bold),
-                              color: _isGifPickerVisible ? const Color(0xFFED3973) : Colors.grey[600],
+                              color: _isGifPickerVisible ? AppColors.primary : Colors.grey[600],
                               size: 24,
                             ),
                           ),
@@ -701,7 +699,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFED3973),
+                      gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -719,7 +717,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
               height: _isGifPickerVisible ? 200 : 0,
               padding: const EdgeInsets.only(top: 12),
               child: _isLoadingGifs
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFED3973)))
+                  ? Center(child: CircularProgressIndicator(color: AppColors.primary))
                   : _trendingGifs.isEmpty
                       ? Center(
                           child: Column(
@@ -733,9 +731,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               ),
                               TextButton(
                                 onPressed: _fetchGifsToCache,
-                                child: Text(
+                                child: GradientText(
                                   'Retry',
-                                  style: GoogleFonts.poppins(color: const Color(0xFFED3973), fontWeight: FontWeight.w600),
+                                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],

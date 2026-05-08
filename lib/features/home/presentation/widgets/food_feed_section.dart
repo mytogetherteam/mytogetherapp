@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -170,7 +171,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: const Color(0xFFED3A72),
+            backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
         );

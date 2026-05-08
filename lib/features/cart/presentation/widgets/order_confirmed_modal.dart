@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class OrderConfirmedModal extends StatefulWidget {
   const OrderConfirmedModal({super.key});
@@ -63,49 +65,38 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
         ),
         const SizedBox(height: 32),
         // Primary Button
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: () {
-              if (_isConfirmed) {
-                // Action for Chat
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFED3973),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: _isConfirmed
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Chat with Restaurant',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+        PrimaryGradientButton(
+          onPressed: () {
+            if (_isConfirmed) {
+              // Action for Chat
+            } else {
+              Navigator.pop(context);
+            }
+          },
+          child: _isConfirmed
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Chat with Restaurant',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
-                    ],
-                  )
-                : Text(
-                    'Continue Order',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
                     ),
+                  ],
+                )
+              : Text(
+                  'Continue Order',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-          ),
+                ),
         ),
         const SizedBox(height: 16),
         // Check Order Status Button
@@ -150,7 +141,7 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
                         TextSpan(
                           text: 'here.',
                           style: GoogleFonts.poppins(
-                            color: const Color(0xFFED3973), // Primary color as requested
+                            color: AppColors.primary, // Primary color as requested
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
                           ),

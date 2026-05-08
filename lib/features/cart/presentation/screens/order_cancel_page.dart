@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/active_order_state.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class OrderCancelPage extends StatelessWidget {
   final String orderId;
@@ -167,25 +169,32 @@ class OrderCancelPage extends StatelessWidget {
                           ),
                           child: Column(
                             children: [
-                              // Logo Section
+                              // Logo Section (Prioritize Logo, then Image)
                               Container(
-                                width: 70,
-                                height: 70,
+                                width: 80,
+                                height: 80,
                                 margin: const EdgeInsets.only(bottom: 16),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.grey[50],
-                                  border: Border.all(color: Colors.grey[200]!),
+                                  border: Border.all(color: Colors.grey[100]!, width: 2),
                                 ),
                                 child: ClipOval(
-                                  child: hasLogo
+                                  child: (shopLogo != null && shopLogo!.isNotEmpty)
                                       ? CachedNetworkImage(
                                           imageUrl: shopLogo!,
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                           errorWidget: (context, url, error) => _buildNoImagePlaceholder(isLogo: true),
                                         )
-                                      : _buildNoImagePlaceholder(isLogo: true),
+                                      : (shopImageUrl != null && shopImageUrl!.isNotEmpty)
+                                          ? CachedNetworkImage(
+                                              imageUrl: shopImageUrl!,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                              errorWidget: (context, url, error) => _buildNoImagePlaceholder(isLogo: true),
+                                            )
+                                          : _buildNoImagePlaceholder(isLogo: true),
                                 ),
                               ),
                               
@@ -214,26 +223,7 @@ class OrderCancelPage extends StatelessWidget {
                                   ),
                               ],
 
-                              const SizedBox(height: 16),
-                              // Shop Image Section
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 150,
-                                  color: Colors.grey[50],
-                                  child: hasImage
-                                      ? CachedNetworkImage(
-                                          imageUrl: shopImageUrl!,
-                                          width: double.infinity,
-                                          height: 150,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) => Container(color: Colors.grey[50]),
-                                          errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
-                                        )
-                                      : _buildNoImagePlaceholder(),
-                                ),
-                              ),
+
                             ],
                           ),
                         ),
@@ -246,9 +236,9 @@ class OrderCancelPage extends StatelessWidget {
                           padding: const EdgeInsets.all(20),
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF2F6),
+                            color: AppColors.primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFED3973).withValues(alpha: 0.1)),
+                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
                           ),
                           child: Column(
                             children: [
@@ -257,7 +247,7 @@ class OrderCancelPage extends StatelessWidget {
                                 children: [
                                   Icon(
                                     PhosphorIcons.info(PhosphorIconsStyle.fill),
-                                    color: const Color(0xFFED3973),
+                                    color: AppColors.primary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -266,7 +256,7 @@ class OrderCancelPage extends StatelessWidget {
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFED3973),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ],
@@ -276,7 +266,7 @@ class OrderCancelPage extends StatelessWidget {
                                 reason!,
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
-                                  color: const Color(0xFFED3973),
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 textAlign: TextAlign.center,
@@ -294,25 +284,14 @@ class OrderCancelPage extends StatelessWidget {
               // Back to Home Button
               Padding(
                 padding: const EdgeInsets.only(bottom: 24.0, top: 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => _onViewRestaurant(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFED3973),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      "View Restaurant",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                child: PrimaryGradientButton(
+                  onPressed: () => _onViewRestaurant(context),
+                  child: Text(
+                    "View Restaurant",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),

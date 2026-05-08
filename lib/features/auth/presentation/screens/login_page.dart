@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -31,6 +36,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
         .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
+    FlutterNativeSplash.remove();
   }
 
   @override
@@ -54,33 +60,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  e.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFFED3973),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          duration: const Duration(seconds: 4),
-          elevation: 0,
-        ),
-      );
+      AppDialog.showToast(context, e.toString(), isError: true);
     } finally {
       if (mounted) setState(() { _isLoading = false; });
     }
@@ -195,10 +175,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       MaterialPageRoute(builder: (_) => const RegisterPage()),
                                     );
                                   },
-                                  child: Text(
+                                  child: GradientText(
                                     'Sign Up',
                                     style: GoogleFonts.poppins(
-                                      color: const Color(0xFFED3973),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -275,7 +254,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFED3973), width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -291,31 +270,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
 
   Widget _buildLoginButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFED3973),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFED3973).withValues(alpha: 0.6),
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ).copyWith(
-          overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.1)),
+    return PrimaryGradientButton(
+      onPressed: _handleLogin,
+      isLoading: _isLoading,
+      child: Text(
+        'Login',
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          color: Colors.white,
         ),
-        child: _isLoading
-            ? const CustomLoadingIndicator(size: 22, color: Colors.white)
-            : Text(
-                'Login',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
       ),
     );
   }

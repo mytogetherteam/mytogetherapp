@@ -81,10 +81,4 @@ void main() async {
   print('[BOOT] Calling runApp()...');
   runApp(const App());
   print('[BOOT] runApp() called.');
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    print('[BOOT] --- FIRST FRAME RENDERED ---');
-    FlutterNativeSplash.remove();
-    print('[BOOT] Native splash removal requested.');
-  });
 }

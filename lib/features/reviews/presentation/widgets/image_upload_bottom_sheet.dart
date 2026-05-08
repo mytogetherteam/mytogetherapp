@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 enum ImageUploadAction { gallery, camera, remove }
 
@@ -44,7 +45,7 @@ class ImageUploadBottomSheet {
                 
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  leading: const Icon(Icons.photo_library_outlined, color: Color(0xFFED3A72)),
+                  leading: Icon(Icons.photo_library_outlined, color: AppColors.primary),
                   title: Text(
                     'Choose from Gallery',
                     style: GoogleFonts.poppins(
@@ -58,7 +59,7 @@ class ImageUploadBottomSheet {
                 
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFFED3A72)),
+                  leading: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
                   title: Text(
                     'Take a Photo',
                     style: GoogleFonts.poppins(
@@ -92,7 +93,7 @@ class ImageUploadBottomSheet {
                     'Cancel',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      color: const Color(0xFF9E4751), // matching the darker pink cancel text from UI
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

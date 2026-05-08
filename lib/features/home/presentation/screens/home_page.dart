@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../widgets/category_card.dart';
 import '../widgets/together_deals_section.dart';
@@ -15,6 +17,7 @@ import '../../../../core/utils/image_utils.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -25,6 +28,8 @@ import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -114,13 +119,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           _bottomBanners = bottomBanners;
           _isLoadingBanners = false;
         });
+
+        // After setting state, precache the first image of each to ensure they are ready
+        // then remove splash
+        _removeSplashAfterImagesLoaded();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingBanners = false;
         });
+        FlutterNativeSplash.remove(); // Remove even on error
       }
+    }
+  }
+
+  Future<void> _removeSplashAfterImagesLoaded() async {
+    try {
+      final List<Future> precacheTasks = [];
+      
+      if (_topBanners.isNotEmpty) {
+        final firstTop = _topBanners.first.image;
+        if (!firstTop.startsWith('assets/')) {
+          precacheTasks.add(precacheImage(
+            CachedNetworkImageProvider(_getImageUrl(firstTop)),
+            context,
+          ));
+        }
+      }
+      
+      if (_bottomBanners.isNotEmpty) {
+        final firstBottom = _bottomBanners.first.image;
+        if (!firstBottom.startsWith('assets/')) {
+          precacheTasks.add(precacheImage(
+            CachedNetworkImageProvider(_getImageUrl(firstBottom)),
+            context,
+          ));
+        }
+      }
+
+      // Wait for at most 2 seconds for images to load, then remove splash anyway
+      await Future.wait(precacheTasks).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => [],
+      );
+    } catch (_) {
+      // Ignore errors in precaching
+    } finally {
+      FlutterNativeSplash.remove();
     }
   }
 
@@ -201,7 +247,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   });
                   await _fetchBanners();
                 },
-                color: const Color(0xFFED3973),
+                color: AppColors.primary,
                 displacement: MediaQuery.of(context).padding.top + 80,
                 child: SingleChildScrollView(
                   controller: _scrollController,
@@ -210,315 +256,245 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   child: Column(
                     children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).padding.top + 70,
-                      ), // Push content below fixed header
-                      // Search Bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                PhosphorIcons.magnifyingGlass(),
-                                color: Colors.grey.shade500,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Search food, restaurants & more ...',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Banner Carousel
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: SizedBox(
-                          height: 120,
-                          width: double.infinity,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: PageView.builder(
-                              controller: _bannerController,
-                              onPageChanged: (index) {
-                                if (_topBanners.isEmpty) return;
-                                setState(() {
-                                  _currentBannerIndex =
-                                      index % _topBanners.length;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                if (_isLoadingBanners) {
-                                  return const ImageSkeletonLoader(
-                                    showLogo: true,
-                                  );
-                                }
-                                if (_topBanners.isEmpty) {
-                                  return Container(
-                                    color: Colors.grey.shade100,
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      color: Colors.grey,
-                                    ),
-                                  );
-                                }
-                                final realIndex = index % _topBanners.length;
-                                final banner = _topBanners[realIndex];
-                                final image = banner.image;
-                                if (image.startsWith('assets/')) {
-                                  return Image.asset(
-                                    image,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  );
-                                }
-                                return CachedNetworkImage(
-                                  imageUrl: _getImageUrl(image),
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      const ImageSkeletonLoader(showLogo: true),
-                                  errorWidget: (context, url, error) =>
-                                      Image.asset(
-                                        'assets/images/top-bannner.jpg',
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                      ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Dots Indicator
-                      if (!_isLoadingBanners && _topBanners.isNotEmpty)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            _topBanners.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: _currentBannerIndex == index ? 20 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _currentBannerIndex == index
-                                    ? const Color(0xFFED3973)
-                                    : const Color(0xFFFFC0CB),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      const SizedBox(
-                        height: 10,
-                      ), // Added back small spacer for better rhythm
-                      // Main White Section (Category Grid & Below)
-                      Container(
-                        width: double.infinity,
-                        decoration: const BoxDecoration(
+                    SizedBox(height: MediaQuery.of(context).padding.top + 70), // Push content below fixed header
+                    
+                    // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: GestureDetector(
+                      onTap: () => AppDialog.showUnavailable(context),
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(32),
-                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
-                              child: GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount:
-                                    MediaQuery.of(context).size.width > 600
-                                    ? 5
-                                    : 3,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                                childAspectRatio: 0.95,
-                                children: [
-                                  CategoryCard(
-                                    title: 'Food &\nRestaurant',
-                                    assetPath:
-                                        'assets/images/services/food_3d.png',
-                                    onTap: () => NavigationController.instance
-                                        .goToFoodTab(),
-                                  ),
-                                  CategoryCard(
-                                    title: 'Lost &\nFound',
-                                    assetPath:
-                                        'assets/images/services/lost_found_3d.png',
-                                    badgeText: '4',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const LostAndFoundPage(),
-                                      ),
-                                    ),
-                                  ),
-                                  CategoryCard(
-                                    title: 'Currency\nExchange',
-                                    assetPath:
-                                        'assets/images/services/exchange_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const CurrencyExchangePage(),
-                                      ),
-                                    ),
-                                  ),
-                                  CategoryCard(
-                                    title: 'Visa',
-                                    assetPath:
-                                        'assets/images/services/visa_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const VisaPage(),
-                                      ),
-                                    ),
-                                  ),
-                                  CategoryCard(
-                                    title: 'Places',
-                                    assetPath:
-                                        'assets/images/services/places_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const PlacesListPage(),
-                                      ),
-                                    ),
-                                  ),
-                                  CategoryCard(
-                                    title: 'Store',
-                                    assetPath:
-                                        'assets/images/services/store_3d.png',
-                                    isComingSoon: true,
-                                  ),
-                                ],
+                            Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey.shade500, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Search food, restaurants & more ...',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey.shade500,
+                                fontSize: 14,
                               ),
                             ),
-                            const SizedBox(height: 20),
-
-                            // Second Promo Banner Section (Below Categories)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Banner Carousel
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: SizedBox(
+                      height: 120,
+                      width: double.infinity,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: PageView.builder(
+                          controller: _bannerController,
+                          onPageChanged: (index) {
+                            if (_topBanners.isEmpty) return;
+                            setState(() {
+                              _currentBannerIndex = index % _topBanners.length;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            if (_isLoadingBanners) {
+                              return const ImageSkeletonLoader(showLogo: true);
+                            }
+                            if (_topBanners.isEmpty) {
+                              return Container(
+                                color: Colors.grey.shade100,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                              );
+                            }
+                            final realIndex = index % _topBanners.length;
+                            final banner = _topBanners[realIndex];
+                            final image = banner.image;
+                            if (image.startsWith('assets/')) {
+                              return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
+                            }
+                            return CachedNetworkImage(
+                              imageUrl: _getImageUrl(image),
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
+                              errorWidget: (context, url, error) => Container(
+                                color: AppColors.primary,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.broken_image, color: Colors.white),
                               ),
-                              child: Column(
-                                children: [
-                                  Container(
-                                    height: 160,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: PageView.builder(
-                                        controller: _promoController,
-                                        onPageChanged: (index) {
-                                          if (_bottomBanners.isEmpty) return;
-                                          setState(() {
-                                            _currentPromoIndex =
-                                                index % _bottomBanners.length;
-                                          });
-                                        },
-                                        itemBuilder: (context, index) {
-                                          if (_isLoadingBanners) {
-                                            return const ImageSkeletonLoader(
-                                              showLogo: true,
-                                            );
-                                          }
-                                          if (_bottomBanners.isEmpty) {
-                                            return Container(
-                                              color: Colors.grey.shade100,
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                Icons.image_not_supported,
-                                                color: Colors.grey,
-                                              ),
-                                            );
-                                          }
-                                          final realIndex =
-                                              index % _bottomBanners.length;
-                                          return CachedNetworkImage(
-                                            imageUrl: _getImageUrl(
-                                              _bottomBanners[realIndex].image,
-                                            ),
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            placeholder: (context, url) =>
-                                                const ImageSkeletonLoader(
-                                                  showLogo: true,
-                                                ),
-                                            errorWidget:
-                                                (
-                                                  context,
-                                                  url,
-                                                  error,
-                                                ) => Image.asset(
-                                                  'assets/images/top-bannner.jpg',
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                ),
-                                          );
-                                        },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Dots Indicator
+                  if (!_isLoadingBanners && _topBanners.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_topBanners.length, (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentBannerIndex == index ? 20 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _currentBannerIndex == index ? AppColors.primary : AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      )),
+                    ),
+                    
+                    const SizedBox(height: 10), // Added back small spacer for better rhythm
+                    // Main White Section (Category Grid & Below)
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
+                            child: GridView.count(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 0.85,
+                              children: [
+                                      CategoryCard(
+                                        title: 'Food &\nRestaurant',
+                                        assetPath: 'assets/images/services/food_3d.png',
+                                        onTap: () => NavigationController.instance.goToFoodTab(),
                                       ),
-                                    ),
+                                      CategoryCard(
+                                        title: 'Lost &\nFound',
+                                        assetPath: 'assets/images/services/lost_found_3d.png',
+                                        badgeText: '4',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const LostAndFoundPage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Currency\nExchange',
+                                        assetPath: 'assets/images/services/exchange_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const CurrencyExchangePage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Visa',
+                                        assetPath: 'assets/images/services/visa_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const VisaPage(),
+                                          ),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Places',
+                                        assetPath: 'assets/images/services/places_3d.png',
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const PlacesListPage()),
+                                        ),
+                                      ),
+                                      CategoryCard(
+                                        title: 'Store',
+                                        assetPath: 'assets/images/services/store_3d.png',
+                                        isComingSoon: true,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 12),
-                                  // Dots Indicator for Second Banner
-                                  if (!_isLoadingBanners &&
-                                      _bottomBanners.isNotEmpty)
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: List.generate(
-                                        _bottomBanners.length,
-                                        (index) => AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 300,
+                                ),
+                                const SizedBox(height: 20),
+                                
+                                // Second Promo Banner Section (Below Categories)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        height: 200,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(18),
+                                          child: PageView.builder(
+                                            controller: _promoController,
+                                            onPageChanged: (index) {
+                                              if (_bottomBanners.isEmpty) return;
+                                              setState(() {
+                                                _currentPromoIndex = index % _bottomBanners.length;
+                                              });
+                                            },
+                                            itemBuilder: (context, index) {
+                                              if (_isLoadingBanners) {
+                                                return const ImageSkeletonLoader(showLogo: true);
+                                              }
+                                              if (_bottomBanners.isEmpty) {
+                                                return Container(
+                                                  color: Colors.grey.shade100,
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                                );
+                                              }
+                                              final realIndex = index % _bottomBanners.length;
+                                              return CachedNetworkImage(
+                                                imageUrl: _getImageUrl(_bottomBanners[realIndex].image),
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
+                                                errorWidget: (context, url, error) => Container(
+                                                  color: AppColors.primary,
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(Icons.broken_image, color: Colors.white),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                          margin: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                          ),
-                                          width: _currentPromoIndex == index
-                                              ? 24
-                                              : 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: _currentPromoIndex == index
-                                                ? const Color(0xFFED3973)
-                                                : const Color(0xFFD1D1D1),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      // Dots Indicator for Second Banner
+                                      if (!_isLoadingBanners && _bottomBanners.isNotEmpty)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(_bottomBanners.length, (index) => AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                                            width: _currentPromoIndex == index ? 24 : 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: _currentPromoIndex == index ? AppColors.primary : const Color(0xFFD1D1D1),
+                                              borderRadius: BorderRadius.circular(4),
                                             ),
                                           ),
                                         ),
@@ -620,121 +596,115 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         // Top Row: Gift Icon, Logo, Notification Bell
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Gift Icon (Top Left)
-                              Image.asset(
-                                'assets/images/gift.gif',
-                                width: 34,
-                                height: 34,
-                                fit: BoxFit.contain,
-                              ),
-                              // Logo (Center)
-                              Row(
-                                children: [
-                                  Image.asset(
-                                    'assets/images/icon.png',
-                                    height: 32,
-                                    width: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Gift Icon (Top Left)
+                        Image.asset(
+                          'assets/images/gift.gif',
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.contain,
+                        ),
+                        // Logo (Center)
+                        Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/icon.png',
+                              height: 32,
+                              width: 32,
+                            ),
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: ShaderMask(
+                                shaderCallback: (bounds) => LinearGradient(
+                                  colors: [AppColors.primary, const Color(0xFFF96232)],
+                                ).createShader(bounds),
+                                child: Text(
+                                  'MyTogether',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 22,
+                                    color: Colors.white,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: ShaderMask(
-                                      shaderCallback: (bounds) =>
-                                          const LinearGradient(
-                                            colors: [
-                                              Color(0xFFED3973),
-                                              Color(0xFFF96232),
-                                            ],
-                                          ).createShader(bounds),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Notification Bell (Top Right)
+                        ValueListenableBuilder<int>(
+                          valueListenable: NotificationRepository().unreadCount,
+                          builder: (context, count, _) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const NotificationsPage(),
+                                  ),
+                                );
+                              },
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      PhosphorIcons.bell(),
+                                      size: 24,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -2,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 1.5),
+                                      ),
                                       child: Text(
-                                        'MyTogether',
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 22,
+                                        count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
+                                        style: const TextStyle(
                                           color: Colors.white,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              // Notification Bell (Top Right)
-                              ValueListenableBuilder<int>(
-                                valueListenable:
-                                    NotificationRepository().unreadCount,
-                                builder: (context, count, _) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const NotificationsPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            PhosphorIcons.bell(),
-                                            size: 24,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: -2,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFED3973),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Colors.white,
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              count > 0
-                                                  ? (count > 9
-                                                        ? '9+'
-                                                        : count.toString())
-                                                  : '4', // Mockup shows 4
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
+      // Active Order Bar (Floating at bottom, home page only)
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 4 + MediaQuery.of(context).padding.bottom, 
+        child: const ActiveOrderBar(),
+      ),
+    ],
+  ),
+),
+);
+}
 }

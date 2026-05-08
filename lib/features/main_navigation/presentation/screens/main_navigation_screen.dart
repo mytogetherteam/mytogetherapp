@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
@@ -9,13 +10,13 @@ import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
 import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
-import '../../../../features/cart/presentation/widgets/active_order_bar.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../../../../features/auth/presentation/screens/login_page.dart';
 import '../../../../core/network/websocket_service.dart';
+import '../../../../features/auth/presentation/screens/profile_page.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -34,6 +35,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     FoodPage(),
     OrderHistoryPage(),
     NewsPage(),
+    ProfilePage(),
   ];
 
   @override
@@ -105,43 +107,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onTabTapped(int index) {
-    if (index == 4) {
-      _handleProfileClick();
-      return;
-    }
     setState(() {
       _currentIndex = index;
     });
   }
 
-  void _handleProfileClick() {
-    AppDialog.show(
-      context: context,
-      title: 'Logout',
-      content: 'Are you sure you want to log out?',
-      buttonText: 'Logout',
-      secondaryButtonText: 'Cancel',
-      onButtonPressed: () async {
-        Navigator.pop(context); // Close dialog
-        
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CustomLoadingIndicator(size: 40)),
-        );
-        
-        await AuthRepository.instance.logout();
-        
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false,
-          );
-        }
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,12 +122,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           IndexedStack(
             index: _currentIndex,
             children: _screens,
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 70 + MediaQuery.of(context).padding.bottom, // Push above custom nav bar
-            child: const ActiveOrderBar(),
           ),
         ],
       ),
@@ -203,10 +167,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               Column(
                 children: [
                   ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
+                    shaderCallback: (bounds) => LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
-                      colors: [Color(0xFFED3973), Color(0xFFF96232)],
+                      colors: AppColors.primaryGradient.colors,
                     ).createShader(bounds),
                     child: Icon(
                       activeIcon, 
@@ -215,12 +179,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFED3973),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: AppColors.primaryGradient.colors,
+                    ).createShader(bounds),
+                    child: Text(
+                      label,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

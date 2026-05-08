@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -25,7 +31,13 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     _ratingScore = 0;
   }
 
-  Color get primaryColor => const Color(0xFFED3A72);
+  Color get primaryColor => AppColors.primary;
+
+  String _getImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return '${ApiClient.baseUrl}/$path';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,22 +85,29 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     return Row(
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: widget.order.shopImageUrl != null
-                ? Image.network(
-                    widget.order.shopImageUrl!,
+            child: widget.order.shopImageUrl != null && widget.order.shopImageUrl!.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: _getImageUrl(widget.order.shopImageUrl),
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Container(color: Colors.grey[200]),
+                    placeholder: (context, url) => Container(color: Colors.grey[100]),
+                    errorWidget: (context, url, error) =>
+                        Container(
+                    color: Colors.grey[100],
+                    child: Icon(Icons.storefront_rounded, size: 20, color: Colors.grey[400]),
+                  ),
                   )
-                : Container(color: Colors.grey[200]),
+                : Container(
+                    color: Colors.grey[100],
+                    child: Icon(Icons.storefront_rounded, size: 20, color: Colors.grey[400]),
+                  ),
           ),
         ),
         const SizedBox(width: 8),
@@ -129,12 +148,11 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
+            GradientText(
               widget.order.displayTotalAmount ?? '฿${widget.order.totalAmount}',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: primaryColor,
               ),
             ),
             const SizedBox(height: 4),
@@ -180,11 +198,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
           child: ClipRRect(
              borderRadius: BorderRadius.circular(8),
-             child: item.menuItemImageUrl != null
-                ? Image.network(
-                    item.menuItemImageUrl!,
+             child: item.menuItemImageUrl != null && item.menuItemImageUrl!.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: _getImageUrl(item.menuItemImageUrl),
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
+                    placeholder: (context, url) => Container(color: Colors.grey[100]),
+                    errorWidget: (context, url, error) =>
                         Container(color: Colors.grey[200]),
                   )
                 : Container(color: Colors.grey[200]),
@@ -228,18 +247,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
        return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Last updated: ${widget.order.updatedAt ?? widget.order.createdAt}',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
-            ),
+            const Spacer(),
             Container(
                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                decoration: BoxDecoration(
                  color: primaryColor.withValues(alpha: 0.1),
-                 borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(12),
                ),
                child: Text(
                  'In Progress',
@@ -267,22 +280,17 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             color: Colors.grey[500],
           ),
         ),
-        ElevatedButton(
-           onPressed: () {},
-           style: ElevatedButton.styleFrom(
-             backgroundColor: primaryColor,
-             foregroundColor: Colors.white,
-             elevation: 0,
-             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-             shape: RoundedRectangleBorder(
-               borderRadius: BorderRadius.circular(100),
-             ),
-           ),
+        PrimaryGradientButton(
+           onPressed: () => AppDialog.showUnavailable(context),
+           height: 42,
+           width: 120,
+           borderRadius: BorderRadius.circular(12),
            child: Text(
              btnLabel,
              style: GoogleFonts.poppins(
                fontWeight: FontWeight.w600,
                fontSize: 13,
+               color: Colors.white,
              ),
            ),
         ),

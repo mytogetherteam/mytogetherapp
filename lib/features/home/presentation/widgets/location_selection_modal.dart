@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/location/location_service.dart';
@@ -242,11 +243,11 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFED3973),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFED3973).withValues(alpha: 0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -359,13 +360,13 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: location.isPrimary ? const Color(0xFFED3973).withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
+                color: location.isPrimary ? AppColors.primary.withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getLocationIcon(location.locationType),
                 size: 22,
-                color: location.isPrimary ? const Color(0xFFED3973) : Colors.grey.shade600,
+                color: location.isPrimary ? AppColors.primary : Colors.grey.shade600,
               ),
             ),
             const SizedBox(width: 14),
@@ -391,7 +392,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFED3973).withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -399,7 +400,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFED3973),
+                              color: AppColors.primary,
                             ),
                           ),
                         ),

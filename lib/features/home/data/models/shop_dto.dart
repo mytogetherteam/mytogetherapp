@@ -100,6 +100,7 @@ class ShopListItemDto {
   final int reviewCount;
   final String? primaryPhotoUrl;
   final String? logoUrl;
+  final String? coverUrl;
   final double distance;
   final String? address;
   final bool isOpen;
@@ -120,6 +121,7 @@ class ShopListItemDto {
     required this.reviewCount,
     this.primaryPhotoUrl,
     this.logoUrl,
+    this.coverUrl,
     required this.distance,
     this.address,
     required this.isOpen,
@@ -142,6 +144,7 @@ class ShopListItemDto {
       reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
+      coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
       distance: (json['distance'] ?? 0.0).toDouble(),
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,

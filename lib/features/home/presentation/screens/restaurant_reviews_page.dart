@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -116,7 +117,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
       future: _summaryFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFED3973)));
+          return Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (snapshot.hasError) return const SizedBox.shrink();
@@ -202,7 +203,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
               child: LinearProgressIndicator(
                 value: percentage,
                 backgroundColor: const Color(0xFFF1F5F9),
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFED3973)),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 minHeight: 8,
               ),
             ),
@@ -273,11 +274,11 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
               Container(
                 width: 44,
                 height: 44,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFF1F2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_outline, color: Color(0xFFED3973), size: 24),
+                child: Icon(Icons.person_outline, color: AppColors.primary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(

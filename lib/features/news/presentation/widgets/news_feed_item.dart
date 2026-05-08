@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'news_image_viewer.dart'; // Added import
 import '../../data/models/news_item.dart';
 import '../screens/news_detail_page.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 
 class NewsFeedItem extends StatefulWidget {
   final NewsItem item;
@@ -163,7 +165,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             Row(
                               children: [
                                 Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), 
-                                  color: const Color(0xFFED3973), size: 18),
+                                  color: AppColors.primary, size: 18),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -236,12 +238,12 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                             _isExpanded = true;
                                           });
                                         },
-                                        child: Text(
+                                        child: GradientText(
                                           'See more',
                                           style: GoogleFonts.poppins(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFFED3973),
+                                            color: Colors.white,
                                           ),
                                         ),
                                       ),
@@ -380,15 +382,15 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFED3973), Color(0xFFFBA15C)],
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient.colors,
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFED3973).withOpacity(0.2),
+                          color: AppColors.primary.withOpacity(0.2),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -426,7 +428,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 onTap: _toggleLike,
                 child: Icon(
                   _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                  color: _isLiked ? const Color(0xFFED3973) : Colors.black87,
+                  color: _isLiked ? AppColors.primary : Colors.black87,
                   size: 24,
                 ),
               ),

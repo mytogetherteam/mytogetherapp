@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../data/review_demo_data.dart';
 import '../widgets/rating_progress_bar.dart';
 import '../widgets/review_filter_chip.dart';
@@ -66,7 +68,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
         children: [
           RefreshIndicator(
             onRefresh: _loadData,
-            color: const Color(0xFFED3A72),
+            color: AppColors.primary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 100), // Space for sticky button
@@ -243,7 +245,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                 ],
               ),
               child: SafeArea(
-                child: ElevatedButton(
+                child: PrimaryGradientButton(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -252,14 +254,6 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFED3A72),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
                   child: Text(
                     'Write a Review',
                     style: GoogleFonts.poppins(

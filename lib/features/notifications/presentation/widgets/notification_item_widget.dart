@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/models/notification_model.dart';
 
 class NotificationItemWidget extends StatelessWidget {
@@ -99,7 +100,7 @@ class NotificationItemWidget extends StatelessWidget {
       case 'SYSTEM':
       case 'ADMIN':
         iconData = Icons.notifications_none_outlined;
-        iconColor = const Color(0xFFED3973); // Main pink for admin
+        iconColor = AppColors.primary; // Main pink for admin
         break;
       default:
         iconData = Icons.notifications_none_outlined;

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_section.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
 // import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
-import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/all_restaurants_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurants_section.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -61,41 +64,53 @@ class _FoodPageState extends State<FoodPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         floatingActionButton: const StyledCartFab(),
-        body: Column(
+        body: Stack(
           children: [
-            FoodHeader(onLocationChanged: _onRefresh),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _onRefresh,
-                color: const Color(0xFFED3973),
-                child: SingleChildScrollView(
-                  key: _refreshKey,
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator to work on short lists
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
-                      FoodQuickAccessSection(
-                        onNearbyTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const RestaurantNearbyListPage()),
-                          );
-                        },
-                        onForYouTap: () => _scrollToSection('for-you'),
-                        onTrendingTap: () => _scrollToSection('trending'),
-                        onPopularTap: () => _scrollToSection('popular-dishes'),
+            Column(
+              children: [
+                FoodHeader(onLocationChanged: _onRefresh),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child: SingleChildScrollView(
+                      key: _refreshKey,
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator to work on short lists
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 16),
+                          FoodQuickAccessSection(
+                            onNearbyTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const AllRestaurantsPage()),
+                              );
+                            },
+                            onForYouTap: () => _scrollToSection('for-you'),
+                            onTrendingTap: () => _scrollToSection('trending'),
+                            onPopularTap: () => _scrollToSection('popular-dishes'),
+                          ),
+                          // Hiding special promotion for now
+                          // const SpecialPromotionSection(),
+                          const SizedBox(height: 20),
+                          // ── 5 live feed sections ───────────────────────────
+                          const FoodRestaurantsSection(),
+                          ..._buildFeedSections(),
+                          _buildEndOfListMessage(),
+                          const SizedBox(height: 80), // Space for ActiveOrderBar
+                        ],
                       ),
-                      // Hiding special promotion for now
-                      // const SpecialPromotionSection(),
-                      const SizedBox(height: 20),
-                      // ── 5 live feed sections ───────────────────────────
-                      ..._buildFeedSections(),
-                      _buildEndOfListMessage(),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 4 + MediaQuery.of(context).padding.bottom, 
+              child: const ActiveOrderBar(),
             ),
           ],
         ),

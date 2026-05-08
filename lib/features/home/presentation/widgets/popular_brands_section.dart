@@ -36,6 +36,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
         lat: activeLoc?.latitude ?? pos.latitude,
         lon: activeLoc?.longitude ?? pos.longitude,
         radius: 10.0,
+        size: 10,
       ).timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('PopularBrandsSection: API error: $e');
@@ -52,7 +53,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           return _buildSkeleton();
         }
 
-        final List<Restaurant> brands = snapshot.data ?? [];
+        final List<Restaurant> brands = (snapshot.data ?? []).take(10).toList();
         if (brands.isEmpty) return const SizedBox.shrink();
 
         // Group brands into chunks of 3 for the horizontal scroll

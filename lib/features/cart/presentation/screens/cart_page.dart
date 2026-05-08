@@ -7,6 +7,7 @@ import '../../data/cart_manager.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../widgets/confirm_remove_modal.dart';
 import 'order_summary_page.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -127,7 +128,7 @@ class _CartPageState extends State<CartPage> {
                 ),
               );
             },
-            backgroundColor: const Color(0xFFED3973),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             icon: Icons.delete_outline,
             label: 'Remove',
@@ -170,7 +171,7 @@ class _CartPageState extends State<CartPage> {
                           'Closed Now',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
-                            color: const Color(0xFFED3973),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

@@ -20,6 +20,11 @@ import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/gradient_icon.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -213,20 +218,12 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              PhosphorIcons.warningCircle(PhosphorIconsStyle.fill),
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'New payment slip requested by restaurant',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -259,10 +256,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Payment image saved to gallery!',
-              style: GoogleFonts.poppins(fontSize: 13),
-            ),
+            content: Text('Payment image saved to gallery!', style: GoogleFonts.poppins(fontSize: 13)),
             backgroundColor: const Color(0xFFED3973),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -284,10 +278,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to save image. Please try again.',
-              style: GoogleFonts.poppins(fontSize: 13),
-            ),
+            content: Text('Failed to save image. Please try again.', style: GoogleFonts.poppins(fontSize: 13)),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -317,16 +308,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       if (status.isPermanentlyDenied) {
         _showPermissionDialog();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Gallery permission required to upload receipt.',
-              style: GoogleFonts.poppins(fontSize: 13),
-            ),
-            backgroundColor: Colors.black87,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppDialog.showToast(context, 'Gallery permission required to upload receipt.', isError: true);
       }
       return;
     }
@@ -361,10 +343,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'OK',
-                    style: GoogleFonts.poppins(color: const Color(0xFFED3973)),
-                  ),
+                  child: Text('OK', style: GoogleFonts.poppins(color: const Color(0xFFED3973))),
                 ),
               ],
             ),
@@ -394,7 +373,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel', style: GoogleFonts.poppins()),
           ),
-          ElevatedButton(
+          PrimaryGradientButton(
             onPressed: () {
               Navigator.pop(context);
               openAppSettings();
@@ -403,8 +382,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               backgroundColor: const Color(0xFFED3973),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Open Settings', style: GoogleFonts.poppins()),
           ),
@@ -421,12 +399,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     if (orderId == null) {
       setState(() => _isUploading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Order ID not found. Please try again.',
-            style: GoogleFonts.poppins(),
-          ),
-        ),
+        SnackBar(content: Text('Order ID not found. Please try again.', style: GoogleFonts.poppins())),
       );
       return;
     }
@@ -466,12 +439,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
         if (e is DioException) {
           errorMsg = e.response?.data?['message'] ?? e.message ?? errorMsg;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg, style: GoogleFonts.poppins()),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        AppDialog.showToast(context, errorMsg, isError: true);
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -539,23 +507,16 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
+                  child: PrimaryGradientButton(
                     onPressed: () {
                       Navigator.pop(context);
                       _cancelOrder();
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFED3973),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
                     child: Text(
                       'Cancel Order',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -578,34 +539,22 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Order cancelled successfully.',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
-            ),
+            content: Text('Order cancelled successfully.', 
+              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
             backgroundColor: const Color(0xFFED3973),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
         _goHome();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to cancel order. Please try again.',
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
-            ),
+            content: Text('Failed to cancel order. Please try again.', 
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -613,15 +562,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Connection error. Could not cancel order.',
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
-            ),
+            content: Text('Connection error. Could not cancel order.', 
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -771,8 +716,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 12,
-              color: const Color(0xFFED3973),
-              fontWeight: FontWeight.w500,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -840,7 +784,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               color: const Color(0xFFFFF0F4),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFFED3973),
+                color: AppColors.primary,
                 width: 2,
                 // Dashed border via custom painter
               ),
@@ -857,11 +801,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              PhosphorIcons.info(),
-              size: 16,
-              color: const Color(0xFFED3973),
-            ),
+            Icon(PhosphorIcons.info(),
+                size: 16, color: const Color(0xFFED3973)),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -873,7 +814,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     : 'Please ensure the transaction date, time, and amount are clearly visible in the photo.',
                 style: GoogleFonts.poppins(
                   fontSize: 12,
-                  color: const Color(0xFFED3973),
+                  color: AppColors.primary,
                   height: 1.5,
                 ),
               ),
@@ -938,7 +879,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
     final bool isVerifying = order?.isPaymentChecking == true;
     final bool isReupload = order?.isSlipRequested == true;
     final String pageTitle = isReupload
-        ? 'Re-upload Receipt'
+        ? 'Awaiting Payment'
         : (isVerifying ? 'Verifying Payment' : 'Confirm Payment');
 
     return Scaffold(
@@ -1057,7 +998,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               const SizedBox(height: 20),
 
               // ── Rider Info (if available) ──
-              if (order?.riderName != null) ...[
+              if (order?.riderName != null && order!.riderName!.trim().isNotEmpty) ...[
                 _buildRiderInfoCard(),
                 const SizedBox(height: 20),
               ],
@@ -1093,26 +1034,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFE8EF),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                PhosphorIcons.clock(),
-                                size: 16,
-                                color: const Color(0xFFED3973),
-                              ),
+                              Icon(PhosphorIcons.clock(), size: 16, color: const Color(0xFFED3973)),
                               const SizedBox(width: 6),
-                              Text(
-                                '05:00',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFED3973),
-                                ),
-                              ),
+                              Text('05:00', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFFED3973))),
                             ],
                           ),
                         ),
@@ -1142,20 +1072,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     child: ElevatedButton.icon(
                       onPressed: _saveQrToGallery,
                       icon: Icon(PhosphorIcons.downloadSimple(), size: 20),
-                      label: Text(
-                        'Save QR Code',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      label: Text('Save QR Code',
+                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFED3973),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                   ),
@@ -1214,22 +1137,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                             Row(
                               children: [
                                 Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFED3973),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      '2',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
+                                  width: 28, height: 28,
+                                  decoration: const BoxDecoration(color: Color(0xFFED3973), shape: BoxShape.circle),
+                                  child: const Center(child: Text('2', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
@@ -1254,12 +1164,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                                       );
                                 },
                                 child: Text(
-                                  'Back',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFED3973),
-                                  ),
+                                  'Back', 
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFFED3973)),
                                 ),
                               ),
                           ],
@@ -1283,12 +1189,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                             width: double.infinity,
                             constraints: const BoxConstraints(minHeight: 160),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFF0F4),
+                              color: AppColors.primary.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: const Color(0xFFED3973),
-                                width: 2,
-                              ),
+                              border: Border.all(color: const Color(0xFFED3973), width: 2),
                             ),
                             child: _receiptImage == null
                                 ? _buildUploadPlaceholder()
@@ -1299,22 +1202,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              PhosphorIcons.info(),
-                              size: 14,
-                              color: const Color(0xFFED3973),
-                            ),
+                            Icon(PhosphorIcons.info(), size: 14, color: const Color(0xFFED3973)),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text(
+                              child: GradientText(
                                 isReupload
                                     ? 'The restaurant requested a new receipt. Please re-upload clearly.'
                                     : 'Ensure the transaction date, amount and time are clearly visible.',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: const Color(0xFFED3973),
-                                  height: 1.5,
-                                ),
+                                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFED3973), height: 1.5),
                               ),
                             ),
                           ],
@@ -1329,32 +1224,18 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: (canSubmit && !_isUploading)
-                          ? _submitReceipt
-                          : null,
+                      onPressed: (canSubmit && !_isUploading) ? _submitReceipt : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFED3973),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(
-                          0xFFED3973,
-                        ).withValues(alpha: 0.4),
+                        disabledBackgroundColor: const Color(0xFFED3973).withValues(alpha: 0.4),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: _isUploading
-                          ? const CustomLoadingIndicator(
-                              size: 24,
-                              color: Colors.white,
-                            )
-                          : Text(
-                              'Submit Receipt',
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          ? const CustomLoadingIndicator(size: 24, color: Colors.white)
+                          : Text('Submit Receipt',
+                              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1371,9 +1252,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                       : _showCancelConfirmationSheet,
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFED3973),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
                     'Cancel Order',
@@ -1400,14 +1279,23 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             fontWeight: isValue ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: isValue ? FontWeight.bold : FontWeight.normal,
-            color: isValue ? const Color(0xFFED3973) : Colors.black87,
+        if (isValue)
+          GradientText(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          )
+        else
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.black87,
+              fontWeight: FontWeight.normal,
+            ),
           ),
-        ),
       ],
     );
   }
@@ -1436,14 +1324,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFE8EF),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              PhosphorIconsFill.moped,
-              color: Color(0xFFED3973),
-              size: 28,
-            ),
+            child: const Icon(PhosphorIconsFill.moped,
+                color: Color(0xFFED3973), size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1485,7 +1370,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFED3973),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -1516,10 +1401,9 @@ class _CameraUploadIcon extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
       ),
-      child: Icon(
-        PhosphorIcons.cameraPlus(),
+      child: GradientIcon(
+        icon: PhosphorIcons.cameraPlus(),
         size: 28,
-        color: const Color(0xFFED3973),
       ),
     );
   }

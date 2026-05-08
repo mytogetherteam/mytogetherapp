@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
@@ -51,8 +52,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
       _tabController!.dispose();
     }
     
-    int tabCount = _activeOrders.isNotEmpty ? 3 : 2;
-    _tabController = TabController(length: tabCount, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -63,8 +63,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final bool hasActiveOrders = _activeOrders.isNotEmpty;
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -81,15 +79,14 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
         ),
         bottom: _isLoading ? null : TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFFED3A72),
+          labelColor: AppColors.primary,
           unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFFED3A72),
+          indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.tab,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          tabs: [
-            if (hasActiveOrders) const Tab(text: 'Active'),
-            const Tab(text: 'Completed'),
-            const Tab(text: 'Cancelled'),
+          tabs: const [
+            Tab(text: 'Completed'),
+            Tab(text: 'Cancelled'),
           ],
         ),
       ),
@@ -98,7 +95,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
         : TabBarView(
             controller: _tabController,
             children: [
-              if (hasActiveOrders) _buildOrdersList(_activeOrders, 'No Active Orders'),
               _buildOrdersList(_completedOrders, 'No Completed Orders'),
               _buildOrdersList(_cancelledOrders, 'No Cancelled Orders'),
             ],
@@ -110,7 +106,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
     if (orders.isEmpty) {
       return RefreshIndicator(
         onRefresh: _loadData,
-        color: const Color(0xFFED3A72),
+        color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: SizedBox(
@@ -123,7 +119,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: const Color(0xFFED3A72),
+      color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: orders.length,
@@ -170,7 +166,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
       itemBuilder: (context, index) {
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          height: 180,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -179,6 +174,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -200,7 +196,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
                      Container(width: 80, height: 16, color: Colors.grey[200]),
                    ],
                 ),
-                const Spacer(),
+                const SizedBox(height: 20),
                 Row(
                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                    children: [

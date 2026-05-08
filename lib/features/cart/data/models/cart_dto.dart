@@ -152,8 +152,8 @@ class CartItemDto {
       name: enName.isNotEmpty ? enName : mmName,
       nameMm: json['nameMm'] as String?,
       quantity: json['quantity'] as int? ?? 1,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      total: double.tryParse(json['total']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
       displayTotal: json['displayTotal'] as String?,
       imageUrl: json['imageUrl'] as String?,
@@ -219,7 +219,7 @@ class SelectedOptionDto {
       name: (enName != null && enName.trim().isNotEmpty) ? enName : (mmName ?? ''),
       nameEn: json['nameEn'],
       nameMm: json['nameMm'],
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
     );
   }
@@ -280,9 +280,9 @@ class CartDto {
       items: itemsJson
           .map((e) => CartItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      subtotal: (data['subtotal'] as num?)?.toDouble() ?? 0.0,
-      deliveryFee: (data['deliveryFee'] as num?)?.toDouble() ?? 0.0,
-      total: (data['total'] as num?)?.toDouble() ?? 0.0,
+      subtotal: double.tryParse(data['subtotal']?.toString() ?? '') ?? 0.0,
+      deliveryFee: double.tryParse(data['deliveryFee']?.toString() ?? '') ?? 0.0,
+      total: double.tryParse(data['total']?.toString() ?? '') ?? 0.0,
       totalItems: data['totalItems'] as int? ?? 0,
       currency: data['currency'] as String?,
     );
