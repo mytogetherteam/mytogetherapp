@@ -10,6 +10,8 @@ import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../screens/restaurant_detail_page.dart';
+import '../../../../core/utils/price_formatter.dart';
 
 class TogetherDealsSection extends StatefulWidget {
   const TogetherDealsSection({super.key});
@@ -193,108 +195,135 @@ class _DealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 130,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Food image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: CachedNetworkImage(
-              imageUrl: deal.imageUrl ?? '',
-              width: 130,
-              height: 120,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const ImageSkeletonLoader(
+    final double effectivePrice = (deal.price == 0 && deal.originalPrice != null && deal.originalPrice! > 0)
+        ? deal.originalPrice!
+        : deal.price;
+    final bool hasDiscount = deal.originalPrice != null && deal.originalPrice! > effectivePrice;
+    
+    final bool showPrice = effectivePrice > 0 || 
+                          hasDiscount || 
+                          (deal.displayPrice != null && 
+                           deal.displayPrice != '฿ 0' && 
+                           deal.displayPrice != '฿0' && 
+                           deal.displayPrice != '0');
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RestaurantDetailPage(
+              id: deal.shopId.toString(),
+              name: deal.shopName,
+              targetMenuItemId: deal.id.toString(),
+            ),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 130,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Food image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: CachedNetworkImage(
+                imageUrl: deal.imageUrl ?? '',
                 width: 130,
                 height: 120,
-                showLogo: true,
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 130,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(14),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const ImageSkeletonLoader(
+                  width: 130,
+                  height: 120,
+                  showLogo: true,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.image_not_supported_rounded,
-                      color: Colors.grey.shade300,
-                      size: 32,
+                errorWidget: (context, url, error) => Container(
+                  width: 130,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.image_not_supported_rounded,
+                        color: Colors.grey.shade300,
+                        size: 32,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'No Image',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade400,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Price row
+            if (showPrice)
+              Row(
+                children: [
+                  GradientText(
+                    deal.displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: deal.currency),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 4),
+                  ),
+                  const SizedBox(width: 5),
+                  if (hasDiscount)
                     Text(
-                      'No Image',
+                      deal.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: deal.currency),
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
+            const SizedBox(height: 2),
+            // Food name
+            Text(
+              deal.name,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 8),
-          // Price row
-          Row(
-            children: [
-              GradientText(
-                '${deal.currency}${deal.price.toStringAsFixed(0)}',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 5),
-              if (deal.originalPrice != null)
-                Text(
-                  '${deal.currency}${deal.originalPrice!.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
+            const SizedBox(height: 3),
+            // Delivery info
+            Row(
+              children: [
+                Icon(PhosphorIcons.bicycle(), size: 12, color: Colors.grey.shade500),
+                const SizedBox(width: 3),
+                Expanded(
+                  child: Text(
+                    '${deal.deliveryFee?.toFormattedPrice(currency: deal.currency) ?? 'Free'} · ${deal.estimatedTime ?? '20-30 min'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: Colors.grey.shade500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          // Food name
-          Text(
-            deal.name,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          // Delivery info
-          Row(
-            children: [
-              Icon(PhosphorIcons.bicycle(), size: 12, color: Colors.grey.shade500),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(
-                  '${deal.currency}${deal.deliveryFee ?? '0'} · ${deal.estimatedTime ?? '20-30 min'}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    color: Colors.grey.shade500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

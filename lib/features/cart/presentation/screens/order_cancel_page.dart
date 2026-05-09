@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
@@ -28,6 +29,24 @@ class OrderCancelPage extends StatelessWidget {
     this.shopImageUrl,
   });
 
+  String _getFullUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    
+    // Filter out Pinterest links as they often fail to load in mobile apps
+    if (path.contains('pinterest.com')) return '';
+    
+    if (path.startsWith('http') || path.startsWith('assets/')) return path;
+    
+    // Clean path and ensure single slash between base URL and path
+    String cleaned = path.trim();
+    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
+    
+    // Encode the path to handle spaces and special characters
+    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
+    
+    return '${ApiClient.baseUrl}/$encodedPath';
+  }
+
   void _onViewRestaurant(BuildContext context) {
     ActiveOrderState.instance.clearOrder(orderId: orderId);
     
@@ -40,8 +59,8 @@ class OrderCancelPage extends StatelessWidget {
           builder: (context) => RestaurantDetailPage(
             id: shopId!,
             name: shopName,
-            logoPath: shopLogo,
-            imagePath: shopImageUrl,
+            logoPath: _getFullUrl(shopLogo),
+            imagePath: _getFullUrl(shopImageUrl),
           ),
         ),
       );
@@ -169,32 +188,33 @@ class OrderCancelPage extends StatelessWidget {
                           ),
                           child: Column(
                             children: [
-                              // Logo Section (Prioritize Logo, then Image)
+                              // Cover/Logo Section (Large Banner Style)
                               Container(
-                                width: 80,
-                                height: 80,
-                                margin: const EdgeInsets.only(bottom: 16),
+                                width: double.infinity,
+                                height: 160,
+                                margin: const EdgeInsets.only(bottom: 20),
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(16),
                                   color: Colors.grey[50],
-                                  border: Border.all(color: Colors.grey[100]!, width: 2),
+                                  border: Border.all(color: Colors.grey[100]!, width: 1),
                                 ),
-                                child: ClipOval(
-                                  child: (shopLogo != null && shopLogo!.isNotEmpty)
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: (shopImageUrl != null && shopImageUrl!.isNotEmpty)
                                       ? CachedNetworkImage(
-                                          imageUrl: shopLogo!,
+                                          imageUrl: _getFullUrl(shopImageUrl),
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                          errorWidget: (context, url, error) => _buildNoImagePlaceholder(isLogo: true),
+                                          errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
                                         )
-                                      : (shopImageUrl != null && shopImageUrl!.isNotEmpty)
+                                      : (shopLogo != null && shopLogo!.isNotEmpty)
                                           ? CachedNetworkImage(
-                                              imageUrl: shopImageUrl!,
+                                              imageUrl: _getFullUrl(shopLogo),
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                              errorWidget: (context, url, error) => _buildNoImagePlaceholder(isLogo: true),
+                                              errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
                                             )
-                                          : _buildNoImagePlaceholder(isLogo: true),
+                                          : _buildNoImagePlaceholder(),
                                 ),
                               ),
                               
@@ -203,7 +223,7 @@ class OrderCancelPage extends StatelessWidget {
                                   Text(
                                     shopName!,
                                     style: GoogleFonts.poppins(
-                                      fontSize: 18,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black,
                                     ),
@@ -215,7 +235,7 @@ class OrderCancelPage extends StatelessWidget {
                                     child: Text(
                                       shopNameMm!,
                                       style: GoogleFonts.poppins(
-                                        fontSize: 16,
+                                        fontSize: 17,
                                         color: Colors.grey[700],
                                       ),
                                       textAlign: TextAlign.center,

@@ -137,23 +137,23 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
             if (!state.hasNotifiedSlipRequest) {
               state.setNotifiedSlipRequest(true);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text('New payment slip requested by restaurant',
-                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              );
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   SnackBar(
+              //     content: Row(
+              //       children: [
+              //         Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+              //         const SizedBox(width: 10),
+              //         Expanded(
+              //           child: Text('New payment slip requested by restaurant',
+              //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+              //         ),
+              //       ],
+              //     ),
+              //     backgroundColor: AppColors.primary,
+              //     behavior: SnackBarBehavior.floating,
+              //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              //   ),
+              // );
             }
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -916,37 +916,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                               height: 1.5),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              'Order ID',
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 10,
-                                                color: Colors.grey[600],
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            GradientText(
-                                              (ActiveOrderState.instance.orderId != null && !ActiveOrderState.instance.orderId!.startsWith('#')) 
-                                                  ? '#${ActiveOrderState.instance.orderId}' 
-                                                  : (ActiveOrderState.instance.orderId ?? '...'),
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 13,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 16),
@@ -1026,21 +995,23 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.05),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(50),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.access_time,
-                                      size: 16, color: AppColors.primary),
+                                  Icon(Icons.access_time,
+                                      size: 16, color: AppColors.primary.withValues(alpha: 0.7)),
                                   const SizedBox(width: 8),
-                                  Text('This usually takes 1–2 minutes.',
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 13, 
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.primary)),
+                                  GradientText(
+                                    'This usually takes 1–2 minutes.',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 13, 
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1111,32 +1082,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
           ],
         ),
-        if (fee != null && fee > 0)
-          Text(
-            '฿ ${fee.toInt()}',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          )
-        else
-          AnimatedBuilder(
-            animation: _dotsAnimController,
-            builder: (context, _) {
-              final step = (_dotsAnimController.value * 4).floor() % 4;
-              final dots = '.' * step;
-              final spaces = ' ' * (3 - step);
-              return Text(
-                'Calculating$dots$spaces',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                ),
-              );
-            },
-          ),
+        AnimatedBuilder(
+          animation: _dotsAnimController,
+          builder: (context, _) {
+            final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
+            return Text(
+              'Calculating$dots',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            );
+          },
+        ),
       ],
     );
   }

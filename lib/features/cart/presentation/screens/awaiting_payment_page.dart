@@ -42,7 +42,8 @@ class AwaitingPaymentPage extends StatefulWidget {
   State<AwaitingPaymentPage> createState() => _AwaitingPaymentPageState();
 }
 
-class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
+class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTickerProviderStateMixin {
+  late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
   File? _receiptImage;
@@ -53,6 +54,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   @override
   void initState() {
     super.initState();
+    _dotsAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
     if (Platform.isAndroid) {
@@ -118,6 +123,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
   @override
   void dispose() {
+    _dotsAnimController.dispose();
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
@@ -191,7 +197,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
   void _showSlipRequestedToast() {
     if (!mounted) return;
-    AppDialog.showToast(context, 'New payment slip requested by restaurant');
+    // AppDialog.showToast(context, 'New payment slip requested by restaurant');
   }
 
   // Save payment image to gallery using RepaintBoundary
@@ -264,7 +270,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
       final sizeInBytes = await file.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
-      if (sizeInMb > 1.0) {
+      if (sizeInMb > 5.0) {
         if (mounted) {
           showDialog(
             context: context,
@@ -272,7 +278,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Text('Image Too Large', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
               content: Text(
-                'The selected image is ${sizeInMb.toStringAsFixed(1)}MB, which exceeds the 1MB limit. Please choose a smaller image or compress it.',
+                'The selected image is ${sizeInMb.toStringAsFixed(1)}MB, which exceeds the 5MB limit. Please choose a smaller image or compress it.',
                 style: GoogleFonts.poppins(fontSize: 13),
               ),
               actions: [
@@ -576,7 +582,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              isError ? 'Error loading payment image\n${failedUrl ?? "Unknown URL"}' : 'Awaiting payment image...',
+              isError ? 'Error loading payment image' : 'Awaiting payment image...',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 10,
@@ -667,7 +673,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                 ),
               ),
             Text(
-              ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true ? 'Re-upload Receipt' : 'Upload Receipt',
+              ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true ? 'Upload Receipt' : 'Upload Receipt',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -788,35 +794,45 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        titleSpacing: 20,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+        ),
+        title: Text(pageTitle,
+            style: GoogleFonts.poppins(
+                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: GestureDetector(
+              onTap: _goHome,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(pageTitle,
-                      style: GoogleFonts.poppins(
-                          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
-                  GestureDetector(
-                    onTap: _goHome,
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
-                      ),
-                      child: const Icon(Icons.close, color: Colors.black, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // ── Payment Summary Card ──
               Container(
@@ -834,9 +850,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                       children: [
                         Text('PAYMENT SUMMARY',
                             style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[500], letterSpacing: 0.8)),
-                        if (widget.orderId != null)
-                          Text('#${widget.orderId!}',
-                              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[500])),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -845,18 +858,103 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                         isValue: false),
                     const SizedBox(height: 10),
                     _summaryRow('Delivery Fee',
-                        order?.displayDeliveryFee ?? '฿ ${(order?.deliveryFee ?? widget.deliveryFee).toStringAsFixed(0)}',
+                        '',
+                        customValue: (order?.deliveryFee != null && order!.deliveryFee! > 0)
+                            ? Text(
+                                '฿ ${order.deliveryFee!.toInt()}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : (order?.deliveryType == 'NORMAL')
+                                ? Text(
+                                    'Calculate Later',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black54,
+                                    ),
+                                  )
+                                : AnimatedBuilder(
+                                    animation: _dotsAnimController,
+                                    builder: (context, _) {
+                                      final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
+                                      return Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Calculating',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 15,
+                                            child: Text(
+                                              dots,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                         isValue: false),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow('Total',
-                        order?.displayTotalAmount ?? '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
+                        '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
                         isValue: true),
+                    if (order?.estimatedTime != null && order!.estimatedTime!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _summaryRow('Estimated Waiting Time',
+                          order.estimatedTime!,
+                          isValue: false),
+                    ],
                   ],
                 ),
               ),
+              if (order?.deliveryType == 'NORMAL') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const GradientIcon(
+                        icon: PhosphorIconsFill.info,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GradientText(
+                          'The shop will arrange a separate delivery service for you. Please pay for the food now; the delivery fee will be paid directly to the rider later.',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               // ── Rider Info (if available) ──
@@ -920,42 +1018,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Save QR Button
-                  PrimaryGradientButton(
-                    onPressed: _saveQrToGallery,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(PhosphorIcons.downloadSimple(), size: 20, color: Colors.white),
-                        const SizedBox(width: 10),
-                        Text('Save QR Code',
-                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Yes, I have done Payment Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() => _showUploadSection = true);
-                        ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.black87, width: 1.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: Text(
-                        'Yes, I have done Payment',
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
-                      ),
                     ),
                   ),
                 ] else ...[
@@ -1034,7 +1096,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                             Expanded(
                               child: GradientText(
                                 isReupload
-                                    ? 'The restaurant requested a new receipt. Please re-upload clearly.'
+                                    ? 'The restaurant requested a new receipt. Please upload clearly.'
                                     : 'Ensure the transaction date, amount and time are clearly visible.',
                                 style: GoogleFonts.poppins(fontSize: 11, height: 1.5),
                               ),
@@ -1044,46 +1106,86 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-  
-                  // ── Submit Button ──
-                  PrimaryGradientButton(
-                    onPressed: (canSubmit && !_isUploading) ? _submitReceipt : null,
-                    isLoading: _isUploading,
-                    child: Text(
-                      'Submit Receipt',
-                      style: GoogleFonts.poppins(
-                        fontSize: 15, 
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                 ],
               ],
-
-              // ── Cancel Order ──
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: (isVerifying || order == null) ? null : Container(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!_showUploadSection) ...[
+              PrimaryGradientButton(
+                onPressed: _saveQrToGallery,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(PhosphorIcons.downloadSimple(), size: 20, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Text('Save QR Code',
+                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                height: 50,
-                child: TextButton(
-                  onPressed: _isCancelling ? null : _showCancelConfirmationSheet,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                height: 56,
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() => _showUploadSection = true);
+                    ActiveOrderState.instance.setShowUploadSection(true, orderId: widget.orderId);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: Text('Cancel Order', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'Yes, I have done Payment',
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                  ),
+                ),
+              ),
+            ] else ...[
+              PrimaryGradientButton(
+                onPressed: (canSubmit && !_isUploading) ? _submitReceipt : null,
+                isLoading: _isUploading,
+                child: Text(
+                  'Submit Receipt',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15, 
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: TextButton(
+                onPressed: _isCancelling ? null : _showCancelConfirmationSheet,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+                child: Text('Cancel Order', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _summaryRow(String label, String value, {required bool isValue}) {
+  Widget _summaryRow(String label, String value, {required bool isValue, Widget? customValue}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1095,7 +1197,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
             fontWeight: isValue ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-        if (isValue)
+        if (customValue != null)
+          customValue
+        else if (isValue)
           GradientText(
             value,
             style: GoogleFonts.poppins(
@@ -1143,23 +1247,16 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(PhosphorIconsFill.moped,
-                color: AppColors.primary, size: 28),
+            child: const GradientIcon(
+              icon: PhosphorIconsFill.moped,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'DELIVERY RIDER',
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[500],
-                    letterSpacing: 0.8,
-                  ),
-                ),
                 Text(
                   name,
                   style: GoogleFonts.poppins(
@@ -1175,6 +1272,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
                     color: Colors.grey[600],
                   ),
                 ),
+                if (order?.riderVehicleNumber != null && order!.riderVehicleNumber!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: GradientText(
+                      'Vehicle No: ${order!.riderVehicleNumber!}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1186,7 +1294,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(PhosphorIconsFill.phoneCall,

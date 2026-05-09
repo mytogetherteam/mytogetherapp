@@ -7,6 +7,7 @@ class ShopRequestDto {
   final double? radius;
   final int? page;
   final int? size;
+  final String? search;
 
   ShopRequestDto({
     required this.lat,
@@ -14,6 +15,7 @@ class ShopRequestDto {
     this.radius = 5.0,
     this.page = 0,
     this.size = 20,
+    this.search,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,6 +25,7 @@ class ShopRequestDto {
       'radius': radius,
       'page': page,
       'size': size,
+      if (search != null && search!.isNotEmpty) 'search': search,
     };
   }
 }

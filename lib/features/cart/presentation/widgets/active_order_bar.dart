@@ -10,7 +10,8 @@ import '../../data/cart_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ActiveOrderBar extends StatefulWidget {
-  const ActiveOrderBar({super.key});
+  final int? shopId;
+  const ActiveOrderBar({super.key, this.shopId});
 
   @override
   State<ActiveOrderBar> createState() => _ActiveOrderBarState();
@@ -60,7 +61,15 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       duration: const Duration(milliseconds: 1500),
     );
 
-    if (ActiveOrderState.instance.hasActiveOrder) {
+    final state = ActiveOrderState.instance;
+    bool isActive;
+    if (widget.shopId != null) {
+      isActive = state.activeOrdersList.any((o) => o.shopId == widget.shopId);
+    } else {
+      isActive = state.hasActiveOrder;
+    }
+
+    if (isActive) {
       _wasActive = true;
       _progressCtrl.repeat();
       _slideCtrl.forward();
@@ -72,7 +81,15 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
 
   void _handleStateChange() {
     if (mounted) {
-      final isActive = ActiveOrderState.instance.hasActiveOrder;
+      final state = ActiveOrderState.instance;
+      bool isActive;
+      
+      if (widget.shopId != null) {
+        isActive = state.activeOrdersList.any((o) => o.shopId == widget.shopId);
+      } else {
+        isActive = state.hasActiveOrder;
+      }
+
       if (isActive && !_wasActive) {
         _progressCtrl.reset();
         _progressCtrl.repeat(); 
@@ -105,11 +122,16 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       listenable: Listenable.merge([ActiveOrderState.instance, _slideCtrl]),
       builder: (context, _) {
         final state = ActiveOrderState.instance;
-        final orders = state.activeOrdersList;
+        var orders = state.activeOrdersList;
         
-        if (!state.hasActiveOrder && _slideCtrl.isDismissed) return const SizedBox.shrink();
+        // Filter by shopId if provided
+        if (widget.shopId != null) {
+          orders = orders.where((o) => o.shopId == widget.shopId).toList();
+        }
+
+        if (orders.isEmpty && _slideCtrl.isDismissed) return const SizedBox.shrink();
         
-        if (!state.hasActiveOrder && !_slideCtrl.isDismissed) {
+        if (orders.isEmpty && !_slideCtrl.isDismissed) {
            _slideCtrl.reverse();
         }
 

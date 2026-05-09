@@ -6,7 +6,8 @@ import 'package:mytogetherapp/features/order/data/repositories/order_repository.
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
 
 class OrderHistoryPage extends StatefulWidget {
-  const OrderHistoryPage({super.key});
+  final int? shopId;
+  const OrderHistoryPage({super.key, this.shopId});
 
   @override
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
@@ -30,7 +31,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
       _isLoading = true;
     });
     
-    final grouped = await OrderRepository().getGroupedOrders();
+    final grouped = await OrderRepository().getGroupedOrders(shopId: widget.shopId);
     
     if (mounted) {
       setState(() {

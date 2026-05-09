@@ -69,9 +69,10 @@ class RestaurantRepository {
     double radius = 5.0,
     int page = 0,
     int size = 20,
+    String? search,
   }) async {
     // Generate a unique key for this request
-    final cacheKey = '$lat-$lon-$radius-$page-$size';
+    final cacheKey = '$lat-$lon-$radius-$page-$size-$search';
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
@@ -89,6 +90,7 @@ class RestaurantRepository {
         radius: radius,
         page: page,
         size: size,
+        search: search,
       );
       final response = await _remoteDataSource.getNearbyShops(request);
       final results = response.data.content.map((dto) => _mapShopDtoToDomain(dto)).toList();
@@ -243,6 +245,19 @@ class RestaurantRepository {
     for (final type in _feedTypes) {
       getShopFeed(shopId: shopId, feedType: type, forceRefresh: forceRefresh);
     }
+  }
+
+  Future<SliceShopFeedItemDto> getShopMenu({
+    required int shopId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    final response = await _remoteDataSource.getShopMenu(
+      shopId: shopId,
+      page: page,
+      size: size,
+    );
+    return response.data;
   }
 
   /// Returns a cached feed section or fetches from the API.
