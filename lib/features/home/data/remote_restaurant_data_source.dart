@@ -94,6 +94,29 @@ class RemoteRestaurantDataSource {
     return TrendingSectionDto.fromJson(data);
   }
 
+  Future<ApiResponseSliceShopFeedItemDto> getShopMenu({
+    required int shopId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/shops/$shopId/menu',
+        queryParameters: {
+          'page': page + 1, // API uses 1-based index
+          'limit': size,
+        },
+      );
+      if (response.statusCode == 200) {
+        return ApiResponseSliceShopFeedItemDto.fromJson(response.data);
+      } else {
+        throw Exception('Failed to load shop menu: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Fetches one of the 5 shop feed types.
   /// [feedType] must be one of: right-now, for-you, hot-deals, trending, popular-dishes
   Future<ShopFeedSectionDto> getShopFeed({

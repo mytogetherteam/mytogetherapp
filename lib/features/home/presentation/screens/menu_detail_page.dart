@@ -666,23 +666,26 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     isScrolled: _isScrolled,
                   ),
                    const SizedBox(width: 16),
-                   AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
-                    opacity: _isScrolled ? 1.0 : 0.0,
-                    child: Text(
-                      (() {
-                        final enName = _currentFood?.name ?? widget.title;
-                        final mmName = _currentFood?.nameMm ?? '';
-                        return enName.trim().isEmpty ? mmName : enName;
-                      })(),
-                      style: GoogleFonts.poppins(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                   Expanded(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: _isScrolled ? 1.0 : 0.0,
+                      child: Text(
+                        (() {
+                          final enName = _currentFood?.name ?? widget.title;
+                          final mmName = _currentFood?.nameMm ?? '';
+                          return enName.trim().isEmpty ? mmName : enName;
+                        })(),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
-                  const Spacer(),
                   _buildCircleIconButton(
                     icon: PhosphorIcons.shareNetwork(),
                     onPressed: () {},
@@ -1176,15 +1179,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   : null,
             ),
             const SizedBox(width: 13),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                color: Colors.grey[600],
-                height: 1.0,
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  color: Colors.grey[600],
+                  height: 1.0,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             GradientText(
               price,
               style: GoogleFonts.poppins(
@@ -1321,12 +1328,16 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Customer Reviews (11.4K)',
-              style: GoogleFonts.poppins(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+            Expanded(
+              child: Text(
+                'Customer Reviews (11.4K)',
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             ViewAllIconButton(

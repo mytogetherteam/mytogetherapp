@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -25,6 +27,9 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   int _currentPage = 0;
   final int _pageSize = 20;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+  String _searchQuery = '';
   final Map<String, bool> _localFavorites = {};
 
   @override
@@ -37,6 +42,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -48,11 +55,16 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     }
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _loadInitialData({bool showLoading = true}) async {
     if (_isLoading) return;
 
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
     setState(() {
-      _isLoading = true;
       _currentPage = 0;
       _restaurants.clear();
       _hasMore = true;
@@ -69,11 +81,17 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         lon: lon,
         page: _currentPage,
         size: _pageSize,
+        search: _searchQuery,
       );
 
       if (mounted) {
         setState(() {
-          _restaurants.addAll(results);
+          final existingIds = _restaurants.map((r) => r.id).toSet();
+          for (var res in results) {
+            if (!existingIds.contains(res.id)) {
+              _restaurants.add(res);
+            }
+          }
           _isLoading = false;
           _hasMore = results.length >= _pageSize;
         });
@@ -109,6 +127,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         lon: lon,
         page: _currentPage,
         size: _pageSize,
+        search: _searchQuery,
       );
 
       if (mounted) {
@@ -116,7 +135,12 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           if (results.isEmpty) {
             _hasMore = false;
           } else {
-            _restaurants.addAll(results);
+            final existingIds = _restaurants.map((r) => r.id).toSet();
+            for (var res in results) {
+              if (!existingIds.contains(res.id)) {
+                _restaurants.add(res);
+              }
+            }
             _hasMore = results.length >= _pageSize;
           }
           _isLoadingMore = false;
@@ -133,7 +157,19 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   }
 
   Future<void> _onRefresh() async {
-    await _loadInitialData();
+    await _loadInitialData(showLoading: false);
+  }
+
+  void _onSearchChanged(String value) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = value;
+        });
+        _loadInitialData();
+      }
+    });
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -158,79 +194,125 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'All Restaurants',
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
+        appBar: AppBar(
+        toolbarHeight: 70,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
           ),
         ),
-        centerTitle: true,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            height: 46,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Search restaurants...',
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
+                prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[400], size: 20),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(PhosphorIcons.xCircle(PhosphorIconsStyle.fill), color: Colors.grey[400], size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 11),
+              ),
+              style: GoogleFonts.poppins(color: Colors.black, fontSize: 14),
+            ),
+          ),
+        ),
+        titleSpacing: 0,
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: SizedBox(width: 20),
+          )
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: AppColors.primary,
-        child: _isLoading 
-            ? _buildSkeletonList()
-            : _restaurants.isEmpty 
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    itemCount: _restaurants.length + (_hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _restaurants.length) {
-                        return _buildLoadMoreIndicator();
-                      }
-
-                      final data = _restaurants[index];
-                      return RestaurantCard(
-                        name: data.name,
-                        category: data.category,
-                        rating: data.rating,
-                        reviewCount: data.reviewCount,
-                        distance: data.distance,
-                        imagePath: data.imagePath,
-                        deliveryTime: data.deliveryTime,
-                        deliveryFee: data.deliveryFee,
-                        originalDeliveryFee: data.originalDeliveryFee,
-                        isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                        onFavoriteToggle: () => _toggleFavorite(data),
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RestaurantDetailPage(
-                                id: data.id,
+        body: Column(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: AppColors.primary,
+                child: _isLoading 
+                    ? _buildSkeletonList()
+                    : _restaurants.isEmpty 
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(top: 12, bottom: 16),
+                            itemCount: _restaurants.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _restaurants.length) {
+                                return _buildLoadMoreIndicator();
+                              }
+        
+                              final data = _restaurants[index];
+                              return RestaurantCard(
                                 name: data.name,
                                 category: data.category,
                                 rating: data.rating,
+                                reviewCount: data.reviewCount,
                                 distance: data.distance,
                                 imagePath: data.imagePath,
-                                logoPath: data.logoPath,
                                 deliveryTime: data.deliveryTime,
-                                status: data.status,
+                                deliveryFee: data.deliveryFee,
+                                originalDeliveryFee: data.originalDeliveryFee,
                                 isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                                onFavoriteToggle: () => _toggleFavorite(data),
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RestaurantDetailPage(
+                                        id: data.id,
+                                        name: data.name,
+                                        category: data.category,
+                                        rating: data.rating,
+                                        distance: data.distance,
+                                        imagePath: data.imagePath,
+                                        logoPath: data.logoPath,
+                                        deliveryTime: data.deliveryTime,
+                                        status: data.status,
+                                        isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

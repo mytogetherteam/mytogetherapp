@@ -134,23 +134,23 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         if (state.orderStatus == 1 && !state.isPaymentChecking && !AwaitingPaymentPage.isCurrentlyVisible) {
           if (!state.hasNotifiedSlipRequest) {
             state.setNotifiedSlipRequest(true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text('New payment slip requested by restaurant',
-                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                ),
-                backgroundColor: AppColors.primary,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Row(
+            //       children: [
+            //         Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+            //         const SizedBox(width: 10),
+            //         Expanded(
+            //           child: Text('New payment slip requested by restaurant',
+            //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+            //         ),
+            //       ],
+            //     ),
+            //     backgroundColor: AppColors.primary,
+            //     behavior: SnackBarBehavior.floating,
+            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            //   ),
+            // );
           }
           Navigator.pushReplacement(
             context,
@@ -534,6 +534,62 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                 );
               })(),
             ),
+            
+            // Est Waiting Time and Delivery Fee Gradient Section
+            if (_currentStatus != -1) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (state.estimatedTime != null && state.estimatedTime!.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Est Waiting Time',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          GradientText(
+                            state.estimatedTime!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Delivery Fee',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[500],
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        GradientText(
+                          state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Info Card
             Container(
@@ -689,6 +745,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
+                      initiallyExpanded: true,
                       tilePadding: const EdgeInsets.symmetric(horizontal: 24),
                       childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                       iconColor: Colors.grey[400],
@@ -799,7 +856,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
-                              _buildSummaryRow('Total Amount', state.displayTotalAmount ?? (widget.foodTotal + widget.deliveryFee).toFormattedPrice(), isBold: true),
+                              _buildSummaryRow('Total Amount', (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(), isBold: true),
                             ],
                           ),
                         ),
@@ -812,7 +869,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             const SizedBox(height: 16),
 
             // Delivery Info Card
-            Container(
+            if (_currentStatus != -1 && (_currentStatus >= 3 || (state.riderName != null && state.riderName!.isNotEmpty)))
+              Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -982,7 +1040,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                state.riderName!,
+                                (state.riderName != null && state.riderName!.trim().isNotEmpty)
+                                    ? state.riderName!
+                                    : 'Assigning a rider...',
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,

@@ -19,6 +19,11 @@ import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/food_menu_item_card.dart';
+import '../../data/models/shop_feed_item_dto.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../cart/data/active_order_state.dart';
+import '../../../cart/presentation/widgets/active_order_bar.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -74,12 +79,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
 
   Restaurant? _currentRestaurant;
 
-  // Track which feed sections have reported empty/error (by feedType key)
-  final Set<String> _emptySections = {};
-  Key _feedRefreshKey = UniqueKey();
-  static const _allFeedTypes = [
-    'right-now', 'for-you', 'hot-deals', 'trending', 'popular-dishes'
-  ];
+  // ── Pagination State ───────────────────────────────────────────────────
+  final List<ShopFeedItemDto> _menuItems = [];
+  int _menuPage = 0;
+  bool _hasMoreMenu = true;
+  bool _isMenuLoading = false;
+  static const int _pageSize = 20;
+  final Map<int, bool> _localFavorites = {};
 
   @override
   void initState() {
@@ -122,10 +128,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
 
     final shopId = int.tryParse(widget.id) ?? 0;
 
-    // Kick off parallel pre-fetch of all 5 feed sections right away
     if (shopId > 0) {
-      RestaurantRepository.instance.clearCache(shopId: shopId);
-      RestaurantRepository.instance.prefetchShopFeeds(shopId, forceRefresh: true);
+      ActiveOrderState.instance.setCurrentShopId(shopId);
+      _fetchMenu(isInitial: true);
     }
 
     // Also refresh the shop detail header (name, logo, rating etc.)
@@ -150,18 +155,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     _menuUpdateSubscription = WebSocketService().menuUpdates.listen((event) {
       final updatedShopId = event['shopId']?.toString();
       if (updatedShopId == widget.id && mounted) {
-        debugPrint(' [RestaurantDetailPage] Real-time menu update detected. Refreshing feeds...');
-        
-        final shopIdInt = int.tryParse(widget.id) ?? 0;
-        if (shopIdInt > 0) {
-          RestaurantRepository.instance.clearCache(shopId: shopIdInt);
-          RestaurantRepository.instance.prefetchShopFeeds(shopIdInt, forceRefresh: true);
-        }
-
-        setState(() {
-          _feedRefreshKey = UniqueKey(); // Force ShopFeedSection to re-init
-          _emptySections.clear();
-        });
+        debugPrint(' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...');
+        _handleRefresh();
       }
     });
   }
@@ -175,14 +170,14 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   Future<void> _handleRefresh() async {
     final shopId = int.tryParse(widget.id);
     if (shopId != null) {
-      debugPrint(' [RestaurantDetailPage] Manual refresh triggered. Clearing cache...');
-      RestaurantRepository.instance.clearCache(shopId: shopId);
+      debugPrint(' [RestaurantDetailPage] Manual refresh triggered.');
       
-      // Update local state to trigger rebuilds of feed sections
       setState(() {
-        _feedRefreshKey = UniqueKey();
-        _emptySections.clear();
+        _menuItems.clear();
+        _menuPage = 0;
+        _hasMoreMenu = true;
       });
+      _fetchMenu(isInitial: true);
 
       // Also re-fetch the shop detail itself
       final updatedRestaurant = await RestaurantRepository.instance.getShopById(shopId);
@@ -194,12 +189,46 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     }
   }
 
+  Future<void> _fetchMenu({bool isInitial = false}) async {
+    if (_isMenuLoading || (!_hasMoreMenu && !isInitial)) return;
+    
+    final shopId = int.tryParse(widget.id) ?? 0;
+    if (shopId == 0) return;
+
+    setState(() => _isMenuLoading = true);
+
+    try {
+      final result = await RestaurantRepository.instance.getShopMenu(
+        shopId: shopId,
+        page: isInitial ? 0 : _menuPage,
+        size: _pageSize,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (isInitial) {
+            _menuItems.clear();
+            _menuPage = 0;
+          }
+          _menuItems.addAll(result.content);
+          _hasMoreMenu = !result.last;
+          if (_hasMoreMenu) _menuPage++;
+          _isMenuLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
+      if (mounted) setState(() => _isMenuLoading = false);
+    }
+  }
+
   @override
   void dispose() {
     App.routeObserver.unsubscribe(this);
     _menuUpdateSubscription?.cancel();
     _scrollController.dispose();
-    _basketAnimationController.dispose();
+    // Clear shop context
+    ActiveOrderState.instance.setCurrentShopId(null);
     super.dispose();
   }
 
@@ -212,8 +241,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       _basketAnimationController.forward();
     }
   }
-
-
 
   void _onScroll() {
     if (_scrollController.hasClients) {
@@ -236,13 +263,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   }
 
   bool _onScrollNotification(ScrollNotification notification) {
-    // Disabled snapping behavior to prevent click blockers during scroll state
+    if (notification is ScrollEndNotification) {
+      final metrics = notification.metrics;
+      if (metrics.pixels >= metrics.maxScrollExtent - 500) {
+        _fetchMenu();
+      }
+    }
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _isScrolled ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -259,133 +290,186 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                  SliverAppBar(
-                    expandedHeight: 400,
-                    pinned: false,
-                    stretch: true,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    automaticallyImplyLeading: false,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(40),
-                        ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            (_currentRestaurant?.imagePath ?? '').trim().isEmpty
-                                ? Container(
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                    ),
-                                  )
-                                : Image.network(
-                                    _currentRestaurant!.imagePath,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const ImageSkeletonLoader();
-                                    },
-                                    errorBuilder: (context, error, stackTrace) => Container(
+                    SliverAppBar(
+                      expandedHeight: 400,
+                      pinned: false,
+                      stretch: true,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      automaticallyImplyLeading: false,
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(40),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              (_currentRestaurant?.imagePath ?? '').trim().isEmpty
+                                  ? Container(
                                       color: Colors.grey[200],
                                       child: const Center(
                                         child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
                                       ),
+                                    )
+                                  : Image.network(
+                                      _currentRestaurant!.imagePath,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const ImageSkeletonLoader();
+                                      },
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                        ),
+                                      ),
                                     ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.5),
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.3),
+                                    ],
                                   ),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withValues(alpha: 0.5),
-                                    Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.3),
-                                  ],
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20), // Overlap space
+                            // Action Buttons
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildActionButton(
+                                    imageAsset: 'assets/images/detail_overview.png',
+                                    label: 'Overview',
+                                    onTap: () {
+                                      if (_currentRestaurant != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => RestaurantOverviewPage(
+                                              restaurant: _currentRestaurant!,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  _buildActionButton(
+                                    imageAsset: 'assets/images/detail_direction.png',
+                                    label: 'Direction',
+                                    isActive: true,
+                                    onTap: () => AppDialog.showUnavailable(context),
+                                  ),
+                                  _buildActionButton(
+                                    imageAsset: 'assets/images/detail_reviews.png',
+                                    label: 'Reviews',
+                                    onTap: () {
+                                      if (_currentRestaurant != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => RestaurantReviewsPage(
+                                              shopId: int.parse(_currentRestaurant!.id),
+                                              restaurantName: _currentRestaurant!.name,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  _buildActionButton(
+                                    imageAsset: 'assets/images/detail_chat.png',
+                                    label: 'Chat',
+                                    onTap: () => AppDialog.showUnavailable(context),
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(height: 30),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 20), // Overlap space
-                          // Action Buttons
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildActionButton(
-                                  imageAsset: 'assets/images/detail_overview.png',
-                                  label: 'Overview',
-                                  onTap: () {
-                                    if (_currentRestaurant != null) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => RestaurantOverviewPage(
-                                            restaurant: _currentRestaurant!,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                                _buildActionButton(
-                                  imageAsset: 'assets/images/detail_direction.png',
-                                  label: 'Direction',
-                                  isActive: true,
-                                  onTap: () => AppDialog.showUnavailable(context),
-                                ),
-                                _buildActionButton(
-                                  imageAsset: 'assets/images/detail_reviews.png',
-                                  label: 'Reviews',
-                                  onTap: () {
-                                    if (_currentRestaurant != null) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => RestaurantReviewsPage(
-                                            shopId: int.parse(_currentRestaurant!.id),
-                                            restaurantName: _currentRestaurant!.name,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                                _buildActionButton(
-                                  imageAsset: 'assets/images/detail_chat.png',
-                                  label: 'Chat',
-                                  onTap: () => AppDialog.showUnavailable(context),
-                                ),
-                              ],
+                    SliverPadding(
+                      padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+                      sliver: _menuItems.isEmpty && !_isMenuLoading
+                          ? SliverToBoxAdapter(child: _buildAllEmptyCard())
+                          : SliverGrid(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 24,
+                                childAspectRatio: 0.85,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, i) {
+                                  final item = _menuItems[i];
+                                  return FoodMenuItemCard(
+                                    id: item.id.toString(),
+                                    restaurantId: item.shopId.toString(),
+                                    title: item.name,
+                                    price: item.price,
+                                    currency: item.currency,
+                                    imagePath: item.imageUrl ?? '',
+                                    restaurantName: item.shopName,
+                                    isFavorite: _localFavorites[item.id] ?? item.isFavorite,
+                                    originalPrice: item.originalPrice,
+                                    displayPrice: item.displayPrice,
+                                    showRestaurantName: false,
+                                    rating: item.rating,
+                                    reviewCount: item.reviewCount,
+                                    distanceKm: item.distanceKm,
+                                    estimatedTime: item.estimatedTime,
+                                    deliveryFee: item.deliveryFee,
+                                    originalDeliveryFee: item.originalDeliveryFee,
+                                    onFavoriteToggle: () => _toggleFavorite(item),
+                                    isAvailable: item.isAvailable,
+                                    publishStatus: item.publishStatus,
+                                    isHighlighted: item.id.toString() == widget.targetMenuItemId,
+                                  );
+                                },
+                                childCount: _menuItems.length,
+                              ),
+                            ),
+                    ),
+                    if (_isMenuLoading)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: CustomLoadingIndicator(
+                              size: 30,
+                              color: AppColors.primary,
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          // ── 5 live feed sections ───────────────────────────
-                          if (int.tryParse(widget.id) != null && int.parse(widget.id) > 0) ..._buildFeedSections(int.parse(widget.id)),
-                          const SizedBox(height: 24),
-                          const SizedBox(height: 120), // Bottom padding for cart summary
-                        ],
+                        ),
                       ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 140), // Bottom padding for cart summary
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
             
             // Custom App Bar
             Positioned(
@@ -599,8 +683,19 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
               },
             ),
 
-            // Cart Summary Bar
-            _buildCartSummary(),
+            // Active Order Bar & Cart Summary
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ActiveOrderBar(shopId: int.tryParse(widget.id)),
+                  _buildCartSummary(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -628,104 +723,99 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
           _basketAnimationController.forward();
         }
 
-        return Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Promo Text with Pink Background (Static)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEFEB),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Promo Text with Pink Background (Static)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFEFEB),
-                  ),
-                  child: ShaderMask(
-                    shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                    child: Text(
-                      'Add More Items — No Extra Delivery Fee.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                child: ShaderMask(
+                  shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                  child: Text(
+                    'Add More Items — No Extra Delivery Fee.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                // Basket Button Section (Animated)
-                SlideTransition(
-                  position: _basketSlideAnimation,
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                            final storeIdx = CartManager.instance.stores.indexWhere((s) => s.name == storeName);
-                            if (storeIdx != -1) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => OrderSummaryPage(
-                                    store: CartManager.instance.stores[storeIdx],
-                                  ),
+              ),
+              // Basket Button Section (Animated)
+              SlideTransition(
+                position: _basketSlideAnimation,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          final storeIdx = CartManager.instance.stores.indexWhere((s) => s.name == storeName);
+                          if (storeIdx != -1) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderSummaryPage(
+                                  store: CartManager.instance.stores[storeIdx],
                                 ),
-                              );
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            height: 57,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 22),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Basket • $itemCount ${itemCount == 1 ? 'Item' : 'Items'}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          height: 57,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 22),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Basket • $itemCount ${itemCount == 1 ? 'Item' : 'Items'}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const Spacer(),
-                                Text(
-                                  totalAmount.toFormattedPrice(),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                totalAmount.toFormattedPrice(),
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -828,42 +918,44 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     );
   }
 
-  List<Widget> _buildFeedSections(int shopId) {
-    const sections = [
-      ('right-now',      'Right Now',      Icons.access_time_filled_rounded),
-      ('for-you',        'For You',        Icons.person_rounded),
-      ('hot-deals',      'Hot Deals',      Icons.local_offer_rounded),
-      ('trending',       'Trending',       Icons.trending_up_rounded),
-      ('popular-dishes', 'Popular Dishes', Icons.star_rounded),
-    ];
+  Future<void> _toggleFavorite(ShopFeedItemDto item) async {
+    final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
+    final messenger = ScaffoldMessenger.of(context);
+    
+    // Immediate local feedback
+    setState(() {
+      _localFavorites[item.id] = newStatus;
+    });
 
-    // All 5 sections have loaded and every one is empty → show a single No Data card
-    final allEmpty = _emptySections.length == _allFeedTypes.length &&
-        _allFeedTypes.every((t) => _emptySections.contains(t));
-
-    if (allEmpty) {
-      return [_buildAllEmptyCard()];
+    try {
+      await RestaurantRepository.instance.toggleMenuFavorite(
+        item.id,
+        newStatus,
+      );
+      
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Rollback on error
+      if (mounted) {
+        setState(() {
+          _localFavorites[item.id] = !newStatus;
+        });
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('Failed to update favorite. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-
-    return [
-      for (int i = 0; i < sections.length; i++) ...[
-        ShopFeedSection(
-          key: ValueKey('${_feedRefreshKey.toString()}-${sections[i].$1}'),
-          shopId: shopId,
-          feedType: sections[i].$1,
-          title: sections[i].$2,
-          titleIcon: sections[i].$3,
-          showRestaurantName: false,
-          targetMenuItemId: widget.targetMenuItemId,
-          onEmpty: (isEmpty) {
-            final changed = isEmpty
-                ? _emptySections.add(sections[i].$1)
-                : _emptySections.remove(sections[i].$1);
-            if (changed && mounted) setState(() {});
-          },
-        ),
-      ],
-    ];
   }
 
   Widget _buildAllEmptyCard() {

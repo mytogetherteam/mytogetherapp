@@ -50,14 +50,14 @@ class ShopFeedItemDto {
     final shopName = json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '';
     
     return ShopFeedItemDto(
-      id: json['id'] as int? ?? 0,
+      id: int.tryParse(json['id'].toString()) ?? 0,
       name: name,
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       price: _parsePrice(json['price']),
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       rating: _parsePrice(json['rating'] ?? json['ratingAvg']),
       reviewCount: (json['reviewCount'] ?? json['ratingCount']) as int? ?? 0,
-      shopId: json['shopId'] as int? ?? 0,
+      shopId: int.tryParse(json['shopId'].toString()) ?? 0,
       shopName: shopName,
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
@@ -114,6 +114,60 @@ class ShopFeedSectionDto {
           .whereType<Map<String, dynamic>>()
           .map((e) => ShopFeedItemDto.fromJson(e))
           .toList(),
+    );
+  }
+}
+
+class ApiResponseSliceShopFeedItemDto {
+  final bool success;
+  final String message;
+  final SliceShopFeedItemDto data;
+
+  ApiResponseSliceShopFeedItemDto({
+    required this.success,
+    required this.message,
+    required this.data,
+  });
+
+  factory ApiResponseSliceShopFeedItemDto.fromJson(Map<String, dynamic> json) {
+    return ApiResponseSliceShopFeedItemDto(
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      data: SliceShopFeedItemDto.fromJson(json['data'] ?? {}),
+    );
+  }
+}
+
+class SliceShopFeedItemDto {
+  final List<ShopFeedItemDto> content;
+  final bool first;
+  final bool last;
+  final int number;
+  final int size;
+  final int totalElements;
+  final int totalPages;
+
+  SliceShopFeedItemDto({
+    required this.content,
+    required this.first,
+    required this.last,
+    required this.number,
+    required this.size,
+    required this.totalElements,
+    required this.totalPages,
+  });
+
+  factory SliceShopFeedItemDto.fromJson(Map<String, dynamic> json) {
+    return SliceShopFeedItemDto(
+      content: (json['content'] as List? ?? [])
+          .map((e) => ShopFeedItemDto.fromJson(e))
+          .toList(),
+      first: json['first'] ?? false,
+      last: json['last'] ?? false,
+      number: json['number'] ?? 0,
+      size: json['size'] ?? 0,
+      totalElements: json['totalElements'] ?? 0,
+      totalPages: json['totalPages'] ?? 0,
     );
   }
 }

@@ -57,6 +57,8 @@ class ActiveOrderItem {
   double? idleSolidProgress;
   bool hasNotifiedSlipRequest;
   bool isSlipRequested;
+  String? deliveryType;
+  String? riderVehicleNumber;
 
   ActiveOrderItem({
     required this.orderId,
@@ -93,6 +95,8 @@ class ActiveOrderItem {
     this.idleSolidProgress,
     this.hasNotifiedSlipRequest = false,
     this.isSlipRequested = false,
+    this.deliveryType,
+    this.riderVehicleNumber,
     this.shopId,
     this.shopName,
     this.shopNameMm,
@@ -192,6 +196,16 @@ class ActiveOrderItem {
 class ActiveOrderState extends ChangeNotifier {
   static final ActiveOrderState instance = ActiveOrderState._();
   ActiveOrderState._();
+
+  int? _currentShopId;
+  int? get currentShopId => _currentShopId;
+
+  void setCurrentShopId(int? id) {
+    if (_currentShopId != id) {
+      _currentShopId = id;
+      notifyListeners();
+    }
+  }
 
   final Map<String, ActiveOrderItem> _orders = {};
   final Set<String> _cancellingOrders = {}; 
@@ -432,6 +446,10 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
     if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+    if (data['deliveryCycleNo'] != null) item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
+    if (data['waitingTimeMinutes'] != null) {
+      item.estimatedTime = "${data['waitingTimeMinutes']} mins";
+    }
 
     final trackingUrl = _parseSafeString(data['deliveryTrackingUrl']);
     if (trackingUrl != null && _isValidUrl(trackingUrl)) item.deliveryTrackingUrl = trackingUrl;
@@ -439,8 +457,17 @@ class ActiveOrderState extends ChangeNotifier {
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
 
-    final logoUrl = _parseSafeString(data['logoPath']);
-    if (logoUrl != null && _isValidUrl(logoUrl)) item.logoPath = logoUrl;
+    final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
+    if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
+
+    if (data['shopName'] != null) {
+      item.restaurantName = _parseSafeString(data['shopName']);
+      item.storeName = _parseSafeString(data['shopName']);
+    }
+    
+    if (data['deliveryType'] != null) {
+      item.deliveryType = _parseSafeString(data['deliveryType']);
+    }
 
     if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);
     if (data['statusLabelMm'] != null) item.statusLabelMm = _parseSafeString(data['statusLabelMm']);
@@ -481,9 +508,21 @@ class ActiveOrderState extends ChangeNotifier {
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopName'] != null) item.shopName = _parseSafeString(data['shopName']);
-    if (data['shopNameMM'] != null) item.shopNameMm = _parseSafeString(data['shopNameMM']);
-    if (data['shopLogo'] != null) item.shopLogo = _parseSafeString(data['shopLogo']);
-    if (data['shopImageUrl'] != null) item.shopImageUrl = _parseSafeString(data['shopImageUrl']);
+    if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
+      item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
+    }
+    
+    // Improved image mapping with fallbacks
+    final rawLogo = data['shopLogo'] ?? data['logoPath'];
+    if (rawLogo != null) {
+      item.shopLogo = _getFullUrl(_parseSafeString(rawLogo));
+      item.logoPath = item.shopLogo; // Sync legacy field
+    }
+    
+    final rawImage = data['shopImageUrl'] ?? data['coverUrl'] ?? data['imageUrl'];
+    if (rawImage != null) {
+      item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));
+    }
 
     // Handle ongoing status
     if (data.containsKey('ongoing')) {
@@ -574,6 +613,24 @@ class ActiveOrderState extends ChangeNotifier {
       return value['name']?.toString() ?? value['label']?.toString() ?? value['status']?.toString();
     }
     return value.toString();
+  }
+
+  String _getFullUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    
+    // Filter out Pinterest links as they often fail to load in mobile apps/webview
+    if (path.contains('pinterest.com')) return '';
+    
+    if (path.startsWith('http') || path.startsWith('assets/')) return path;
+    
+    // Clean path and ensure single slash between base URL and path
+    String cleaned = path.trim();
+    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
+    
+    // Encode the path to handle spaces and special characters
+    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
+    
+    return '${ApiClient.baseUrl}/$encodedPath';
   }
 
   bool _isValidUrl(String url) {

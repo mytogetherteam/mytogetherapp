@@ -58,13 +58,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     
     // Check for transition to COMPLETED (4)
     if (newStatus == 4 && _lastStatus != 4) {
-      OrderCompletePage.navigateTo(context);
+      final currentShopId = state.currentShopId;
+      // Find the specific order that just completed
+      final completedOrder = state.allOrdersList.firstWhere(
+        (o) => o.orderStatus == 4, 
+        orElse: () => state.activeOrdersList.first // Fallback
+      );
+
+      // Filter: only show popup if no shop is selected OR it matches the current shop
+      if (currentShopId == null || completedOrder.shopId == currentShopId.toString()) {
+        OrderCompletePage.navigateTo(context);
+      }
     }
     
     // Check for any order that just became CANCELLED (-1)
     // We check allOrdersList to find terminal states that are filtered out of activeOrdersList
     for (final order in state.allOrdersList) {
       if (order.orderStatus == -1 && !_notifiedCancelledOrders.contains(order.orderId)) {
+        final currentShopId = state.currentShopId;
+        
+        // Filter: only show if no shop context OR it matches
+        if (currentShopId != null && order.shopId != currentShopId.toString()) {
+          continue; // Skip this notification for now
+        }
+
         _notifiedCancelledOrders.add(order.orderId);
         
         // Use a small delay to ensure WS state has settled and avoid UI jank

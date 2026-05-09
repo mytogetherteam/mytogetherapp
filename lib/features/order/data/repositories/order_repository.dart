@@ -9,9 +9,15 @@ class OrderRepository {
   final ApiClient _apiClient = ApiClient();
 
   /// Fetches current and past orders grouped.
-  Future<OrderHistoryGroupedDto?> getGroupedOrders() async {
+  Future<OrderHistoryGroupedDto?> getGroupedOrders({int? shopId}) async {
     try {
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/orders/history-grouped');
+      final queryParams = <String, dynamic>{};
+      if (shopId != null) queryParams['shopId'] = shopId;
+
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/orders/history-grouped',
+        queryParameters: queryParams,
+      );
       if (response.statusCode == 200 && response.data != null) {
         return OrderHistoryGroupedDto.fromJson(response.data as Map<String, dynamic>);
       }
@@ -20,12 +26,13 @@ class OrderRepository {
   }
 
   /// Fetches a flat list of order history.
-  Future<List<OrderHistoryDto>> getOrderHistory({List<String>? statuses}) async {
+  Future<List<OrderHistoryDto>> getOrderHistory({List<String>? statuses, int? shopId}) async {
     try {
       final queryParams = <String, dynamic>{};
       if (statuses != null && statuses.isNotEmpty) {
         queryParams['statuses'] = statuses.join(',');
       }
+      if (shopId != null) queryParams['shopId'] = shopId;
 
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/orders/history',
