@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 
 class SpecialPromotionCard extends StatelessWidget {
   final String title;
@@ -104,15 +105,9 @@ class SpecialPromotionCard extends StatelessWidget {
                       builder: (context) {
                         final bool isNetwork = imagePath.startsWith('http');
                         if (isNetwork) {
-                          return Image.network(
-                            imagePath,
+                          return WebSafeImage(
+                            imageUrl: imagePath,
                             fit: BoxFit.cover,
-                            height: 90,
-                            errorBuilder: (context, error, stackTrace) => _buildErrorIcon(),
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-                            },
                           );
                         }
                         return Image.asset(

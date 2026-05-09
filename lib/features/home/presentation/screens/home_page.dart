@@ -16,9 +16,9 @@ import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/image_skeleton_loader.dart';
+import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final firstTop = _topBanners.first.image;
         if (!firstTop.startsWith('assets/')) {
           precacheTasks.add(precacheImage(
-            CachedNetworkImageProvider(_getImageUrl(firstTop)),
+            NetworkImage(_getImageUrl(firstTop)),
             context,
           ));
         }
@@ -152,7 +152,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final firstBottom = _bottomBanners.first.image;
         if (!firstBottom.startsWith('assets/')) {
           precacheTasks.add(precacheImage(
-            CachedNetworkImageProvider(_getImageUrl(firstBottom)),
+            NetworkImage(_getImageUrl(firstBottom)),
             context,
           ));
         }
@@ -327,15 +327,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             if (image.startsWith('assets/')) {
                               return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
                             }
-                            return CachedNetworkImage(
+                            return WebSafeImage(
                               imageUrl: _getImageUrl(image),
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
-                              errorWidget: (context, url, error) => Container(
-                                color: AppColors.primary,
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.broken_image, color: Colors.white),
-                              ),
                             );
                           },
                         ),
@@ -467,16 +461,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 );
                                               }
                                               final realIndex = index % _bottomBanners.length;
-                                              return CachedNetworkImage(
+                                              return WebSafeImage(
                                                 imageUrl: _getImageUrl(_bottomBanners[realIndex].image),
                                                 fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
-                                                errorWidget: (context, url, error) => Container(
-                                                  color: AppColors.primary,
-                                                  alignment: Alignment.center,
-                                                  child: const Icon(Icons.broken_image, color: Colors.white),
-                                                ),
                                               );
                                             },
                                           ),

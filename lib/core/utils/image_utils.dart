@@ -2,16 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../network/api_client.dart';
 
 class ImageUtils {
-  static const String _corsProxy = 'https://corsproxy.io/?url=';
 
-  static bool _needsProxy(String url) {
-    if (url.toLowerCase().contains('corsproxy.io')) return false;
-    final lower = url.toLowerCase();
-    // Broaden the proxy check for Pinterest and other image hosts that block CORS
-    return lower.contains('i.pinimg.com') || 
-           lower.contains('pinterest.com') ||
-           lower.contains('googleusercontent.com');
-  }
 
   static String? cleanImageUrl(String? url) {
     if (url == null || url.trim().isEmpty) return null;
@@ -24,9 +15,7 @@ class ImageUtils {
     }
 
     String fullUrl = ensureFullUrl(cleanUrl) ?? '';
-    if (_needsProxy(fullUrl)) {
-      fullUrl = '$_corsProxy${Uri.encodeComponent(fullUrl)}';
-    }
+
     if (kDebugMode) {
       debugPrint('[ImageUtils] Original: $url -> Final: $fullUrl');
     }
