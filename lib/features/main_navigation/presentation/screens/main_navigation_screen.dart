@@ -133,8 +133,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     print('[BOOT] Building MainNavigationScreen...');
-    return Scaffold(
-      body: Stack(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: Stack(
         children: [
           IndexedStack(
             index: _currentIndex,
@@ -167,7 +171,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ],
         ),
       ),
-    );
+    )));
   }
 
   Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {

@@ -189,7 +189,7 @@ class NotificationService {
       String deviceId = await _getDeviceId();
 
       await ApiClient().dio.post(
-        '/api/v1/mobile/notifications/register-device',
+        '${ApiClient.apiPrefix}/notifications/register-device',
         data: {
           'fcmToken': token,
           'deviceId': deviceId,

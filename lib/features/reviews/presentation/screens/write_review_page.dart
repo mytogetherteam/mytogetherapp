@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -18,7 +19,7 @@ class WriteReviewPage extends StatefulWidget {
 class _WriteReviewPageState extends State<WriteReviewPage> {
   int _rating = 0;
   final Set<String> _selectedTags = {};
-  File? _imageFile;
+  XFile? _imageFile;
   final TextEditingController _reviewController = TextEditingController();
 
   Future<void> _handleImageSelection() async {
@@ -39,7 +40,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = pickedFile;
       });
     }
   }
@@ -219,10 +220,15 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  _imageFile!,
-                                  fit: BoxFit.cover,
-                                ),
+                                child: kIsWeb
+                                    ? Image.network(
+                                        _imageFile!.path,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.file(
+                                        File(_imageFile!.path),
+                                        fit: BoxFit.cover,
+                                      ),
                               ),
                             ),
                             Positioned(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -56,19 +57,19 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   final List<NewsComment> _initialMocks = [
     NewsComment(
       authorName: 'Alex Rivers',
-      authorAvatar: 'https://i.pravatar.cc/150?u=alex',
+      authorAvatar: kIsWeb ? '/pravatar/150?u=alex' : 'https://i.pravatar.cc/150?u=alex',
       content: 'This is such an insightful update! Thanks for sharing.',
       timeAgo: '2h ago',
     ),
     NewsComment(
       authorName: 'Sarah Jenkins',
-      authorAvatar: 'https://i.pravatar.cc/150?u=sarah',
+      authorAvatar: kIsWeb ? '/pravatar/150?u=sarah' : 'https://i.pravatar.cc/150?u=sarah',
       content: 'I completely agree. The attention to detail is amazing.',
       timeAgo: '1h ago',
     ),
     NewsComment(
       authorName: 'Michael Chen',
-      authorAvatar: 'https://i.pravatar.cc/150?u=mike',
+      authorAvatar: kIsWeb ? '/pravatar/150?u=mike' : 'https://i.pravatar.cc/150?u=mike',
       content: 'Can\'t wait to see what\'s next!',
       timeAgo: '45m ago',
     ),
@@ -146,7 +147,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     setState(() {
       _comments.insert(0, NewsComment(
         authorName: 'You',
-        authorAvatar: 'https://i.pravatar.cc/150?u=you',
+        authorAvatar: kIsWeb ? '/pravatar/150?u=you' : 'https://i.pravatar.cc/150?u=you',
         content: text,
         timeAgo: 'Just now',
         gifUrl: gifUrl,

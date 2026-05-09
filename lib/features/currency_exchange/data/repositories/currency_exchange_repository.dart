@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../models/currency_rate_model.dart';
 
@@ -14,7 +15,9 @@ class CurrencyExchangeRepository {
     ),
   );
 
-  static const String _cbmUrl = 'https://forex.cbm.gov.mm/api/latest';
+  static const String _cbmUrl = kIsWeb
+      ? '/cbm-api/api/latest'
+      : 'https://forex.cbm.gov.mm/api/latest';
   static const String _externalUrl = 'https://open.er-api.com/v6/latest/USD';
 
   List<CurrencyRateModel>? _cachedRates;

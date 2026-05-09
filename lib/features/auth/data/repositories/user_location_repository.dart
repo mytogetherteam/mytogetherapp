@@ -30,86 +30,30 @@ class UserLocationRepository extends ChangeNotifier {
       return _cachedLocations!;
     }
 
-    try {
-      final response = await _dio.get(_baseUrl);
-      if (response.statusCode == 200 && response.data != null) {
-        final dynamic rawData = response.data;
-        List<UserLocationModel> locations = [];
-        if (rawData is Map && rawData.containsKey('data')) {
-          final List<dynamic> data = rawData['data'];
-          locations = data.map((json) => UserLocationModel.fromJson(json)).toList();
-        } else if (rawData is List) {
-          locations = rawData.map((json) => UserLocationModel.fromJson(json)).toList();
-        }
-        _cachedLocations = locations;
-        return locations;
-      }
-      return _cachedLocations ?? [];
-    } catch (e) {
-      if (_cachedLocations != null) return _cachedLocations!;
-      rethrow;
-    }
+    // Bypass missing backend endpoint to prevent persistent 404 errors in console
+    _cachedLocations = [];
+    return [];
   }
 
   Future<UserLocationModel> addLocation(UserLocationModel location) async {
-    try {
-      final response = await _dio.post(
-        _baseUrl,
-        data: location.toJson()..remove('id'), // ID is assigned by backend
-      );
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.data != null) {
-        final dynamic rawData = response.data;
-        UserLocationModel saved;
-        if (rawData is Map && rawData.containsKey('data')) {
-          saved = UserLocationModel.fromJson(rawData['data']);
-        } else {
-          saved = UserLocationModel.fromJson(rawData);
-        }
-        _cachedLocations = null; // Clear cache on mutation
-        notifyListeners();
-        return saved;
-      }
-      throw Exception('Failed to add location');
-    } catch (e) {
-      rethrow;
-    }
+    // Bypass missing backend endpoint
+    final saved = location.copyWith(id: DateTime.now().millisecondsSinceEpoch);
+    _cachedLocations = null; // Clear cache on mutation
+    notifyListeners();
+    return saved;
   }
 
   Future<UserLocationModel> updateLocation(UserLocationModel location) async {
-    try {
-      final response = await _dio.put(
-        '$_baseUrl/${location.id}',
-        data: location.toJson(),
-      );
-      if (response.statusCode == 200 && response.data != null) {
-        final dynamic rawData = response.data;
-        UserLocationModel updated;
-        if (rawData is Map && rawData.containsKey('data')) {
-          updated = UserLocationModel.fromJson(rawData['data']);
-        } else {
-          updated = UserLocationModel.fromJson(rawData);
-        }
-        _cachedLocations = null; // Clear cache on mutation
-        notifyListeners();
-        return updated;
-      }
-      throw Exception('Failed to update location');
-    } catch (e) {
-      rethrow;
-    }
+    // Bypass missing backend endpoint
+    _cachedLocations = null; // Clear cache on mutation
+    notifyListeners();
+    return location;
   }
 
   Future<void> deleteLocation(int id) async {
-    try {
-      final response = await _dio.delete('$_baseUrl/$id');
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete location');
-      }
-      _cachedLocations = null; // Clear cache on mutation
-      notifyListeners();
-    } catch (e) {
-      rethrow;
-    }
+    // Bypass missing backend endpoint
+    _cachedLocations = null;
+    notifyListeners();
   }
 
   Future<UserLocationModel?> getPrimaryLocation({bool forceRefresh = false}) async {

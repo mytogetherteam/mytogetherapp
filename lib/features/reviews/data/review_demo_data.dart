@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'models/review_model.dart';
 
 class ReviewDemoData {
   static final List<Review> reviews = [
     Review(
       id: '1',
-      userAvatar: 'https://i.pravatar.cc/150?img=1',
+      userAvatar: kIsWeb ? '/pravatar/150?img=1' : 'https://i.pravatar.cc/150?img=1',
       userName: 'Emerson Stanton',
       rating: 5,
       text: 'Lorem ipsum dolor sit amet consectetur. Ultricies faucibus nunc sed malesuada turpis sed egestas convallis vulputate.',
@@ -14,7 +15,7 @@ class ReviewDemoData {
     ),
     Review(
       id: '2',
-      userAvatar: 'https://i.pravatar.cc/150?img=2',
+      userAvatar: kIsWeb ? '/pravatar/150?img=2' : 'https://i.pravatar.cc/150?img=2',
       userName: 'Allison Septimus',
       rating: 4,
       text: 'Lorem ipsum dolor sit amet consectetur. Ultricies faucibus nunc sed malesuada turpis sed egestas convallis vulputate.',
@@ -24,7 +25,7 @@ class ReviewDemoData {
     ),
     Review(
       id: '3',
-      userAvatar: 'https://i.pravatar.cc/150?img=3',
+      userAvatar: kIsWeb ? '/pravatar/150?img=3' : 'https://i.pravatar.cc/150?img=3',
       userName: 'Talan Ekstrom Bothman',
       rating: 5,
       text: 'Lorem ipsum dolor sit amet consectetur. Ultricies faucibus nunc sed malesuada turpis sed egestas convallis vulputate.',
@@ -34,7 +35,7 @@ class ReviewDemoData {
     ),
     Review(
       id: '4',
-      userAvatar: 'https://i.pravatar.cc/150?img=4',
+      userAvatar: kIsWeb ? '/pravatar/150?img=4' : 'https://i.pravatar.cc/150?img=4',
       userName: 'Jaxson Westervelt',
       rating: 4,
       text: 'Lorem ipsum dolor sit amet consectetur. Ultricies faucibus nunc sed malesuada turpis sed egestas convallis vulputate.',

@@ -4,6 +4,14 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/cbm-api/(.*)",
+      "destination": "https://forex.cbm.gov.mm/$1"
+    },
+    {
+      "source": "/pravatar/(.*)",
+      "destination": "https://i.pravatar.cc/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

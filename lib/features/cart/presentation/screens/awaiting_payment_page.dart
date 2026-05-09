@@ -25,6 +25,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import 'package:flutter/foundation.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -47,7 +48,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
-  File? _receiptImage;
+  XFile? _receiptImage;
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
@@ -61,7 +62,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     )..repeat();
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
 
@@ -131,7 +132,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('disable');
     }
     _orderSubscription?.cancel();
@@ -274,17 +275,20 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
   }
 
   Future<void> _pickReceiptImage() async {
-    PermissionStatus status;
-    if (await Permission.photos.isGranted ||
-        await Permission.storage.isGranted) {
-      status = PermissionStatus.granted;
-    } else {
-      final photosResult = await Permission.photos.request();
-      if (photosResult.isGranted) {
+    PermissionStatus status = PermissionStatus.granted;
+    
+    if (!kIsWeb) {
+      if (await Permission.photos.isGranted ||
+          await Permission.storage.isGranted) {
         status = PermissionStatus.granted;
       } else {
-        final storageResult = await Permission.storage.request();
-        status = storageResult;
+        final photosResult = await Permission.photos.request();
+        if (photosResult.isGranted) {
+          status = PermissionStatus.granted;
+        } else {
+          final storageResult = await Permission.storage.request();
+          status = storageResult;
+        }
       }
     }
 
@@ -306,8 +310,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     );
 
     if (picked != null && mounted) {
-      final file = File(picked.path);
-      final sizeInBytes = await file.length();
+      final sizeInBytes = await picked.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
       if (sizeInMb > 5.0) {
@@ -337,7 +340,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
         }
         return;
       }
-      setState(() => _receiptImage = file);
+      setState(() => _receiptImage = picked);
     }
   }
 
@@ -815,11 +818,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: Image.file(
-            _receiptImage!,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+          child: kIsWeb
+              ? Image.network(
+                  _receiptImage!.path,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                )
+              : Image.file(
+                  File(_receiptImage!.path),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
         ),
         // Remove / re-pick button
         Positioned(
