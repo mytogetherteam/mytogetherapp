@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'auth_service.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
@@ -6,6 +7,16 @@ class AuthInterceptor extends QueuedInterceptor {
   bool _isRefreshing = false;
 
   AuthInterceptor(this.dio);
+
+  Dio _getCleanDio() {
+    return Dio(
+      BaseOptions(
+        baseUrl: ApiClient.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+  }
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
@@ -15,7 +26,9 @@ class AuthInterceptor extends QueuedInterceptor {
     // Proactive refresh: if token is about to expire, refresh it BEFORE sending the request
     if (authService.isLoggedIn && authService.isTokenNearlyExpired && !isAuthPath) {
       try {
-        final newToken = await authService.performRefresh(dio);
+        // Use a clean Dio instance to avoid deadlocking the QueuedInterceptor
+        final cleanDio = _getCleanDio();
+        final newToken = await authService.performRefresh(cleanDio);
         if (newToken != null) {
           options.headers['Authorization'] = 'Bearer $newToken';
         }
@@ -50,7 +63,9 @@ class AuthInterceptor extends QueuedInterceptor {
 
       _isRefreshing = true;
       try {
-        final newToken = await AuthService().performRefresh(dio);
+        // Use a clean Dio instance to avoid deadlocking the QueuedInterceptor
+        final cleanDio = _getCleanDio();
+        final newToken = await AuthService().performRefresh(cleanDio);
         
         if (newToken != null && newToken.isNotEmpty) {
           final retryOptions = err.requestOptions;

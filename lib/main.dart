@@ -13,7 +13,6 @@ import 'core/notifications/notification_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/network/api_client.dart';
 import 'app.dart';
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {

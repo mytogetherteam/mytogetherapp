@@ -59,10 +59,10 @@ class AuthRemoteDataSource {
     return data['token'] as String? ?? data['accessToken'] as String? ?? '';
   }
 
-  Future<void> logout() async {
+  Future<void> logout({String? token}) async {
     try {
-      final token = AuthService().refreshToken;
-      await _dio.post('${ApiClient.apiPrefix}/auth/logout', data: {'refreshToken': token ?? ''});
+      final t = token ?? AuthService().refreshToken;
+      await _dio.post('${ApiClient.apiPrefix}/auth/logout', data: {'refreshToken': t ?? ''});
     } catch (_) {}
   }
 

@@ -58,13 +58,15 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      if (AuthService().isLoggedIn) {
-         await _dataSource.logout();
+      final token = AuthService().refreshToken;
+      if (token != null && token.isNotEmpty) {
+        // Fire remote logout in the background to avoid blocking the user
+        _dataSource.logout(token: token).catchError((_) {});
       }
     } catch (_) {
-      // Ignore network errors on logout. 
-      // Main goal is ensuring the user is locally logged out.
+      // Ignore errors on logout
     } finally {
+      // Clear local session immediately so the user logs out instantly in the UI
       await AuthService().clearSession();
     }
   }
