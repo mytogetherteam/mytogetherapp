@@ -32,12 +32,17 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
   Future<ShopFeedSectionDto> _loadDeals() async {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
+      // Use cached GPS position or default — never block on a fresh GPS request.
+      // On PWA, getCurrentPosition() can trigger a browser permission dialog
+      // and hang for several seconds, blocking the entire deals section.
+      final pos = LocationService().cachedPosition;
+      final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
       
       return await RestaurantRepository.instance.getFoodTabFeed(
         feedType: 'hot-deals',
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
+        lat: lat,
+        lon: lon,
         size: 10,
       ).timeout(const Duration(seconds: 5));
     } catch (e) {

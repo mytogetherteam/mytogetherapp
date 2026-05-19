@@ -45,13 +45,14 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
     _isProcessingForeground = true;
 
     try {
-      // 1. SYNC: Always pull server truth via HTTP first
-      // This is the "unbreakable" part — FCM might have been missed,
-      // so we catch up here before resuming live stream.
-      await ActiveOrderState.instance.syncActiveOrder();
-      
-      // 2. RECONNECT: After sync, safe to listen for new events
-      WebSocketService().connect();
+      // Run sync and WebSocket reconnect in PARALLEL instead of sequentially.
+      // The old sequential approach blocked WS reconnect behind a potentially
+      // slow HTTP sync, adding seconds of delay on app resume.
+      await Future.wait([
+        ActiveOrderState.instance.syncActiveOrder()
+            .timeout(const Duration(seconds: 5), onTimeout: () {}),
+        Future(() => WebSocketService().connect()),
+      ]);
     } catch (_) {
       // Fail-safe: trigger a background sync attempt later if critical
     } finally {

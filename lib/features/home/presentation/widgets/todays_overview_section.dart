@@ -42,11 +42,14 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
   Future<List<MenuItemDto>> _fetchTrending() async {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
+      // Use cached GPS or default — avoid blocking on browser geolocation API
+      final pos = LocationService().cachedPosition;
+      final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
       
       final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
+        lat: lat,
+        lon: lon,
         radiusKm: 10.0,
         size: 10,
       ).timeout(const Duration(seconds: 5));

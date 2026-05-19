@@ -29,12 +29,15 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
   Future<List<Restaurant>> _loadPopularBrands() async {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
+      // Use cached GPS or default — avoid blocking on browser geolocation API
+      final pos = LocationService().cachedPosition;
+      final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
       
       // Fetch popular restaurants (reusing nearby API for now)
       return await RestaurantRepository.instance.getNearbyShops(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
+        lat: lat,
+        lon: lon,
         radius: 10.0,
         size: 10,
       ).timeout(const Duration(seconds: 5));
