@@ -182,7 +182,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           itemCount: 3,
-          itemBuilder: (_, __) => Container(
+          itemBuilder: (_, _) => Container(
             padding: const EdgeInsets.all(8),
             margin: const EdgeInsets.only(bottom: 16, left: 10, right: 10),
             child: Column(

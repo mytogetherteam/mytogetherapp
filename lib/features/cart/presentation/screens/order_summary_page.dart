@@ -28,9 +28,7 @@ import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../home/presentation/widgets/location_selection_modal.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
-import '../../../../core/theme/app_colors.dart';
 
 import '../../../home/data/shop_storage.dart';
 
@@ -128,8 +126,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Future<void> _preFetchRoute() async {
     if (_restaurant == null || _primaryLocation == null) return;
     if (_primaryLocation!.latitude == null ||
-        _primaryLocation!.longitude == null)
+        _primaryLocation!.longitude == null) {
       return;
+    }
     if (_restaurant!.latitude == null || _restaurant!.longitude == null) return;
 
     final start = LatLng(

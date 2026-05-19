@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:intl/intl.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
 

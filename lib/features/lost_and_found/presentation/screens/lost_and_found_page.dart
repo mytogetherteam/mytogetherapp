@@ -17,7 +17,6 @@ class LostAndFoundPage extends StatefulWidget {
 class _LostAndFoundPageState extends State<LostAndFoundPage> {
   final List<NewsItem> _items = [];
   bool _isLoading = false;
-  bool _isRefreshing = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -56,14 +55,12 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   }
 
   Future<void> _onRefresh() async {
-    setState(() => _isRefreshing = true);
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       setState(() {
         _items
           ..clear()
           ..addAll(_getMockData());
-        _isRefreshing = false;
       });
     }
   }

@@ -132,7 +132,7 @@ class WebSocketService {
           final decoded = json.decode(frame.body!);
           if (decoded is! Map) return;
 
-          final raw = Map<String, dynamic>.from(decoded as Map);
+          final raw = Map<String, dynamic>.from(decoded);
           final messageType = raw['type']?.toString();
 
           // ── MENU_ITEM_UPDATE (Real-time Menu synchronization) ─────────────
@@ -162,7 +162,7 @@ class WebSocketService {
           }
 
           if (payload is Map) {
-            final Map<String, dynamic> orderRaw = Map<String, dynamic>.from(payload as Map);
+            final Map<String, dynamic> orderRaw = Map<String, dynamic>.from(payload);
             
             // Smarter status extraction: check root then nested
             String? status = (orderRaw['statusName'] ?? orderRaw['statusLabel'] ?? orderRaw['status'])?.toString();

@@ -218,10 +218,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  void _showSlipRequestedToast() {
-    if (!mounted) return;
-    AppDialog.showToast(context, 'New payment slip requested by restaurant');
-  }
+
 
   // Save payment image to gallery using RepaintBoundary
   Future<void> _saveQrToGallery() async {
@@ -560,40 +557,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     }
   }
 
-  Widget _buildQrSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          // Payment Image (replaces static QR)
-          RepaintBoundary(
-            key: _qrKey,
-            child: Container(
-              width: double.infinity,
-              height: 300,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: _buildPaymentImage(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildPaymentImage() {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
@@ -707,101 +671,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     );
   }
 
-  Widget _buildUploadReceiptSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (_showUploadSection &&
-                !ActiveOrderState.instance.isSlipRequested)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _showUploadSection = false);
-                    ActiveOrderState.instance.setShowUploadSection(
-                      false,
-                      orderId: widget.orderId,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      size: 20,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
-            Text(
-              ActiveOrderState.instance.getOrder(widget.orderId)?.isSlipRequested == true ? 'Re-upload Receipt' : 'Upload Receipt',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
 
-        // Upload box
-        GestureDetector(
-          onTap: _receiptImage == null ? _pickReceiptImage : null,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 200),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0F4),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primary,
-                width: 2,
-                // Dashed border via custom painter
-              ),
-            ),
-            child: _receiptImage == null
-                ? _buildUploadPlaceholder()
-                : _buildReceiptPreview(),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Info hint
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(PhosphorIcons.info(),
-                size: 16, color: const Color(0xFFED3973)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                ActiveOrderState.instance
-                            .getOrder(widget.orderId)
-                            ?.isSlipRequested ==
-                        true
-                    ? 'The restaurant has requested a new receipt. (ဆိုင်မှ ဖြတ်ပိုင်းအသစ် ပြန်တင်ခိုင်းထားပါသည်။) Please ensure the transaction details are clearly visible.'
-                    : 'Please ensure the transaction date, time, and amount are clearly visible in the photo.',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: AppColors.primary,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
   Widget _buildUploadPlaceholder() {
     return const Padding(
@@ -1264,6 +1134,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     final name = order?.riderName ?? 'Unknown Rider';
     final phone = order?.riderPhone ?? 'No Phone';
+    final vehicleNo = order?.riderVehicleNumber;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1310,11 +1181,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                     color: Colors.grey[600],
                   ),
                 ),
-                if (order?.riderVehicleNumber != null && order!.riderVehicleNumber!.isNotEmpty)
+                if (vehicleNo != null && vehicleNo.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: GradientText(
-                      'Vehicle No: ${order!.riderVehicleNumber!}',
+                      'Vehicle No: $vehicleNo',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

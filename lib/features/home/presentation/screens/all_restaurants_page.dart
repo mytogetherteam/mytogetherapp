@@ -321,7 +321,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 16),
       itemCount: 5,
-      itemBuilder: (_, __) => const NearbyRestaurantListItemSkeleton(),
+      itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
     );
   }
 

@@ -11,10 +11,6 @@ import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
 import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../features/auth/data/repositories/auth_repository.dart';
-import '../../../../features/auth/presentation/screens/login_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 

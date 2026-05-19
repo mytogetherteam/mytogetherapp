@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
-import '../widgets/shop_feed_section.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
@@ -74,7 +73,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   bool _showBasket = false;
   bool _isScrolled = false;
   bool _isFavorite = false;
-  bool _isTogglingFavorite = false;
   StreamSubscription? _menuUpdateSubscription;
 
   Restaurant? _currentRestaurant;

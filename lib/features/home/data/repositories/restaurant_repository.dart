@@ -25,7 +25,7 @@ class RestaurantRepository {
   DateTime? _trendingLastFetch;
 
   // Cache for banners
-  Map<String, List<BannerImageDto>> _cachedBanners = {};
+  final Map<String, List<BannerImageDto>> _cachedBanners = {};
   DateTime? _bannersLastFetch;
 
   // Cache for shop feed sections: key = "shopId-feedType"

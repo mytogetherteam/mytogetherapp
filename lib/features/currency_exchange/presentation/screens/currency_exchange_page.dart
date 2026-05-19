@@ -16,8 +16,6 @@ class CurrencyExchangePage extends StatefulWidget {
 }
 
 class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
-  static Color get _primary => AppColors.primary;
-  static Color get _secondary => AppColors.secondary;
   static List<Color> get _primaryGradient => AppColors.primaryGradient.colors;
   static const Color _bgColor = Color(0xFFF5F5F5);
 

@@ -137,7 +137,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
                         itemCount: brandChunks.length + 1, // +1 for the "More" button
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           if (index == brandChunks.length) {
                             return const _MoreCard();
@@ -202,7 +202,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: 3,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, index) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -365,7 +365,7 @@ class _BrandCard extends StatelessWidget {
                 child: Image.network(
                   brand.logoPath.isNotEmpty ? brand.logoPath : brand.imagePath,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 24),
+                  errorBuilder: (_, _, _) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 24),
                 ),
               ),
             ),

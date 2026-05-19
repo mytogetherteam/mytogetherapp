@@ -40,12 +40,17 @@ class AuthService extends ChangeNotifier {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // Read tokens from secure storage
-    _accessToken = await _secureStorage.read(key: _keyAccessToken);
-    _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
-
     // Read non-sensitive profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
+
+    if (kIsWeb) {
+      _accessToken = prefs.getString(_keyAccessToken);
+      _refreshToken = prefs.getString(_keyRefreshToken);
+    } else {
+      // Read tokens from secure storage
+      _accessToken = await _secureStorage.read(key: _keyAccessToken);
+      _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+    }
 
     final userId = prefs.getInt(_keyUserId);
     final username = prefs.getString(_keyUsername);
@@ -113,12 +118,18 @@ class AuthService extends ChangeNotifier {
     _currentUser = user;
     _userLocations = userLocations;
 
-    // Store tokens securely
-    await _secureStorage.write(key: _keyAccessToken, value: accessToken);
-    await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
+    final prefs = await SharedPreferences.getInstance();
+
+    if (kIsWeb) {
+      await prefs.setString(_keyAccessToken, accessToken);
+      await prefs.setString(_keyRefreshToken, refreshToken);
+    } else {
+      // Store tokens securely
+      await _secureStorage.write(key: _keyAccessToken, value: accessToken);
+      await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
+    }
 
     // Store non-sensitive profile data in SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyUserId, user.id);
     await prefs.setString(_keyUsername, user.username);
     await prefs.setString(_keyEmail, user.email);
@@ -141,28 +152,49 @@ class AuthService extends ChangeNotifier {
     _refreshToken = null;
     _currentUser = null;
 
-    // Clear tokens from secure storage
-    await _secureStorage.delete(key: _keyAccessToken);
-    await _secureStorage.delete(key: _keyRefreshToken);
+    final prefs = await SharedPreferences.getInstance();
+
+    if (kIsWeb) {
+      await prefs.remove(_keyAccessToken);
+      await prefs.remove(_keyRefreshToken);
+    } else {
+      // Clear tokens from secure storage
+      await _secureStorage.delete(key: _keyAccessToken);
+      await _secureStorage.delete(key: _keyRefreshToken);
+    }
 
     // Clear remaining profile data from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     notifyListeners();
   }
 
   void updateAccessToken(String newToken) {
     _accessToken = newToken;
-    _secureStorage.write(key: _keyAccessToken, value: newToken);
+    if (kIsWeb) {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString(_keyAccessToken, newToken);
+      });
+    } else {
+      _secureStorage.write(key: _keyAccessToken, value: newToken);
+    }
   }
 
   Future<void> updateTokens(String accessToken, String? refreshToken) async {
     _accessToken = accessToken;
-    await _secureStorage.write(key: _keyAccessToken, value: accessToken);
+    final prefs = await SharedPreferences.getInstance();
 
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      _refreshToken = refreshToken;
-      await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
+    if (kIsWeb) {
+      await prefs.setString(_keyAccessToken, accessToken);
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        _refreshToken = refreshToken;
+        await prefs.setString(_keyRefreshToken, refreshToken);
+      }
+    } else {
+      await _secureStorage.write(key: _keyAccessToken, value: accessToken);
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        _refreshToken = refreshToken;
+        await _secureStorage.write(key: _keyRefreshToken, value: refreshToken);
+      }
     }
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';

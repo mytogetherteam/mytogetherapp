@@ -3,8 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'image_skeleton_loader.dart';
+import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'shop_item_metadata_row.dart';
 
@@ -74,19 +73,13 @@ class NearbyRestaurantListItem extends StatelessWidget {
                 // Left: Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: imagePath,
+                  child: SizedBox(
                     height: 80,
                     width: 80,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const ImageSkeletonLoader(height: 80, width: 80),
-                    errorWidget: (context, url, error) => Container(
-                      height: 80,
-                      width: 80,
-                      color: Colors.grey[200],
-                      child: Icon(PhosphorIcons.image(), color: Colors.grey),
+                    child: WebSafeImage(
+                      imageUrl: imagePath,
+                      fit: BoxFit.cover,
                     ),
-                    fadeInDuration: const Duration(milliseconds: 300),
                   ),
                 ),
 
@@ -257,17 +250,9 @@ class NearbyRestaurantListItem extends StatelessWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(24),
-                          child: CachedNetworkImage(
+                          child: WebSafeImage(
                             imageUrl: imageUrls[index],
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => const ImageSkeletonLoader(),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                              ),
-                            ),
-                            fadeInDuration: const Duration(milliseconds: 300),
                           ),
                         ),
 

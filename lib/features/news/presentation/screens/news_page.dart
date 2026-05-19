@@ -14,7 +14,6 @@ class NewsPage extends StatefulWidget {
 class _NewsPageState extends State<NewsPage> {
   final List<NewsItem> _newsItems = [];
   bool _isLoading = false;
-  bool _isRefreshing = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -56,17 +55,12 @@ class _NewsPageState extends State<NewsPage> {
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isRefreshing = true;
-    });
-    
     await Future.delayed(const Duration(seconds: 1));
     
     if (mounted) {
       setState(() {
         _newsItems.clear();
         _newsItems.addAll(_getMockData());
-        _isRefreshing = false;
       });
     }
   }
@@ -122,7 +116,7 @@ class _NewsPageState extends State<NewsPage> {
         content:
             'Exciting new features coming to Together App this month! Stay tuned for more updates on our upcoming releases and community events. We are working hard to bring you the best experience possible. Our team has been focusing on improving performance, adding highly requested features, and refining the overall user interface to make it more intuitive and beautiful. We can\'t wait to show you what we\'ve been building. Make sure to follow us on all social media platforms for the latest news and behind-the-scenes content.',
         imageUrls: [
-          'https://images.unsplash.com/photo-1512428559083-a400a4b82c97?q=80&w=1000&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=1000&auto=format&fit=crop',
           'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?q=80&w=1000&auto=format&fit=crop',
         ],
         likesCount: 3200,

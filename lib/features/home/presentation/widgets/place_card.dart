@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'image_skeleton_loader.dart';
+import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
 class PlaceCard extends StatelessWidget {
@@ -40,19 +39,9 @@ class PlaceCard extends StatelessWidget {
             Positioned.fill(
               child: Hero(
                 tag: 'top_places_$name',
-                child: CachedNetworkImage(
+                child: WebSafeImage(
                   imageUrl: imagePath,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const ImageSkeletonLoader(
-                    height: 320,
-                    width: 240,
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    width: 240,
-                    height: 320,
-                    color: Colors.grey[200],
-                    child: Icon(PhosphorIcons.image(), color: Colors.grey),
-                  ),
                 ),
               ),
             ),

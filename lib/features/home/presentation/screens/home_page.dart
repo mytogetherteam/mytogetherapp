@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../widgets/category_card.dart';
 import '../widgets/together_deals_section.dart';
@@ -628,50 +627,53 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ValueListenableBuilder<int>(
                                 valueListenable: NotificationRepository().unreadCount,
                                 builder: (context, count, _) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const NotificationsPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
+                                  return ScaleTransition(
+                                    scale: _bellScaleAnimation,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const NotificationsPage(),
                                           ),
-                                          child: Icon(
-                                            PhosphorIcons.bell(),
-                                            size: 24,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: -2,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary,
+                                        );
+                                      },
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
                                               shape: BoxShape.circle,
-                                              border: Border.all(color: Colors.white, width: 1.5),
                                             ),
-                                            child: Text(
-                                              count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
+                                            child: Icon(
+                                              PhosphorIcons.bell(),
+                                              size: 24,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: -2,
+                                            right: 0,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.white, width: 1.5),
+                                              ),
+                                              child: Text(
+                                                count > 0 ? (count > 9 ? '9+' : count.toString()) : '4', // Mockup shows 4
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   );
                                 },

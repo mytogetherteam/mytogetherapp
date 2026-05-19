@@ -16,16 +16,24 @@ class WebSafeImage extends StatelessWidget {
     this.fit = BoxFit.cover,
   });
 
+  String get _sanitizedUrl {
+    if (imageUrl.startsWith('http://')) {
+      return imageUrl.replaceFirst('http://', 'https://');
+    }
+    return imageUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sanitized = _sanitizedUrl;
     if (kIsWeb) {
       // Use HtmlElementView on web to bypass CanvasKit CORS completely
-      return buildWebImage(imageUrl, fit);
+      return buildWebImage(sanitized, fit);
     }
     
     // On mobile, use CachedNetworkImage since CORS is not an issue
     return CachedNetworkImage(
-      imageUrl: imageUrl,
+      imageUrl: sanitized,
       fit: fit,
       errorWidget: (context, url, error) => Container(
         color: AppColors.primary,

@@ -45,7 +45,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   late int _likesCount;
   // Use viewportFraction 0.80 for the "peek" effect, matching the feed
   final PageController _pageController = PageController(viewportFraction: 0.80);
-  final int _currentImageIndex = 0;
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   bool _isGifPickerVisible = false;
@@ -238,10 +237,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const double avatarRadius = 20.0;
-    const double avatarGap = 14.0;
     const double outerPadding = 16.0;
-    const double leftContentOffset = outerPadding + (avatarRadius * 2) + avatarGap; // 70
 
     return Scaffold(
       backgroundColor: Colors.white,

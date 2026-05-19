@@ -16,7 +16,6 @@ import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -623,7 +622,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final all = [
       ...points,
       _restaurantLatLng,
-      if (_currentLocation != null) _currentLocation!,
+      ?_currentLocation,
     ];
 
     double minLat = all.first.latitude;
@@ -1069,8 +1068,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildDeliveryFeeRow() {
-    final fee = ActiveOrderState.instance.deliveryFee;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

@@ -14,7 +14,6 @@ import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 
 class MenuDetailPage extends StatefulWidget {

@@ -6,7 +6,6 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../widgets/nearby_restaurant_list_item.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../widgets/map_skeleton_loader.dart';
@@ -43,7 +42,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _showMap = false;
   double _currentZoom = 14.0;
-  LatLngBounds? _visibleRegion;
 
   late final Dio _dio;
   static const String _googleMapsApiKey = 'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
@@ -638,9 +636,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   }
 
   Future<void> _onCameraIdle() async {
-    final GoogleMapController controller = await _mapController.future;
-    _visibleRegion = await controller.getVisibleRegion();
-    
     if (_restaurantsFuture != null) {
       final restaurants = await _restaurantsFuture!;
       _updateMarkers(restaurants);

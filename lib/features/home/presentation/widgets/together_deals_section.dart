@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -121,7 +121,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(left: 20, right: 20),
                 itemCount: deals.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) => _DealCard(deal: deals[index]),
               ),
             ),
@@ -159,7 +159,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20, right: 20),
             itemCount: 4,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (_, index) => SizedBox(
               width: 130,
               child: Column(
@@ -233,42 +233,12 @@ class _DealCard extends StatelessWidget {
             // Food image
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: CachedNetworkImage(
-                imageUrl: deal.imageUrl ?? '',
+              child: SizedBox(
                 width: 130,
                 height: 120,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const ImageSkeletonLoader(
-                  width: 130,
-                  height: 120,
-                  showLogo: true,
-                ),
-                errorWidget: (context, url, error) => Container(
-                  width: 130,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.image_not_supported_rounded,
-                        color: Colors.grey.shade300,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'No Image',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.grey.shade400,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: WebSafeImage(
+                  imageUrl: deal.imageUrl ?? '',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),

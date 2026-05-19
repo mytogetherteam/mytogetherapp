@@ -1,14 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
-import '../../../../core/network/api_client.dart';
 import '../models/user_location_model.dart';
 
 class UserLocationRepository extends ChangeNotifier {
   static final UserLocationRepository instance = UserLocationRepository._internal();
   UserLocationRepository._internal();
-
-  final Dio _dio = ApiClient().dio;
-  static const String _baseUrl = '${ApiClient.apiPrefix}/user-locations';
 
   List<UserLocationModel>? _cachedLocations;
   UserLocationModel? _activeLocation;

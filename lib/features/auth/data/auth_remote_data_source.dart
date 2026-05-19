@@ -73,12 +73,7 @@ class AuthRemoteDataSource {
   }
 
   Future<List<UserLocationModel>> getUserLocations() async {
-    try {
-      final response = await _dio.get('${ApiClient.apiPrefix}/user-locations');
-      final List<dynamic> data = response.data['data'];
-      return data.map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return [];
-    }
+    // Bypass missing backend endpoint to prevent persistent 404 errors in console
+    return [];
   }
 }
