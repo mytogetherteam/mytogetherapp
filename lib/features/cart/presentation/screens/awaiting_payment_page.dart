@@ -857,17 +857,26 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                         order?.displayFoodPrice ?? '฿ ${widget.foodTotal.toStringAsFixed(0)}',
                         isValue: false),
                     const SizedBox(height: 10),
-                    _summaryRow('Delivery Fee',
+                    _summaryRow(
+                        order?.deliveryType == 'NORMAL' ? 'Est. Delivery Fee' : 'Delivery Fee',
                         '',
                         customValue: (order?.deliveryFee != null && order!.deliveryFee! > 0)
-                            ? Text(
-                                '฿ ${order.deliveryFee!.toInt()}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              )
+                            ? (order.deliveryType == 'NORMAL'
+                                ? GradientText(
+                                    '฿ ${order.deliveryFee!.toInt()}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                : Text(
+                                    '฿ ${order.deliveryFee!.toInt()}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black,
+                                    ),
+                                  ))
                             : (order?.deliveryType == 'NORMAL')
                                 ? Text(
                                     'Calculate Later',
@@ -908,13 +917,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                                     },
                                   ),
                         isValue: false),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: _DottedDivider(color: Color(0xFFCCCCCC)),
-                    ),
-                    _summaryRow('Total',
-                        '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
-                        isValue: true),
+                    if (order?.deliveryType != 'NORMAL') ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: _DottedDivider(color: Color(0xFFCCCCCC)),
+                      ),
+                      _summaryRow('Total',
+                          '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
+                          isValue: true),
+                    ],
                     if (order?.estimatedTime != null && order!.estimatedTime!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _summaryRow('Estimated Waiting Time',
@@ -994,7 +1005,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                               Icon(PhosphorIcons.clock(), size: 16, color: AppColors.primary),
                               const SizedBox(width: 6),
                               GradientText(
-                                '05:00',
+                                (order?.estimatedTime != null && order!.estimatedTime!.isNotEmpty)
+                                    ? order.estimatedTime!
+                                    : '05:00',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,

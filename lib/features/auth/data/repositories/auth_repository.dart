@@ -69,6 +69,17 @@ class AuthRepository {
     }
   }
 
+  Future<void> deleteAccount({required String password}) async {
+    try {
+      await _dataSource.deleteAccount(password: password);
+    } on DioException catch (e) {
+      throw _parseError(e);
+    } finally {
+      // Always clear local session after delete attempt
+      await AuthService().clearSession();
+    }
+  }
+
   Future<void> _saveSession(AuthResponse response, {UserModel? profile, List<UserLocationModel>? locations}) async {
     final user = profile ?? UserModel(
       id: response.id,

@@ -114,6 +114,7 @@ class _SpecialPromotionSectionState extends State<SpecialPromotionSection> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               height: 8,
               width: isSelected ? 24 : 8,
+              decoration: BoxDecoration(
                 gradient: isSelected ? AppColors.primaryGradient : null,
                 color: isSelected ? null : Colors.grey[300],
                 borderRadius: BorderRadius.circular(4),

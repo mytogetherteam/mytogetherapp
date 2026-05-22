@@ -66,6 +66,13 @@ class AuthRemoteDataSource {
     } catch (_) {}
   }
 
+  Future<void> deleteAccount({String? password}) async {
+    await _dio.delete(
+      '${ApiClient.apiPrefix}/users/account',
+      data: {'password': password ?? ''},
+    );
+  }
+
   Future<UserModel> getUserProfile() async {
     final response = await _dio.get('${ApiClient.apiPrefix}/users/profile');
     final data = response.data['data'];
