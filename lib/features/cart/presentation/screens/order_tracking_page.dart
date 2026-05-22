@@ -983,7 +983,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                            _buildInfoRow(
                             label: 'Total Amount',
-                            value: '฿ ${(widget.foodTotal + (ActiveOrderState.instance.deliveryFee ?? 0)).toInt()}',
+                            value: '฿ ${widget.foodTotal.toInt()}',
                             isGradientValue: true,
                           ),
 
