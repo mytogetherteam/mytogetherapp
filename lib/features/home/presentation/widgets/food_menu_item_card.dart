@@ -31,6 +31,7 @@ class FoodMenuItemCard extends StatefulWidget {
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onAddToCart;
   final bool isHighlighted;
   final bool forceRestaurantNavigation;
   final String? targetMenuItemId;
@@ -58,6 +59,7 @@ class FoodMenuItemCard extends StatefulWidget {
     this.deliveryFee,
     this.originalDeliveryFee,
     this.onFavoriteToggle,
+    this.onAddToCart,
     this.isHighlighted = false,
     this.forceRestaurantNavigation = false,
     this.targetMenuItemId,
@@ -274,6 +276,26 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   ),
                                 ),
                               ),
+                              if (widget.onAddToCart != null)
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: effectiveIsDisabled ? null : widget.onAddToCart,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

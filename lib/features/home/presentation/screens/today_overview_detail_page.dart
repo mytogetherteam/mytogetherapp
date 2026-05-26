@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../cart/data/cart_repository.dart';
+import '../../../cart/data/cart_manager.dart';
+import '../../../cart/data/models/cart_dto.dart';
 import '../widgets/food_menu_item_card.dart';
 import '../widgets/food_menu_item_skeleton.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -145,6 +149,28 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     }
   }
 
+  Future<void> _addToCart(MenuItemDto item) async {
+    final menuItemId = int.tryParse(item.id);
+    final shopId = int.tryParse(item.restaurantId);
+    if (menuItemId == null || shopId == null || shopId <= 0) return;
+
+    try {
+      await CartRepository.instance.addToCart(AddToCartRequest(
+        menuItemId: menuItemId,
+        quantity: 1,
+        shopId: shopId,
+      ));
+      CartManager.instance.invalidateCache();
+      if (mounted) {
+        AppDialog.showToast(context, 'Added to cart');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppDialog.showToast(context, 'Failed to add: ${e.toString()}');
+      }
+    }
+  }
+
   Future<void> _onRefresh() async {
     await _loadInitialData();
   }
@@ -260,6 +286,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                     deliveryFee: item.deliveryFee,
                     originalDeliveryFee: item.originalDeliveryFee,
                     onFavoriteToggle: () => _toggleFavorite(item),
+                    onAddToCart: () => _addToCart(item),
                     forceRestaurantNavigation: true,
                     isAvailable: item.isAvailable,
                     publishStatus: item.publishStatus,

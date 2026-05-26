@@ -25,6 +25,7 @@ class FoodListItemCard extends StatelessWidget {
   final String? originalDeliveryFee;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onAddToCart;
   final String? id;
   final bool isAvailable;
   final String publishStatus;
@@ -47,6 +48,7 @@ class FoodListItemCard extends StatelessWidget {
     this.originalDeliveryFee,
     this.onTap,
     this.onFavoriteToggle,
+    this.onAddToCart,
     this.id,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
@@ -190,16 +192,19 @@ class FoodListItemCard extends StatelessWidget {
               if (effectivePrice > 0 ||
                   hasDiscount ||
                   (displayPrice != null && displayPrice != '฿ 0' && displayPrice != '฿0' && displayPrice != '0'))
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                    size: 20,
+                GestureDetector(
+                  onTap: effectiveIsDisabled ? null : onAddToCart,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
             ],

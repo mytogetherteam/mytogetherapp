@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'image_skeleton_loader.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
+import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
+import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
+import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'food_menu_item_card.dart';
@@ -145,6 +149,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               deliveryFee: item.deliveryFee,
               originalDeliveryFee: item.originalDeliveryFee,
               onFavoriteToggle: () => _toggleFavorite(item),
+              onAddToCart: () => _addToCart(item),
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
             );
@@ -224,6 +229,27 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _addToCart(ShopFeedItemDto item) async {
+    final shopId = widget.shopId;
+    if (shopId <= 0) return;
+
+    try {
+      await CartRepository.instance.addToCart(AddToCartRequest(
+        menuItemId: item.id,
+        quantity: 1,
+        shopId: shopId,
+      ));
+      CartManager.instance.invalidateCache();
+      if (mounted) {
+        AppDialog.showToast(context, 'Added to cart');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppDialog.showToast(context, 'Failed to add: ${e.toString()}');
       }
     }
   }
