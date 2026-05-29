@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/data/cart_manager.dart';
 import 'shop_item_metadata_row.dart';
@@ -268,8 +268,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                     ),
                                     child: Icon(
                                       showFilledHeart
-                                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                                          : PhosphorIcons.heart(),
+                                          ? PhosphorIconsFill.heart
+                                          : PhosphorIcons.heart,
                                       color: showFilledHeart ? AppColors.primary : Colors.white,
                                       size: 16,
                                     ),

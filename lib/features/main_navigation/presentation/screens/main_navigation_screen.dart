@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
@@ -159,11 +159,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(0, PhosphorIcons.house(), PhosphorIcons.house(PhosphorIconsStyle.fill), 'Home'),
-            _buildNavItem(1, PhosphorIcons.forkKnife(), PhosphorIcons.forkKnife(PhosphorIconsStyle.fill), 'Food'),
-            _buildNavItem(2, PhosphorIcons.receipt(), PhosphorIcons.receipt(PhosphorIconsStyle.fill), 'Orders'),
-            _buildNavItem(3, PhosphorIcons.newspaper(), PhosphorIcons.newspaper(PhosphorIconsStyle.fill), 'News'),
-            _buildNavItem(4, PhosphorIcons.user(), PhosphorIcons.user(PhosphorIconsStyle.fill), 'Profile'),
+            _buildNavItem(0, PhosphorIcons.house, PhosphorIconsFill.house, 'Home'),
+            _buildNavItem(1, PhosphorIcons.forkKnife, PhosphorIconsFill.forkKnife, 'Food'),
+            _buildNavItem(2, PhosphorIcons.receipt, PhosphorIconsFill.receipt, 'Orders'),
+            _buildNavItem(3, PhosphorIcons.newspaper, PhosphorIconsFill.newspaper, 'News'),
+            _buildNavItem(4, PhosphorIcons.user, PhosphorIconsFill.user, 'Profile'),
           ],
         ),
       ),

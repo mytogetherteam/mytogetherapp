@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'view_all_icon_button.dart';
 import '../screens/restaurant_nearby_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -293,7 +293,7 @@ class _MoreCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                PhosphorIconsBold.caretRight,
                 color: Colors.black87,
                 size: 20,
               ),

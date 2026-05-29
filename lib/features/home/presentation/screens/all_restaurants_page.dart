@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -227,10 +227,10 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
               decoration: InputDecoration(
                 hintText: 'Search restaurants...',
                 hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
-                prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[400], size: 20),
+                prefixIcon: Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey[400], size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(PhosphorIcons.xCircle(PhosphorIconsStyle.fill), color: Colors.grey[400], size: 20),
+                        icon: Icon(PhosphorIconsFill.xCircle, color: Colors.grey[400], size: 20),
                         onPressed: () {
                           _searchController.clear();
                           _onSearchChanged('');
@@ -330,7 +330,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(PhosphorIcons.bag(), size: 64, color: Colors.grey[300]),
+          Icon(PhosphorIcons.bag, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No restaurants found',

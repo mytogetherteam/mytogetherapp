@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../news/presentation/widgets/news_feed_item.dart';
 import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
 import '../../../news/data/models/news_item.dart';
@@ -221,7 +221,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.fill),
+                      PhosphorIconsFill.magnifyingGlass,
                       color: AppColors.primary,
                       size: 18,
                     ),

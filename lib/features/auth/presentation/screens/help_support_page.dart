@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -76,7 +76,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+          icon: Icon(PhosphorIconsBold.arrowLeft,
               color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
@@ -128,7 +128,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 children: [
                   Expanded(
                     child: _buildContactCard(
-                      icon: PhosphorIcons.phone(PhosphorIconsStyle.fill),
+                      icon: PhosphorIconsFill.phone,
                       label: 'ဖုန်းဆက်ရန်',
                       sublabel: 'Call Us',
                       color: Colors.green,
@@ -138,7 +138,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildContactCard(
-                      icon: PhosphorIcons.envelope(PhosphorIconsStyle.fill),
+                      icon: PhosphorIconsFill.envelope,
                       label: 'Email ပို့ရန်',
                       sublabel: 'Email Us',
                       color: AppColors.primary,
@@ -156,7 +156,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 children: [
                   Expanded(
                     child: _buildContactCard(
-                      icon: PhosphorIcons.telegramLogo(PhosphorIconsStyle.fill),
+                      icon: PhosphorIconsFill.telegramLogo,
                       label: 'Telegram',
                       sublabel: 'Chat Now',
                       color: const Color(0xFF229ED9),
@@ -166,7 +166,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildContactCard(
-                      icon: PhosphorIcons.facebookLogo(PhosphorIconsStyle.fill),
+                      icon: PhosphorIconsFill.facebookLogo,
                       label: 'Facebook',
                       sublabel: 'Message Us',
                       color: const Color(0xFF1877F2),
@@ -238,7 +238,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               shape: BoxShape.circle,
             ),
             child: Icon(
-              PhosphorIcons.headset(PhosphorIconsStyle.fill),
+              PhosphorIconsFill.headset,
               color: Colors.white,
               size: 42,
             ),
@@ -362,7 +362,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
       child: Column(
         children: [
           _buildInfoRow(
-            icon: PhosphorIcons.envelope(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.envelope,
             label: 'Email',
             value: 'support@mytogetherapp.com',
             color: AppColors.primary,
@@ -370,7 +370,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
-            icon: PhosphorIcons.phone(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.phone,
             label: 'ဖုန်းနံပါတ် • Phone',
             value: '+95 9 123 456 789',
             color: Colors.green,
@@ -378,14 +378,14 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
-            icon: PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.mapPin,
             label: 'လိပ်စာ • Address',
             value: 'Yangon, Myanmar',
             color: Colors.orange,
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
-            icon: PhosphorIcons.clock(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.clock,
             label: 'ရုံးချိန် • Office Hours',
             value: 'Mon–Fri: 9 AM – 6 PM',
             color: Colors.blue,
@@ -439,7 +439,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         if (onCopy != null)
           GestureDetector(
             onTap: onCopy,
-            child: Icon(PhosphorIcons.copy(), size: 18, color: Colors.grey[400]),
+            child: Icon(PhosphorIcons.copy, size: 18, color: Colors.grey[400]),
           ),
       ],
     );
@@ -594,7 +594,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
       child: Column(
         children: [
           Icon(
-            PhosphorIcons.chatCircleDots(PhosphorIconsStyle.fill),
+            PhosphorIconsFill.chatCircleDots,
             size: 40,
             color: AppColors.primary,
           ),
@@ -639,7 +639,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(PhosphorIcons.envelope(PhosphorIconsStyle.fill), size: 18),
+                  Icon(PhosphorIconsFill.envelope, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     'Email ပို့ရန် • Send Email',

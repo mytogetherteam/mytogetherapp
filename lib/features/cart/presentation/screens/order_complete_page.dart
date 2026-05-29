@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
@@ -220,7 +220,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(PhosphorIcons.caretDown(), size: 16, color: Colors.grey[600]),
+                          Icon(PhosphorIcons.caretDown, size: 16, color: Colors.grey[600]),
                         ],
                       ),
                       children: [
@@ -302,13 +302,13 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   Widget _buildProgressBar() {
     return Row(
       children: [
-        _buildStepNode(PhosphorIcons.wallet()),
+        _buildStepNode(PhosphorIcons.wallet),
         _buildStepLine(),
-        _buildStepNode(PhosphorIcons.cookingPot()),
+        _buildStepNode(PhosphorIcons.cookingPot),
         _buildStepLine(),
-        _buildStepNode(PhosphorIcons.moped()),
+        _buildStepNode(PhosphorIcons.moped),
         _buildStepLine(),
-        _buildStepNode(PhosphorIcons.house()),
+        _buildStepNode(PhosphorIcons.house),
       ],
     );
   }

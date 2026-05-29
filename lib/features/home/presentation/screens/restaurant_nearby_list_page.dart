@@ -3,7 +3,7 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
@@ -355,11 +355,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     final iconPainter = TextPainter(
       text: TextSpan(
-        text: String.fromCharCode(PhosphorIcons.forkKnife().codePoint),
+        text: String.fromCharCode(PhosphorIcons.forkKnife.codePoint),
         style: TextStyle(
           fontSize: showText ? 14 : 12,
-          fontFamily: PhosphorIcons.forkKnife().fontFamily,
-          package: PhosphorIcons.forkKnife().fontPackage,
+          fontFamily: PhosphorIcons.forkKnife.fontFamily,
+          package: PhosphorIcons.forkKnife.fontPackage,
           color: selected ? AppColors.primary : Colors.white,
         ),
       ),
@@ -736,7 +736,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[600], size: 20),
+                        Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey[600], size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(

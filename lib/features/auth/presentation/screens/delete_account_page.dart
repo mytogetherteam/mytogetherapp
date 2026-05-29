@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -125,7 +125,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+          icon: Icon(PhosphorIconsBold.arrowLeft,
               color: Colors.black),
           onPressed: () {
             if (_step == 2) {
@@ -180,7 +180,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               shape: BoxShape.circle,
             ),
             child: Icon(
-              PhosphorIcons.warning(PhosphorIconsStyle.fill),
+              PhosphorIconsFill.warning,
               size: 52,
               color: Colors.red.shade500,
             ),
@@ -205,28 +205,28 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
 
           // Warning cards
           _buildWarningCard(
-            icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.shoppingCart,
             title: 'အော်ဒါများ ပျောက်ကွယ်မည်',
             subtitle: 'Your orders history will be permanently deleted',
             color: Colors.orange,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.wallet(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.wallet,
             title: 'ငွေလက်ကျန် ဆုံးရှုံးမည်',
             subtitle: 'Any remaining balance or credits will be lost',
             color: Colors.purple,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.userMinus(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.userMinus,
             title: 'ပြန်ရယူ၍ မရနိုင်ပါ',
             subtitle: 'This action is permanent and cannot be undone',
             color: Colors.red,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.lock(PhosphorIconsStyle.fill),
+            icon: PhosphorIconsFill.lock,
             title: 'ဝင်ရောက်မှု ပိတ်မည်',
             subtitle: 'You will be immediately logged out and access revoked',
             color: Colors.blue,
@@ -362,7 +362,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                PhosphorIcons.lockKey(PhosphorIconsStyle.fill),
+                PhosphorIconsFill.lockKey,
                 size: 52,
                 color: Colors.red.shade500,
               ),
@@ -405,7 +405,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Icon(PhosphorIcons.user(PhosphorIconsStyle.bold),
+                    child: Icon(PhosphorIconsBold.user,
                         size: 20, color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
@@ -449,13 +449,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 labelText: 'Password • စကားဝှက်',
                 labelStyle:
                     GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
-                prefixIcon: Icon(PhosphorIcons.lock(),
+                prefixIcon: Icon(PhosphorIcons.lock,
                     color: Colors.grey[500], size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword
-                        ? PhosphorIcons.eye()
-                        : PhosphorIcons.eyeSlash(),
+                        ? PhosphorIcons.eye
+                        : PhosphorIcons.eyeSlash,
                     color: Colors.grey[500],
                     size: 20,
                   ),

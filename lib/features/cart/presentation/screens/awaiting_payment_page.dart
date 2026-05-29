@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
@@ -957,7 +957,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(PhosphorIcons.clock(), size: 16, color: const Color(0xFFED3973)),
+                              Icon(PhosphorIcons.clock, size: 16, color: const Color(0xFFED3973)),
                               const SizedBox(width: 6),
                               GradientText(
                                 (order?.estimatedTime != null && order!.estimatedTime!.isNotEmpty)
@@ -996,7 +996,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(PhosphorIcons.downloadSimple(), size: 20, color: Colors.white),
+                        Icon(PhosphorIcons.downloadSimple, size: 20, color: Colors.white),
                         const SizedBox(width: 10),
                         Text('Save QR Code',
                             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
@@ -1114,7 +1114,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> with SingleTi
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(PhosphorIcons.info(), size: 14, color: const Color(0xFFED3973)),
+                            Icon(PhosphorIcons.info, size: 14, color: const Color(0xFFED3973)),
                             const SizedBox(width: 6),
                             Expanded(
                               child: GradientText(
@@ -1308,7 +1308,7 @@ class _CameraUploadIcon extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
       ),
       child: GradientIcon(
-        icon: PhosphorIcons.cameraPlus(),
+        icon: PhosphorIcons.cameraPlus,
         size: 28,
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'shop_item_metadata_row.dart';
@@ -107,7 +107,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                           GestureDetector(
                             onTap: onFavoriteToggle,
                             child: Icon(
-                              isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                              isFavorite ? PhosphorIconsFill.heart : PhosphorIcons.heart,
                               color: isFavorite ? AppColors.primary : Colors.grey[400],
                               size: 20,
                             ),
@@ -201,7 +201,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  PhosphorIcons.phone(),
+                                  PhosphorIcons.phone,
                                   size: 16,
                                   color: Colors.grey[700],
                                 ),
@@ -219,7 +219,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  PhosphorIcons.shareNetwork(),
+                                  PhosphorIcons.shareNetwork,
                                   size: 16,
                                   color: Colors.grey[700],
                                 ),

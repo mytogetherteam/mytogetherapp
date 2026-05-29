@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/restaurant_data.dart';
@@ -146,9 +146,9 @@ class RestaurantOverviewPage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildInfoItem(PhosphorIcons.car(), restaurant.distance),
+                      _buildInfoItem(PhosphorIcons.car, restaurant.distance),
                       _buildDot(),
-                      _buildInfoItem(PhosphorIcons.clock(), restaurant.deliveryTime),
+                      _buildInfoItem(PhosphorIcons.clock, restaurant.deliveryTime),
                       _buildDot(),
                       Text(
                         restaurant.status,

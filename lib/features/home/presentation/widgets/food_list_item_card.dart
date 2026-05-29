@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'image_skeleton_loader.dart';
@@ -127,7 +127,7 @@ class FoodListItemCard extends StatelessWidget {
                         GestureDetector(
                           onTap: () => AppDialog.showUnavailable(context),
                           child: Icon(
-                            isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                            isFavorite ? PhosphorIconsFill.heart : PhosphorIcons.heart,
                             color: isFavorite ? AppColors.primary : Colors.grey[400],
                             size: 20,
                           ),

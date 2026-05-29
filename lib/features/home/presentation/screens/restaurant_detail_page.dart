@@ -5,7 +5,7 @@ import '../../../cart/data/cart_manager.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/presentation/screens/order_summary_page.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -491,7 +491,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                   children: [
                     const SizedBox(width: 16),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.arrowLeft(),
+                      icon: PhosphorIcons.arrowLeft,
                       onPressed: () => Navigator.pop(context),
                       isScrolled: _isScrolled,
                     ),
@@ -514,13 +514,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     ),
                     const SizedBox(width: 8),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.shareNetwork(),
+                      icon: PhosphorIcons.shareNetwork,
                       onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 12),
                     _buildCircleIconButton(
-                      icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                      icon: _isFavorite ? PhosphorIconsFill.heart : PhosphorIcons.heart,
                       onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,
@@ -645,13 +645,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                         crossAxisAlignment: WrapCrossAlignment.center,
                                         spacing: 4,
                                         children: [
-                                          Icon(PhosphorIcons.car(), size: 16, color: Colors.grey[700]),
+                                          Icon(PhosphorIcons.car, size: 16, color: Colors.grey[700]),
                                           Text(
                                             _currentRestaurant?.distance ?? '',
                                             style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
                                           ),
                                           Text('  •  ', style: TextStyle(color: Colors.grey[500])),
-                                          Icon(PhosphorIcons.clock(), size: 16, color: Colors.grey[700]),
+                                          Icon(PhosphorIcons.clock, size: 16, color: Colors.grey[700]),
                                           Text(
                                             _currentRestaurant?.deliveryTime ?? '',
                                             style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'image_skeleton_loader.dart';
 
 class LostItemCard extends StatelessWidget {
@@ -59,7 +59,7 @@ class LostItemCard extends StatelessWidget {
                 width: 110,
                 height: 110,
                 color: Colors.grey[200],
-                child: Icon(PhosphorIcons.image(), color: Colors.grey),
+                child: Icon(PhosphorIcons.image, color: Colors.grey),
               ),
             ),
           ),

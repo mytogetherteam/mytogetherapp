@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -83,7 +83,7 @@ class OrderCancelPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isLogo ? PhosphorIcons.storefront() : PhosphorIcons.imageBroken(),
+              isLogo ? PhosphorIcons.storefront : PhosphorIcons.imageBroken,
               color: Colors.grey[400],
               size: isLogo ? 24 : 32,
             ),
@@ -116,7 +116,7 @@ class OrderCancelPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(PhosphorIcons.x(), color: Colors.black),
+          icon: Icon(PhosphorIcons.x, color: Colors.black),
           onPressed: () => _goHome(context),
         ),
       ),
@@ -141,7 +141,7 @@ class OrderCancelPage extends StatelessWidget {
                           border: Border.all(color: const Color(0xFFFECACA), width: 1.5),
                         ),
                         child: Icon(
-                          PhosphorIcons.xCircle(PhosphorIconsStyle.fill),
+                          PhosphorIconsFill.xCircle,
                           color: const Color(0xFFEF4444),
                           size: 50,
                         ),
@@ -266,7 +266,7 @@ class OrderCancelPage extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    PhosphorIcons.info(PhosphorIconsStyle.fill),
+                                    PhosphorIconsFill.info,
                                     color: AppColors.primary,
                                     size: 20,
                                   ),

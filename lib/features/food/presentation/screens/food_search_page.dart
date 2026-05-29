@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../data/demo_food_search_data.dart';
@@ -117,7 +117,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 children: [
                   const SizedBox(width: 12),
                   Icon(
-                    PhosphorIcons.magnifyingGlass(),
+                    PhosphorIcons.magnifyingGlass,
                     color: Colors.grey[500],
                     size: 20,
                   ),
@@ -215,7 +215,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          PhosphorIcons.clock(),
+                          PhosphorIcons.clock,
                           size: 16,
                           color: Colors.black54,
                         ),
@@ -308,7 +308,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                     child: Row(
                       children: [
                         Icon(
-                          PhosphorIcons.magnifyingGlass(),
+                          PhosphorIcons.magnifyingGlass,
                           size: 20,
                           color: Colors.grey[500],
                         ),
@@ -442,7 +442,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Center(
-        child: Icon(PhosphorIcons.slidersHorizontal(), size: 16, color: Colors.black87),
+        child: Icon(PhosphorIcons.slidersHorizontal, size: 16, color: Colors.black87),
       ),
     );
   }
@@ -463,7 +463,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
              const SizedBox(width: 6),
           ],
           if (label == 'Under 25 Min') ...[
-             Icon(PhosphorIcons.lightning(), size: 16, color: Colors.black54),
+             Icon(PhosphorIcons.lightning, size: 16, color: Colors.black54),
              const SizedBox(width: 6),
           ],
           Text(
@@ -523,7 +523,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(PhosphorIcons.star(PhosphorIconsStyle.fill), size: 14, color: Colors.grey[600]),
+                          Icon(PhosphorIconsFill.star, size: 14, color: Colors.grey[600]),
                           const SizedBox(width: 4),
                           Text(
                             '${restaurant['rating']} · ${restaurant['time']} · ${restaurant['distance']}',
@@ -550,7 +550,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    isPromo ? PhosphorIcons.sealPercent(PhosphorIconsStyle.fill) : PhosphorIcons.bicycle(),
+                                    isPromo ? PhosphorIconsFill.sealPercent : PhosphorIcons.bicycle,
                                     size: 14,
                                     color: isPromo ? const Color(0xFF22C55E) : AppColors.primary,
                                   ),

@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/presentation/widgets/web_safe_image/web_safe_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
@@ -59,7 +59,7 @@ class PlaceCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                    isFavorite ? PhosphorIconsFill.heart : PhosphorIcons.heart,
                     color: isFavorite ? AppColors.primary : Colors.white,
                     size: 20,
                   ),
@@ -123,7 +123,7 @@ class PlaceCard extends StatelessWidget {
                               ),
                             ),
                             Icon(
-                              PhosphorIcons.car(),
+                              PhosphorIcons.car,
                               size: 14,
                               color: Colors.white.withOpacity(0.9),
                             ),

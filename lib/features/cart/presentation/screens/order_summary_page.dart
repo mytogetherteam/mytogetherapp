@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/cart_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -1218,12 +1218,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
       child: ClipOval(
         child: logoPath.isEmpty
-            ? Icon(PhosphorIcons.storefront(), size: 24, color: Colors.grey)
+            ? Icon(PhosphorIcons.storefront, size: 24, color: Colors.grey)
             : Image.network(
                 logoPath,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Icon(
-                  PhosphorIcons.storefront(),
+                  PhosphorIcons.storefront,
                   size: 24,
                   color: Colors.grey,
                 ),
@@ -1354,7 +1354,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         ), // Visual adjustment to match text cap height
                         color: Colors.transparent,
                         child: Icon(
-                          PhosphorIcons.x(),
+                          PhosphorIcons.x,
                           size:
                               18, // Slightly smaller icon for better alignment with text
                           color: Colors.grey[400],
@@ -1488,7 +1488,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              _buildPillQtyBtn(PhosphorIcons.minus(), () async {
+                              _buildPillQtyBtn(PhosphorIcons.minus, () async {
                                 if (item.quantity == 1) {
                                   GlobalModal.show(
                                     context: context,
@@ -1536,7 +1536,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                               ),
-                              _buildPillQtyBtn(PhosphorIcons.plus(), () async {
+                              _buildPillQtyBtn(PhosphorIcons.plus, () async {
                                 await CartManager.instance.updateItemQuantity(
                                   storeName,
                                   item.id,

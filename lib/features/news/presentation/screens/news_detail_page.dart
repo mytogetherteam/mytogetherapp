@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -262,7 +262,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       : null,
                   backgroundColor: Colors.grey[100],
                   child: widget.item.authorAvatar.isEmpty
-                      ? Icon(PhosphorIcons.user(), size: 14, color: Colors.grey[400])
+                      ? Icon(PhosphorIcons.user, size: 14, color: Colors.grey[400])
                       : null,
                 ),
                 const SizedBox(width: 8),
@@ -305,7 +305,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill), 
+                            Icon(PhosphorIconsFill.phoneCall, 
                               color: Colors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
@@ -349,7 +349,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), 
+                        Icon(PhosphorIconsFill.mapPin, 
                           color: AppColors.primary, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
@@ -369,7 +369,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(PhosphorIcons.moneyWavy(PhosphorIconsStyle.fill), 
+                        Icon(PhosphorIconsFill.moneyWavy, 
                           color: const Color(0xFF48BB78), size: 18),
                         const SizedBox(width: 10),
                         Text(
@@ -428,7 +428,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 placeholder: (context, url) => Container(color: Colors.grey[100]),
                                 errorWidget: (context, url, error) => Container(
                                   color: Colors.grey[100],
-                                  child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
+                                  child: Icon(PhosphorIcons.image, color: Colors.grey[400]),
                                 ),
                               ),
                             ),
@@ -478,7 +478,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                       placeholder: (context, url) => Container(color: Colors.grey[100]),
                                       errorWidget: (context, url, error) => Container(
                                         color: Colors.grey[100],
-                                        child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
+                                        child: Icon(PhosphorIcons.image, color: Colors.grey[400]),
                                       ),
                                     ),
                                   ),
@@ -506,7 +506,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         GestureDetector(
                           onTap: _toggleLike,
                           child: Icon(
-                            _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                            _isLiked ? PhosphorIconsFill.heart : PhosphorIcons.heart,
                             color: _isLiked ? AppColors.primary : Colors.black87,
                             size: 22,
                           ),
@@ -521,7 +521,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           onTap: () => _commentFocusNode.requestFocus(),
                           child: Row(
                             children: [
-                              Icon(PhosphorIcons.chatCircle(), color: Colors.black87, size: 22),
+                              Icon(PhosphorIcons.chatCircle, color: Colors.black87, size: 22),
                               const SizedBox(width: 8),
                               Text(
                                 _formatCount(widget.item.commentsCount),
@@ -679,7 +679,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             child: Icon(
-                              PhosphorIcons.gif(PhosphorIconsStyle.bold),
+                              PhosphorIconsBold.gif,
                               color: _isGifPickerVisible ? AppColors.primary : Colors.grey[600],
                               size: 24,
                             ),
@@ -700,7 +700,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      PhosphorIcons.paperPlaneRight(PhosphorIconsStyle.fill),
+                      PhosphorIconsFill.paperPlaneRight,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -720,7 +720,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(PhosphorIcons.warningCircle(), color: Colors.grey[400], size: 32),
+                              Icon(PhosphorIcons.warningCircle, color: Colors.grey[400], size: 32),
                               const SizedBox(height: 8),
                               Text(
                                 'Failed to load GIFs',
