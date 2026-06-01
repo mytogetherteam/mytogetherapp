@@ -9,7 +9,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/websocket_service.dart';
@@ -157,21 +156,43 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (order.paymentMethodImageUrl != null) return;
 
     try {
-      // Try multiple potential endpoints and fields for robustness
       Response? response;
       final id = order.paymentMethodId;
 
-      // Attempt 1: profile/payment-types (matches backend controller)
-      try {
-        response = await ApiClient().dio.get(
-          '${ApiClient.apiPrefix}/profile/payment-types/$id',
-        );
-      } catch (_) {
-        // Attempt 2: payment-methods (user's suggested path)
+      // Primary: GET /api/user/orders/:orderId returns the order with its
+      // paymentMethod (incl. qr/accountNumber) via findAwaitingPaymentInfo.
+      final orderIdStr = widget.orderId?.replaceAll('#', '');
+      if (orderIdStr != null && orderIdStr.isNotEmpty) {
         try {
           response = await ApiClient().dio.get(
-            '${ApiClient.apiPrefix}/payment-methods/$id',
+            '${ApiClient.apiPrefix}/user/orders/$orderIdStr',
           );
+        } catch (_) {}
+      }
+
+      // Fallback: list all active payment methods and pick the one matching
+      // the order's paymentMethodId. Backend route: GET /api/payment-methods.
+      if (response == null || response.statusCode != 200) {
+        try {
+          final listResp = await ApiClient().dio.get(
+            '${ApiClient.apiPrefix}/payment-methods',
+          );
+          if (listResp.statusCode == 200 && listResp.data != null) {
+            final list = listResp.data is Map
+                ? listResp.data['data'] as List<dynamic>? ?? <dynamic>[]
+                : listResp.data as List<dynamic>? ?? <dynamic>[];
+            final match = list.firstWhere(
+              (e) => e is Map && (e['id'] == id || e['id']?.toString() == id?.toString()),
+              orElse: () => null,
+            );
+            if (match is Map) {
+              response = Response(
+                requestOptions: listResp.requestOptions,
+                statusCode: 200,
+                data: {'data': match},
+              );
+            }
+          }
         } catch (_) {}
       }
 
@@ -179,10 +200,24 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           response.statusCode == 200 &&
           response.data != null) {
         final data = response.data;
-        final paymentData = data['data'] ?? data;
+        // Unwrap envelope `{ data: { paymentMethod: {...} } }` (user/orders/:id)
+        // or `{ data: {...} }` (payment-methods).
+        Map<String, dynamic> paymentData;
+        final inner = (data is Map ? data['data'] : null) ?? data;
+        if (inner is Map && inner['paymentMethod'] is Map) {
+          paymentData = Map<String, dynamic>.from(inner['paymentMethod'] as Map);
+        } else if (inner is Map) {
+          paymentData = Map<String, dynamic>.from(inner);
+        } else {
+          paymentData = <String, dynamic>{};
+        }
 
-        // Check for both possible field names: qrImageUrl (Prisma) and image (Legacy/Swagger)
-        String? imageUrl = (paymentData['qrImageUrl'] ?? paymentData['image'])
+        // Field name varies: `qr` (shop-payment-method), `qrImageUrl` (Prisma
+        // PaymentMethod) or `image`/`iconUrl` (legacy).
+        String? imageUrl = (paymentData['qr'] ??
+                paymentData['qrImageUrl'] ??
+                paymentData['iconUrl'] ??
+                paymentData['image'])
             ?.toString();
 
         if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -383,19 +418,28 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     }
 
     try {
-      // 1. Convert image to Base64
-      final bytes = await _receiptImage!.readAsBytes();
+      // Backend: PATCH /api/user/orders/:id/payment
+      // (UserOrdersController.uploadPaymentImage).
+      // Accepts multipart/form-data with a `paymentImage` file field. The
+      // response moves the order to AWAITING_APPROVAL on success.
+      final intId =
+          int.tryParse(orderId.replaceAll('#', '')) ?? int.tryParse(orderId) ?? 0;
       final extension = _receiptImage!.path.split('.').last.toLowerCase();
       final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-      final base64Image = 'data:$mimeType;base64,${base64.encode(bytes)}';
+      final filename =
+          'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
-      // 2. Call API
-      final intId = int.tryParse(orderId) ?? 0;
-      final payload = {'orderId': intId, 'paymentSlipUrl': base64Image};
+      final formData = FormData.fromMap({
+        'paymentImage': await MultipartFile.fromFile(
+          _receiptImage!.path,
+          filename: filename,
+          contentType: DioMediaType.parse(mimeType),
+        ),
+      });
 
-      await ApiClient().dio.post(
-        '${ApiClient.apiPrefix}/orders/uploadPaymentSlip',
-        data: payload,
+      await ApiClient().dio.patch(
+        '${ApiClient.apiPrefix}/user/orders/$intId/payment',
+        data: formData,
       );
 
       if (mounted) {

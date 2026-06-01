@@ -30,11 +30,16 @@ class UserLocationModel {
   });
 
   factory UserLocationModel.fromJson(Map<String, dynamic> json) {
+    // Backend (myshop_demo_api / UserLocation) returns: id, userId, label,
+    // latitude, longitude, isCurrent, isActive, createdAt, updatedAt.
+    // Legacy shape used by older code still supported as fallback.
+    final label = (json['label'] as String?) ?? (json['locationName'] as String?);
+
     return UserLocationModel(
       id: json['id'] as int? ?? 0,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      locationName: json['locationName'] as String?,
+      locationName: label,
       locationType: json['locationType'] as String?,
       address: (json['addressEn'] as String?) ?? (json['address'] as String?),
       addressMm: json['addressMm'] as String?,
@@ -43,26 +48,20 @@ class UserLocationModel {
       postalCode: json['postalCode'] as String?,
       floor: json['floor'] as String?,
       note: json['note'] as String?,
-      isPrimary: json['isPrimary'] as bool? ?? false,
+      isPrimary: (json['isCurrent'] as bool?) ?? (json['isPrimary'] as bool? ?? false),
     );
   }
 
+  /// Returns only the fields accepted by the new backend
+  /// (`CreateUserLocationDto` / `UpdateUserLocationDto`): label, latitude,
+  /// longitude, isCurrent. Any extra field would be rejected by NestJS
+  /// `forbidNonWhitelisted: true`.
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (locationName != null) 'label': locationName,
       'latitude': latitude,
       'longitude': longitude,
-      'locationName': locationName,
-      'locationType': locationType,
-      'address': address,
-      'addressEn': address, // Send same as address for compatibility
-      'addressMm': addressMm,
-      'addressTh': addressTh,
-      'buildingName': buildingName,
-      'postalCode': postalCode,
-      'floor': floor,
-      'note': note,
-      'isPrimary': isPrimary,
+      'isCurrent': isPrimary,
     };
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
@@ -29,6 +30,19 @@ class WebSocketService {
 
   bool _isConnecting = false;
 
+  /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
+  /// (see `src/modules/events/events.gateway.ts`).
+  ///
+  /// Mirrors `ApiClient.baseUrl` so local dev hits localhost and Android
+  /// emulators hit the host loopback (`10.0.2.2`). Falls back to plain
+  /// `ws://` because the local server is not TLS-enabled.
+  static String get _wsUrl {
+    if (!kIsWeb && Platform.isAndroid) {
+      return 'ws://10.0.2.2:3001/ws/websocket';
+    }
+    return 'ws://localhost:3001/ws/websocket';
+  }
+
   void connect({bool force = false}) {
     if (_isConnecting && !force) return;
 
@@ -45,9 +59,7 @@ class WebSocketService {
     }
 
     _isConnecting = true;
-    debugPrint(
-      ' [WS] Connecting to: wss://myshopdemoapi-production.up.railway.app/ws/websocket',
-    );
+    debugPrint(' [WS] Connecting to: $_wsUrl');
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
@@ -58,7 +70,7 @@ class WebSocketService {
 
     _stompClient = StompClient(
       config: StompConfig(
-        url: 'wss://myshopdemoapi-production.up.railway.app/ws/websocket',
+        url: _wsUrl,
         onConnect: onConnect,
         beforeConnect: () async {
           debugPrint(' [WS] Preparing connection headers...');

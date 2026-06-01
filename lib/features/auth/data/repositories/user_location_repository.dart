@@ -8,7 +8,8 @@ class UserLocationRepository extends ChangeNotifier {
   UserLocationRepository._internal();
 
   final Dio _dio = ApiClient().dio;
-  static const String _baseUrl = '${ApiClient.apiPrefix}/user-locations';
+  // Backend: UserLocationsController @Controller('user') with @Get('locations')
+  static const String _baseUrl = '${ApiClient.apiPrefix}/user/locations';
 
   List<UserLocationModel>? _cachedLocations;
   UserLocationModel? _activeLocation;
@@ -77,7 +78,8 @@ class UserLocationRepository extends ChangeNotifier {
 
   Future<UserLocationModel> updateLocation(UserLocationModel location) async {
     try {
-      final response = await _dio.put(
+      // Backend uses PATCH /api/user/locations/:id (UserLocationsController).
+      final response = await _dio.patch(
         '$_baseUrl/${location.id}',
         data: location.toJson(),
       );

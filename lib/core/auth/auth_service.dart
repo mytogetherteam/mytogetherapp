@@ -169,7 +169,7 @@ class AuthService {
     }
 
     final response = await dio.post(
-      '${ApiClient.apiPrefix}/auth/refresh',
+      '${ApiClient.apiPrefix}/user/auth/refresh',
       data: {'refreshToken': _refreshToken},
       options: Options(headers: {'Authorization': ''}),
     );

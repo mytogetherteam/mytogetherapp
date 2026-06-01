@@ -781,9 +781,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   );
 
                                   try {
-                                    // Call backend API to place order
+                                    // Call backend: POST /api/user/orders
+                                    // (UserOrdersController.create). Schema
+                                    // matches CreateUserOrderDto: shopId,
+                                    // orderType (DELIVERY|PICK_UP), lat, lon,
+                                    // paymentMethodId, items[].
                                     final response = await ApiClient().dio.post(
-                                      '${ApiClient.apiPrefix}/orders',
+                                      '${ApiClient.apiPrefix}/user/orders',
                                       data: {
                                         "shopId":
                                             int.tryParse(
@@ -795,41 +799,35 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                                       .restaurantId,
                                             ) ??
                                             0,
-                                        // User location from session
-                                        // User location from repository
-                                        "userLocationId":
-                                            _primaryLocation?.id ?? 1,
-                                        "deliveryType": _isDelivery
+                                        "orderType": _isDelivery
                                             ? "DELIVERY"
-                                            : "PICKUP",
-                                        "deliveryTier": _isPriorityDelivery
-                                            ? "PRIORITY"
-                                            : "STANDARD",
+                                            : "PICK_UP",
+                                        if (_primaryLocation?.latitude != null)
+                                          "lat": _primaryLocation!.latitude,
+                                        if (_primaryLocation?.longitude != null)
+                                          "lon": _primaryLocation!.longitude,
                                         "paymentMethodId":
                                             _resolvePaymentMethodId(
                                               _paymentTypes,
                                               _selectedPaymentMethodCode,
                                             ),
-                                        "note": "",
-                                        "isScheduled": false,
-                                        "scheduledTime": DateTime.now()
-                                            .toIso8601String()
-                                            .substring(0, 19),
                                         "items": storeItems
                                             .map(
                                               (item) => {
                                                 "menuItemId": item.menuItemId,
-                                                "variantId":
-                                                    (item.variantId != null &&
-                                                        item.variantId! > 0)
-                                                    ? item.variantId
-                                                    : 0,
                                                 "quantity": item.quantity,
-                                                "specialInstructions":
-                                                    item.specialInstructions ??
-                                                    "",
-                                                "optionIds":
-                                                    item.optionIds ?? [],
+                                                if (item.variantId != null &&
+                                                    item.variantId! > 0)
+                                                  "variantId": item.variantId,
+                                                if ((item.specialInstructions ??
+                                                            "")
+                                                        .isNotEmpty)
+                                                  "specialInstructions":
+                                                      item.specialInstructions,
+                                                if ((item.optionIds ?? [])
+                                                    .isNotEmpty)
+                                                  "menuItemOptionId":
+                                                      item.optionIds,
                                               },
                                             )
                                             .toList(),

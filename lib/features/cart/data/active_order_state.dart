@@ -405,8 +405,9 @@ class ActiveOrderState extends ChangeNotifier {
     
     try {
       final sanitizedOrderId = targetId.replaceAll('#', '');
+      // Backend: GET /api/user/orders/:id (UserOrdersController.findAwaitingPaymentInfo).
       final response = await ApiClient().dio.get(
-        '${ApiClient.apiPrefix}/orders/$sanitizedOrderId',
+        '${ApiClient.apiPrefix}/user/orders/$sanitizedOrderId',
         options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
       );
       
@@ -686,11 +687,16 @@ class ActiveOrderState extends ChangeNotifier {
     final sanitizedOrderId = targetId.replaceAll('#', '');
     
     try {
-      final response = await ApiClient().dio.put(
-        '${ApiClient.apiPrefix}/orders/$sanitizedOrderId/cancel',
-        queryParameters: {'reason': reason ?? 'User cancelled'},
-        data: {},
-        options: Options(contentType: 'application/json'),
+      // Backend: PATCH /api/user/orders/:id/payment with status=CANCELED.
+      // The endpoint is multipart (FileInterceptor('paymentImage')), but the
+      // image is only required when status != CANCELED. Cancel-only requests
+      // can send a plain JSON body with `status: 'CANCELED'`.
+      final response = await ApiClient().dio.patch(
+        '${ApiClient.apiPrefix}/user/orders/$sanitizedOrderId/payment',
+        data: FormData.fromMap({
+          'status': 'CANCELED',
+          if (reason != null && reason.isNotEmpty) 'cancelReason': reason,
+        }),
       );
       
       if (response.statusCode == 200 || response.statusCode == 204) {

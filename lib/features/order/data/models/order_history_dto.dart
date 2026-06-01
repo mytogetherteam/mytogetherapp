@@ -83,22 +83,29 @@ class OrderHistoryDto {
         json['imageUrl'] as String? ??
         shop?['imageUrl'] as String? ??
         shop?['logoUrl'] as String? ??
+        shop?['coverUrl'] as String? ??
         shop?['image'] as String?;
+
+    // The new backend (mapUserOrderListItem) doesn't emit `ongoing`; derive
+    // it from `status` so the UI can still split "current" vs "past".
+    final status = json['status'] as String? ?? 'PENDING';
+    const terminalStatuses = {'DELIVERED', 'CANCELED', 'CANCELLED', 'COMPLETED'};
+    final ongoing = (json['ongoing'] as bool?) ?? !terminalStatuses.contains(status.toUpperCase());
 
     return OrderHistoryDto(
       id: json['id'].toString(),
       lastOrderNo: json['lastOrderNo']?.toString(),
-      status: json['status'] as String? ?? 'PENDING',
+      status: status,
       statusLabel: json['statusLabel'] as String?,
       statusLabelMm: json['statusLabelMm'] as String?,
-      ongoing: json['ongoing'] as bool? ?? false,
+      ongoing: ongoing,
       createdAt: json['createdAt'] as String? ?? '',
       updatedAt: json['updatedAt'] as String?,
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       displayTotalAmount: json['displayTotalAmount'] as String?,
       shopName: shopName,
       shopImageUrl: shopImageUrl,
-      shopId: json['shopId'] as int?,
+      shopId: (json['shopId'] as int?) ?? (shop?['id'] as int?),
       items:
           (json['items'] as List<dynamic>?)
               ?.map(
@@ -132,11 +139,17 @@ class OrderHistoryItemDto {
   });
 
   factory OrderHistoryItemDto.fromJson(Map<String, dynamic> json) {
+    // New backend (mapUserOrderListItem) uses: nameEn / nameMm / imageUrl.
+    // Legacy shape used: menuItemName / menuItemNameMm / menuItemImageUrl.
     return OrderHistoryItemDto(
       menuItemId: json['menuItemId'] as int?,
-      menuItemName: json['menuItemName'] as String? ?? 'Item',
-      menuItemNameMm: json['menuItemNameMm'] as String?,
-      menuItemImageUrl: json['menuItemImageUrl'] as String?,
+      menuItemName: (json['menuItemName'] as String?) ??
+          (json['nameEn'] as String?) ??
+          'Item',
+      menuItemNameMm: (json['menuItemNameMm'] as String?) ??
+          (json['nameMm'] as String?),
+      menuItemImageUrl: (json['menuItemImageUrl'] as String?) ??
+          (json['imageUrl'] as String?),
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,
       displayPrice: json['displayPrice'] as String?,

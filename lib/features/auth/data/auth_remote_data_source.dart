@@ -12,7 +12,7 @@ class AuthRemoteDataSource {
 
   Future<AuthResponse> login(LoginRequest request) async {
     final response = await _dio.post(
-      '${ApiClient.apiPrefix}/auth/login',
+      '${ApiClient.apiPrefix}/user/auth/login',
       data: request.toJson(),
     );
     final responseData = response.data;
@@ -32,7 +32,7 @@ class AuthRemoteDataSource {
 
   Future<AuthResponse> register(RegisterRequest request) async {
     final response = await _dio.post(
-      '${ApiClient.apiPrefix}/auth/register',
+      '${ApiClient.apiPrefix}/user/auth/register',
       data: request.toJson(),
     );
     final responseData = response.data;
@@ -52,7 +52,7 @@ class AuthRemoteDataSource {
 
   Future<String> refreshToken(String refreshToken) async {
     final response = await _dio.post(
-      '${ApiClient.apiPrefix}/auth/refresh',
+      '${ApiClient.apiPrefix}/user/auth/refresh',
       data: {'refreshToken': refreshToken},
     );
     final data = response.data['data'] as Map<String, dynamic>;
@@ -62,28 +62,34 @@ class AuthRemoteDataSource {
   Future<void> logout() async {
     try {
       final token = AuthService().refreshToken;
-      await _dio.post('${ApiClient.apiPrefix}/auth/logout', data: {'refreshToken': token ?? ''});
+      await _dio.post(
+        '${ApiClient.apiPrefix}/user/auth/logout',
+        data: {'refreshToken': token ?? ''},
+      );
     } catch (_) {}
   }
 
   Future<void> deleteAccount({String? password}) async {
-    await _dio.delete(
-      '${ApiClient.apiPrefix}/users/account',
-      data: {'password': password ?? ''},
-    );
+    // Backend: DELETE /api/user/account (UsersController.deleteAccount).
+    // The endpoint ignores body fields; password is intentionally not sent.
+    await _dio.delete('${ApiClient.apiPrefix}/user/account');
   }
 
   Future<UserModel> getUserProfile() async {
-    final response = await _dio.get('${ApiClient.apiPrefix}/users/profile');
-    final data = response.data['data'];
+    final response = await _dio.get('${ApiClient.apiPrefix}/user/profile');
+    final data = response.data['data'] ?? response.data;
     return UserModel.fromJson(data as Map<String, dynamic>);
   }
 
   Future<List<UserLocationModel>> getUserLocations() async {
     try {
-      final response = await _dio.get('${ApiClient.apiPrefix}/user-locations');
-      final List<dynamic> data = response.data['data'];
-      return data.map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>)).toList();
+      final response = await _dio.get('${ApiClient.apiPrefix}/user/locations');
+      final raw = response.data;
+      final List<dynamic> data =
+          (raw is Map && raw['data'] is List) ? (raw['data'] as List) : (raw is List ? raw : <dynamic>[]);
+      return data
+          .map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }

@@ -14,6 +14,9 @@ class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
 
   Future<List<BannerImageDto>> getBanners({String? position}) async {
+    // The new backend exposes banners only under /admin/banners (admin-guarded).
+    // There is no user-facing banner endpoint yet, so we soft-fail with an
+    // empty list and let the UI fall back to bundled assets.
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/banners',
@@ -21,18 +24,21 @@ class RemoteRestaurantDataSource {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'];
+        final raw = response.data;
+        final List<dynamic> data = raw is Map
+            ? (raw['data'] as List<dynamic>? ?? const [])
+            : (raw is List ? raw : const []);
         return data.map((json) => BannerImageDto.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load banners: ${response.statusCode}');
       }
-    } catch (e) {
-      rethrow;
+      return [];
+    } catch (_) {
+      return [];
     }
   }
 
   Future<ApiResponseSliceShopListDto> getNearbyShops(ShopRequestDto request) async {
     try {
+      // Backend (public): GET /api/shops/nearby (PublicController.getNearbyShops).
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/shops/nearby',
         queryParameters: request.toJson(),
@@ -50,11 +56,12 @@ class RemoteRestaurantDataSource {
 
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
     try {
+      // Backend (public): GET /api/shops/:id (PublicController.getShopById).
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/shops/$id',
         queryParameters: {
-          'lat': lat,
-          'lon': lon,
+          'lat': ?lat,
+          'lon': ?lon,
         },
       );
       
@@ -80,6 +87,9 @@ class RemoteRestaurantDataSource {
     int page = 0,
     int size = 20,
   }) async {
+    // Backend (public): GET /api/feed/trending-items
+    // (PublicController.getTrendingItems). It returns the trending payload
+    // directly (not wrapped in `data`).
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/feed/trending-items',
       queryParameters: {
@@ -90,7 +100,10 @@ class RemoteRestaurantDataSource {
         'size': size,
       },
     );
-    final data = response.data['data'] as Map<String, dynamic>;
+    final raw = response.data;
+    final data = raw is Map && raw['data'] is Map
+        ? raw['data'] as Map<String, dynamic>
+        : raw as Map<String, dynamic>;
     return TrendingSectionDto.fromJson(data);
   }
 
@@ -100,11 +113,15 @@ class RemoteRestaurantDataSource {
     int size = 20,
   }) async {
     try {
+      // Backend (auth): GET /api/user/menu-items?shopId=...&page=...&size=...
+      // (UserMenuItemsController.findAll). Returns a paginated envelope:
+      // { success, data: [...], meta: { page, size, total, ... } }.
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/menu',
+        '${ApiClient.apiPrefix}/user/menu-items',
         queryParameters: {
+          'shopId': shopId,
           'page': page + 1, // API uses 1-based index
-          'limit': size,
+          'size': size,
         },
       );
       if (response.statusCode == 200) {
@@ -128,6 +145,8 @@ class RemoteRestaurantDataSource {
     }
 
     try {
+      // Backend (public): GET /api/shops/:id/feed/:feedType
+      // (PublicController.getShopFeed). No auth required.
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
       );
@@ -160,6 +179,9 @@ class RemoteRestaurantDataSource {
     }
 
     try {
+      // Backend (public): GET /api/menu/feed/:feedType
+      // (PublicController.getMenuFeed). Latitude/longitude are not used by
+      // the backend yet but are forwarded for future compatibility.
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/menu/feed/$feedType',
         queryParameters: {
@@ -185,6 +207,7 @@ class RemoteRestaurantDataSource {
 
   Future<FoodDetailDto?> getFoodById(int id) async {
     try {
+      // Backend (public): GET /api/foods/:id (PublicController.getFoodById).
       final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/foods/$id');
       if (response.statusCode == 200) {
         final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
@@ -197,30 +220,50 @@ class RemoteRestaurantDataSource {
   }
 
   // ── Favorites ─────────────────────────────────────────────────────────────
+  // NOTE: The new backend (myshop_demo_api) does not yet expose user-facing
+  // favorites endpoints. These calls are soft-failed so the UI keeps working
+  // and we can wire them up once the backend ships them.
 
   Future<void> addShopFavorite(int shopId) async {
-    await _apiClient.dio.post('${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
+    try {
+      await _apiClient.dio.post(
+        '${ApiClient.apiPrefix}/user/favorites/shop/$shopId',
+      );
+    } catch (_) {}
   }
 
   Future<void> removeShopFavorite(int shopId) async {
-    await _apiClient.dio.delete('${ApiClient.apiPrefix}/user/favorites/shop/$shopId');
+    try {
+      await _apiClient.dio.delete(
+        '${ApiClient.apiPrefix}/user/favorites/shop/$shopId',
+      );
+    } catch (_) {}
   }
 
   Future<void> addMenuFavorite(int menuItemId) async {
-    await _apiClient.dio.post('${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
+    try {
+      await _apiClient.dio.post(
+        '${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId',
+      );
+    } catch (_) {}
   }
 
   Future<void> removeMenuFavorite(int menuItemId) async {
-    await _apiClient.dio.delete('${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId');
+    try {
+      await _apiClient.dio.delete(
+        '${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId',
+      );
+    } catch (_) {}
   }
 
   Future<void> trackConversion(int shopId, String action) async {
     try {
+      // No backend route yet — kept for forward-compat. Soft-fails.
       await _apiClient.dio.post(
         '${ApiClient.apiPrefix}/shops/$shopId/track',
         data: {'action': action},
       );
-    } catch (e) {
+    } catch (_) {
       // Ignore non-critical tracking errors
     }
   }
@@ -229,9 +272,16 @@ class RemoteRestaurantDataSource {
 
   Future<List<ShopReviewDto>> getShopReviews(int shopId) async {
     try {
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/shops/$shopId/reviews');
+      // Backend (public): GET /api/shops/:id/reviews
+      // (PublicController.getShopReviews). Envelope: { success, data: [...] }.
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/shops/$shopId/reviews',
+      );
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'];
+        final raw = response.data;
+        final List<dynamic> data = raw is Map
+            ? (raw['data'] as List<dynamic>? ?? const [])
+            : (raw is List ? raw : const []);
         return data.map((json) => ShopReviewDto.fromJson(json)).toList();
       }
       return [];
@@ -242,7 +292,11 @@ class RemoteRestaurantDataSource {
 
   Future<ShopReviewSummaryDto> getShopReviewSummary(int shopId) async {
     try {
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/shops/$shopId/reviews/summary');
+      // Backend (public): GET /api/shops/:id/reviews/summary
+      // (PublicController.getShopReviewSummary).
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/shops/$shopId/reviews/summary',
+      );
       if (response.statusCode == 200) {
         return ShopReviewSummaryDto.fromJson(response.data);
       }

@@ -5,10 +5,30 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:io';
 
 class ApiClient {
-  // Shop API base URL and prefix
-  static const String baseUrl =
-      'https://myshopdemoapi-production.up.railway.app';
-  static const String apiPrefix = '/api/shop';
+  // ───────────────────────────────────────────────────────────────────────
+  // Base URL configuration
+  //   • Local dev:   http://localhost:3001   (iOS sim, web, desktop)
+  //                  http://10.0.2.2:3001    (Android emulator → host machine)
+  //   • Production:  https://myshopdemoapi-production.up.railway.app
+  //
+  // The backend (myshop_demo_api) is a NestJS server that listens on
+  // PORT 3001 by default (see myshop_demo_api/.env.dev). All routes are
+  // prefixed with `/api` via `app.setGlobalPrefix('api')` in main.ts.
+  // ───────────────────────────────────────────────────────────────────────
+  static String get baseUrl {
+    // Use 10.0.2.2 on Android emulator so the device can reach the host.
+    // iOS simulator, macOS, Windows and Linux desktop, and Flutter web
+    // can all use plain `localhost`.
+    if (!kIsWeb && Platform.isAndroid) {
+      return 'http://10.0.2.2:3001';
+    }
+    return 'http://localhost:3001';
+  }
+
+  /// Global API prefix used by every route on the new backend.
+  /// User-facing routes live under `/api/user/...`, public routes
+  /// (shops/foods/banners/etc.) live directly under `/api/...`.
+  static const String apiPrefix = '/api';
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
