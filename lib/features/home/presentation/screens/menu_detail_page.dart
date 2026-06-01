@@ -14,7 +14,6 @@ import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 
 class MenuDetailPage extends StatefulWidget {
@@ -69,7 +68,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   // Map<optionGroupId, Set<optionId>>
   final Map<int, Set<int>> _selectedOptions = {};
 
-
   // Scroll Controller for Icon Colors
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
@@ -101,10 +99,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
-    
+
     // Check if item is in cart to fulfill user expectation that "Add to Cart" = "Filled Heart"
-    final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 && 
-        CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
+    final isInCart =
+        CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
+        CartManager.instance.findItem(
+              widget.restaurantName,
+              int.tryParse(widget.id) ?? 0,
+            ) !=
+            null;
     _isFavorite = widget.isFavorite ?? isInCart;
 
     _fetchFoodDetails();
@@ -113,8 +116,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   void _initializeSelections() {
     _selectedVariantId = widget.initialVariantId;
     if (widget.initialOptionIds != null) {
-      // Note: We don't have the group assignment yet, so we'll need to 
-      // map these once _currentFood is loaded. 
+      // Note: We don't have the group assignment yet, so we'll need to
+      // map these once _currentFood is loaded.
       // For now, we'll store them in a temporary set or handle it in _fetchFoodDetails
     }
   }
@@ -127,7 +130,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
   void _syncWithCart() {
     if (_currentFood == null) return;
-    
+
     final allOptionIds = <int>[];
     for (final ids in _selectedOptions.values) {
       allOptionIds.addAll(ids);
@@ -147,8 +150,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         _quantity = cartItem.quantity;
       });
     } else {
-      // If we are editing but changed to a configuration that doesn't exist, 
-      // we might want to reset quantity to 1 or keep current. 
+      // If we are editing but changed to a configuration that doesn't exist,
+      // we might want to reset quantity to 1 or keep current.
       // Keep current is usually safer.
     }
   }
@@ -166,23 +169,23 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         setState(() {
           _currentFood = food;
           _isLoading = false;
-          
-          if (food != null) {
-             // Map initial options to their groups
-             if (widget.initialOptionIds != null) {
-               for (final group in food.optionGroups) {
-                 final selectedInGroup = group.options
-                     .where((o) => widget.initialOptionIds!.contains(o.id))
-                     .map((o) => o.id)
-                     .toSet();
-                 if (selectedInGroup.isNotEmpty) {
-                   _selectedOptions[group.id] = selectedInGroup;
-                 }
-               }
-             }
 
-             _syncWithCart();
-             _isFavorite = food.isFavorite;
+          if (food != null) {
+            // Map initial options to their groups
+            if (widget.initialOptionIds != null) {
+              for (final group in food.optionGroups) {
+                final selectedInGroup = group.options
+                    .where((o) => widget.initialOptionIds!.contains(o.id))
+                    .map((o) => o.id)
+                    .toSet();
+                if (selectedInGroup.isNotEmpty) {
+                  _selectedOptions[group.id] = selectedInGroup;
+                }
+              }
+            }
+
+            _syncWithCart();
+            _isFavorite = food.isFavorite;
           }
         });
       }
@@ -197,17 +200,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     if (_currentFood != null && _currentFood!.photoUrls.isNotEmpty) {
       return _currentFood!.photoUrls;
     }
-    
+
     // If we have an imagePath from the widget, use it
     if (widget.imagePath.isNotEmpty) {
       return [widget.imagePath];
     }
-    
+
     // Fallback to an empty list, but the builder will handle the "No Image" case
-    return ['']; 
+    return [''];
   }
-
-
 
   void _onScroll() {
     // threshold calculation: expandedHeight (270) - toolbarHeight (56) - status bar (~40) = ~170
@@ -241,31 +242,33 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _isScrolled ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+      value: _isScrolled
+          ? SystemUiOverlayStyle.dark
+          : SystemUiOverlayStyle.light,
       child: Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 270.0,
-                pinned: false,
-                stretch: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                automaticallyImplyLeading: false,
-                flexibleSpace: FlexibleSpaceBar(
-                  stretchModes: const [
-                    StretchMode.zoomBackground,
-                  ],
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
+        backgroundColor: Colors.white,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 270.0,
+                  pinned: false,
+                  stretch: true,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    stretchModes: const [StretchMode.zoomBackground],
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
                         (() {
-                          final img = _galleryImages.isNotEmpty ? _galleryImages.first.trim() : '';
+                          final img = _galleryImages.isNotEmpty
+                              ? _galleryImages.first.trim()
+                              : '';
                           if (img.isEmpty) {
                             return _buildNoImagePlaceholder();
                           }
@@ -276,49 +279,50 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               if (loadingProgress == null) return child;
                               return const ImageSkeletonLoader();
                             },
-                            errorBuilder: (context, error, stackTrace) => _buildNoImagePlaceholder(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildNoImagePlaceholder(),
                           );
                         })(),
-                       // Gradient Overlay for visibility when not scrolled
-                       Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 120,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.4),
-                                Colors.transparent,
-                              ],
+                        // Gradient Overlay for visibility when not scrolled
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 120,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.4),
+                                  Colors.transparent,
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(20),
-                  child: Container(
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(20),
+                    child: Container(
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -336,481 +340,561 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             color: Colors.black,
                           ),
                         ),
-                  const SizedBox(height: 12),
-                  
-                  // Description
-                  if ((_currentFood?.description ?? widget.description).trim().isNotEmpty) ...[
-                    Text(
-                      _currentFood?.description ?? widget.description,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                        const SizedBox(height: 12),
 
-                  // Price
-                  Row(
-                    children: [
-                      GradientText(
-                        (() {
-                          if (widget.displayPrice != null && _selectedVariantId == null) {
-                            return widget.displayPrice!;
-                          }
-                          double price = 0;
-                          if (_currentFood != null) {
-                            if (_selectedVariantId != null) {
-                              final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId, orElse: () => _currentFood!.variants.first);
-                              price = variant.price;
-                            } else {
-                              double currentPrice = _currentFood!.price;
-                              double originalPrice = _currentFood!.originalPrice ?? 0.0;
-                              price = (currentPrice == 0 && originalPrice > 0) ? originalPrice : currentPrice;
-                            }
-                          } else {
-                            price = widget.price;
-                          }
-                          return price.toStringAsFixed(0).toFormattedPrice(currency: _currentFood?.currency ?? widget.currency);
-                        })(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Rating
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          _currentFood?.shopName ?? widget.restaurantName,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey[600],
+                        // Description
+                        if ((_currentFood?.description ?? widget.description)
+                            .trim()
+                            .isNotEmpty) ...[
+                          Text(
+                            _currentFood?.description ?? widget.description,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                              height: 1.5,
+                            ),
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.circle, size: 4, color: Colors.grey),
-                      const SizedBox(width: 8),
-                       Text(
-                        '${widget.rating}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${widget.reviewCount} Reviews)',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Tags
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        if (_currentFood?.cuisineType != null) ...[
-                          _buildTag(_currentFood!.cuisineType!.displayName),
-                        ] else ...[
-                          _buildTag('Myanmar Culture'),
+                          const SizedBox(height: 16),
                         ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
 
-                  // Variants
-                  if (_currentFood != null && _currentFood!.variants.isNotEmpty) ...[
-                    Text(
-                      'Variants',
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ..._currentFood!.variants.map((variant) {
-                      final variantName = variant.name.trim().isNotEmpty 
-                          ? variant.name 
-                          : (variant.nameMm ?? '');
-                      return _buildSelectionItem(
-                        title: variantName,
-                        price: variant.price.toStringAsFixed(0).toFormattedPrice(currency: _currentFood!.currency),
-                        isSelected: _selectedVariantId == variant.id,
-                        isRadio: true,
-                        onChanged: (isSelected) {
-                          setState(() {
-                            if (_selectedVariantId == variant.id) {
-                              _selectedVariantId = null; // Unselect if already selected
-                            } else {
-                              _selectedVariantId = variant.id;
-                            }
-                            _syncWithCart();
-                          });
-                        },
-                      );
-                    }),
-                    const SizedBox(height: 32),
-                  ],
+                        // Price
+                        Row(
+                          children: [
+                            GradientText(
+                              (() {
+                                if (widget.displayPrice != null &&
+                                    _selectedVariantId == null) {
+                                  return widget.displayPrice!;
+                                }
+                                double price = 0;
+                                if (_currentFood != null) {
+                                  if (_selectedVariantId != null) {
+                                    final variant = _currentFood!.variants
+                                        .firstWhere(
+                                          (v) => v.id == _selectedVariantId,
+                                          orElse: () =>
+                                              _currentFood!.variants.first,
+                                        );
+                                    price = variant.price;
+                                  } else {
+                                    double currentPrice = _currentFood!.price;
+                                    double originalPrice =
+                                        _currentFood!.originalPrice ?? 0.0;
+                                    price =
+                                        (currentPrice == 0 && originalPrice > 0)
+                                        ? originalPrice
+                                        : currentPrice;
+                                  }
+                                } else {
+                                  price = widget.price;
+                                }
+                                return price
+                                    .toStringAsFixed(0)
+                                    .toFormattedPrice(
+                                      currency:
+                                          _currentFood?.currency ??
+                                          widget.currency,
+                                    );
+                              })(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-                  // Option Groups
-                  if (_currentFood != null && _currentFood!.optionGroups.isNotEmpty) ...[
-                    Text(
-                      'Add On',
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ..._currentFood!.optionGroups.map((group) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (group.isRequired) ...[
+                        // Rating
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _currentFood?.shopName ?? widget.restaurantName,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.circle,
+                              size: 4,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              group.name.trim().isNotEmpty ? group.name : (group.nameMm ?? ''),
+                              '${widget.rating}',
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[800],
+                                color: Colors.black,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const Icon(
+                              Icons.star_rounded,
+                              color: Colors.amber,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '(${widget.reviewCount} Reviews)',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
                           ],
-                          ...group.options.map((option) {
-                            final isSelected = _selectedOptions[group.id]?.contains(option.id) ?? false;
-                            final isRadio = group.groupType == 'SINGLE_SELECT' || group.groupType == 'RADIO';
-                            final optionName = option.name.trim().isNotEmpty
-                                ? option.name
-                                : (option.nameMm ?? '');
-
-                            return _buildSelectionItem(
-                              title: optionName,
-                                price: '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
-                              isSelected: isSelected,
-                              isRadio: isRadio,
-                              onChanged: (value) {
-                                setState(() {
-                                  if (isRadio) {
-                                    if (_selectedOptions[group.id]?.contains(option.id) ?? false) {
-                                      _selectedOptions[group.id] = {}; // Unselect if already selected
-                                    } else {
-                                      _selectedOptions[group.id] = {option.id};
-                                    }
-                                  } else {
-                                    final current = _selectedOptions[group.id] ?? {};
-                                    if (value == true) {
-                                      current.add(option.id);
-                                    } else {
-                                      current.remove(option.id);
-                                    }
-                                    _selectedOptions[group.id] = current;
-                                  }
-                                  _syncWithCart();
-                                });
-                              },
-                            );
-                          }),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    }),
-                  ],
-                  const SizedBox(height: 20),
-
-                  // Special Instructions
-                  Text(
-                    'Special Instructions',
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAEFF5), // New background color
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: TextField(
-                      controller: _instructionsController,
-                      maxLines: null,
-                      maxLength: 200,
-                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                      buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-                      decoration: InputDecoration(
-                        hintText: 'Any special requests? (e.g., no onions, extra spicy)',
-                        hintStyle: GoogleFonts.poppins(
-                          color: Colors.grey[500],
-                          fontSize: 14,
                         ),
-                        border: InputBorder.none,
-                        counterText: '',
-                      ),
-                      style: GoogleFonts.poppins(fontSize: 14),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                   Align(
-                    alignment: Alignment.bottomRight,
-                    child: Text(
-                      '${_instructionsController.text.length}/200',
-                       style: GoogleFonts.poppins(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                        const SizedBox(height: 24),
 
-                  
-                  // Recommended Section
-                    if (_recommendedItems.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                        // Tags
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              if (_currentFood?.cuisineType != null) ...[
+                                _buildTag(
+                                  _currentFood!.cuisineType!.displayName,
+                                ),
+                              ] else ...[
+                                _buildTag('Myanmar Culture'),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Variants
+                        if (_currentFood != null &&
+                            _currentFood!.variants.isNotEmpty) ...[
                           Text(
-                            'Recommended with this',
+                            'Variants',
                             style: GoogleFonts.poppins(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
-                          ViewAllIconButton(
-                            onPressed: () {
-                              // Action for view all recommended
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 230,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _recommendedItems.length,
-                          padding: EdgeInsets.zero,
-                          separatorBuilder: (context, index) => const SizedBox(width: 16),
-                          itemBuilder: (context, index) {
-                            final item = _recommendedItems[index];
-                            return _buildRecommendedItem(
-                              item['title']!,
-                               double.tryParse(item['price'] ?? '0') ?? 0.0,
-                              item['imageUrl']!,
+                          const SizedBox(height: 16),
+                          ..._currentFood!.variants.map((variant) {
+                            final variantName = variant.name.trim().isNotEmpty
+                                ? variant.name
+                                : (variant.nameMm ?? '');
+                            return _buildSelectionItem(
+                              title: variantName,
+                              price: variant.price
+                                  .toStringAsFixed(0)
+                                  .toFormattedPrice(
+                                    currency: _currentFood!.currency,
+                                  ),
+                              isSelected: _selectedVariantId == variant.id,
+                              isRadio: true,
+                              onChanged: (isSelected) {
+                                setState(() {
+                                  if (_selectedVariantId == variant.id) {
+                                    _selectedVariantId =
+                                        null; // Unselect if already selected
+                                  } else {
+                                    _selectedVariantId = variant.id;
+                                  }
+                                  _syncWithCart();
+                                });
+                              },
                             );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                    ],
+                          }),
+                          const SizedBox(height: 32),
+                        ],
 
-                    // Review Section
-                    if (_reviews.isNotEmpty) ...[
-                      _buildReviewSection(),
-                      const SizedBox(height: 80),
-                    ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-          // Custom Toolbar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-              height: kToolbarHeight + MediaQuery.of(context).padding.top,
-              decoration: BoxDecoration(
-                color: _isScrolled ? Colors.white : Colors.transparent,
-                border: Border(
-                  bottom: BorderSide(
-                    color: _isScrolled ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                   const SizedBox(width: 16),
-                  _buildCircleIconButton(
-                    icon: PhosphorIcons.arrowLeft(),
-                    onPressed: () => Navigator.pop(context),
-                    isScrolled: _isScrolled,
-                  ),
-                   const SizedBox(width: 16),
-                   Expanded(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      opacity: _isScrolled ? 1.0 : 0.0,
-                      child: Text(
-                        (() {
-                          final enName = _currentFood?.name ?? widget.title;
-                          final mmName = _currentFood?.nameMm ?? '';
-                          return enName.trim().isEmpty ? mmName : enName;
-                        })(),
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                        // Option Groups
+                        if (_currentFood != null &&
+                            _currentFood!.optionGroups.isNotEmpty) ...[
+                          Text(
+                            'Add On',
+                            style: GoogleFonts.poppins(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ..._currentFood!.optionGroups.map((group) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (group.isRequired) ...[
+                                  Text(
+                                    group.name.trim().isNotEmpty
+                                        ? group.name
+                                        : (group.nameMm ?? ''),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                ...group.options.map((option) {
+                                  final isSelected =
+                                      _selectedOptions[group.id]?.contains(
+                                        option.id,
+                                      ) ??
+                                      false;
+                                  final isRadio =
+                                      group.groupType == 'SINGLE_SELECT' ||
+                                      group.groupType == 'RADIO';
+                                  final optionName =
+                                      option.name.trim().isNotEmpty
+                                      ? option.name
+                                      : (option.nameMm ?? '');
+
+                                  return _buildSelectionItem(
+                                    title: optionName,
+                                    price:
+                                        '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
+                                    isSelected: isSelected,
+                                    isRadio: isRadio,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (isRadio) {
+                                          if (_selectedOptions[group.id]
+                                                  ?.contains(option.id) ??
+                                              false) {
+                                            _selectedOptions[group.id] =
+                                                {}; // Unselect if already selected
+                                          } else {
+                                            _selectedOptions[group.id] = {
+                                              option.id,
+                                            };
+                                          }
+                                        } else {
+                                          final current =
+                                              _selectedOptions[group.id] ?? {};
+                                          if (value == true) {
+                                            current.add(option.id);
+                                          } else {
+                                            current.remove(option.id);
+                                          }
+                                          _selectedOptions[group.id] = current;
+                                        }
+                                        _syncWithCart();
+                                      });
+                                    },
+                                  );
+                                }),
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          }),
+                        ],
+                        const SizedBox(height: 20),
+
+                        // Special Instructions
+                        Text(
+                          'Special Instructions',
+                          style: GoogleFonts.poppins(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(height: 12),
+                        Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFEAEFF5,
+                            ), // New background color
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: TextField(
+                            controller: _instructionsController,
+                            maxLines: null,
+                            maxLength: 200,
+                            maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                            buildCounter:
+                                (
+                                  context, {
+                                  required currentLength,
+                                  required isFocused,
+                                  maxLength,
+                                }) => null,
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Any special requests? (e.g., no onions, extra spicy)',
+                              hintStyle: GoogleFonts.poppins(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              counterText: '',
+                            ),
+                            style: GoogleFonts.poppins(fontSize: 14),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: Text(
+                            '${_instructionsController.text.length}/200',
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Recommended Section
+                        if (_recommendedItems.isNotEmpty) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Recommended with this',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              ViewAllIconButton(
+                                onPressed: () {
+                                  // Action for view all recommended
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 230,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _recommendedItems.length,
+                              padding: EdgeInsets.zero,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final item = _recommendedItems[index];
+                                return _buildRecommendedItem(
+                                  item['title']!,
+                                  double.tryParse(item['price'] ?? '0') ?? 0.0,
+                                  item['imageUrl']!,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+
+                        // Review Section
+                        if (_reviews.isNotEmpty) ...[
+                          _buildReviewSection(),
+                          const SizedBox(height: 80),
+                        ],
+                      ],
                     ),
                   ),
-                  _buildCircleIconButton(
-                    icon: PhosphorIcons.shareNetwork(),
-                    onPressed: () {},
-                    isScrolled: _isScrolled,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildCircleIconButton(
-                    icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                    onPressed: () async {
-                      if (_isTogglingFavorite) return;
-                      _isTogglingFavorite = true;
-                      
-                      setState(() {
-                        _isFavorite = !_isFavorite;
-                      });
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      await RestaurantRepository.instance.toggleMenuFavorite(
-                        int.tryParse(widget.id) ?? 0,
-                        _isFavorite,
-                      );
-                      if (mounted) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
-                            backgroundColor: AppColors.primary,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      // Rollback on error
-                      if (mounted) {
-                        setState(() => _isFavorite = !_isFavorite);
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: const Text('Failed to update favorite. Please try again.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    } finally {
-                      _isTogglingFavorite = false;
-                    }
-                  },
-                    isScrolled: _isScrolled,
-                    iconColorOverride: _isFavorite ? AppColors.primary : null,
-                  ),
-                  const SizedBox(width: 16),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Colors.black.withValues(alpha: 0.05),
-              width: 1,
-            ),
-          ),
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              // Quantity Selector
-              Container(
-                height: 56, // Fixed height
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+            // Custom Toolbar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top,
+                ),
+                height: kToolbarHeight + MediaQuery.of(context).padding.top,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(20),
+                  color: _isScrolled ? Colors.white : Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: _isScrolled
+                          ? Colors.black.withValues(alpha: 0.05)
+                          : Colors.transparent,
+                      width: 1,
+                    ),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const SizedBox(width: 4),
-                    _buildQtyButton(
-                      icon: Icons.remove,
-                      onPressed: () {
-                        if (_quantity > 1) {
-                          setState(() => _quantity--);
-                        }
-                      },
+                    const SizedBox(width: 16),
+                    _buildCircleIconButton(
+                      icon: PhosphorIcons.arrowLeft(),
+                      onPressed: () => Navigator.pop(context),
+                      isScrolled: _isScrolled,
                     ),
-                    Container(
-                      constraints: const BoxConstraints(minWidth: 40), // Increased spacing
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$_quantity',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: _isScrolled ? 1.0 : 0.0,
+                        child: Text(
+                          (() {
+                            final enName = _currentFood?.name ?? widget.title;
+                            final mmName = _currentFood?.nameMm ?? '';
+                            return enName.trim().isEmpty ? mmName : enName;
+                          })(),
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
-                    _buildQtyButton(
-                      icon: Icons.add,
-                      onPressed: () {
-                        setState(() => _quantity++);
-                      },
+                    _buildCircleIconButton(
+                      icon: PhosphorIcons.shareNetwork(),
+                      onPressed: () {},
+                      isScrolled: _isScrolled,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 12),
+                    _buildCircleIconButton(
+                      icon: _isFavorite
+                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                          : PhosphorIcons.heart(),
+                      onPressed: () async {
+                        if (_isTogglingFavorite) return;
+                        _isTogglingFavorite = true;
+
+                        setState(() {
+                          _isFavorite = !_isFavorite;
+                        });
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await RestaurantRepository.instance
+                              .toggleMenuFavorite(
+                                int.tryParse(widget.id) ?? 0,
+                                _isFavorite,
+                              );
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _isFavorite
+                                      ? 'Added to favorites'
+                                      : 'Removed from favorites',
+                                ),
+                                backgroundColor: AppColors.primary,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          // Rollback on error
+                          if (mounted) {
+                            setState(() => _isFavorite = !_isFavorite);
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Failed to update favorite. Please try again.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          _isTogglingFavorite = false;
+                        }
+                      },
+                      isScrolled: _isScrolled,
+                      iconColorOverride: _isFavorite ? AppColors.primary : null,
+                    ),
+                    const SizedBox(width: 16),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              // Add to Cart / Save Changes Button
-              Expanded(
-                child: Container(
+            ),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(
+                color: Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            child: Row(
+              children: [
+                // Quantity Selector
+                Container(
+                  height: 56, // Fixed height
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                    onTap: _isAddingToCart ? null : () async {
-                      if (_currentFood != null) {
-                        /* 
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 4),
+                      _buildQtyButton(
+                        icon: Icons.remove,
+                        onPressed: () {
+                          if (_quantity > 1) {
+                            setState(() => _quantity--);
+                          }
+                        },
+                      ),
+                      Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                        ), // Increased spacing
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$_quantity',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      _buildQtyButton(
+                        icon: Icons.add,
+                        onPressed: () {
+                          setState(() => _quantity++);
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Add to Cart / Save Changes Button
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: _isAddingToCart
+                            ? null
+                            : () async {
+                                if (_currentFood != null) {
+                                  /* 
                         // Removing mandatory variant check
                         if (_currentFood!.variants.isNotEmpty && _selectedVariantId == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -823,268 +907,397 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         }
                         */
 
-                        // Check if all required groups are selected
-                        for (var group in _currentFood!.optionGroups) {
-                          if (group.isRequired && (_selectedOptions[group.id]?.isEmpty ?? true)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Please select an option for ${group.nameMm ?? group.name}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                        }
-                      }
-
-                      if (_currentFood == null && widget.price == 0) return; // Basic validation
-                      
-                      bool operationCompleted = false;
-                      
-                      // Optimistically fill the heart icon as requested by user
-                      final bool wasFavoriteBefore = _isFavorite;
-                      setState(() {
-                        _isFavorite = true;
-                      });
-
-                      // Only show loading if it takes longer than 500ms
-                      Future.delayed(const Duration(milliseconds: 500), () {
-                        if (!operationCompleted && mounted) {
-                          setState(() => _isAddingToCart = true);
-                        }
-                      });
-
-                      final menuItemId = int.tryParse(widget.id);
-                      final shopIdStr = (_currentFood?.shopId != null && _currentFood!.shopId! > 0)
-                            ? _currentFood!.shopId!.toString()
-                            : (widget.restaurantId.trim().isNotEmpty ? widget.restaurantId : '0');
-                      final shopId = int.tryParse(shopIdStr);
-                      
-                      if (menuItemId != null && shopId != null && shopId > 0) {
-                        final allOptionIds = <int>[];
-                        for (final ids in _selectedOptions.values) {
-                          allOptionIds.addAll(ids);
-                        }
-                        
-                        try {
-                          CartDto? result;
-                          if (widget.cartItemId != null) {
-                            // Find the names for the newly selected variant
-                            String? vName;
-                            String? vNameMm;
-                            if (_selectedVariantId != null && _currentFood != null) {
-                              try {
-                                final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId);
-                                vName = variant.name;
-                                vNameMm = variant.nameMm;
-                              } catch (_) {}
-                            }
-                            
-                            // Update existing item
-                            result = await CartManager.instance.updateItemQuantity(
-                              widget.restaurantName,
-                              widget.cartItemId!,
-                              _quantity,
-                              variantId: _selectedVariantId,
-                              variantName: vName,
-                              variantNameMm: vNameMm,
-                              optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
-                              specialInstructions: _instructionsController.text.trim().isEmpty 
-                                  ? null 
-                                  : _instructionsController.text.trim(),
-                            );
-                          } else {
-                            // Add new item
-                             result = await CartRepository.instance.addToCart(AddToCartRequest(
-                              menuItemId: menuItemId,
-                              quantity: _quantity,
-                              shopId: shopId,
-                              variantId: _selectedVariantId,
-                              specialInstructions: _instructionsController.text.trim().isEmpty 
-                                  ? null 
-                                  : _instructionsController.text.trim(),
-                              optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
-                            ));
-                          }
-
-                          if (result != null) {
-                            // Sync local state instantly without another network request
-                            CartManager.instance.updateCartFromDto(result);
-                            
-                            // Also trigger a background sync just to be safe, but don't await it
-                            CartManager.instance.invalidateCache().then((_) {
-                              CartManager.instance.syncWithApi();
-                            });
-                            
-                            if (mounted) {
-                              operationCompleted = true;
-                              setState(() => _isAddingToCart = false);
-                              Navigator.pop(context); // Pop immediately for snappy feel
-                            }
-                            return;
-                          }
-
-                          // Fallback if result is null (shouldn't happen on success)
-                          await CartManager.instance.invalidateCache();
-                          await CartManager.instance.syncWithApi();
-                          if (mounted) {
-                            operationCompleted = true;
-                            setState(() {
-                              _isAddingToCart = false;
-                            });
-                            Navigator.pop(context); 
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            setState(() {
-                              _isAddingToCart = false;
-                              // Rollback heart if it was only filled due to this operation
-                              _isFavorite = wasFavoriteBefore;
-                            });
-                            final errorStr = e.toString();
-                            
-                            // Handle Single Shop Rule Conflict (409)
-                            if (errorStr.contains('Conflict') || errorStr.contains('409')) {
-                              final bool? clearConfirmed = await AppDialog.show<bool>(
-                                context: context,
-                                title: 'New Cart?',
-                                content: 'Your cart contains items from a different shop. Would you like to clear the existing cart and add this item?',
-                                buttonText: 'Clear and Add',
-                                secondaryButtonText: 'Cancel',
-                              );
-
-                              if (clearConfirmed == true && mounted) {
-                                try {
-                                  // Re-fill heart optimistically for retry
-                                  setState(() {
-                                    _isFavorite = true;
-                                  });
-
-                                  await CartRepository.instance.clearCart();
-                                  // Retry adding to cart
-                                  await CartRepository.instance.addToCart(AddToCartRequest(
-                                    menuItemId: menuItemId,
-                                    quantity: _quantity,
-                                    shopId: shopId,
-                                    variantId: _selectedVariantId,
-                                    specialInstructions: _instructionsController.text.trim().isEmpty 
-                                        ? null 
-                                        : _instructionsController.text.trim(),
-                                    optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
-                                  ));
-                                  // Sync local state
-                                  await CartManager.instance.invalidateCache();
-                                  await CartManager.instance.syncWithApi();
-                                  if (mounted) {
-                                    setState(() => _isAddingToCart = false);
-                                    Navigator.pop(context); // Pop details page
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Cart cleared and item added'),
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                    );
+                                  // Check if all required groups are selected
+                                  for (var group
+                                      in _currentFood!.optionGroups) {
+                                    if (group.isRequired &&
+                                        (_selectedOptions[group.id]?.isEmpty ??
+                                            true)) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Please select an option for ${group.nameMm ?? group.name}',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
                                   }
-                                  } catch (retryErr) {
+                                }
+
+                                if (_currentFood == null && widget.price == 0) {
+                                  return; // Basic validation
+                                }
+
+                                bool operationCompleted = false;
+
+                                // Optimistically fill the heart icon as requested by user
+                                final bool wasFavoriteBefore = _isFavorite;
+                                setState(() {
+                                  _isFavorite = true;
+                                });
+
+                                // Only show loading if it takes longer than 500ms
+                                Future.delayed(
+                                  const Duration(milliseconds: 500),
+                                  () {
+                                    if (!operationCompleted && mounted) {
+                                      setState(() => _isAddingToCart = true);
+                                    }
+                                  },
+                                );
+
+                                final menuItemId = int.tryParse(widget.id);
+                                final shopIdStr =
+                                    (_currentFood?.shopId != null &&
+                                        _currentFood!.shopId! > 0)
+                                    ? _currentFood!.shopId!.toString()
+                                    : (widget.restaurantId.trim().isNotEmpty
+                                          ? widget.restaurantId
+                                          : '0');
+                                final shopId = int.tryParse(shopIdStr);
+
+                                if (menuItemId != null &&
+                                    shopId != null &&
+                                    shopId > 0) {
+                                  final allOptionIds = <int>[];
+                                  for (final ids in _selectedOptions.values) {
+                                    allOptionIds.addAll(ids);
+                                  }
+
+                                  try {
+                                    CartDto? result;
+                                    if (widget.cartItemId != null) {
+                                      // Find the names for the newly selected variant
+                                      String? vName;
+                                      String? vNameMm;
+                                      if (_selectedVariantId != null &&
+                                          _currentFood != null) {
+                                        try {
+                                          final variant = _currentFood!.variants
+                                              .firstWhere(
+                                                (v) =>
+                                                    v.id == _selectedVariantId,
+                                              );
+                                          vName = variant.name;
+                                          vNameMm = variant.nameMm;
+                                        } catch (_) {}
+                                      }
+
+                                      // Update existing item
+                                      result = await CartManager.instance
+                                          .updateItemQuantity(
+                                            widget.restaurantName,
+                                            widget.cartItemId!,
+                                            _quantity,
+                                            variantId: _selectedVariantId,
+                                            variantName: vName,
+                                            variantNameMm: vNameMm,
+                                            optionIds: allOptionIds.isNotEmpty
+                                                ? allOptionIds
+                                                : null,
+                                            specialInstructions:
+                                                _instructionsController.text
+                                                    .trim()
+                                                    .isEmpty
+                                                ? null
+                                                : _instructionsController.text
+                                                      .trim(),
+                                          );
+                                    } else {
+                                      // Add new item
+                                      result = await CartRepository.instance
+                                          .addToCart(
+                                            AddToCartRequest(
+                                              menuItemId: menuItemId,
+                                              quantity: _quantity,
+                                              shopId: shopId,
+                                              variantId: _selectedVariantId,
+                                              specialInstructions:
+                                                  _instructionsController.text
+                                                      .trim()
+                                                      .isEmpty
+                                                  ? null
+                                                  : _instructionsController.text
+                                                        .trim(),
+                                              optionIds: allOptionIds.isNotEmpty
+                                                  ? allOptionIds
+                                                  : null,
+                                            ),
+                                          );
+                                    }
+
+                                    if (result != null) {
+                                      // Sync local state instantly without another network request
+                                      CartManager.instance.updateCartFromDto(
+                                        result,
+                                      );
+
+                                      // Also trigger a background sync just to be safe, but don't await it
+                                      CartManager.instance
+                                          .invalidateCache()
+                                          .then((_) {
+                                            CartManager.instance.syncWithApi();
+                                          });
+
+                                      if (mounted) {
+                                        operationCompleted = true;
+                                        setState(() => _isAddingToCart = false);
+                                        if (!context.mounted) return;
+                                        Navigator.pop(
+                                          context,
+                                        ); // Pop immediately for snappy feel
+                                      }
+                                      return;
+                                    }
+
+                                    // Fallback if result is null (shouldn't happen on success)
+                                    await CartManager.instance
+                                        .invalidateCache();
+                                    await CartManager.instance.syncWithApi();
+                                    if (mounted) {
+                                      operationCompleted = true;
+                                      setState(() {
+                                        _isAddingToCart = false;
+                                      });
+                                      if (!context.mounted) return;
+                                      Navigator.pop(context);
+                                    }
+                                  } catch (e) {
                                     if (mounted) {
                                       setState(() {
                                         _isAddingToCart = false;
-                                        // Rollback heart again on retry failure
+                                        // Rollback heart if it was only filled due to this operation
                                         _isFavorite = wasFavoriteBefore;
                                       });
+                                      final errorStr = e.toString();
+
+                                      // Handle Single Shop Rule Conflict (409)
+                                      if (errorStr.contains('Conflict') ||
+                                          errorStr.contains('409')) {
+                                        if (!context.mounted) return;
+                                        final bool? clearConfirmed =
+                                            await AppDialog.show<bool>(
+                                              context: context,
+                                              title: 'New Cart?',
+                                              content:
+                                                  'Your cart contains items from a different shop. Would you like to clear the existing cart and add this item?',
+                                              buttonText: 'Clear and Add',
+                                              secondaryButtonText: 'Cancel',
+                                            );
+
+                                        if (clearConfirmed == true && mounted) {
+                                          try {
+                                            // Re-fill heart optimistically for retry
+                                            setState(() {
+                                              _isFavorite = true;
+                                            });
+
+                                            await CartRepository.instance
+                                                .clearCart();
+                                            // Retry adding to cart
+                                            await CartRepository.instance
+                                                .addToCart(
+                                                  AddToCartRequest(
+                                                    menuItemId: menuItemId,
+                                                    quantity: _quantity,
+                                                    shopId: shopId,
+                                                    variantId:
+                                                        _selectedVariantId,
+                                                    specialInstructions:
+                                                        _instructionsController
+                                                            .text
+                                                            .trim()
+                                                            .isEmpty
+                                                        ? null
+                                                        : _instructionsController
+                                                              .text
+                                                              .trim(),
+                                                    optionIds:
+                                                        allOptionIds.isNotEmpty
+                                                        ? allOptionIds
+                                                        : null,
+                                                  ),
+                                                );
+                                            // Sync local state
+                                            await CartManager.instance
+                                                .invalidateCache();
+                                            await CartManager.instance
+                                                .syncWithApi();
+                                            if (mounted) {
+                                              setState(
+                                                () => _isAddingToCart = false,
+                                              );
+                                              if (!context.mounted) return;
+                                              Navigator.pop(
+                                                context,
+                                              ); // Pop details page
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Cart cleared and item added',
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.primary,
+                                                ),
+                                              );
+                                            }
+                                          } catch (retryErr) {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isAddingToCart = false;
+                                                // Rollback heart again on retry failure
+                                                _isFavorite = wasFavoriteBefore;
+                                              });
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Failed: $retryErr',
+                                                  ),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        } else if (mounted) {
+                                          setState(
+                                            () => _isAddingToCart = false,
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Failed to add to cart: $e',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    setState(() => _isAddingToCart = false);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed: $retryErr'), backgroundColor: Colors.red),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Invalid item or shop ID',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
                                     );
                                   }
                                 }
-                              } else if (mounted) {
-                                setState(() => _isAddingToCart = false);
-                              }
-                              return;
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to add to cart: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      } else {
-                        if (mounted) {
-                          setState(() => _isAddingToCart = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Invalid item or shop ID'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    splashColor: Colors.white.withValues(alpha: 0.2),
-                    highlightColor: Colors.transparent,
-                    child: Container(
-                      height: 56, // Fixed height to match qty selector
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                      ),
-                      child: _isAddingToCart 
-                        ? const Center(
-                            child: CustomLoadingIndicator(size: 24, color: Colors.white),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              Text(
-                            (() {
-                              double basePrice = 0;
-                              double optionsPrice = 0;
-                              if (_currentFood != null) {
-                                if (_selectedVariantId != null) {
-                                  final variant = _currentFood!.variants.firstWhere((v) => v.id == _selectedVariantId);
-                                  basePrice = variant.price;
-                                } else {
-                                  double currentPrice = _currentFood!.price;
-                                  double originalPrice = _currentFood!.originalPrice ?? 0.0;
-                                  basePrice = (currentPrice == 0 && originalPrice > 0) ? originalPrice : currentPrice;
-                                }
-                                for (var group in _currentFood!.optionGroups) {
-                                  final selectedIds = _selectedOptions[group.id] ?? {};
-                                  for (var id in selectedIds) {
-                                    final option = group.options.firstWhere((o) => o.id == id);
-                                    optionsPrice += option.price;
-                                  }
-                                }
-                              } else {
-                                basePrice = widget.price;
-                              }
-                              return ((basePrice + optionsPrice) * _quantity).toStringAsFixed(0).toFormattedPrice(currency: _currentFood?.currency ?? widget.currency);
-                            })(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                              },
+                        borderRadius: BorderRadius.circular(20),
+                        splashColor: Colors.white.withValues(alpha: 0.2),
+                        highlightColor: Colors.transparent,
+                        child: Container(
+                          height: 56, // Fixed height to match qty selector
+                          decoration: const BoxDecoration(
+                            color: Colors.transparent,
                           ),
-                        ],
+                          child: _isAddingToCart
+                              ? const Center(
+                                  child: CustomLoadingIndicator(
+                                    size: 24,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.shopping_cart_outlined,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      (() {
+                                        double basePrice = 0;
+                                        double optionsPrice = 0;
+                                        if (_currentFood != null) {
+                                          if (_selectedVariantId != null) {
+                                            final variant = _currentFood!
+                                                .variants
+                                                .firstWhere(
+                                                  (v) =>
+                                                      v.id ==
+                                                      _selectedVariantId,
+                                                );
+                                            basePrice = variant.price;
+                                          } else {
+                                            double currentPrice =
+                                                _currentFood!.price;
+                                            double originalPrice =
+                                                _currentFood!.originalPrice ??
+                                                0.0;
+                                            basePrice =
+                                                (currentPrice == 0 &&
+                                                    originalPrice > 0)
+                                                ? originalPrice
+                                                : currentPrice;
+                                          }
+                                          for (var group
+                                              in _currentFood!.optionGroups) {
+                                            final selectedIds =
+                                                _selectedOptions[group.id] ??
+                                                {};
+                                            for (var id in selectedIds) {
+                                              final option = group.options
+                                                  .firstWhere(
+                                                    (o) => o.id == id,
+                                                  );
+                                              optionsPrice += option.price;
+                                            }
+                                          }
+                                        } else {
+                                          basePrice = widget.price;
+                                        }
+                                        return ((basePrice + optionsPrice) *
+                                                _quantity)
+                                            .toStringAsFixed(0)
+                                            .toFormattedPrice(
+                                              currency:
+                                                  _currentFood?.currency ??
+                                                  widget.currency,
+                                            );
+                                      })(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Widget _buildCircleIconButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -1093,17 +1306,17 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   }) {
     // When scrolled (white app bar), icon is black, bg is transparent or light grey?
     // User request: "fade to white ... back button color change to opposite" (White on Image -> Black on White Bar)
-    
-    final Color iconColor = iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
-    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withValues(alpha: 0.3);
+
+    final Color iconColor =
+        iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
+    final Color backgroundColor = isScrolled
+        ? Colors.transparent
+        : Colors.black.withValues(alpha: 0.3);
 
     return Container(
       width: 38,
       height: 38,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
       child: IconButton(
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -1112,7 +1325,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       ),
     );
   }
-
 
   Widget _buildTag(String text) {
     return Container(
@@ -1151,30 +1363,34 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               height: 20,
               width: 20,
               decoration: BoxDecoration(
-                color: isSelected && !isRadio ? AppColors.primary : Colors.transparent,
+                color: isSelected && !isRadio
+                    ? AppColors.primary
+                    : Colors.transparent,
                 shape: isRadio ? BoxShape.circle : BoxShape.rectangle,
                 borderRadius: isRadio ? null : BorderRadius.circular(6),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : const Color(0xFF94A3B8),
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFF94A3B8),
                   width: 1.5,
                 ),
               ),
               child: isSelected
                   ? Center(
-                      child: isRadio 
-                        ? Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              gradient: AppColors.primaryGradient,
-                              shape: BoxShape.circle,
+                      child: isRadio
+                          ? Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.primaryGradient,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 16,
                             ),
-                          )
-                        : const Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: 16,
-                          ),
                     )
                   : null,
             ),
@@ -1218,7 +1434,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               title: title,
               price: price,
               imagePath: imageUrl,
-              description: 'Authentic flavors made with fresh ingredients. A perfect companion to your meal.',
+              description:
+                  'Authentic flavors made with fresh ingredients. A perfect companion to your meal.',
             ),
           ),
         );
@@ -1239,16 +1456,14 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
-                      return const ImageSkeletonLoader(
-                        width: 150,
-                        height: 150,
-                      );
+                      return const ImageSkeletonLoader(width: 150, height: 150);
                     },
-                    errorBuilder: (context, error, stackTrace) => _buildNoImagePlaceholder(
-                      width: 150,
-                      height: 150,
-                      borderRadius: 20,
-                    ),
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildNoImagePlaceholder(
+                          width: 150,
+                          height: 150,
+                          borderRadius: 20,
+                        ),
                   ),
                 ),
                 Positioned(
@@ -1261,11 +1476,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.add,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 20),
                   ),
                 ),
               ],
@@ -1294,7 +1505,10 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     );
   }
 
-  Widget _buildQtyButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildQtyButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       width: 32,
       height: 32,
@@ -1370,6 +1584,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       ],
     );
   }
+
   Widget _buildNoImagePlaceholder({
     double? width,
     double? height,
@@ -1446,9 +1661,17 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       _shimmerBox(width: 200, height: 24, radius: 8),
                       const SizedBox(height: 12),
                       // Description skeleton
-                      _shimmerBox(width: double.infinity, height: 14, radius: 4),
+                      _shimmerBox(
+                        width: double.infinity,
+                        height: 14,
+                        radius: 4,
+                      ),
                       const SizedBox(height: 8),
-                      _shimmerBox(width: double.infinity, height: 14, radius: 4),
+                      _shimmerBox(
+                        width: double.infinity,
+                        height: 14,
+                        radius: 4,
+                      ),
                       const SizedBox(height: 8),
                       _shimmerBox(width: 150, height: 14, radius: 4),
                       const SizedBox(height: 16),
@@ -1460,11 +1683,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         children: [
                           _shimmerBox(width: 60, height: 14, radius: 4),
                           const SizedBox(width: 8),
-                          const Icon(Icons.circle, size: 4, color: Color(0xFFF1F5F9)),
+                          const Icon(
+                            Icons.circle,
+                            size: 4,
+                            color: Color(0xFFF1F5F9),
+                          ),
                           const SizedBox(width: 8),
                           _shimmerBox(width: 30, height: 14, radius: 4),
                           const SizedBox(width: 4),
-                          const Icon(Icons.star_rounded, color: Color(0xFFF1F5F9), size: 18),
+                          const Icon(
+                            Icons.star_rounded,
+                            color: Color(0xFFF1F5F9),
+                            size: 18,
+                          ),
                           const SizedBox(width: 4),
                           _shimmerBox(width: 100, height: 14, radius: 4),
                         ],
@@ -1484,7 +1715,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       const SizedBox(height: 16),
                       // Add-on item skeletons
                       for (int i = 0; i < 3; i++) ...[
-                         Row(
+                        Row(
                           children: [
                             _shimmerBox(width: 20, height: 20, radius: 6),
                             const SizedBox(width: 13),
@@ -1539,7 +1770,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               _shimmerBox(width: 120, height: 56, radius: 20),
               const SizedBox(width: 16),
               Expanded(
-                child: _shimmerBox(width: double.infinity, height: 56, radius: 20),
+                child: _shimmerBox(
+                  width: double.infinity,
+                  height: 56,
+                  radius: 20,
+                ),
               ),
             ],
           ),
@@ -1548,7 +1783,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     );
   }
 
-  Widget _shimmerBox({required double width, required double height, double radius = 8}) {
+  Widget _shimmerBox({
+    required double width,
+    required double height,
+    double radius = 8,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ImageSkeletonLoader(width: width, height: height),

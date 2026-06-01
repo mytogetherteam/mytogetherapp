@@ -33,7 +33,8 @@ class PlaceDetailPage extends StatefulWidget {
   State<PlaceDetailPage> createState() => _PlaceDetailPageState();
 }
 
-class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderStateMixin {
+class _PlaceDetailPageState extends State<PlaceDetailPage>
+    with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   late AnimationController _zoomController;
   late AnimationController _entranceController;
@@ -61,9 +62,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
       duration: const Duration(seconds: 20),
       vsync: this,
     );
-    _zoomAnimation = Tween<double>(begin: 1.2, end: 1.0).animate(
-      CurvedAnimation(parent: _zoomController, curve: Curves.linear),
-    );
+    _zoomAnimation = Tween<double>(
+      begin: 1.2,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _zoomController, curve: Curves.linear));
     _zoomController.repeat(reverse: true);
 
     // Entrance Animation Setup
@@ -72,11 +74,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
       vsync: this,
     );
     _entranceOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+      ),
     );
-    _entranceSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entranceController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
-    );
+    _entranceSlide =
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+          ),
+        );
     _entranceController.forward();
 
     // Slideshow Timer
@@ -118,10 +127,13 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     const double expandedHeight = 430.0;
-    final double appBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+    final double appBarHeight =
+        kToolbarHeight + MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _isScrolled ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+      value: _isScrolled
+          ? SystemUiOverlayStyle.dark
+          : SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -139,9 +151,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                   elevation: 0,
                   automaticallyImplyLeading: false,
                   flexibleSpace: FlexibleSpaceBar(
-                    stretchModes: const [
-                      StretchMode.zoomBackground,
-                    ],
+                    stretchModes: const [StretchMode.zoomBackground],
                     background: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -151,21 +161,26 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                             tag: 'top_places_${widget.name}',
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 1000),
-                              layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                                return Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    ...previousChildren,
-                                    if (currentChild != null) currentChild,
-                                  ],
-                                );
-                              },
-                              transitionBuilder: (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                );
-                              },
+                              layoutBuilder:
+                                  (
+                                    Widget? currentChild,
+                                    List<Widget> previousChildren,
+                                  ) {
+                                    return Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        ...previousChildren,
+                                        ?currentChild,
+                                      ],
+                                    );
+                                  },
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    );
+                                  },
                               child: CachedNetworkImage(
                                 key: ValueKey(_allImages[_currentImageIndex]),
                                 imageUrl: _allImages[_currentImageIndex],
@@ -177,10 +192,11 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                     color: Colors.white,
                                   ),
                                 ),
-                                errorWidget: (context, url, error) => const Icon(
-                                  Icons.error,
-                                  color: Colors.white,
-                                ),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(
+                                      Icons.error,
+                                      color: Colors.white,
+                                    ),
                               ),
                             ),
                           ),
@@ -198,8 +214,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.4),
-                                    Colors.black.withOpacity(0.0),
+                                    Colors.black.withValues(alpha: 0.4),
+                                    Colors.black.withValues(alpha: 0.0),
                                   ],
                                 ),
                               ),
@@ -224,17 +240,24 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                             // Main Content Container
                             Container(
                               margin: const EdgeInsets.only(top: 60),
-                              padding: const EdgeInsets.only(top: 20, bottom: 40),
+                              padding: const EdgeInsets.only(
+                                top: 20,
+                                bottom: 40,
+                              ),
                               decoration: const BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(35),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // About Location
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0,
+                                    ),
                                     child: Text(
                                       'About Location',
                                       style: GoogleFonts.poppins(
@@ -246,7 +269,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   ),
                                   const SizedBox(height: 12),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0,
+                                    ),
                                     child: Text(
                                       widget.description,
                                       style: GoogleFonts.poppins(
@@ -259,7 +284,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   const SizedBox(height: 32),
                                   // Photo Gallery
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0,
+                                    ),
                                     child: Text(
                                       'Photo Gallery',
                                       style: GoogleFonts.poppins(
@@ -273,7 +300,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   SizedBox(
                                     height: 200,
                                     child: ListView.builder(
-                                      padding: const EdgeInsets.only(left: 20.0),
+                                      padding: const EdgeInsets.only(
+                                        left: 20.0,
+                                      ),
                                       scrollDirection: Axis.horizontal,
                                       itemCount: widget.images.length,
                                       itemBuilder: (context, index) {
@@ -284,35 +313,51 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                               PageRouteBuilder(
                                                 opaque: false,
                                                 barrierDismissible: true,
-                                                pageBuilder: (context, _, __) => FullScreenImageViewer(
-                                                  imageUrls: widget.images,
-                                                  initialIndex: index,
-                                                  heroTagPrefix: 'gallery_${widget.name}_',
-                                                ),
+                                                pageBuilder: (context, _, _) =>
+                                                    FullScreenImageViewer(
+                                                      imageUrls: widget.images,
+                                                      initialIndex: index,
+                                                      heroTagPrefix:
+                                                          'gallery_${widget.name}_',
+                                                    ),
                                               ),
                                             );
                                           },
                                           child: Container(
                                             width: 150,
-                                            margin: const EdgeInsets.only(right: 16),
+                                            margin: const EdgeInsets.only(
+                                              right: 16,
+                                            ),
                                             decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(20),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                             ),
                                             child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(20),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                               child: Hero(
-                                                tag: 'gallery_${widget.name}_${widget.images[index]}',
+                                                tag:
+                                                    'gallery_${widget.name}_${widget.images[index]}',
                                                 child: CachedNetworkImage(
-                                                  imageUrl: widget.images[index],
+                                                  imageUrl:
+                                                      widget.images[index],
                                                   fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const ImageSkeletonLoader(
-                                                    height: 200,
-                                                    width: 150,
-                                                  ),
-                                                  errorWidget: (context, url, error) => Container(
-                                                    color: Colors.grey[200],
-                                                    child: const Icon(Icons.error),
-                                                  ),
+                                                  placeholder: (context, url) =>
+                                                      const ImageSkeletonLoader(
+                                                        height: 200,
+                                                        width: 150,
+                                                      ),
+                                                  errorWidget:
+                                                      (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) => Container(
+                                                        color: Colors.grey[200],
+                                                        child: const Icon(
+                                                          Icons.error,
+                                                        ),
+                                                      ),
                                                 ),
                                               ),
                                             ),
@@ -341,11 +386,11 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                 if (_scrollController.hasClients) {
                   scrollOffset = _scrollController.offset;
                 }
-                
+
                 // Calculate position: start at bottom of image, move up with scroll
                 const double initialTop = expandedHeight - 50;
                 double currentTop = initialTop - scrollOffset;
-                
+
                 // Fade out as it reaches the top
                 double opacity = 1.0;
                 if (scrollOffset > 150) {
@@ -367,10 +412,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.white.withOpacity(0.0),
-                                Colors.white.withOpacity(0.6),
-                                Colors.white.withOpacity(0.9),
-                                Colors.white.withOpacity(0.95),
+                                Colors.white.withValues(alpha: 0.0),
+                                Colors.white.withValues(alpha: 0.6),
+                                Colors.white.withValues(alpha: 0.9),
+                                Colors.white.withValues(alpha: 0.95),
                                 Colors.white,
                                 Colors.white,
                               ],
@@ -412,7 +457,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                   Row(
                                     children: [
                                       Icon(
-                                        PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
+                                        PhosphorIcons.mapPin(
+                                          PhosphorIconsStyle.fill,
+                                        ),
                                         color: AppColors.primary,
                                         size: 14,
                                       ),
@@ -422,7 +469,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF1D1D1F).withOpacity(0.7),
+                                          color: const Color(
+                                            0xFF1D1D1F,
+                                          ).withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -432,7 +481,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                                     Row(
                                       children: [
                                         Icon(
-                                          PhosphorIcons.clock(PhosphorIconsStyle.regular),
+                                          PhosphorIcons.clock(
+                                            PhosphorIconsStyle.regular,
+                                          ),
                                           color: Colors.green[600],
                                           size: 14,
                                         ),
@@ -453,13 +504,15 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                             ),
                             Container(
                               height: 38,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(19),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black.withValues(alpha: 0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -492,13 +545,17 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
               right: 0,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top,
+                ),
                 height: appBarHeight,
                 decoration: BoxDecoration(
                   color: _isScrolled ? Colors.white : Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: _isScrolled ? Colors.black.withOpacity(0.05) : Colors.transparent,
+                      color: _isScrolled
+                          ? Colors.black.withValues(alpha: 0.05)
+                          : Colors.transparent,
                       width: 1,
                     ),
                   ),
@@ -531,12 +588,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
                     ),
                     const Spacer(),
                     _buildCircleIconButton(
-                      icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                      icon: _isFavorite
+                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                          : PhosphorIcons.heart(),
                       onPressed: () {
                         setState(() => _isFavorite = !_isFavorite);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(_isFavorite ? 'Saved to favorites' : 'Removed from favorites'),
+                            content: Text(
+                              _isFavorite
+                                  ? 'Saved to favorites'
+                                  : 'Removed from favorites',
+                            ),
                             duration: const Duration(seconds: 1),
                             behavior: SnackBarBehavior.floating,
                             backgroundColor: AppColors.primary,
@@ -563,16 +626,16 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with TickerProviderSt
     required bool isScrolled,
     Color? iconColorOverride,
   }) {
-    final Color iconColor = iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
-    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withOpacity(0.3);
+    final Color iconColor =
+        iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
+    final Color backgroundColor = isScrolled
+        ? Colors.transparent
+        : Colors.black.withValues(alpha: 0.3);
 
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
       child: IconButton(
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),

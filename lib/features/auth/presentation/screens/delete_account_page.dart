@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
@@ -70,15 +69,6 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
     }
   }
 
-  String _parseError(DioException e) {
-    final body = e.response?.data;
-    final details = body is Map ? body['details'] as String? : null;
-    final message = body is Map ? body['message'] as String? : null;
-    return details?.isNotEmpty == true
-        ? details!
-        : message ?? 'တစ်ခုခု မှားယွင်းနေပါသည်။';
-  }
-
   void _showErrorSnackbar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -94,8 +84,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
   void _showSuccessSnackbar() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('သင့်အကောင့်ကို ဖျက်သိမ်းလိုက်ပါပြီ။',
-            style: GoogleFonts.poppins(color: Colors.white)),
+        content: Text(
+          'သင့်အကောင့်ကို ဖျက်သိမ်းလိုက်ပါပြီ။',
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
         backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -125,8 +117,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-              color: Colors.black),
+          icon: Icon(
+            PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+            color: Colors.black,
+          ),
           onPressed: () {
             if (_step == 2) {
               setState(() {
@@ -151,10 +145,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
             Text(
               'Delete Account',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -196,10 +187,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           ),
           Text(
             'Before you delete',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
           ),
           const SizedBox(height: 28),
 
@@ -256,8 +244,9 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                       color: _agreed ? Colors.red.shade500 : Colors.white,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color:
-                            _agreed ? Colors.red.shade500 : Colors.grey.shade400,
+                        color: _agreed
+                            ? Colors.red.shade500
+                            : Colors.grey.shade400,
                         width: 2,
                       ),
                     ),
@@ -394,8 +383,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
 
             // User info chip
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
@@ -405,8 +393,11 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Icon(PhosphorIcons.user(PhosphorIconsStyle.bold),
-                        size: 20, color: AppColors.primary),
+                    child: Icon(
+                      PhosphorIcons.user(PhosphorIconsStyle.bold),
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -447,10 +438,15 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               style: GoogleFonts.poppins(fontSize: 15),
               decoration: InputDecoration(
                 labelText: 'Password • စကားဝှက်',
-                labelStyle:
-                    GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
-                prefixIcon: Icon(PhosphorIcons.lock(),
-                    color: Colors.grey[500], size: 20),
+                labelStyle: GoogleFonts.poppins(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
+                  PhosphorIcons.lock(),
+                  color: Colors.grey[500],
+                  size: 20,
+                ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword

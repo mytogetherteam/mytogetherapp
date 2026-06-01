@@ -32,11 +32,9 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
       final lat = pos?.latitude ?? LocationService.defaultLat;
       final lon = pos?.longitude ?? LocationService.defaultLon;
 
-      return await RestaurantRepository.instance.getNearbyShops(
-        lat: lat,
-        lon: lon,
-        radius: 20.0,
-      ).timeout(const Duration(seconds: 10));
+      return await RestaurantRepository.instance
+          .getNearbyShops(lat: lat, lon: lon, radius: 20.0)
+          .timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint('FoodRestaurantsSection: API error: $e');
       return [];
@@ -44,7 +42,8 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
-    final newStatus = !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
+    final newStatus =
+        !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
     setState(() {
       _localFavorites[restaurant.id] = newStatus;
     });
@@ -76,7 +75,9 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
         if (allRestaurants.isEmpty) return const SizedBox.shrink();
 
         // Show only first 6
-        final List<Restaurant> displayRestaurants = allRestaurants.take(6).toList();
+        final List<Restaurant> displayRestaurants = allRestaurants
+            .take(6)
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +131,11 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+                    margin: const EdgeInsets.only(
+                      bottom: 20,
+                      left: 10,
+                      right: 10,
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -145,7 +150,8 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
                             logoPath: data.logoPath,
                             deliveryTime: data.deliveryTime,
                             status: data.status,
-                            isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+                            isFavorite:
+                                _localFavorites[data.id] ?? data.isFavorite,
                           ),
                         ),
                       );
@@ -182,7 +188,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           itemCount: 3,
-          itemBuilder: (_, __) => Container(
+          itemBuilder: (_, _) => Container(
             padding: const EdgeInsets.all(8),
             margin: const EdgeInsets.only(bottom: 16, left: 10, right: 10),
             child: Column(

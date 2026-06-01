@@ -28,7 +28,8 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
   late int _currentIndex;
   late bool _isLiked;
   late int _likesCount;
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   TapDownDetails? _doubleTapDetails;
 
   @override
@@ -46,8 +47,8 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
     } else {
       final position = _doubleTapDetails!.localPosition;
       _transformationController.value = Matrix4.identity()
-        ..translate(-position.dx * 2, -position.dy * 2)
-        ..scale(3.0);
+        ..translateByDouble(-position.dx * 2, -position.dy * 2, 0, 1.0)
+        ..scaleByDouble(3.0, 3.0, 3.0, 1.0);
     }
   }
 
@@ -91,9 +92,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                color: Colors.black.withOpacity(0.7),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.7)),
             ),
           ),
 
@@ -122,9 +121,13 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                         imageUrl: widget.imageUrls[index],
                         fit: BoxFit.contain,
                         placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(color: Colors.white24, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white24,
+                            strokeWidth: 2,
+                          ),
                         ),
-                        errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error, color: Colors.white),
                       ),
                     ),
                   ),
@@ -148,16 +151,23 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -181,11 +191,17 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 0.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -196,7 +212,9 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                       child: Row(
                         children: [
                           Icon(
-                            _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                            _isLiked
+                                ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                                : PhosphorIcons.heart(),
                             color: _isLiked ? AppColors.primary : Colors.white,
                             size: 24,
                           ),
@@ -220,13 +238,20 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => NewsDetailPage(item: widget.item, autoFocusComment: true),
+                            builder: (context) => NewsDetailPage(
+                              item: widget.item,
+                              autoFocusComment: true,
+                            ),
                           ),
                         );
                       },
                       child: Row(
                         children: [
-                          Icon(PhosphorIcons.chatCircle(), color: Colors.white, size: 24),
+                          Icon(
+                            PhosphorIcons.chatCircle(),
+                            color: Colors.white,
+                            size: 24,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _formatCount(widget.item.commentsCount),

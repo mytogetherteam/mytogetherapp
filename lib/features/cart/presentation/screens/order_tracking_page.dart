@@ -16,7 +16,6 @@ import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -64,15 +63,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   LatLng get _restaurantLatLng {
     final lat = widget.restaurant?.latitude;
     final lon = widget.restaurant?.longitude;
-    
+
     // Demo Safety: If the restaurant is way too far (e.g. in Yangon while user is in Bangkok),
     // we fallback to a local Bangkok location for a realistic demo route.
     if (lat != null && lon != null && lat != 0) {
       final userLat = _currentLocation?.latitude ?? _defaultLocation.latitude;
       final userLon = _currentLocation?.longitude ?? _defaultLocation.longitude;
-      
+
       final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
-      if (dist > 100000) { // > 100km
+      if (dist > 100000) {
+        // > 100km
         return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
       }
       return LatLng(lat, lon);
@@ -93,27 +93,30 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // Solid idle trailing animation
     final initialProgress = ActiveOrderState.instance.idleSolidProgress ?? 0.0;
-    _idleSolidController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-      value: initialProgress,
-    )..addListener(() {
-      ActiveOrderState.instance.updateIdleProgress(_idleSolidController.value);
-    });
+    _idleSolidController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(seconds: 3),
+          value: initialProgress,
+        )..addListener(() {
+          ActiveOrderState.instance.updateIdleProgress(
+            _idleSolidController.value,
+          );
+        });
 
     // Light idle trailing animation
     _lightProgressController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     );
-    
+
     _startIdleAnimationSequence();
 
     WebSocketService().connect(force: true);
-    
+
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (!mounted) return;
-      
+
       // Handle the server wrapper: { "type": "ORDER_UPDATE", "order": { ... } }
       Map<String, dynamic> data = update;
       if (update.containsKey('order') && update['order'] is Map) {
@@ -122,16 +125,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         data = update['data'] as Map<String, dynamic>;
       }
       final status = (data['status'] as String?) ?? (update['type'] as String?);
-      
+
       if (mounted) {
         setState(() {});
       }
-      
+
       if (status != null) {
         final upperStatus = status.toUpperCase();
-        
+
         // If the shop accepted, navigate to Payment
-        final transitionStatuses = ['CONFIRMED', 'AWAITING_PAYMENT', 'PAYMENT_SLIP_REQUESTED'];
+        final transitionStatuses = [
+          'CONFIRMED',
+          'AWAITING_PAYMENT',
+          'PAYMENT_SLIP_REQUESTED',
+        ];
         if (transitionStatuses.contains(upperStatus)) {
           final state = ActiveOrderState.instance;
           if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
@@ -205,9 +212,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // Stage 1: Solid glides to 20%, then light trail runs 20% -> 100%
     if (startValue < 0.2) {
-      await _idleSolidController.animateTo(0.2, duration: const Duration(seconds: 3), curve: Curves.linear);
+      await _idleSolidController.animateTo(
+        0.2,
+        duration: const Duration(seconds: 3),
+        curve: Curves.linear,
+      );
       if (!mounted) return;
-      _lightProgressController.duration = const Duration(seconds: 6); // Slowed down
+      _lightProgressController.duration = const Duration(
+        seconds: 6,
+      ); // Slowed down
       await _lightProgressController.forward(from: 0.0);
       if (!mounted) return;
       _lightProgressController.value = 0.0; // Disappear
@@ -215,9 +228,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // Stage 2: Solid glides to 40%, then light trail runs 40% -> 100%
     if (startValue < 0.4) {
-      await _idleSolidController.animateTo(0.4, duration: const Duration(seconds: 4), curve: Curves.linear);
+      await _idleSolidController.animateTo(
+        0.4,
+        duration: const Duration(seconds: 4),
+        curve: Curves.linear,
+      );
       if (!mounted) return;
-      _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+      _lightProgressController.duration = const Duration(
+        seconds: 8,
+      ); // Slowed down
       await _lightProgressController.forward(from: 0.0);
       if (!mounted) return;
       _lightProgressController.value = 0.0; // Disappear
@@ -225,9 +244,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // Stage 3: Solid glides to 60%, then light trail runs 60% -> 100%
     if (startValue < 0.6) {
-      await _idleSolidController.animateTo(0.6, duration: const Duration(seconds: 4), curve: Curves.linear);
+      await _idleSolidController.animateTo(
+        0.6,
+        duration: const Duration(seconds: 4),
+        curve: Curves.linear,
+      );
       if (!mounted) return;
-      _lightProgressController.duration = const Duration(seconds: 8); // Slowed down
+      _lightProgressController.duration = const Duration(
+        seconds: 8,
+      ); // Slowed down
       await _lightProgressController.forward(from: 0.0);
       if (!mounted) return;
       _lightProgressController.value = 0.0; // Disappear
@@ -235,11 +260,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // Stage 4: Solid glides to 70%, then light trail loops
     if (startValue < 0.7) {
-      await _idleSolidController.animateTo(0.7, duration: const Duration(seconds: 4), curve: Curves.linear);
+      await _idleSolidController.animateTo(
+        0.7,
+        duration: const Duration(seconds: 4),
+        curve: Curves.linear,
+      );
     }
-    
+
     if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 6); 
+    _lightProgressController.duration = const Duration(seconds: 6);
     _lightProgressController.repeat();
   }
 
@@ -286,18 +315,21 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       } catch (_) {}
 
       // Start continuous updates in background
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium, distanceFilter: 15),
-      ).listen((pos) {
-        final newLoc = LatLng(pos.latitude, pos.longitude);
-        if (mounted) {
-          setState(() {
-            _currentLocation = newLoc;
-            _updateMarkersAndPolylines();
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              distanceFilter: 15,
+            ),
+          ).listen((pos) {
+            final newLoc = LatLng(pos.latitude, pos.longitude);
+            if (mounted) {
+              setState(() {
+                _currentLocation = newLoc;
+                _updateMarkersAndPolylines();
+              });
+            }
           });
-        }
-      });
     }
 
     final startLoc = userLoc ?? _defaultLocation;
@@ -344,7 +376,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (mounted) setState(() {});
   }
 
-   Future<BitmapDescriptor> _drawMarkerBitmap({
+  Future<BitmapDescriptor> _drawMarkerBitmap({
     required IconData icon,
     required Color bgColor,
     required Color iconColor,
@@ -362,20 +394,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
 
     // White border ring
-    canvas.drawCircle(
-      Offset(r, r),
-      r,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawCircle(Offset(r, r), r, Paint()..color = Colors.white);
 
     // Gradient fill
     final paint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, size, size));
-    canvas.drawCircle(
-      Offset(r, r),
-      r - 4,
-      paint,
-    );
+      ..shader = AppColors.primaryGradient.createShader(
+        Rect.fromLTWH(0, 0, size, size),
+      );
+    canvas.drawCircle(Offset(r, r), r - 4, paint);
 
     // Icon
     final tp = TextPainter(textDirection: TextDirection.ltr)
@@ -389,10 +415,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         ),
       );
     tp.layout();
-    tp.paint(
-      canvas,
-      Offset((size - tp.width) / 2, (size - tp.height) / 2 - 2),
-    );
+    tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2 - 2));
 
     final img = await pictureRecorder.endRecording().toImage(
       size.toInt(),
@@ -404,7 +427,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   Future<void> _updateBubbleBitmap() async {
     if (_routeDistanceKm == null || _routeDurationMins == null) return;
-    
+
     final fee = _deliveryFee ?? 0;
     final distance = _routeDistanceKm ?? 0;
     final duration = _routeDurationMins ?? 0;
@@ -414,7 +437,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       distance: distance,
       duration: duration,
     );
-    
+
     if (mounted) {
       setState(() {
         _homeWithBubbleIcon = bmp;
@@ -438,7 +461,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     const double pointerHeight = 10.0; // Reduced from 14
     const double gap = 2.0; // Reduced from 4
     const double shadowBottomPadding = 6.0;
-    
+
     final double homeIconY = boxHeight + pointerHeight + gap;
     final double centerOfHomeY = homeIconY + r;
     final double totalHeight = centerOfHomeY + r + shadowBottomPadding;
@@ -448,12 +471,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       text: TextSpan(
         text: 'Est. Delivery Fee ',
         style: GoogleFonts.poppins(
-            fontSize: 14, fontWeight: FontWeight.w400, color: Colors.white), // Reduced from 22
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: Colors.white,
+        ), // Reduced from 22
         children: [
           TextSpan(
             text: '฿ ${fee.toStringAsFixed(0)}',
             style: GoogleFonts.poppins(
-                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white), // Reduced from 24
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ), // Reduced from 24
           ),
         ],
       ),
@@ -464,25 +493,23 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       text: TextSpan(
         text: '${distance.toStringAsFixed(1)} km  •  $duration min',
         style: GoogleFonts.poppins(
-            fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white), // Reduced from 18
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: Colors.white,
+        ), // Reduced from 18
       ),
       textDirection: TextDirection.ltr,
     )..layout();
 
     final double textWidth = math.max(feePainter.width, timePainter.width);
     final double boxWidth = textWidth + 32; // Reduced padding
-    final double totalWidth = math.max(boxWidth, iconSize + 20); 
+    final double totalWidth = math.max(boxWidth, iconSize + 20);
 
     final double centerX = totalWidth / 2;
 
     // Background shadow of the entire bubble
     final RRect bubbleRRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        centerX - boxWidth / 2,
-        0,
-        boxWidth,
-        boxHeight,
-      ),
+      Rect.fromLTWH(centerX - boxWidth / 2, 0, boxWidth, boxHeight),
       const Radius.circular(12), // Reduced from 30
     );
     canvas.drawRRect(
@@ -500,10 +527,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       ..close();
 
     final Path fullBubble = Path.combine(
-        PathOperation.union, Path()..addRRect(bubbleRRect), pointerPath);
+      PathOperation.union,
+      Path()..addRRect(bubbleRRect),
+      pointerPath,
+    );
 
     final Paint gradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, totalWidth, boxHeight));
+      ..shader = AppColors.primaryGradient.createShader(
+        Rect.fromLTWH(0, 0, totalWidth, boxHeight),
+      );
     final Paint whiteBorderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
@@ -515,9 +547,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     // Draw Texts vertically centered inside the fixed boxHeight
     final double totalTextHeight = feePainter.height + timePainter.height + 6;
     final double textStartY = (boxHeight - totalTextHeight) / 2;
-    
-    feePainter.paint(canvas, Offset(centerX - feePainter.width / 2, textStartY));
-    timePainter.paint(canvas, Offset(centerX - timePainter.width / 2, textStartY + feePainter.height + 6));
+
+    feePainter.paint(
+      canvas,
+      Offset(centerX - feePainter.width / 2, textStartY),
+    );
+    timePainter.paint(
+      canvas,
+      Offset(
+        centerX - timePainter.width / 2,
+        textStartY + feePainter.height + 6,
+      ),
+    );
 
     // Home Icon Shadow
     canvas.drawCircle(
@@ -526,37 +567,43 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       Paint()..color = Colors.black.withValues(alpha: 0.18),
     );
     // Home Icon Base
-    canvas.drawCircle(Offset(centerX, centerOfHomeY), r,
-        Paint()..color = Colors.white);
-    
-    final Paint homeGradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(centerX - r, centerOfHomeY - r, iconSize, iconSize));
     canvas.drawCircle(
-        Offset(centerX, centerOfHomeY), r - 4, homeGradientPaint);
+      Offset(centerX, centerOfHomeY),
+      r,
+      Paint()..color = Colors.white,
+    );
 
-    final TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr)
-      ..text = TextSpan(
-        text: String.fromCharCode(Icons.home_rounded.codePoint),
-        style: TextStyle(
-          fontSize: iconSize * 0.44,
-          fontFamily: Icons.home_rounded.fontFamily,
-          package: Icons.home_rounded.fontPackage,
-          color: Colors.white,
-        ),
+    final Paint homeGradientPaint = Paint()
+      ..shader = AppColors.primaryGradient.createShader(
+        Rect.fromLTWH(centerX - r, centerOfHomeY - r, iconSize, iconSize),
       );
+    canvas.drawCircle(Offset(centerX, centerOfHomeY), r - 4, homeGradientPaint);
+
+    final TextPainter iconPainter =
+        TextPainter(textDirection: TextDirection.ltr)
+          ..text = TextSpan(
+            text: String.fromCharCode(Icons.home_rounded.codePoint),
+            style: TextStyle(
+              fontSize: iconSize * 0.44,
+              fontFamily: Icons.home_rounded.fontFamily,
+              package: Icons.home_rounded.fontPackage,
+              color: Colors.white,
+            ),
+          );
     iconPainter.layout();
     iconPainter.paint(
       canvas,
-      Offset(centerX - iconPainter.width / 2,
-          centerOfHomeY - iconPainter.height / 2 - 2),
+      Offset(
+        centerX - iconPainter.width / 2,
+        centerOfHomeY - iconPainter.height / 2 - 2,
+      ),
     );
 
     final ui.Image img = await pictureRecorder.endRecording().toImage(
       totalWidth.toInt(),
       totalHeight.toInt(),
     );
-    final ByteData? data =
-        await img.toByteData(format: ui.ImageByteFormat.png);
+    final ByteData? data = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
@@ -564,48 +611,63 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _updateMarkersAndPolylines() {
     final sets = <Marker>{};
-    
+
     // Restaurant Marker (custom pink shop icon)
-    sets.add(Marker(
-      markerId: const MarkerId('restaurant'),
-      position: _restaurantLatLng,
-      icon: _shopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
-      anchor: const Offset(0.5, 0.5),
-    ));
+    sets.add(
+      Marker(
+        markerId: const MarkerId('restaurant'),
+        position: _restaurantLatLng,
+        icon:
+            _shopIcon ??
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+        anchor: const Offset(0.5, 0.5),
+      ),
+    );
 
     // User / Home Marker (custom pink home icon)
     if (_currentLocation != null) {
-      final bool hasRouteData = _routePoints.isNotEmpty && _routeDistanceKm != null;
+      final bool hasRouteData =
+          _routePoints.isNotEmpty && _routeDistanceKm != null;
       if (hasRouteData && _homeWithBubbleIcon != null) {
-        sets.add(Marker(
-          markerId: const MarkerId('user_bubble'),
-          position: _currentLocation!,
-          icon: _homeWithBubbleIcon!,
-          anchor: const Offset(0.5, 0.76),
-          zIndexInt: 2,
-        ));
+        sets.add(
+          Marker(
+            markerId: const MarkerId('user_bubble'),
+            position: _currentLocation!,
+            icon: _homeWithBubbleIcon!,
+            anchor: const Offset(0.5, 0.76),
+            zIndexInt: 2,
+          ),
+        );
       } else {
-        sets.add(Marker(
-          markerId: const MarkerId('user'),
-          position: _currentLocation!,
-          icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          anchor: const Offset(0.5, 0.5),
-        ));
+        sets.add(
+          Marker(
+            markerId: const MarkerId('user'),
+            position: _currentLocation!,
+            icon:
+                _homeIcon ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueAzure,
+                ),
+            anchor: const Offset(0.5, 0.5),
+          ),
+        );
       }
     }
 
     final polySet = <Polyline>{};
     if (_routePoints.isNotEmpty) {
       // Primary app pink route to match the image
-      polySet.add(Polyline(
-        polylineId: const PolylineId('route'),
-        points: _routePoints,
-        color: AppColors.primary,
-        width: 3,
-        jointType: JointType.round,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
-      ));
+      polySet.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: _routePoints,
+          color: AppColors.primary,
+          width: 3,
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+        ),
+      );
     }
 
     if (mounted) {
@@ -620,11 +682,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (points.isEmpty || _mapController == null) return;
 
     // Include both user and restaurant in the bounds
-    final all = [
-      ...points,
-      _restaurantLatLng,
-      if (_currentLocation != null) _currentLocation!,
-    ];
+    final all = [...points, _restaurantLatLng, ?_currentLocation];
 
     double minLat = all.first.latitude;
     double maxLat = all.first.latitude;
@@ -632,7 +690,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     double maxLng = all.first.longitude;
 
     for (var p in all) {
-      if (p.latitude == 0 && p.longitude == 0) continue; // Ignore invalid points
+      if (p.latitude == 0 && p.longitude == 0) {
+        continue; // Ignore invalid points
+      }
       if (p.latitude < minLat) minLat = p.latitude;
       if (p.latitude > maxLat) maxLat = p.latitude;
       if (p.longitude < minLng) minLng = p.longitude;
@@ -654,7 +714,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     try {
       final url =
           'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?geometries=geojson';
-      final response = await _dio.get(url).timeout(const Duration(seconds: 5)); // Reduced from 10s
+      final response = await _dio
+          .get(url)
+          .timeout(const Duration(seconds: 5)); // Reduced from 10s
 
       if (response.statusCode == 200 &&
           response.data['routes'] != null &&
@@ -664,15 +726,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         final double distanceM = (route['distance'] as num).toDouble();
         final double durationS = (route['duration'] as num).toDouble();
 
-        final List<LatLng> points =
-            coords.map<LatLng>((c) => LatLng(c[1], c[0])).toList();
+        final List<LatLng> points = coords
+            .map<LatLng>((c) => LatLng(c[1], c[0]))
+            .toList();
 
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
-        
+
         // Demo Safety: Cap fee if distance is unrealistic for food delivery
-        final actualKm = km > 100 ? 5.0 : km; 
-        
+        final actualKm = km > 100 ? 5.0 : km;
+
         // Prefer backend delivery fee from WebSocket if available; otherwise estimate
         final backendFee = ActiveOrderState.instance.deliveryFee;
         final fee = (backendFee != null && backendFee > 0 && backendFee < 1000)
@@ -713,10 +776,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       if (mounted) {
         final fallbackPoints = [start, dest];
         final distanceM = Geolocator.distanceBetween(
-          start.latitude, start.longitude, dest.latitude, dest.longitude);
+          start.latitude,
+          start.longitude,
+          dest.latitude,
+          dest.longitude,
+        );
         final km = distanceM / 1000;
         final mins = (km * 2).ceil(); // Rough estimate: 2 mins per km
-        
+
         // Use backend fee or estimate
         final backendFee = ActiveOrderState.instance.deliveryFee;
         final fee = (backendFee != null && backendFee > 0)
@@ -786,7 +853,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           Positioned.fill(
             child: _showMap
                 ? GoogleMap(
-                    padding: EdgeInsets.only(bottom: panelH * 1.1), // Push camera up to stay above the bottom panel
+                    padding: EdgeInsets.only(
+                      bottom: panelH * 1.1,
+                    ), // Push camera up to stay above the bottom panel
                     initialCameraPosition: CameraPosition(
                       target: _restaurantLatLng,
                       zoom: 14,
@@ -811,7 +880,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 : const MapSkeletonLoader(),
           ),
 
-
           if (_showMap && _isRouting)
             Positioned(
               top: MediaQuery.of(context).padding.top + 16,
@@ -819,15 +887,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               right: 0,
               child: Center(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8)
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                      ),
                     ],
                   ),
                   child: Row(
@@ -839,9 +910,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         child: CustomLoadingIndicator(size: 14),
                       ),
                       const SizedBox(width: 8),
-                      Text('Finding route...',
-                          style: GoogleFonts.poppins(
-                              fontSize: 12, color: Colors.black87)),
+                      Text(
+                        'Finding route...',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -861,8 +936,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 8)
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                    ),
                   ],
                 ),
                 child: const Icon(Icons.close, color: Colors.black, size: 20),
@@ -881,9 +957,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 20,
-                      offset: Offset(0, -4))
+                    color: Colors.black12,
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
                 ],
               ),
               child: Column(
@@ -896,39 +973,51 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                                  GradientText(
-                                    'Awaiting Restaurant Confirmation',
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
+                          GradientText(
+                            'Awaiting Restaurant Confirmation',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'The restaurant is reviewing your order and arranging a delivery rider.',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    height: 1.5,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'The restaurant is reviewing your order and arranging a delivery rider.',
-                                          style: GoogleFonts.poppins(
-                                              fontSize: 13,
-                                              color: Colors.grey[600],
-                                              height: 1.5),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
 
                           LayoutBuilder(
                             builder: (context, constraints) {
                               return AnimatedBuilder(
-                                animation: Listenable.merge([_idleSolidController, _lightProgressController]),
+                                animation: Listenable.merge([
+                                  _idleSolidController,
+                                  _lightProgressController,
+                                ]),
                                 builder: (context, _) {
-                                  final double idleSolidWidth = constraints.maxWidth * _idleSolidController.value;
-                                  final double remainingIdleDistance = constraints.maxWidth - idleSolidWidth;
-                                  final double lightProgressWidthFactor = _lightProgressController.value;
-                                  final double totalLightTrailWidth = idleSolidWidth + (remainingIdleDistance * lightProgressWidthFactor);
+                                  final double idleSolidWidth =
+                                      constraints.maxWidth *
+                                      _idleSolidController.value;
+                                  final double remainingIdleDistance =
+                                      constraints.maxWidth - idleSolidWidth;
+                                  final double lightProgressWidthFactor =
+                                      _lightProgressController.value;
+                                  final double totalLightTrailWidth =
+                                      idleSolidWidth +
+                                      (remainingIdleDistance *
+                                          lightProgressWidthFactor);
 
                                   return Container(
                                     height: 10,
@@ -945,8 +1034,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             height: 10,
                                             width: totalLightTrailWidth,
                                             decoration: BoxDecoration(
-                                              color: AppColors.primary.withValues(alpha: 0.15),
-                                              borderRadius: BorderRadius.circular(5),
+                                              color: AppColors.primary
+                                                  .withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
                                             ),
                                           ),
                                         // Solid Pink Component (With gradient tip)
@@ -955,8 +1046,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             height: 10,
                                             width: idleSolidWidth,
                                             decoration: BoxDecoration(
-                                              gradient: AppColors.primaryGradient,
-                                              borderRadius: BorderRadius.circular(5),
+                                              gradient:
+                                                  AppColors.primaryGradient,
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
                                             ),
                                           ),
                                       ],
@@ -982,7 +1075,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 12),
 
-                           _buildInfoRow(
+                          _buildInfoRow(
                             label: 'Total Amount',
                             value: '฿ ${widget.foodTotal.toInt()}',
                             isGradientValue: true,
@@ -993,7 +1086,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(50),
@@ -1002,15 +1097,21 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.access_time,
-                                      size: 16, color: AppColors.primary.withValues(alpha: 0.7)),
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 16,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
                                   GradientText(
                                     'This usually takes 1–2 minutes.',
                                     style: GoogleFonts.poppins(
-                                        fontSize: 13, 
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1025,9 +1126,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               child: Text(
                                 'Cancel order',
                                 style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
                           ),
@@ -1044,40 +1146,51 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 
-  Widget _buildInfoRow(
-      {required String label, required String value, Color? valueColor, bool isGradientValue = false}) {
+  Widget _buildInfoRow({
+    required String label,
+    required String value,
+    Color? valueColor,
+    bool isGradientValue = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87)),
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+        ),
         if (isGradientValue)
           GradientText(
             value,
             style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           )
         else
-          Text(value,
-              style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? Colors.black)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? Colors.black,
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildDeliveryFeeRow() {
-    final fee = ActiveOrderState.instance.deliveryFee;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            Text('Delivery Fee',
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87)),
+            Text(
+              'Delivery Fee',
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+            ),
             const SizedBox(width: 4),
             Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
           ],
@@ -1119,17 +1232,25 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
               const SizedBox(height: 20),
-              Text('Cancel Order?',
-                  style: GoogleFonts.poppins(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Cancel Order?',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 'Are you sure you want to cancel this order?',
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1141,51 +1262,69 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.black26),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: Text('Keep Order',
-                          style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600, color: Colors.black87)),
+                      child: Text(
+                        'Keep Order',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: PrimaryGradientButton(
-                      onPressed: _isCancelling ? null : () async {
-                        setState(() => _isCancelling = true);
-                        setModalState(() => {}); // Rebuild button to show disabled state
-                        
-                        // Delayed loading indicator (500ms)
-                        Future.delayed(const Duration(milliseconds: 500), () {
-                          if (mounted && _isCancelling) {
-                            setState(() => _showCancelLoading = true);
-                            setModalState(() => {});
-                          }
-                        });
+                      onPressed: _isCancelling
+                          ? null
+                          : () async {
+                              setState(() => _isCancelling = true);
+                              setModalState(
+                                () => {},
+                              ); // Rebuild button to show disabled state
 
-                        try {
-                          // 1. Backend call
-                          await ActiveOrderState.instance.cancelActiveOrder();
-                          
-                          // 2. Clear local store
-                          CartManager.instance.removeStore(widget.store.name);
-                          
-                          // 3. Navigation
-                          if (mounted) {
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                            NavigationController.instance.goToFoodTab();
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() {
-                              _isCancelling = false;
-                              _showCancelLoading = false;
-                            });
-                            setModalState(() => {});
-                          }
-                        }
-                      },
+                              // Delayed loading indicator (500ms)
+                              Future.delayed(
+                                const Duration(milliseconds: 500),
+                                () {
+                                  if (mounted && _isCancelling) {
+                                    setState(() => _showCancelLoading = true);
+                                    setModalState(() => {});
+                                  }
+                                },
+                              );
+
+                              try {
+                                // 1. Backend call
+                                await ActiveOrderState.instance
+                                    .cancelActiveOrder();
+
+                                // 2. Clear local store
+                                CartManager.instance.removeStore(
+                                  widget.store.name,
+                                );
+
+                                // 3. Navigation
+                                if (mounted) {
+                                  if (!context.mounted) return;
+                                  Navigator.of(
+                                    context,
+                                  ).popUntil((route) => route.isFirst);
+                                  NavigationController.instance.goToFoodTab();
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _isCancelling = false;
+                                    _showCancelLoading = false;
+                                  });
+                                  setModalState(() => {});
+                                }
+                              }
+                            },
                       isLoading: _showCancelLoading,
                       child: Text(
                         'Cancel Order',
@@ -1205,4 +1344,3 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 }
-

@@ -13,7 +13,7 @@ class WebSocketService {
 
   StompClient? _stompClient;
   bool get isConnected => _stompClient?.connected ?? false;
-  
+
   final ValueNotifier<bool> connectionStatus = ValueNotifier<bool>(false);
 
   final StreamController<Map<String, dynamic>> _orderUpdateController =
@@ -45,11 +45,13 @@ class WebSocketService {
     }
 
     _isConnecting = true;
-    debugPrint(' [WS] Connecting to: wss://myshopdemoapi-production.up.railway.app/ws/websocket');
+    debugPrint(
+      ' [WS] Connecting to: wss://myshopdemoapi-production.up.railway.app/ws/websocket',
+    );
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
-       debugPrint(' [WS] Connection aborted: No access token found.');
+      debugPrint(' [WS] Connection aborted: No access token found.');
       _isConnecting = false;
       return;
     }
@@ -59,7 +61,7 @@ class WebSocketService {
         url: 'wss://myshopdemoapi-production.up.railway.app/ws/websocket',
         onConnect: onConnect,
         beforeConnect: () async {
-           debugPrint(' [WS] Preparing connection headers...');
+          debugPrint(' [WS] Preparing connection headers...');
         },
         onWebSocketError: (dynamic error) {
           debugPrint(' 🚨 [WS] WebSocket Error: $error');
@@ -74,24 +76,22 @@ class WebSocketService {
         onDebugMessage: (String message) {
           debugPrint(' ⚙️ [WS] [STOMP] $message');
         },
-        stompConnectHeaders: {
-          'Authorization': 'Bearer $token',
-        },
+        stompConnectHeaders: {'Authorization': 'Bearer $token'},
         onStompError: (frame) {
-           debugPrint(' [WS] STOMP Error: ${frame.body}');
+          debugPrint(' [WS] STOMP Error: ${frame.body}');
         },
         onUnhandledFrame: (frame) {
-           debugPrint(' [WS] Unhandled Frame: ${frame.command}');
+          debugPrint(' [WS] Unhandled Frame: ${frame.command}');
         },
         onUnhandledMessage: (frame) {
-           debugPrint(' [WS] Unhandled Message: ${frame.body}');
+          debugPrint(' [WS] Unhandled Message: ${frame.body}');
         },
         onUnhandledReceipt: (frame) {
-           debugPrint(' [WS] Unhandled Receipt: ${frame.headers}');
+          debugPrint(' [WS] Unhandled Receipt: ${frame.headers}');
         },
-        webSocketConnectHeaders: {}, 
+        webSocketConnectHeaders: {},
         onDisconnect: (frame) {
-           debugPrint(' [WS] Disconnected.');
+          debugPrint(' [WS] Disconnected.');
           connectionStatus.value = false;
         },
         heartbeatOutgoing: const Duration(milliseconds: 10000),
@@ -108,9 +108,7 @@ class WebSocketService {
     connectionStatus.value = true;
 
     final token = AuthService().accessToken;
-    final headers = {
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
+    final headers = {if (token != null) 'Authorization': 'Bearer $token'};
 
     // Shop API uses /user/queue/shop-order-updates
     const destination = '/user/queue/shop-order-updates';
@@ -118,29 +116,30 @@ class WebSocketService {
 
     _stompClient?.subscribe(
       destination: destination,
-      headers: {
-        ...headers,
-        'receipt': 'rcpt-order-updates',
-      },
+      headers: {...headers, 'receipt': 'rcpt-order-updates'},
       callback: (StompFrame frame) {
         if (frame.body == null) return;
-        
+
         try {
           final decoded = json.decode(frame.body!);
           if (decoded is! Map) return;
 
-          final raw = Map<String, dynamic>.from(decoded as Map);
+          final raw = Map<String, dynamic>.from(decoded);
           final messageType = raw['type']?.toString();
 
           // ── MENU_ITEM_UPDATE (Real-time Menu synchronization) ─────────────
           if (messageType == 'MENU_ITEM_UPDATE') {
             final shopId = raw['shopId'];
             final itemId = raw['itemId'];
-            debugPrint(' 📡 [WS] MENU_ITEM_UPDATE RECEIVED: shopId=$shopId, itemId=$itemId');
+            debugPrint(
+              ' 📡 [WS] MENU_ITEM_UPDATE RECEIVED: shopId=$shopId, itemId=$itemId',
+            );
             if (shopId != null) {
               final id = int.tryParse(shopId.toString());
               if (id != null) {
-                debugPrint(' ✨ [WS] Triggering cache invalidation for Shop: $id');
+                debugPrint(
+                  ' ✨ [WS] Triggering cache invalidation for Shop: $id',
+                );
                 RestaurantRepository.instance.clearCache(shopId: id);
                 _menuUpdateController.add(raw);
               }
@@ -152,23 +151,40 @@ class WebSocketService {
           dynamic payload = raw;
 
           // Unmarshall if wrapped
-          if (payload is Map && payload.containsKey('order') && payload['order'] is Map) {
+          if (payload is Map &&
+              payload.containsKey('order') &&
+              payload['order'] is Map) {
             payload = payload['order'];
-          } else if (payload is Map && payload.containsKey('data') && payload['data'] is Map) {
+          } else if (payload is Map &&
+              payload.containsKey('data') &&
+              payload['data'] is Map) {
             payload = payload['data'];
           }
 
           if (payload is Map) {
-            final Map<String, dynamic> orderRaw = Map<String, dynamic>.from(payload as Map);
-            
+            final Map<String, dynamic> orderRaw = Map<String, dynamic>.from(
+              payload,
+            );
+
             // Smarter status extraction: check root then nested
-            String? status = (orderRaw['statusName'] ?? orderRaw['statusLabel'] ?? orderRaw['status'])?.toString();
-            
+            String? status =
+                (orderRaw['statusName'] ??
+                        orderRaw['statusLabel'] ??
+                        orderRaw['status'])
+                    ?.toString();
+
             // Fallback: search in nested fields if still null
             if (status == null) {
-              final nested = orderRaw['order'] ?? orderRaw['data'] ?? orderRaw['status'];
+              final nested =
+                  orderRaw['order'] ?? orderRaw['data'] ?? orderRaw['status'];
               if (nested is Map) {
-                status = (nested['statusName'] ?? nested['statusLabel'] ?? nested['status'] ?? nested['name'] ?? nested['code'])?.toString();
+                status =
+                    (nested['statusName'] ??
+                            nested['statusLabel'] ??
+                            nested['status'] ??
+                            nested['name'] ??
+                            nested['code'])
+                        ?.toString();
               }
             }
 

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../data/repositories/auth_repository.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -16,7 +15,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -31,10 +31,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
     FlutterNativeSplash.remove();
   }
@@ -49,7 +54,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   Future<void> _handleLogin() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       await AuthRepository.instance.login(
@@ -62,7 +69,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (!mounted) return;
       AppDialog.showToast(context, e.toString(), isError: true);
     } finally {
-      if (mounted) setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -130,7 +141,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             hint: 'mytogether@example.com',
                             icon: Icons.person_outline_rounded,
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Please enter your username or email';
+                              if (v == null || v.trim().isEmpty) {
+                                return 'Please enter your username or email';
+                              }
                               return null;
                             },
                           ),
@@ -145,14 +158,20 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             obscure: _obscurePassword,
                             suffixWidget: IconButton(
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
                                 color: Colors.grey[500],
                                 size: 20,
                               ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                             validator: (v) {
-                              if (v == null || v.isEmpty) return 'Please enter your password';
+                              if (v == null || v.isEmpty) {
+                                return 'Please enter your password';
+                              }
                               return null;
                             },
                           ),
@@ -167,12 +186,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               children: [
                                 Text(
                                   "Don't have an account? ",
-                                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
                                 ),
                                 GestureDetector(
                                   onTap: () {
                                     Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const RegisterPage()),
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterPage(),
+                                      ),
                                     );
                                   },
                                   child: GradientText(
@@ -211,7 +235,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-
   Widget _buildLabel(String text) {
     return Text(
       text,
@@ -243,7 +266,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         suffixIcon: suffixWidget,
         filled: true,
         fillColor: Colors.grey[50],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
@@ -267,7 +293,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
     );
   }
-
 
   Widget _buildLoginButton() {
     return PrimaryGradientButton(

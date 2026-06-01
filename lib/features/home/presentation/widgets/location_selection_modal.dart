@@ -43,7 +43,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   Future<void> _loadCurrentLocation() async {
     try {
       final pos = await LocationService().getCurrentPosition();
-      final result = await LocationSearchService.instance.reverseGeocode(pos.latitude, pos.longitude);
+      final result = await LocationSearchService.instance.reverseGeocode(
+        pos.latitude,
+        pos.longitude,
+      );
       if (mounted) {
         setState(() {
           _currentLocationResult = result;
@@ -62,7 +65,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       final locs = await UserLocationRepository.instance.getRawLocations();
       if (mounted) {
         // Sort so primary is always first
-        locs.sort((a, b) => (b.isPrimary ? 1 : 0).compareTo(a.isPrimary ? 1 : 0));
+        locs.sort(
+          (a, b) => (b.isPrimary ? 1 : 0).compareTo(a.isPrimary ? 1 : 0),
+        );
         setState(() {
           _apiLocations = locs;
           _isLoadingApi = false;
@@ -73,7 +78,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
     }
   }
 
-  Future<void> _handleSelectionChange(PlaceResult place, {int? existingId}) async {
+  Future<void> _handleSelectionChange(
+    PlaceResult place, {
+    int? existingId,
+  }) async {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
 
@@ -88,7 +96,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
         }
       } else {
         // Try to find by address first
-        final match = _apiLocations.where((l) => l.address == place.displayName).firstOrNull;
+        final match = _apiLocations
+            .where((l) => l.address == place.displayName)
+            .firstOrNull;
         if (match != null) {
           if (!match.isPrimary) {
             await UserLocationRepository.instance.updateLocation(
@@ -117,7 +127,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating location: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error updating location: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -128,11 +141,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: screenHeight * 0.7,
-      ),
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.7),
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -153,7 +164,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Non-scrollable Title part
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -170,14 +181,18 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: Colors.grey.shade500, size: 22),
+                      icon: Icon(
+                        Icons.close,
+                        color: Colors.grey.shade500,
+                        size: 22,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
               Divider(height: 1, color: Colors.grey.shade100),
-              
+
               // Scrollable Body
               Flexible(
                 child: SingleChildScrollView(
@@ -185,8 +200,13 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     children: [
                       // Current Location
                       _buildCurrentLocationTile(),
-                      Divider(height: 1, color: Colors.grey.shade100, indent: 20, endIndent: 20),
-        
+                      Divider(
+                        height: 1,
+                        color: Colors.grey.shade100,
+                        indent: 20,
+                        endIndent: 20,
+                      ),
+
                       // API locations
                       if (_isLoadingApi)
                         const LocationSkeletonLoader(isList: true, itemCount: 2)
@@ -205,18 +225,27 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             ),
                           ),
                         ),
-                        ..._apiLocations.map((loc) => _buildSavedLocationTile(loc)),
-                        Divider(height: 1, color: Colors.grey.shade100, indent: 20, endIndent: 20),
+                        ..._apiLocations.map(
+                          (loc) => _buildSavedLocationTile(loc),
+                        ),
+                        Divider(
+                          height: 1,
+                          color: Colors.grey.shade100,
+                          indent: 20,
+                          endIndent: 20,
+                        ),
                       ],
-        
-                      const SizedBox(height: 80), // Extra space for fixed button
+
+                      const SizedBox(
+                        height: 80,
+                      ), // Extra space for fixed button
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          
+
           // Fixed small pill shape floating button at bottom center
           Positioned(
             bottom: 24,
@@ -229,19 +258,25 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   onTap: () async {
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LocationSearchPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const LocationSearchPage(),
+                      ),
                     );
                     if (result != null && mounted) {
                       if (result is PlaceResult) {
                         _handleSelectionChange(result);
                       } else {
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       }
                     }
                   },
                   borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(30),
@@ -256,7 +291,11 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(PhosphorIconsFill.mapPinPlus, color: Colors.white, size: 18),
+                        const Icon(
+                          PhosphorIconsFill.mapPinPlus,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Add new location',
@@ -278,11 +317,11 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.5),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                 ),
-                child: const Center(
-                  child: CustomLoadingIndicator(size: 30),
-                ),
+                child: const Center(child: CustomLoadingIndicator(size: 30)),
               ),
             ),
         ],
@@ -306,7 +345,11 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 color: const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
-              child: Icon(PhosphorIcons.crosshairSimple(), size: 22, color: Colors.grey.shade700),
+              child: Icon(
+                PhosphorIcons.crosshairSimple(),
+                size: 22,
+                color: Colors.grey.shade700,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -323,11 +366,21 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   ),
                   const SizedBox(height: 2),
                   if (_isLoadingCurrent)
-                    Text('Detecting...', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade400))
+                    Text(
+                      'Detecting...',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade400,
+                      ),
+                    )
                   else
                     Text(
-                      _currentLocationResult?.displayName ?? 'Location unavailable',
-                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500),
+                      _currentLocationResult?.displayName ??
+                          'Location unavailable',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -360,13 +413,17 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: location.isPrimary ? AppColors.primary.withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
+                color: location.isPrimary
+                    ? AppColors.primary.withValues(alpha: 0.1)
+                    : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getLocationIcon(location.locationType),
                 size: 22,
-                color: location.isPrimary ? AppColors.primary : Colors.grey.shade600,
+                color: location.isPrimary
+                    ? AppColors.primary
+                    : Colors.grey.shade600,
               ),
             ),
             const SizedBox(width: 14),
@@ -378,7 +435,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     children: [
                       Expanded(
                         child: Text(
-                          location.locationName ?? location.locationType ?? 'Saved Location',
+                          location.locationName ??
+                              location.locationType ??
+                              'Saved Location',
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -390,7 +449,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                       ),
                       if (location.isPrimary)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
@@ -410,7 +472,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   const SizedBox(height: 2),
                   Text(
                     location.address ?? '',
-                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

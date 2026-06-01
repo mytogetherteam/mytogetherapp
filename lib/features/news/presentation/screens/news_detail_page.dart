@@ -44,7 +44,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   late int _likesCount;
   // Use viewportFraction 0.80 for the "peek" effect, matching the feed
   final PageController _pageController = PageController(viewportFraction: 0.80);
-  final int _currentImageIndex = 0;
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   bool _isGifPickerVisible = false;
@@ -110,10 +109,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   Future<void> _makeCall(String phoneNumber) async {
     debugPrint('Attempting to call from detail: $phoneNumber');
-    final Uri launchUri = Uri(
-      scheme: 'tel',
-      path: phoneNumber,
-    );
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
@@ -144,13 +140,16 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   void _addComment({String text = '', String? gifUrl}) {
     setState(() {
-      _comments.insert(0, NewsComment(
-        authorName: 'You',
-        authorAvatar: 'https://i.pravatar.cc/150?u=you',
-        content: text,
-        timeAgo: 'Just now',
-        gifUrl: gifUrl,
-      ));
+      _comments.insert(
+        0,
+        NewsComment(
+          authorName: 'You',
+          authorAvatar: 'https://i.pravatar.cc/150?u=you',
+          content: text,
+          timeAgo: 'Just now',
+          gifUrl: gifUrl,
+        ),
+      );
     });
   }
 
@@ -200,10 +199,12 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   Future<List<String>> _fetchGifs() async {
     try {
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ));
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
       final response = await dio.get(
         'https://tenor.googleapis.com/v2/featured',
         queryParameters: {
@@ -211,12 +212,13 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           'limit': 15,
         },
       );
-      
+
       if (response.statusCode == 200 && response.data != null) {
         final List results = response.data['results'] ?? [];
         final List<String> gifs = results.map((e) {
           final formats = e['media_formats'] as Map<String, dynamic>;
-          final gifData = formats['tinygif'] ?? formats['gif'] ?? formats['mediumgif'];
+          final gifData =
+              formats['tinygif'] ?? formats['gif'] ?? formats['mediumgif'];
           return (gifData['url'] as String).replaceFirst('http:', 'https:');
         }).toList();
         if (gifs.isNotEmpty) return gifs;
@@ -237,10 +239,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const double avatarRadius = 20.0;
-    const double avatarGap = 14.0;
     const double outerPadding = 16.0;
-    const double leftContentOffset = outerPadding + (avatarRadius * 2) + avatarGap; // 70
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -265,7 +264,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       : null,
                   backgroundColor: Colors.grey[100],
                   child: widget.item.authorAvatar.isEmpty
-                      ? Icon(PhosphorIcons.user(), size: 14, color: Colors.grey[400])
+                      ? Icon(
+                          PhosphorIcons.user(),
+                          size: 14,
+                          color: Colors.grey[400],
+                        )
                       : null,
                 ),
                 const SizedBox(width: 8),
@@ -300,7 +303,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     child: GestureDetector(
                       onTap: () => _makeCall(widget.item.phoneNumber!),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(8),
@@ -308,8 +314,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill), 
-                              color: Colors.white, size: 12),
+                            Icon(
+                              PhosphorIcons.phoneCall(PhosphorIconsStyle.fill),
+                              color: Colors.white,
+                              size: 12,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Connect',
@@ -333,7 +342,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           // Main Post Content (Restructured to respect new Author location)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(left: outerPadding, right: outerPadding, top: 4),
+              padding: const EdgeInsets.only(
+                left: outerPadding,
+                right: outerPadding,
+                top: 4,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -352,8 +365,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), 
-                          color: AppColors.primary, size: 18),
+                        Icon(
+                          PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -372,8 +388,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(PhosphorIcons.moneyWavy(PhosphorIconsStyle.fill), 
-                          color: const Color(0xFF48BB78), size: 18),
+                        Icon(
+                          PhosphorIcons.moneyWavy(PhosphorIconsStyle.fill),
+                          color: const Color(0xFF48BB78),
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           widget.item.rewardAmount!,
@@ -398,7 +417,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 padding: const EdgeInsets.only(top: 16.0),
                 child: widget.item.imageUrls.length == 1
                     ? Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: outerPadding),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: outerPadding,
+                        ),
                         child: GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -428,10 +449,14 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                                 height: 180,
-                                placeholder: (context, url) => Container(color: Colors.grey[100]),
+                                placeholder: (context, url) =>
+                                    Container(color: Colors.grey[100]),
                                 errorWidget: (context, url, error) => Container(
                                   color: Colors.grey[100],
-                                  child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
+                                  child: Icon(
+                                    PhosphorIcons.image(),
+                                    color: Colors.grey[400],
+                                  ),
                                 ),
                               ),
                             ),
@@ -444,7 +469,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
                           itemCount: widget.item.imageUrls.length,
-                          padding: const EdgeInsets.symmetric(horizontal: outerPadding), // Keeps initial alignment but allows swiping into "edges"
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: outerPadding,
+                          ), // Keeps initial alignment but allows swiping into "edges"
                           itemBuilder: (context, index) {
                             final imageUrl = widget.item.imageUrls[index];
                             return GestureDetector(
@@ -478,11 +505,16 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                       imageUrl: imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      placeholder: (context, url) => Container(color: Colors.grey[100]),
-                                      errorWidget: (context, url, error) => Container(
-                                        color: Colors.grey[100],
-                                        child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
-                                      ),
+                                      placeholder: (context, url) =>
+                                          Container(color: Colors.grey[100]),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: Colors.grey[100],
+                                            child: Icon(
+                                              PhosphorIcons.image(),
+                                              color: Colors.grey[400],
+                                            ),
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -509,26 +541,42 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         GestureDetector(
                           onTap: _toggleLike,
                           child: Icon(
-                            _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
-                            color: _isLiked ? AppColors.primary : Colors.black87,
+                            _isLiked
+                                ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                                : PhosphorIcons.heart(),
+                            color: _isLiked
+                                ? AppColors.primary
+                                : Colors.black87,
                             size: 22,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           _formatCount(_likesCount),
-                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(width: 24),
                         GestureDetector(
                           onTap: () => _commentFocusNode.requestFocus(),
                           child: Row(
                             children: [
-                              Icon(PhosphorIcons.chatCircle(), color: Colors.black87, size: 22),
+                              Icon(
+                                PhosphorIcons.chatCircle(),
+                                color: Colors.black87,
+                                size: 22,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 _formatCount(widget.item.commentsCount),
-                                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
@@ -536,7 +584,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1, thickness: 0.5, color: Color(0xFFEEEEEE)),
+                  const Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    color: Color(0xFFEEEEEE),
+                  ),
                   const SizedBox(height: 20),
                   Text(
                     'Comments',
@@ -552,83 +604,84 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
             ),
           ),
 
-
           // Comments List
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final comment = _comments[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: outerPadding, vertical: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundImage: CachedNetworkImageProvider(comment.authorAvatar),
-                        backgroundColor: Colors.grey[100],
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final comment = _comments[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: outerPadding,
+                  vertical: 12,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundImage: CachedNetworkImageProvider(
+                        comment.authorAvatar,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  comment.authorName,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  comment.timeAgo,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11,
-                                    color: Colors.black45,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            if (comment.content.isNotEmpty)
+                      backgroundColor: Colors.grey[100],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
                               Text(
-                                comment.content,
+                                comment.authorName,
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
-                                  color: Colors.black87,
-                                  height: 1.4,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
                                 ),
                               ),
-                            if (comment.gifUrl != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: CachedNetworkImage(
-                                    imageUrl: comment.gifUrl!,
+                              const SizedBox(width: 8),
+                              Text(
+                                comment.timeAgo,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: Colors.black45,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          if (comment.content.isNotEmpty)
+                            Text(
+                              comment.content,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+                          if (comment.gifUrl != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: comment.gifUrl!,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
                                     height: 150,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      height: 150,
-                                      width: 200,
-                                      color: Colors.grey[100],
-                                    ),
+                                    width: 200,
+                                    color: Colors.grey[100],
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-              childCount: _comments.length,
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }, childCount: _comments.length),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
         ],
@@ -645,7 +698,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               offset: const Offset(0, -2),
               blurRadius: 10,
             ),
@@ -673,17 +726,24 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       },
                       decoration: InputDecoration(
                         hintText: 'Add a comment...',
-                        hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[500]),
+                        hintStyle: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
                         border: InputBorder.none,
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                         suffixIcon: GestureDetector(
                           onTap: _toggleGifPicker,
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             child: Icon(
                               PhosphorIcons.gif(PhosphorIconsStyle.bold),
-                              color: _isGifPickerVisible ? AppColors.primary : Colors.grey[600],
+                              color: _isGifPickerVisible
+                                  ? AppColors.primary
+                                  : Colors.grey[600],
                               size: 24,
                             ),
                           ),
@@ -717,58 +777,76 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
               height: _isGifPickerVisible ? 200 : 0,
               padding: const EdgeInsets.only(top: 12),
               child: _isLoadingGifs
-                  ? Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
                   : _trendingGifs.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(PhosphorIcons.warningCircle(), color: Colors.grey[400], size: 32),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Failed to load GIFs',
-                                style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
-                              ),
-                              TextButton(
-                                onPressed: _fetchGifsToCache,
-                                child: GradientText(
-                                  'Retry',
-                                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            PhosphorIcons.warningCircle(),
+                            color: Colors.grey[400],
+                            size: 32,
                           ),
-                        )
-                      : GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          const SizedBox(height: 8),
+                          Text(
+                            'Failed to load GIFs',
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _fetchGifsToCache,
+                            child: GradientText(
+                              'Retry',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             crossAxisSpacing: 8,
                             mainAxisSpacing: 8,
                             childAspectRatio: 1.2,
                           ),
-                          itemCount: _trendingGifs.length,
-                          itemBuilder: (context, index) {
-                            final url = _trendingGifs[index];
-                            return GestureDetector(
-                              onTap: () {
-                                _addComment(gifUrl: url);
-                                setState(() => _isGifPickerVisible = false);
-                              },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: url,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(color: Colors.grey[100]),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: Colors.grey[100],
-                                    child: const Icon(Icons.error_outline, size: 16),
-                                  ),
+                      itemCount: _trendingGifs.length,
+                      itemBuilder: (context, index) {
+                        final url = _trendingGifs[index];
+                        return GestureDetector(
+                          onTap: () {
+                            _addComment(gifUrl: url);
+                            setState(() => _isGifPickerVisible = false);
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: url,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) =>
+                                  Container(color: Colors.grey[100]),
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.grey[100],
+                                child: const Icon(
+                                  Icons.error_outline,
+                                  size: 16,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

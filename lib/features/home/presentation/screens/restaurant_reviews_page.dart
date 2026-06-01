@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:intl/intl.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
 
@@ -31,8 +29,12 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
   }
 
   void _loadData() {
-    _reviewsFuture = RestaurantRepository.instance.getShopReviews(widget.shopId);
-    _summaryFuture = RestaurantRepository.instance.getShopReviewSummary(widget.shopId);
+    _reviewsFuture = RestaurantRepository.instance.getShopReviews(
+      widget.shopId,
+    );
+    _summaryFuture = RestaurantRepository.instance.getShopReviewSummary(
+      widget.shopId,
+    );
   }
 
   @override
@@ -73,7 +75,10 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
             children: [
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -117,7 +122,9 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
       future: _summaryFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: AppColors.primary));
+          return Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         }
 
         if (snapshot.hasError) return const SizedBox.shrink();
@@ -151,8 +158,12 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                 Row(
                   children: List.generate(5, (index) {
                     return Icon(
-                      index < summary.averageRating.round() ? Icons.star_rounded : Icons.star_rounded,
-                      color: index < summary.averageRating.round() ? Colors.amber : Colors.grey[200],
+                      index < summary.averageRating.round()
+                          ? Icons.star_rounded
+                          : Icons.star_rounded,
+                      color: index < summary.averageRating.round()
+                          ? Colors.amber
+                          : Colors.grey[200],
                       size: 28,
                     );
                   }),
@@ -170,7 +181,11 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
             const SizedBox(height: 24),
             // Rating Bars
             for (int i = 5; i >= 1; i--)
-              _buildRatingBar(i, summary.ratingStats[i] ?? 0, summary.totalCount),
+              _buildRatingBar(
+                i,
+                summary.ratingStats[i] ?? 0,
+                summary.totalCount,
+              ),
           ],
         );
       },
@@ -180,7 +195,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
   Widget _buildRatingBar(int stars, int count, int total) {
     final double percentage = total > 0 ? count / total : 0.0;
     final int percentInt = (percentage * 100).round();
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -278,7 +293,11 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.person_outline, color: AppColors.primary, size: 24),
+                child: Icon(
+                  Icons.person_outline,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -299,8 +318,12 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < review.rating.round() ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: index < review.rating.round() ? Colors.amber : Colors.grey[300],
+                    index < review.rating.round()
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    color: index < review.rating.round()
+                        ? Colors.amber
+                        : Colors.grey[300],
                     size: 20,
                   );
                 }),

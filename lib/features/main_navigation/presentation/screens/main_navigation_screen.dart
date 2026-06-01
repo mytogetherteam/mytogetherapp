@@ -11,10 +11,6 @@ import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
 import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../features/auth/data/repositories/auth_repository.dart';
-import '../../../../features/auth/presentation/screens/login_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 
@@ -41,12 +37,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    NavigationController.instance.tabChangeRequest.addListener(_onTabChangeRequested);
-    
+    NavigationController.instance.tabChangeRequest.addListener(
+      _onTabChangeRequested,
+    );
+
     // Global listener for order completion
     _lastStatus = ActiveOrderState.instance.orderStatus;
     ActiveOrderState.instance.addListener(_onOrderStateChanged);
-    
+
     // Connect WebSocket for real-time updates
     WebSocketService().connect();
   }
@@ -55,35 +53,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (!mounted) return;
     final state = ActiveOrderState.instance;
     final newStatus = state.orderStatus;
-    
+
     // Check for transition to COMPLETED (4)
     if (newStatus == 4 && _lastStatus != 4) {
       final currentShopId = state.currentShopId;
       // Find the specific order that just completed
       final completedOrder = state.allOrdersList.firstWhere(
-        (o) => o.orderStatus == 4, 
-        orElse: () => state.activeOrdersList.first // Fallback
+        (o) => o.orderStatus == 4,
+        orElse: () => state.activeOrdersList.first, // Fallback
       );
 
       // Filter: only show popup if no shop is selected OR it matches the current shop
-      if (currentShopId == null || completedOrder.shopId == currentShopId.toString()) {
+      if (currentShopId == null ||
+          completedOrder.shopId == currentShopId.toString()) {
         OrderCompletePage.navigateTo(context);
       }
     }
-    
+
     // Check for any order that just became CANCELLED (-1)
     // We check allOrdersList to find terminal states that are filtered out of activeOrdersList
     for (final order in state.allOrdersList) {
-      if (order.orderStatus == -1 && !_notifiedCancelledOrders.contains(order.orderId)) {
+      if (order.orderStatus == -1 &&
+          !_notifiedCancelledOrders.contains(order.orderId)) {
         final currentShopId = state.currentShopId;
-        
+
         // Filter: only show if no shop context OR it matches
         if (currentShopId != null && order.shopId != currentShopId.toString()) {
           continue; // Skip this notification for now
         }
 
         _notifiedCancelledOrders.add(order.orderId);
-        
+
         // Use a small delay to ensure WS state has settled and avoid UI jank
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) {
@@ -105,7 +105,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         });
       }
     }
-    
+
     _lastStatus = newStatus;
   }
 
@@ -119,7 +119,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   void dispose() {
-    NavigationController.instance.tabChangeRequest.removeListener(_onTabChangeRequested);
+    NavigationController.instance.tabChangeRequest.removeListener(
+      _onTabChangeRequested,
+    );
     super.dispose();
   }
 
@@ -129,18 +131,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
-    print('[BOOT] Building MainNavigationScreen...');
+    debugPrint('[BOOT] Building MainNavigationScreen...');
     return Scaffold(
       body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
-        ],
+        children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
       floatingActionButton: const StyledCartFab(),
       bottomNavigationBar: Container(
@@ -150,7 +146,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -159,18 +155,48 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(0, PhosphorIcons.house(), PhosphorIcons.house(PhosphorIconsStyle.fill), 'Home'),
-            _buildNavItem(1, PhosphorIcons.forkKnife(), PhosphorIcons.forkKnife(PhosphorIconsStyle.fill), 'Food'),
-            _buildNavItem(2, PhosphorIcons.receipt(), PhosphorIcons.receipt(PhosphorIconsStyle.fill), 'Orders'),
-            _buildNavItem(3, PhosphorIcons.newspaper(), PhosphorIcons.newspaper(PhosphorIconsStyle.fill), 'News'),
-            _buildNavItem(4, PhosphorIcons.user(), PhosphorIcons.user(PhosphorIconsStyle.fill), 'Profile'),
+            _buildNavItem(
+              0,
+              PhosphorIcons.house(),
+              PhosphorIcons.house(PhosphorIconsStyle.fill),
+              'Home',
+            ),
+            _buildNavItem(
+              1,
+              PhosphorIcons.forkKnife(),
+              PhosphorIcons.forkKnife(PhosphorIconsStyle.fill),
+              'Food',
+            ),
+            _buildNavItem(
+              2,
+              PhosphorIcons.receipt(),
+              PhosphorIcons.receipt(PhosphorIconsStyle.fill),
+              'Orders',
+            ),
+            _buildNavItem(
+              3,
+              PhosphorIcons.newspaper(),
+              PhosphorIcons.newspaper(PhosphorIconsStyle.fill),
+              'News',
+            ),
+            _buildNavItem(
+              4,
+              PhosphorIcons.user(),
+              PhosphorIcons.user(PhosphorIconsStyle.fill),
+              'Profile',
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
     final isSelected = _currentIndex == index;
     return GestureDetector(
       onTap: () => _onTabTapped(index),

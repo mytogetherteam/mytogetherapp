@@ -33,13 +33,15 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = await LocationService().getCurrentPosition();
-      
-      return await RestaurantRepository.instance.getFoodTabFeed(
-        feedType: 'hot-deals',
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        size: 10,
-      ).timeout(const Duration(seconds: 5));
+
+      return await RestaurantRepository.instance
+          .getFoodTabFeed(
+            feedType: 'hot-deals',
+            lat: activeLoc?.latitude ?? pos.latitude,
+            lon: activeLoc?.longitude ?? pos.longitude,
+            size: 10,
+          )
+          .timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('TogetherDealsSection: API error: $e');
       return ShopFeedSectionDto(items: []);
@@ -102,9 +104,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                       ],
                     ),
                   ),
-                  ViewAllIconButton(
-                    onPressed: () {},
-                  ),
+                  ViewAllIconButton(onPressed: () {}),
                 ],
               ),
             ),
@@ -116,7 +116,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(left: 20, right: 20),
                 itemCount: deals.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) => _DealCard(deal: deals[index]),
               ),
             ),
@@ -154,7 +154,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20, right: 20),
             itemCount: 4,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (_, index) => SizedBox(
               width: 130,
               child: Column(
@@ -162,7 +162,11 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: const ImageSkeletonLoader(width: 130, height: 120, showLogo: true),
+                    child: const ImageSkeletonLoader(
+                      width: 130,
+                      height: 120,
+                      showLogo: true,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ClipRRect(
@@ -195,17 +199,22 @@ class _DealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double effectivePrice = (deal.price == 0 && deal.originalPrice != null && deal.originalPrice! > 0)
+    final double effectivePrice =
+        (deal.price == 0 &&
+            deal.originalPrice != null &&
+            deal.originalPrice! > 0)
         ? deal.originalPrice!
         : deal.price;
-    final bool hasDiscount = deal.originalPrice != null && deal.originalPrice! > effectivePrice;
-    
-    final bool showPrice = effectivePrice > 0 || 
-                          hasDiscount || 
-                          (deal.displayPrice != null && 
-                           deal.displayPrice != '฿ 0' && 
-                           deal.displayPrice != '฿0' && 
-                           deal.displayPrice != '0');
+    final bool hasDiscount =
+        deal.originalPrice != null && deal.originalPrice! > effectivePrice;
+
+    final bool showPrice =
+        effectivePrice > 0 ||
+        hasDiscount ||
+        (deal.displayPrice != null &&
+            deal.displayPrice != '฿ 0' &&
+            deal.displayPrice != '฿0' &&
+            deal.displayPrice != '0');
 
     return GestureDetector(
       onTap: () {
@@ -273,7 +282,10 @@ class _DealCard extends StatelessWidget {
               Row(
                 children: [
                   GradientText(
-                    deal.displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: deal.currency),
+                    deal.displayPrice ??
+                        effectivePrice
+                            .toStringAsFixed(0)
+                            .toFormattedPrice(currency: deal.currency),
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -282,7 +294,9 @@ class _DealCard extends StatelessWidget {
                   const SizedBox(width: 5),
                   if (hasDiscount)
                     Text(
-                      deal.originalPrice!.toStringAsFixed(0).toFormattedPrice(currency: deal.currency),
+                      deal.originalPrice!
+                          .toStringAsFixed(0)
+                          .toFormattedPrice(currency: deal.currency),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.grey,
@@ -307,7 +321,11 @@ class _DealCard extends StatelessWidget {
             // Delivery info
             Row(
               children: [
-                Icon(PhosphorIcons.bicycle(), size: 12, color: Colors.grey.shade500),
+                Icon(
+                  PhosphorIcons.bicycle(),
+                  size: 12,
+                  color: Colors.grey.shade500,
+                ),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(

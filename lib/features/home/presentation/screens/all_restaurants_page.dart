@@ -48,7 +48,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMore) {
         _loadMoreData();
       }
@@ -73,8 +74,10 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = LocationService().cachedPosition;
-      final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+      final lat =
+          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon =
+          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
       final results = await RestaurantRepository.instance.getNearbyShops(
         lat: lat,
@@ -119,8 +122,10 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       _currentPage++;
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = LocationService().cachedPosition;
-      final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+      final lat =
+          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon =
+          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
       final results = await RestaurantRepository.instance.getNearbyShops(
         lat: lat,
@@ -173,7 +178,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
-    final newStatus = !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
+    final newStatus =
+        !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
     setState(() {
       _localFavorites[restaurant.id] = newStatus;
     });
@@ -199,116 +205,134 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-        toolbarHeight: 70,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
-          ),
-        ),
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        title: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Container(
-            height: 46,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+          toolbarHeight: 70,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
             ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search restaurants...',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
-                prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[400], size: 20),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(PhosphorIcons.xCircle(PhosphorIconsStyle.fill), color: Colors.grey[400], size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 11),
+          ),
+          elevation: 0,
+          leading: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          title: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
               ),
-              style: GoogleFonts.poppins(color: Colors.black, fontSize: 14),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Search restaurants...',
+                  hintStyle: GoogleFonts.poppins(
+                    color: Colors.grey[400],
+                    fontSize: 13,
+                  ),
+                  prefixIcon: Icon(
+                    PhosphorIcons.magnifyingGlass(),
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            PhosphorIcons.xCircle(PhosphorIconsStyle.fill),
+                            color: Colors.grey[400],
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                ),
+                style: GoogleFonts.poppins(color: Colors.black, fontSize: 14),
+              ),
             ),
           ),
+          titleSpacing: 0,
+          actions: const [
+            Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: SizedBox(width: 20),
+            ),
+          ],
         ),
-        titleSpacing: 0,
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: SizedBox(width: 20),
-          )
-        ],
-      ),
         body: Column(
           children: [
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _onRefresh,
                 color: AppColors.primary,
-                child: _isLoading 
+                child: _isLoading
                     ? _buildSkeletonList()
-                    : _restaurants.isEmpty 
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(top: 12, bottom: 16),
-                            itemCount: _restaurants.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == _restaurants.length) {
-                                return _buildLoadMoreIndicator();
-                              }
-        
-                              final data = _restaurants[index];
-                              return RestaurantCard(
-                                name: data.name,
-                                category: data.category,
-                                rating: data.rating,
-                                reviewCount: data.reviewCount,
-                                distance: data.distance,
-                                imagePath: data.imagePath,
-                                deliveryTime: data.deliveryTime,
-                                deliveryFee: data.deliveryFee,
-                                originalDeliveryFee: data.originalDeliveryFee,
-                                isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                                onFavoriteToggle: () => _toggleFavorite(data),
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => RestaurantDetailPage(
-                                        id: data.id,
-                                        name: data.name,
-                                        category: data.category,
-                                        rating: data.rating,
-                                        distance: data.distance,
-                                        imagePath: data.imagePath,
-                                        logoPath: data.logoPath,
-                                        deliveryTime: data.deliveryTime,
-                                        status: data.status,
-                                        isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                                      ),
-                                    ),
-                                  );
-                                },
+                    : _restaurants.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(top: 12, bottom: 16),
+                        itemCount: _restaurants.length + (_hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == _restaurants.length) {
+                            return _buildLoadMoreIndicator();
+                          }
+
+                          final data = _restaurants[index];
+                          return RestaurantCard(
+                            name: data.name,
+                            category: data.category,
+                            rating: data.rating,
+                            reviewCount: data.reviewCount,
+                            distance: data.distance,
+                            imagePath: data.imagePath,
+                            deliveryTime: data.deliveryTime,
+                            deliveryFee: data.deliveryFee,
+                            originalDeliveryFee: data.originalDeliveryFee,
+                            isFavorite:
+                                _localFavorites[data.id] ?? data.isFavorite,
+                            onFavoriteToggle: () => _toggleFavorite(data),
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(
+                              bottom: 24,
+                              left: 20,
+                              right: 20,
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RestaurantDetailPage(
+                                    id: data.id,
+                                    name: data.name,
+                                    category: data.category,
+                                    rating: data.rating,
+                                    distance: data.distance,
+                                    imagePath: data.imagePath,
+                                    logoPath: data.logoPath,
+                                    deliveryTime: data.deliveryTime,
+                                    status: data.status,
+                                    isFavorite:
+                                        _localFavorites[data.id] ??
+                                        data.isFavorite,
+                                  ),
+                                ),
                               );
                             },
-                          ),
+                          );
+                        },
+                      ),
               ),
             ),
           ],
@@ -321,7 +345,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 16),
       itemCount: 5,
-      itemBuilder: (_, __) => const NearbyRestaurantListItemSkeleton(),
+      itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
     );
   }
 
@@ -343,10 +367,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           const SizedBox(height: 8),
           Text(
             'Try adjusting your filters or location',
-            style: GoogleFonts.poppins(
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
+            style: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
           ),
         ],
       ),
@@ -362,7 +383,9 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           height: 24,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary.withValues(alpha: 0.5)),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.primary.withValues(alpha: 0.5),
+            ),
           ),
         ),
       ),

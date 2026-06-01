@@ -17,7 +17,6 @@ class LostAndFoundPage extends StatefulWidget {
 class _LostAndFoundPageState extends State<LostAndFoundPage> {
   final List<NewsItem> _items = [];
   bool _isLoading = false;
-  bool _isRefreshing = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -56,14 +55,12 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   }
 
   Future<void> _onRefresh() async {
-    setState(() => _isRefreshing = true);
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       setState(() {
         _items
           ..clear()
           ..addAll(_getMockData());
-        _isRefreshing = false;
       });
     }
   }
@@ -73,16 +70,20 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       setState(() {
-        final more = _getMockData().map((e) => NewsItem(
-          id: '${_items.length + int.parse(e.id)}',
-          authorName: e.authorName,
-          authorAvatar: e.authorAvatar,
-          content: e.content,
-          imageUrls: e.imageUrls,
-          likesCount: e.likesCount,
-          commentsCount: e.commentsCount,
-          timeAgo: 'Just now',
-        )).toList();
+        final more = _getMockData()
+            .map(
+              (e) => NewsItem(
+                id: '${_items.length + int.parse(e.id)}',
+                authorName: e.authorName,
+                authorAvatar: e.authorAvatar,
+                content: e.content,
+                imageUrls: e.imageUrls,
+                likesCount: e.likesCount,
+                commentsCount: e.commentsCount,
+                timeAgo: 'Just now',
+              ),
+            )
+            .toList();
         _items.addAll(more);
         _isLoading = false;
       });
@@ -212,7 +213,11 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.black,
+                  size: 22,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Row(
@@ -220,7 +225,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -243,7 +248,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(1),
                 child: Container(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   height: 1,
                 ),
               ),

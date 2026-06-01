@@ -12,10 +12,7 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 class NewsFeedItem extends StatefulWidget {
   final NewsItem item;
 
-  const NewsFeedItem({
-    super.key,
-    required this.item,
-  });
+  const NewsFeedItem({super.key, required this.item});
 
   @override
   State<NewsFeedItem> createState() => _NewsFeedItemState();
@@ -24,9 +21,6 @@ class NewsFeedItem extends StatefulWidget {
 class _NewsFeedItemState extends State<NewsFeedItem> {
   late bool _isLiked;
   late int _likesCount;
-  // _pageController is no longer needed for ListView.builder
-  // late PageController _pageController;
-  final int _currentImageIndex = 0;
   bool _isExpanded = false;
 
   @override
@@ -34,13 +28,10 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     super.initState();
     _isLiked = widget.item.isLiked;
     _likesCount = widget.item.likesCount;
-    // viewportFraction only relevant for multiple images to show "peek"
-    // _pageController = PageController(viewportFraction: 0.80, initialPage: 0);
   }
 
   @override
   void dispose() {
-    // _pageController.dispose(); // No longer needed
     super.dispose();
   }
 
@@ -57,10 +48,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
   Future<void> _makeCall(String phoneNumber) async {
     debugPrint('Attempting to call: $phoneNumber');
-    final Uri launchUri = Uri(
-      scheme: 'tel',
-      path: phoneNumber,
-    );
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
@@ -89,7 +77,8 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     const double avatarRadius = 20.0;
     const double avatarGap = 14.0;
     const double outerPadding = 16.0;
-    const double leftContentOffset = outerPadding + (avatarRadius * 2) + avatarGap; // 16 + 40 + 14 = 70
+    const double leftContentOffset =
+        outerPadding + (avatarRadius * 2) + avatarGap; // 16 + 40 + 14 = 70
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +90,9 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => NewsDetailPage(item: widget.item)),
+                  MaterialPageRoute(
+                    builder: (context) => NewsDetailPage(item: widget.item),
+                  ),
                 );
               },
               behavior: HitTestBehavior.opaque,
@@ -110,7 +101,11 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 children: [
                   // Top Section: Avatar and Content
                   Padding(
-                    padding: const EdgeInsets.only(left: outerPadding, top: 20.0, right: outerPadding),
+                    padding: const EdgeInsets.only(
+                      left: outerPadding,
+                      top: 20.0,
+                      right: outerPadding,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -118,11 +113,17 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                         CircleAvatar(
                           radius: avatarRadius,
                           backgroundImage: widget.item.authorAvatar.isNotEmpty
-                              ? CachedNetworkImageProvider(widget.item.authorAvatar)
+                              ? CachedNetworkImageProvider(
+                                  widget.item.authorAvatar,
+                                )
                               : null,
                           backgroundColor: Colors.grey[100],
                           child: widget.item.authorAvatar.isEmpty
-                              ? Icon(PhosphorIcons.user(), size: 22, color: Colors.grey[400])
+                              ? Icon(
+                                  PhosphorIcons.user(),
+                                  size: 22,
+                                  color: Colors.grey[400],
+                                )
                               : null,
                         ),
                         const SizedBox(width: avatarGap),
@@ -160,214 +161,249 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                 ],
                               ),
                               // (Rest of the content remains inside this GestureDetector)
-                          if (widget.item.location != null) ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), 
-                                  color: AppColors.primary, size: 18),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    widget.item.location!,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: const Color(0xFF7B8794),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (widget.item.rewardAmount != null) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(PhosphorIcons.moneyWavy(PhosphorIconsStyle.fill), 
-                                  color: const Color(0xFF48BB78), size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  widget.item.rewardAmount!,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: const Color(0xFF768CA2),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 4),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final content = widget.item.content;
-                              const int charLimit = 120;
-                              final bool isLong = content.length > charLimit;
-
-                              if (_isExpanded || !isLong) {
-                                return Text(
-                                  content,
-                                  style: GoogleFonts.notoSansMyanmar(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.black87,
-                                    height: 1.5,
-                                  ),
-                                );
-                              }
-
-                              return Text.rich(
-                                TextSpan(
+                              if (widget.item.location != null) ...[
+                                const SizedBox(height: 12),
+                                Row(
                                   children: [
-                                    TextSpan(
-                                      text: '${content.substring(0, charLimit)}... ',
-                                      style: GoogleFonts.notoSansMyanmar(
-                                        fontSize: 13,
-                                        height: 1.5,
-                                        fontWeight: FontWeight.w400,
-                                        color: Colors.black87,
+                                    Icon(
+                                      PhosphorIcons.mapPin(
+                                        PhosphorIconsStyle.fill,
                                       ),
+                                      color: AppColors.primary,
+                                      size: 18,
                                     ),
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.baseline,
-                                      baseline: TextBaseline.alphabetic,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _isExpanded = true;
-                                          });
-                                        },
-                                        child: GradientText(
-                                          'See more',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        widget.item.location!,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          color: const Color(0xFF7B8794),
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                              ],
+                              if (widget.item.rewardAmount != null) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      PhosphorIcons.moneyWavy(
+                                        PhosphorIconsStyle.fill,
+                                      ),
+                                      color: const Color(0xFF48BB78),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      widget.item.rewardAmount!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: const Color(0xFF768CA2),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 4),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final content = widget.item.content;
+                                  const int charLimit = 120;
+                                  final bool isLong =
+                                      content.length > charLimit;
 
-              // Middle Section: Single or Multiple Images
-              if (widget.item.imageUrls.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: widget.item.imageUrls.length == 1
-                      ? GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => NewsImageViewer(
-                                  imageUrls: widget.item.imageUrls,
-                                  initialIndex: 0,
-                                  item: widget.item,
-                                ),
+                                  if (_isExpanded || !isLong) {
+                                    return Text(
+                                      content,
+                                      style: GoogleFonts.notoSansMyanmar(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.black87,
+                                        height: 1.5,
+                                      ),
+                                    );
+                                  }
+
+                                  return Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text:
+                                              '${content.substring(0, charLimit)}... ',
+                                          style: GoogleFonts.notoSansMyanmar(
+                                            fontSize: 13,
+                                            height: 1.5,
+                                            fontWeight: FontWeight.w400,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        WidgetSpan(
+                                          alignment:
+                                              PlaceholderAlignment.baseline,
+                                          baseline: TextBaseline.alphabetic,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _isExpanded = true;
+                                              });
+                                            },
+                                            child: GradientText(
+                                              'See more',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
-                            ).then((_) {
-                              if (mounted) {
-                                setState(() {
-                                  _isLiked = widget.item.isLiked;
-                                  _likesCount = widget.item.likesCount;
-                                });
-                              }
-                            });
-                          },
-                          child: Hero(
-                            tag: widget.item.imageUrls[0],
-                            child: Padding(
-                              // Single image: Reduced width (with extra right padding) for better proportion
-                              padding: const EdgeInsets.only(left: leftContentOffset, right: 40.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: CachedNetworkImage(
-                                  imageUrl: widget.item.imageUrls[0],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: 180, // Slightly reduced height to match the narrower width
-                                  placeholder: (context, url) => Container(
-                                    color: Colors.grey[100],
-                                  ),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: Colors.grey[100],
-                                    child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            ],
                           ),
-                        )
-                      : SizedBox(
-                          height: 190,
-                          child: ListView.builder( // Changed from PageView.builder to ListView.builder
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: widget.item.imageUrls.length,
-                            padding: EdgeInsets.zero, // Removed padding from here, added to individual items
-                            itemBuilder: (context, index) {
-                              final imageUrl = widget.item.imageUrls[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Middle Section: Single or Multiple Images
+                  if (widget.item.imageUrls.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: widget.item.imageUrls.length == 1
+                          ? GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
                                     builder: (context) => NewsImageViewer(
                                       imageUrls: widget.item.imageUrls,
-                                      initialIndex: index,
+                                      initialIndex: 0,
                                       item: widget.item,
                                     ),
-                                    ),
-                                  ).then((_) {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isLiked = widget.item.isLiked;
-                                        _likesCount = widget.item.likesCount;
-                                      });
-                                    }
-                                  });
-                                },
-                                child: Container(
-                                  width: MediaQuery.of(context).size.width * 0.75, // Adjusted width
-                                  margin: EdgeInsets.only(
-                                    left: index == 0 ? leftContentOffset : 0,
-                                    right: 12.0,
                                   ),
-                                  child: Hero(
-                                    tag: imageUrl,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: CachedNetworkImage(
-                                        imageUrl: imageUrl,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        placeholder: (context, url) => Container(
-                                          color: Colors.grey[100],
+                                ).then((_) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isLiked = widget.item.isLiked;
+                                      _likesCount = widget.item.likesCount;
+                                    });
+                                  }
+                                });
+                              },
+                              child: Hero(
+                                tag: widget.item.imageUrls[0],
+                                child: Padding(
+                                  // Single image: Reduced width (with extra right padding) for better proportion
+                                  padding: const EdgeInsets.only(
+                                    left: leftContentOffset,
+                                    right: 40.0,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: CachedNetworkImage(
+                                      imageUrl: widget.item.imageUrls[0],
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height:
+                                          180, // Slightly reduced height to match the narrower width
+                                      placeholder: (context, url) =>
+                                          Container(color: Colors.grey[100]),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: Colors.grey[100],
+                                            child: Icon(
+                                              PhosphorIcons.image(),
+                                              color: Colors.grey[400],
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : SizedBox(
+                              height: 190,
+                              child: ListView.builder(
+                                // Changed from PageView.builder to ListView.builder
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: widget.item.imageUrls.length,
+                                padding: EdgeInsets
+                                    .zero, // Removed padding from here, added to individual items
+                                itemBuilder: (context, index) {
+                                  final imageUrl = widget.item.imageUrls[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => NewsImageViewer(
+                                            imageUrls: widget.item.imageUrls,
+                                            initialIndex: index,
+                                            item: widget.item,
+                                          ),
                                         ),
-                                        errorWidget: (context, url, error) => Container(
-                                          color: Colors.grey[100],
-                                          child: Icon(PhosphorIcons.image(), color: Colors.grey[400]),
+                                      ).then((_) {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isLiked = widget.item.isLiked;
+                                            _likesCount =
+                                                widget.item.likesCount;
+                                          });
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      width:
+                                          MediaQuery.of(context).size.width *
+                                          0.75, // Adjusted width
+                                      margin: EdgeInsets.only(
+                                        left: index == 0
+                                            ? leftContentOffset
+                                            : 0,
+                                        right: 12.0,
+                                      ),
+                                      child: Hero(
+                                        tag: imageUrl,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          child: CachedNetworkImage(
+                                            imageUrl: imageUrl,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            placeholder: (context, url) =>
+                                                Container(
+                                                  color: Colors.grey[100],
+                                                ),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    Container(
+                                                      color: Colors.grey[100],
+                                                      child: Icon(
+                                                        PhosphorIcons.image(),
+                                                        color: Colors.grey[400],
+                                                      ),
+                                                    ),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
+                                  );
+                                },
+                              ),
+                            ),
+                    ),
                 ],
               ),
             ),
@@ -380,7 +416,10 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 child: GestureDetector(
                   onTap: () => _makeCall(widget.item.phoneNumber!),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: AppColors.primaryGradient.colors,
@@ -390,7 +429,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -399,8 +438,11 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill), 
-                          color: Colors.white, size: 12),
+                        Icon(
+                          PhosphorIcons.phoneCall(PhosphorIconsStyle.fill),
+                          color: Colors.white,
+                          size: 12,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Connect',
@@ -420,14 +462,21 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
         // Bottom Section: Interaction Buttons
         Padding(
-          padding: const EdgeInsets.only(left: leftContentOffset, top: 12.0, right: outerPadding, bottom: 20.0),
+          padding: const EdgeInsets.only(
+            left: leftContentOffset,
+            top: 12.0,
+            right: outerPadding,
+            bottom: 20.0,
+          ),
           child: Row(
             children: [
               // Like
               GestureDetector(
                 onTap: _toggleLike,
                 child: Icon(
-                  _isLiked ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                  _isLiked
+                      ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                      : PhosphorIcons.heart(),
                   color: _isLiked ? AppColors.primary : Colors.black87,
                   size: 24,
                 ),
@@ -448,13 +497,20 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => NewsDetailPage(item: widget.item, autoFocusComment: true),
+                      builder: (context) => NewsDetailPage(
+                        item: widget.item,
+                        autoFocusComment: true,
+                      ),
                     ),
                   );
                 },
                 child: Row(
                   children: [
-                    Icon(PhosphorIcons.chatCircle(), color: Colors.black87, size: 24),
+                    Icon(
+                      PhosphorIcons.chatCircle(),
+                      color: Colors.black87,
+                      size: 24,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       _formatCount(widget.item.commentsCount),

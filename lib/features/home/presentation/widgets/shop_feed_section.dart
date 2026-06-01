@@ -10,10 +10,12 @@ import 'food_menu_item_card.dart';
 /// Matches the style of TodaysOverviewSection (grid, skeleton, retry).
 class ShopFeedSection extends StatefulWidget {
   final int shopId;
-  final String feedType; // right-now | for-you | hot-deals | trending | popular-dishes
+  final String
+  feedType; // right-now | for-you | hot-deals | trending | popular-dishes
   final String title;
   final IconData? titleIcon;
   final bool showRestaurantName;
+
   /// Called with `true` when data loaded but was empty, `false` when data is present.
   final ValueChanged<bool>? onEmpty;
 
@@ -46,11 +48,8 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
     _future = _fetch();
   }
 
-  Future<ShopFeedSectionDto> _fetch() =>
-      RestaurantRepository.instance.getShopFeed(
-        shopId: widget.shopId,
-        feedType: widget.feedType,
-      );
+  Future<ShopFeedSectionDto> _fetch() => RestaurantRepository.instance
+      .getShopFeed(shopId: widget.shopId, feedType: widget.feedType);
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +79,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
             if (mounted) widget.onEmpty?.call(false);
           });
         }
-        
+
         // Trigger one-time scroll logic if needed
         if (!_hasScrolled) {
           _checkAndScrollToTarget(items);
@@ -118,9 +117,16 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
             mainAxisSpacing: 24,
             childAspectRatio: 0.85,
           ),
-          itemCount: (widget.targetMenuItemId != null && items.any((it) => it.id.toString() == widget.targetMenuItemId))
+          itemCount:
+              (widget.targetMenuItemId != null &&
+                  items.any(
+                    (it) => it.id.toString() == widget.targetMenuItemId,
+                  ))
               ? items.length
-              : (items.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : items.length),
+              : (items.length >
+                        (MediaQuery.of(context).size.width > 600 ? 8 : 6)
+                    ? (MediaQuery.of(context).size.width > 600 ? 8 : 6)
+                    : items.length),
           itemBuilder: (context, i) {
             final item = items[i];
             final isTarget = widget.targetMenuItemId == item.id.toString();
@@ -148,10 +154,8 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
             );
-            
-            return isTarget 
-                ? Container(key: _targetKey, child: card) 
-                : card;
+
+            return isTarget ? Container(key: _targetKey, child: card) : card;
           },
         ),
         const SizedBox(height: 30),
@@ -162,7 +166,9 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
   void _checkAndScrollToTarget(List<ShopFeedItemDto> items) {
     if (_hasScrolled || widget.targetMenuItemId == null) return;
 
-    final targetIndex = items.indexWhere((it) => it.id.toString() == widget.targetMenuItemId);
+    final targetIndex = items.indexWhere(
+      (it) => it.id.toString() == widget.targetMenuItemId,
+    );
     if (targetIndex == -1) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -176,6 +182,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
 
         _hasScrolled = true;
 
+        if (!targetContext.mounted) return;
         Scrollable.ensureVisible(
           targetContext,
           duration: const Duration(milliseconds: 500),
@@ -189,7 +196,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {
     final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
-    
+
     // Immediate local feedback
     setState(() {
       _localFavorites[item.id] = newStatus;
@@ -202,11 +209,13 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
       );
       // No longer refreshing the future here to prevent flickering.
       // The local state _localFavorites handles the immediate color change.
-      
+
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
+            content: Text(
+              newStatus ? 'Added to favorites' : 'Removed from favorites',
+            ),
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
@@ -270,12 +279,14 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
     );
   }
 
-  Widget _shimmerBox({required double width, required double height, double radius = 8}) {
+  Widget _shimmerBox({
+    required double width,
+    required double height,
+    double radius = 8,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ImageSkeletonLoader(width: width, height: height),
     );
   }
 }
-
-

@@ -8,13 +8,16 @@ import 'core/utils/lifecycle_observer.dart';
 class App extends StatelessWidget {
   const App({super.key});
 
-  static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  static final RouteObserver<ModalRoute<void>> routeObserver =
+      RouteObserver<ModalRoute<void>>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   @override
   Widget build(BuildContext context) {
-    print('Building App widget...');
+    debugPrint('Building App widget...');
     return LifecycleObserver(
       child: MaterialApp(
         title: 'Mytogether',
@@ -26,7 +29,9 @@ class App extends StatelessWidget {
         navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
         // Auth-aware initial route
-        home: AuthService().isLoggedIn ? const MainNavigationScreen() : const LoginPage(),
+        home: AuthService().isLoggedIn
+            ? const MainNavigationScreen()
+            : const LoginPage(),
         routes: {
           '/home': (context) => const MainNavigationScreen(),
           '/login': (context) => const LoginPage(),

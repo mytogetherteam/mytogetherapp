@@ -17,7 +17,8 @@ class ActiveOrderBar extends StatefulWidget {
   State<ActiveOrderBar> createState() => _ActiveOrderBarState();
 }
 
-class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStateMixin {
+class _ActiveOrderBarState extends State<ActiveOrderBar>
+    with TickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _progressCtrl;
   late AnimationController _dotCtrl;
@@ -40,21 +41,19 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    _slideCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..addStatusListener((status) {
-      if (status == AnimationStatus.dismissed) {
-        if (mounted) setState(() {});
-      }
-    });
+    _slideCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 600),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.dismissed) {
+            if (mounted) setState(() {});
+          }
+        });
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 1.2),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideCtrl,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
 
     _shimmerCtrl = AnimationController(
       vsync: this,
@@ -64,7 +63,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
     final state = ActiveOrderState.instance;
     bool isActive;
     if (widget.shopId != null) {
-      isActive = state.activeOrdersList.any((o) => o.shopId == widget.shopId);
+      isActive = state.activeOrdersList.any(
+        (o) => o.shopId == widget.shopId?.toString(),
+      );
     } else {
       isActive = state.hasActiveOrder;
     }
@@ -75,7 +76,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       _slideCtrl.forward();
       _shimmerCtrl.forward(from: 0);
     }
-    
+
     ActiveOrderState.instance.addListener(_handleStateChange);
   }
 
@@ -83,18 +84,20 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
     if (mounted) {
       final state = ActiveOrderState.instance;
       bool isActive;
-      
+
       if (widget.shopId != null) {
-        isActive = state.activeOrdersList.any((o) => o.shopId == widget.shopId);
+        isActive = state.activeOrdersList.any(
+          (o) => o.shopId == widget.shopId?.toString(),
+        );
       } else {
         isActive = state.hasActiveOrder;
       }
 
       if (isActive && !_wasActive) {
         _progressCtrl.reset();
-        _progressCtrl.repeat(); 
+        _progressCtrl.repeat();
         _slideCtrl.forward(from: 0);
-        _shimmerCtrl.forward(from: 0); 
+        _shimmerCtrl.forward(from: 0);
       } else if (!isActive && _wasActive) {
         _progressCtrl.stop();
         _progressCtrl.reset();
@@ -123,21 +126,25 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       builder: (context, _) {
         final state = ActiveOrderState.instance;
         var orders = state.activeOrdersList;
-        
+
         // Filter by shopId if provided
         if (widget.shopId != null) {
-          orders = orders.where((o) => o.shopId == widget.shopId).toList();
+          orders = orders
+              .where((o) => o.shopId == widget.shopId?.toString())
+              .toList();
         }
 
-        if (orders.isEmpty && _slideCtrl.isDismissed) return const SizedBox.shrink();
-        
+        if (orders.isEmpty && _slideCtrl.isDismissed) {
+          return const SizedBox.shrink();
+        }
+
         if (orders.isEmpty && !_slideCtrl.isDismissed) {
-           _slideCtrl.reverse();
+          _slideCtrl.reverse();
         }
 
         return SizeTransition(
           sizeFactor: _slideCtrl,
-          axisAlignment: -1.0,
+          alignment: FractionalOffset.topCenter,
           child: SlideTransition(
             position: _slideAnim,
             child: Container(
@@ -145,10 +152,13 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Stack(
                 children: [
-                   // Hint cards for multiple orders (visual UX)
+                  // Hint cards for multiple orders (visual UX)
                   if (orders.length > 1) ...[
                     Positioned(
-                      left: 10, right: 10, top: 8, bottom: 0,
+                      left: 10,
+                      right: 10,
+                      top: 8,
+                      bottom: 0,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.6),
@@ -167,16 +177,14 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                       return _buildOrderCard(orderItem);
                     },
                   ),
-                  
+
                   // Indicators
                   if (orders.length > 1)
                     Positioned(
                       bottom: 6,
                       left: 0,
                       right: 0,
-                      child: Center(
-                        child: _buildPageIndicator(orders.length),
-                      ),
+                      child: Center(child: _buildPageIndicator(orders.length)),
                     ),
                 ],
               ),
@@ -202,13 +210,16 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
               BlendMode.lighten,
             ),
           ),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -224,15 +235,23 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.restaurantName ?? order.storeName ?? 'Restaurant',
+                          order.restaurantName ??
+                              order.storeName ??
+                              'Restaurant',
                           style: GoogleFonts.poppins(
-                              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           _getStatusText(order),
-                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
@@ -251,23 +270,44 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
   void _handleOrderTap(ActiveOrderItem order) {
     final s = order.orderStatus;
     if (s == 2 || s == -1) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderStatusPage(
-        foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
-        deliveryFee: order.deliveryFee ?? 0,
-      )));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+            deliveryFee: order.deliveryFee ?? 0,
+          ),
+        ),
+      );
     } else if (s == 1) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => AwaitingPaymentPage(
-      orderId: order.orderId,
-      foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
-      deliveryFee: order.deliveryFee ?? 0,
-    )));
-  } else if (s == 3 || s == 0) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => OrderTrackingPage(
-        store: CartStore(name: order.storeName ?? '', items: order.orderItems),
-        foodTotal: (order.totalAmount ?? 0).toInt(),
-      )));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AwaitingPaymentPage(
+            orderId: order.orderId,
+            foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+            deliveryFee: order.deliveryFee ?? 0,
+          ),
+        ),
+      );
+    } else if (s == 3 || s == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderTrackingPage(
+            store: CartStore(
+              name: order.storeName ?? '',
+              items: order.orderItems,
+            ),
+            foodTotal: (order.totalAmount ?? 0).toInt(),
+          ),
+        ),
+      );
     } else if (s == 4 && !OrderCompletePage.isCurrentlyVisible) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderCompletePage()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+      );
     }
   }
 
@@ -275,7 +315,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
     return ListenableBuilder(
       listenable: _pageController,
       builder: (context, _) {
-        final double page = _pageController.hasClients ? _pageController.page ?? 0 : 0;
+        final double page = _pageController.hasClients
+            ? _pageController.page ?? 0
+            : 0;
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(count, (i) {
@@ -302,20 +344,32 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       child: Row(
         children: [
           _buildStepIcon(Icons.storefront_outlined, active: true),
-          Expanded(child: _buildConnector(
-            filled: order.orderStatus >= 2,
-            isProcessing: order.orderStatus == 0 || order.orderStatus == 1,
-          )),
-          _buildStepIcon(Icons.receipt_long_outlined, active: order.orderStatus >= 2),
-          Expanded(child: _buildConnector(
-            filled: order.orderStatus >= 3,
-            isProcessing: order.orderStatus == 2,
-          )),
-          _buildStepIcon(Icons.delivery_dining_outlined, active: order.orderStatus >= 3),
-          Expanded(child: _buildConnector(
-            filled: order.orderStatus >= 4,
-            isProcessing: order.orderStatus == 3,
-          )),
+          Expanded(
+            child: _buildConnector(
+              filled: order.orderStatus >= 2,
+              isProcessing: order.orderStatus == 0 || order.orderStatus == 1,
+            ),
+          ),
+          _buildStepIcon(
+            Icons.receipt_long_outlined,
+            active: order.orderStatus >= 2,
+          ),
+          Expanded(
+            child: _buildConnector(
+              filled: order.orderStatus >= 3,
+              isProcessing: order.orderStatus == 2,
+            ),
+          ),
+          _buildStepIcon(
+            Icons.delivery_dining_outlined,
+            active: order.orderStatus >= 3,
+          ),
+          Expanded(
+            child: _buildConnector(
+              filled: order.orderStatus >= 4,
+              isProcessing: order.orderStatus == 3,
+            ),
+          ),
           _buildStepIcon(Icons.home_outlined, active: order.orderStatus >= 4),
         ],
       ),
@@ -346,19 +400,20 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
 
   Widget _buildTrackButton() {
     return ShaderMask(
-      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+      shaderCallback: (bounds) =>
+          AppColors.primaryGradient.createShader(bounds),
       child: Row(
         children: [
           Text(
             'Track order',
             style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 2),
-          const Icon(Icons.arrow_forward,
-              size: 14, color: Colors.white),
+          const Icon(Icons.arrow_forward, size: 14, color: Colors.white),
         ],
       ),
     );
@@ -369,12 +424,16 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
       case 0:
         return 'Awaiting Confirmation';
       case 1:
-        return order.showUploadSection ? 'Awaiting Payment' : 'Verifying Payment...';
+        return order.showUploadSection
+            ? 'Awaiting Payment'
+            : 'Verifying Payment...';
       case 2:
         return 'Restaurant Preparing...';
       case 3:
         final eta = order.estimatedTime;
-        return eta != null && eta.isNotEmpty ? 'Est. arrival: $eta' : 'Order Is On The Way...';
+        return eta != null && eta.isNotEmpty
+            ? 'Est. arrival: $eta'
+            : 'Order Is On The Way...';
       case 4:
         return 'Order Delivered!';
       default:
@@ -394,14 +453,18 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
             color: active ? null : Colors.white,
             gradient: active ? AppColors.primaryGradient : null,
             shape: BoxShape.circle,
-            border: active ? null : Border.all(color: Colors.grey[200]!, width: 1),
+            border: active
+                ? null
+                : Border.all(color: Colors.grey[200]!, width: 1),
           ),
           child: Stack(
             children: [
               Center(
-                child: Icon(icon,
-                    size: 16,
-                    color: active ? Colors.white : Colors.grey[500]),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: active ? Colors.white : Colors.grey[500],
+                ),
               ),
               // Reflection Shimmer Effect
               Positioned.fill(
@@ -468,7 +531,8 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                           ),
                           // Optional: Adding a small 'glow' or 'dot' at the end of processing
                           Positioned(
-                            left: constraints.maxWidth * _progressCtrl.value - 4,
+                            left:
+                                constraints.maxWidth * _progressCtrl.value - 4,
                             top: -1,
                             child: Container(
                               width: 6,
@@ -481,7 +545,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar> with TickerProviderStat
                                     color: Color(0xFFF96232),
                                     blurRadius: 4,
                                     spreadRadius: 1,
-                                  )
+                                  ),
                                 ],
                               ),
                             ),

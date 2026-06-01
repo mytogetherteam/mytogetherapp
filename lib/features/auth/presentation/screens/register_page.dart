@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -13,7 +12,8 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderStateMixin {
+class _RegisterPageState extends State<RegisterPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -33,10 +33,15 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
 
@@ -53,7 +58,10 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
 
   Future<void> _handleRegister() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       await AuthRepository.instance.register(
@@ -66,9 +74,15 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       // Replace entire back stack with home
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } catch (e) {
-      setState(() { _errorMessage = e.toString(); });
+      setState(() {
+        _errorMessage = e.toString();
+      });
     } finally {
-      if (mounted) setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -108,7 +122,10 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                     const SizedBox(height: 6),
                     Text(
                       'Join myTogether and explore great food',
-                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
@@ -124,7 +141,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       controller: _fullNameController,
                       hint: 'John Doe',
                       icon: Icons.badge_outlined,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Full name is required' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Full name is required'
+                          : null,
                     ),
                     const SizedBox(height: 18),
 
@@ -135,7 +154,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       hint: 'john_doe',
                       icon: Icons.alternate_email_rounded,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Username is required';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Username is required';
+                        }
                         if (v.trim().length < 3) return 'At least 3 characters';
                         return null;
                       },
@@ -150,7 +171,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       icon: Icons.mail_outline_rounded,
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Email is required';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Email is required';
+                        }
                         if (!v.contains('@')) return 'Enter a valid email';
                         return null;
                       },
@@ -166,14 +189,20 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       obscure: _obscurePassword,
                       suffixWidget: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           color: Colors.grey[500],
                           size: 20,
                         ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Password is required';
+                        if (v == null || v.isEmpty) {
+                          return 'Password is required';
+                        }
                         if (v.length < 8) return 'At least 8 characters';
                         return null;
                       },
@@ -189,14 +218,19 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       obscure: _obscureConfirm,
                       suffixWidget: IconButton(
                         icon: Icon(
-                          _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          _obscureConfirm
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           color: Colors.grey[500],
                           size: 20,
                         ),
-                        onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                       validator: (v) {
-                        if (v != _passwordController.text) return 'Passwords do not match';
+                        if (v != _passwordController.text) {
+                          return 'Passwords do not match';
+                        }
                         return null;
                       },
                     ),
@@ -210,7 +244,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       child: Text(
                         'Create Account',
                         style: GoogleFonts.poppins(
-                          fontSize: 16, 
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -224,7 +258,10 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                         children: [
                           Text(
                             'Already have an account? ',
-                            style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
                           ),
                           GestureDetector(
                             onTap: () => Navigator.of(context).pop(),
@@ -252,7 +289,11 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
 
   Widget _buildLabel(String text) => Text(
     text,
-    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+    style: GoogleFonts.poppins(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Colors.black87,
+    ),
   );
 
   Widget _buildErrorBanner(String message) {
@@ -265,12 +306,19 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 20),
+          Icon(
+            Icons.error_outline_rounded,
+            color: Colors.red.shade400,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.poppins(color: Colors.red.shade700, fontSize: 13),
+              style: GoogleFonts.poppins(
+                color: Colors.red.shade700,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -300,12 +348,30 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         suffixIcon: suffixWidget,
         filled: true,
         fillColor: Colors.grey[50],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey[200]!, width: 1)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey[200]!, width: 1)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.red, width: 1)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.red, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
       ),
     );
   }

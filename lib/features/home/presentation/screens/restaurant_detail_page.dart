@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
-import '../widgets/shop_feed_section.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
@@ -67,14 +66,14 @@ class RestaurantDetailPage extends StatefulWidget {
   State<RestaurantDetailPage> createState() => _RestaurantDetailPageState();
 }
 
-class _RestaurantDetailPageState extends State<RestaurantDetailPage> with SingleTickerProviderStateMixin, RouteAware {
+class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+    with SingleTickerProviderStateMixin, RouteAware {
   final ScrollController _scrollController = ScrollController();
   late AnimationController _basketAnimationController;
   late Animation<Offset> _basketSlideAnimation;
   bool _showBasket = false;
   bool _isScrolled = false;
   bool _isFavorite = false;
-  bool _isTogglingFavorite = false;
   StreamSubscription? _menuUpdateSubscription;
 
   Restaurant? _currentRestaurant;
@@ -91,7 +90,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    
+
     // Sync cart with backend to show correct basket bar
     CartManager.instance.syncWithApi();
 
@@ -101,13 +100,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       duration: const Duration(milliseconds: 600),
     );
 
-    _basketSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1), // Start from below the screen
-      end: Offset.zero,          // End at original position
-    ).animate(CurvedAnimation(
-      parent: _basketAnimationController,
-      curve: Curves.easeOutBack,    // Floating and bounce effect
-    ));
+    _basketSlideAnimation =
+        Tween<Offset>(
+          begin: const Offset(0, 1), // Start from below the screen
+          end: Offset.zero, // End at original position
+        ).animate(
+          CurvedAnimation(
+            parent: _basketAnimationController,
+            curve: Curves.easeOutBack, // Floating and bounce effect
+          ),
+        );
 
     // Seed UI immediately from constructor data
     _isFavorite = widget.isFavorite ?? false;
@@ -155,7 +157,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     _menuUpdateSubscription = WebSocketService().menuUpdates.listen((event) {
       final updatedShopId = event['shopId']?.toString();
       if (updatedShopId == widget.id && mounted) {
-        debugPrint(' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...');
+        debugPrint(
+          ' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...',
+        );
         _handleRefresh();
       }
     });
@@ -171,7 +175,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     final shopId = int.tryParse(widget.id);
     if (shopId != null) {
       debugPrint(' [RestaurantDetailPage] Manual refresh triggered.');
-      
+
       setState(() {
         _menuItems.clear();
         _menuPage = 0;
@@ -180,7 +184,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
       _fetchMenu(isInitial: true);
 
       // Also re-fetch the shop detail itself
-      final updatedRestaurant = await RestaurantRepository.instance.getShopById(shopId);
+      final updatedRestaurant = await RestaurantRepository.instance.getShopById(
+        shopId,
+      );
       if (mounted) {
         setState(() {
           _currentRestaurant = updatedRestaurant;
@@ -191,7 +197,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
 
   Future<void> _fetchMenu({bool isInitial = false}) async {
     if (_isMenuLoading || (!_hasMoreMenu && !isInitial)) return;
-    
+
     final shopId = int.tryParse(widget.id) ?? 0;
     if (shopId == 0) return;
 
@@ -275,7 +281,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _isScrolled ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+      value: _isScrolled
+          ? SystemUiOverlayStyle.dark
+          : SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -305,26 +313,41 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              (_currentRestaurant?.imagePath ?? '').trim().isEmpty
+                              (_currentRestaurant?.imagePath ?? '')
+                                      .trim()
+                                      .isEmpty
                                   ? Container(
                                       color: Colors.grey[200],
                                       child: const Center(
-                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     )
                                   : Image.network(
                                       _currentRestaurant!.imagePath,
                                       fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
-                                        return const ImageSkeletonLoader();
-                                      },
-                                      errorBuilder: (context, error, stackTrace) => Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                        ),
-                                      ),
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return const ImageSkeletonLoader();
+                                          },
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                color: Colors.grey[200],
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    size: 50,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ),
                                     ),
                               Container(
                                 decoration: BoxDecoration(
@@ -353,44 +376,57 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                             const SizedBox(height: 20), // Overlap space
                             // Action Buttons
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   _buildActionButton(
-                                    imageAsset: 'assets/images/detail_overview.png',
+                                    imageAsset:
+                                        'assets/images/detail_overview.png',
                                     label: 'Overview',
                                     onTap: () {
                                       if (_currentRestaurant != null) {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => RestaurantOverviewPage(
-                                              restaurant: _currentRestaurant!,
-                                            ),
+                                            builder: (context) =>
+                                                RestaurantOverviewPage(
+                                                  restaurant:
+                                                      _currentRestaurant!,
+                                                ),
                                           ),
                                         );
                                       }
                                     },
                                   ),
                                   _buildActionButton(
-                                    imageAsset: 'assets/images/detail_direction.png',
+                                    imageAsset:
+                                        'assets/images/detail_direction.png',
                                     label: 'Direction',
                                     isActive: true,
-                                    onTap: () => AppDialog.showUnavailable(context),
+                                    onTap: () =>
+                                        AppDialog.showUnavailable(context),
                                   ),
                                   _buildActionButton(
-                                    imageAsset: 'assets/images/detail_reviews.png',
+                                    imageAsset:
+                                        'assets/images/detail_reviews.png',
                                     label: 'Reviews',
                                     onTap: () {
                                       if (_currentRestaurant != null) {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => RestaurantReviewsPage(
-                                              shopId: int.parse(_currentRestaurant!.id),
-                                              restaurantName: _currentRestaurant!.name,
-                                            ),
+                                            builder: (context) =>
+                                                RestaurantReviewsPage(
+                                                  shopId: int.parse(
+                                                    _currentRestaurant!.id,
+                                                  ),
+                                                  restaurantName:
+                                                      _currentRestaurant!.name,
+                                                ),
                                           ),
                                         );
                                       }
@@ -399,7 +435,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                   _buildActionButton(
                                     imageAsset: 'assets/images/detail_chat.png',
                                     label: 'Chat',
-                                    onTap: () => AppDialog.showUnavailable(context),
+                                    onTap: () =>
+                                        AppDialog.showUnavailable(context),
                                   ),
                                 ],
                               ),
@@ -410,45 +447,57 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 12,
+                      ),
                       sliver: _menuItems.isEmpty && !_isMenuLoading
                           ? SliverToBoxAdapter(child: _buildAllEmptyCard())
                           : SliverGrid(
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 24,
-                                childAspectRatio: 0.85,
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, i) {
-                                  final item = _menuItems[i];
-                                  return FoodMenuItemCard(
-                                    id: item.id.toString(),
-                                    restaurantId: item.shopId.toString(),
-                                    title: item.name,
-                                    price: item.price,
-                                    currency: item.currency,
-                                    imagePath: item.imageUrl ?? '',
-                                    restaurantName: item.shopName,
-                                    isFavorite: _localFavorites[item.id] ?? item.isFavorite,
-                                    originalPrice: item.originalPrice,
-                                    displayPrice: item.displayPrice,
-                                    showRestaurantName: false,
-                                    rating: item.rating,
-                                    reviewCount: item.reviewCount,
-                                    distanceKm: item.distanceKm,
-                                    estimatedTime: item.estimatedTime,
-                                    deliveryFee: item.deliveryFee,
-                                    originalDeliveryFee: item.originalDeliveryFee,
-                                    onFavoriteToggle: () => _toggleFavorite(item),
-                                    isAvailable: item.isAvailable,
-                                    publishStatus: item.publishStatus,
-                                    isHighlighted: item.id.toString() == widget.targetMenuItemId,
-                                  );
-                                },
-                                childCount: _menuItems.length,
-                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount:
+                                        MediaQuery.of(context).size.width > 600
+                                        ? 4
+                                        : 2,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 24,
+                                    childAspectRatio: 0.85,
+                                  ),
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                i,
+                              ) {
+                                final item = _menuItems[i];
+                                return FoodMenuItemCard(
+                                  id: item.id.toString(),
+                                  restaurantId: item.shopId.toString(),
+                                  title: item.name,
+                                  price: item.price,
+                                  currency: item.currency,
+                                  imagePath: item.imageUrl ?? '',
+                                  restaurantName: item.shopName,
+                                  isFavorite:
+                                      _localFavorites[item.id] ??
+                                      item.isFavorite,
+                                  originalPrice: item.originalPrice,
+                                  displayPrice: item.displayPrice,
+                                  showRestaurantName: false,
+                                  rating: item.rating,
+                                  reviewCount: item.reviewCount,
+                                  distanceKm: item.distanceKm,
+                                  estimatedTime: item.estimatedTime,
+                                  deliveryFee: item.deliveryFee,
+                                  originalDeliveryFee: item.originalDeliveryFee,
+                                  onFavoriteToggle: () => _toggleFavorite(item),
+                                  isAvailable: item.isAvailable,
+                                  publishStatus: item.publishStatus,
+                                  isHighlighted:
+                                      item.id.toString() ==
+                                      widget.targetMenuItemId,
+                                );
+                              }, childCount: _menuItems.length),
                             ),
                     ),
                     if (_isMenuLoading)
@@ -464,13 +513,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                         ),
                       ),
                     const SliverToBoxAdapter(
-                      child: SizedBox(height: 140), // Bottom padding for cart summary
+                      child: SizedBox(
+                        height: 140,
+                      ), // Bottom padding for cart summary
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             // Custom App Bar
             Positioned(
               top: 0,
@@ -478,13 +529,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
               right: 0,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top,
+                ),
                 height: kToolbarHeight + MediaQuery.of(context).padding.top,
                 decoration: BoxDecoration(
                   color: _isScrolled ? Colors.white : Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: _isScrolled ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
+                      color: _isScrolled
+                          ? Colors.black.withValues(alpha: 0.05)
+                          : Colors.transparent,
                       width: 1,
                     ),
                   ),
@@ -522,7 +577,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                     ),
                     const SizedBox(width: 12),
                     _buildCircleIconButton(
-                      icon: _isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                      icon: _isFavorite
+                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                          : PhosphorIcons.heart(),
                       onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,
@@ -541,10 +598,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                 if (_scrollController.hasClients) {
                   scrollOffset = _scrollController.offset;
                 }
-                
+
                 // Calculate dynamic position
                 double cardTop = 300 - scrollOffset;
-                
+
                 // Calculate dynamic opacity (fade out as it moves up)
                 double opacity = 1.0;
                 if (scrollOffset > 50) {
@@ -587,7 +644,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       ),
@@ -595,20 +654,35 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: (_currentRestaurant?.logoPath ?? '').isNotEmpty
+                                    child:
+                                        (_currentRestaurant?.logoPath ?? '')
+                                            .isNotEmpty
                                         ? CachedNetworkImage(
-                                            imageUrl: _currentRestaurant!.logoPath,
+                                            imageUrl:
+                                                _currentRestaurant!.logoPath,
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => const ImageSkeletonLoader(),
-                                            errorWidget: (context, url, error) => _buildLogoFallback(_currentRestaurant?.name ?? ''),
+                                            placeholder: (context, url) =>
+                                                const ImageSkeletonLoader(),
+                                            errorWidget:
+                                                (
+                                                  context,
+                                                  url,
+                                                  error,
+                                                ) => _buildLogoFallback(
+                                                  _currentRestaurant?.name ??
+                                                      '',
+                                                ),
                                           )
-                                        : _buildLogoFallback(_currentRestaurant?.name ?? ''),
+                                        : _buildLogoFallback(
+                                            _currentRestaurant?.name ?? '',
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         _currentRestaurant?.name ?? '',
@@ -621,7 +695,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       Wrap(
-                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
                                         children: [
                                           Text(
                                             _currentRestaurant?.category ?? '',
@@ -630,7 +705,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                               color: Colors.grey[700],
                                             ),
                                           ),
-                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
+                                          Text(
+                                            '  •  ',
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
                                           Text(
                                             '${_currentRestaurant?.rating ?? 0.0}',
                                             style: GoogleFonts.poppins(
@@ -639,26 +719,56 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                                               color: Colors.black,
                                             ),
                                           ),
-                                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            color: Colors.amber,
+                                            size: 16,
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 4),
                                       Wrap(
-                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
                                         spacing: 4,
                                         children: [
-                                          Icon(PhosphorIcons.car(), size: 16, color: Colors.grey[700]),
+                                          Icon(
+                                            PhosphorIcons.car(),
+                                            size: 16,
+                                            color: Colors.grey[700],
+                                          ),
                                           Text(
                                             _currentRestaurant?.distance ?? '',
-                                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
                                           ),
-                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
-                                          Icon(PhosphorIcons.clock(), size: 16, color: Colors.grey[700]),
                                           Text(
-                                            _currentRestaurant?.deliveryTime ?? '',
-                                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
+                                            '  •  ',
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                            ),
                                           ),
-                                          Text('  •  ', style: TextStyle(color: Colors.grey[500])),
+                                          Icon(
+                                            PhosphorIcons.clock(),
+                                            size: 16,
+                                            color: Colors.grey[700],
+                                          ),
+                                          Text(
+                                            _currentRestaurant?.deliveryTime ??
+                                                '',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          Text(
+                                            '  •  ',
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
                                           Text(
                                             _currentRestaurant?.status ?? '',
                                             style: GoogleFonts.poppins(
@@ -740,12 +850,14 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
             children: [
               // Promo Text with Pink Background (Static)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFEFEB),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 24,
                 ),
+                decoration: const BoxDecoration(color: Color(0xFFFFEFEB)),
                 child: ShaderMask(
-                  shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                  shaderCallback: (bounds) =>
+                      AppColors.primaryGradient.createShader(bounds),
                   child: Text(
                     'Add More Items — No Extra Delivery Fee.',
                     style: GoogleFonts.poppins(
@@ -770,7 +882,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                       ),
                       child: InkWell(
                         onTap: () {
-                          final storeIdx = CartManager.instance.stores.indexWhere((s) => s.name == storeName);
+                          final storeIdx = CartManager.instance.stores
+                              .indexWhere((s) => s.name == storeName);
                           if (storeIdx != -1) {
                             Navigator.push(
                               context,
@@ -788,7 +901,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Row(
                             children: [
-                              const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 22),
+                              const Icon(
+                                Icons.shopping_cart_outlined,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                               const SizedBox(width: 12),
                               Text(
                                 'Basket • $itemCount ${itemCount == 1 ? 'Item' : 'Items'}',
@@ -825,9 +942,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   Widget _buildLogoFallback(String name) {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-      ),
+      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
       child: Center(
         child: Text(
           firstLetter,
@@ -847,16 +962,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
     required bool isScrolled,
     Color? iconColorOverride,
   }) {
-    final Color iconColor = iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
-    final Color backgroundColor = isScrolled ? Colors.transparent : Colors.black.withValues(alpha: 0.3);
+    final Color iconColor =
+        iconColorOverride ?? (isScrolled ? Colors.black : Colors.white);
+    final Color backgroundColor = isScrolled
+        ? Colors.transparent
+        : Colors.black.withValues(alpha: 0.3);
 
     return Container(
       width: 38,
       height: 38,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
       child: IconButton(
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -886,22 +1001,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
               gradient: AppColors.primaryGradient,
             ),
             child: Container(
-              margin: const EdgeInsets.all(1.5), // This creates the border thickness
+              margin: const EdgeInsets.all(
+                1.5,
+              ), // This creates the border thickness
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
               ),
               padding: const EdgeInsets.all(8),
               child: imageAsset != null
-                  ? Image.asset(
-                      imageAsset,
-                      fit: BoxFit.contain,
-                    )
-                  : Icon(
-                      icon,
-                      color: AppColors.primary,
-                      size: 26,
-                    ),
+                  ? Image.asset(imageAsset, fit: BoxFit.contain)
+                  : Icon(icon, color: AppColors.primary, size: 26),
             ),
           ),
           const SizedBox(height: 12),
@@ -910,7 +1020,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF1F2937), // Darker gray for better readability
+              color: const Color(
+                0xFF1F2937,
+              ), // Darker gray for better readability
             ),
           ),
         ],
@@ -921,7 +1033,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {
     final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
-    
+
     // Immediate local feedback
     setState(() {
       _localFavorites[item.id] = newStatus;
@@ -932,11 +1044,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
         item.id,
         newStatus,
       );
-      
+
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
+            content: Text(
+              newStatus ? 'Added to favorites' : 'Removed from favorites',
+            ),
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
@@ -966,7 +1080,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> with Single
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.restaurant_menu_rounded, color: Colors.grey[200], size: 56),
+            Icon(
+              Icons.restaurant_menu_rounded,
+              color: Colors.grey[200],
+              size: 56,
+            ),
             const SizedBox(height: 16),
             Text(
               'No food menu item available',

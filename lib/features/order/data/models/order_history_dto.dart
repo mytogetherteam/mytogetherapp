@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class OrderHistoryGroupedDto {
@@ -13,11 +12,13 @@ class OrderHistoryGroupedDto {
   factory OrderHistoryGroupedDto.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? json;
     return OrderHistoryGroupedDto(
-      currentOrders: (data['currentOrders'] as List<dynamic>?)
+      currentOrders:
+          (data['currentOrders'] as List<dynamic>?)
               ?.map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      pastOrders: (data['pastOrders'] as List<dynamic>?)
+      pastOrders:
+          (data['pastOrders'] as List<dynamic>?)
               ?.map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -73,14 +74,16 @@ class OrderHistoryDto {
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
     final shop = json['shop'] as Map<String, dynamic>?;
-    final shopName = json['shopName'] as String? ?? 
-                     shop?['name'] as String? ?? 
-                     shop?['nameEn'] as String?;
-    final shopImageUrl = json['shopImageUrl'] as String? ?? 
-                         json['imageUrl'] as String? ?? 
-                         shop?['imageUrl'] as String? ?? 
-                         shop?['logoUrl'] as String? ??
-                         shop?['image'] as String?;
+    final shopName =
+        json['shopName'] as String? ??
+        shop?['name'] as String? ??
+        shop?['nameEn'] as String?;
+    final shopImageUrl =
+        json['shopImageUrl'] as String? ??
+        json['imageUrl'] as String? ??
+        shop?['imageUrl'] as String? ??
+        shop?['logoUrl'] as String? ??
+        shop?['image'] as String?;
 
     return OrderHistoryDto(
       id: json['id'].toString(),
@@ -96,8 +99,11 @@ class OrderHistoryDto {
       shopName: shopName,
       shopImageUrl: shopImageUrl,
       shopId: json['shopId'] as int?,
-      items: (json['items'] as List<dynamic>?)
-              ?.map((e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>))
+      items:
+          (json['items'] as List<dynamic>?)
+              ?.map(
+                (e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       deliveryFee: (json['deliveryFee'] as num?)?.toDouble(),

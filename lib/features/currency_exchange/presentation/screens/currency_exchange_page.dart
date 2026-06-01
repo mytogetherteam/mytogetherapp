@@ -16,8 +16,6 @@ class CurrencyExchangePage extends StatefulWidget {
 }
 
 class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
-  static Color get _primary => AppColors.primary;
-  static Color get _secondary => AppColors.secondary;
   static List<Color> get _primaryGradient => AppColors.primaryGradient.colors;
   static const Color _bgColor = Color(0xFFF5F5F5);
 
@@ -162,7 +160,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         appBar: AppBar(
           flexibleSpace: Container(
             decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
+              gradient: AppColors.primaryGradient,
             ),
           ),
           elevation: 0,
@@ -217,7 +215,10 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                         onPressed: () => _fetchRates(forceRefresh: true),
                         child: const Text(
                           'Retry',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -242,9 +243,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
     final todayStr = DateFormat('dd MMM, yyyy').format(now);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-      ),
+      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -301,11 +300,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           const SizedBox(height: 12),
           // Equals Sign
           Center(
-            child: Icon(
-              PhosphorIcons.equals(),
-              color: Colors.white,
-              size: 24,
-            ),
+            child: Icon(PhosphorIcons.equals(), color: Colors.white, size: 24),
           ),
           const SizedBox(height: 12),
           // Foreign Input Box
@@ -711,7 +706,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
+              gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(32),
                 bottomRight: Radius.circular(32),
@@ -837,11 +832,7 @@ class _ShimmerBoxState extends State<_ShimmerBox>
                 Colors.grey.withValues(alpha: widget.opacity + 0.1),
                 Colors.grey.withValues(alpha: widget.opacity),
               ],
-              stops: [
-                0.0,
-                _controller.value,
-                1.0,
-              ],
+              stops: [0.0, _controller.value, 1.0],
             ),
           ),
         );

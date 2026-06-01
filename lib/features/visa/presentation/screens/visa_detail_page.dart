@@ -69,9 +69,9 @@ class _VisaDetailPageState extends State<VisaDetailPage>
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $urlString')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not launch $urlString')));
       }
     }
   }
@@ -144,8 +144,11 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                             end: Alignment.bottomRight,
                           ),
                         ),
-                        child: const Icon(PhosphorIconsRegular.image,
-                            color: Colors.white54, size: 50),
+                        child: const Icon(
+                          PhosphorIconsRegular.image,
+                          color: Colors.white54,
+                          size: 50,
+                        ),
                       ),
                     )
                   else
@@ -165,9 +168,9 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.5),
+                          Colors.black.withValues(alpha: 0.5),
                           Colors.transparent,
-                          Colors.black.withOpacity(0.1),
+                          Colors.black.withValues(alpha: 0.1),
                         ],
                         stops: const [0.0, 0.5, 1.0],
                       ),
@@ -192,15 +195,20 @@ class _VisaDetailPageState extends State<VisaDetailPage>
         _skeletonBox(width: double.infinity, height: 16),
         const SizedBox(height: 8),
         _skeletonBox(
-            width: MediaQuery.of(context).size.width * 0.7, height: 16),
+          width: MediaQuery.of(context).size.width * 0.7,
+          height: 16,
+        ),
         const SizedBox(height: 32),
         _skeletonBox(width: double.infinity, height: 80, borderRadius: 16),
       ],
     );
   }
 
-  Widget _skeletonBox(
-      {required double width, required double height, double borderRadius = 8}) {
+  Widget _skeletonBox({
+    required double width,
+    required double height,
+    double borderRadius = 8,
+  }) {
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
@@ -219,7 +227,8 @@ class _VisaDetailPageState extends State<VisaDetailPage>
               begin: const FractionalOffset(-1.0, -0.5),
               end: const FractionalOffset(2.0, 0.5),
               transform: _SlidingGradientTransform(
-                  slidePercent: _shimmerController.value),
+                slidePercent: _shimmerController.value,
+              ),
             ),
           ),
         );
@@ -285,7 +294,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -297,7 +306,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -348,10 +357,10 @@ class _VisaDetailPageState extends State<VisaDetailPage>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.3), width: 1),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -363,7 +372,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 24),

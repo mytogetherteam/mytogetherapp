@@ -25,7 +25,7 @@ class RestaurantRepository {
   DateTime? _trendingLastFetch;
 
   // Cache for banners
-  Map<String, List<BannerImageDto>> _cachedBanners = {};
+  final Map<String, List<BannerImageDto>> _cachedBanners = {};
   DateTime? _bannersLastFetch;
 
   // Cache for shop feed sections: key = "shopId-feedType"
@@ -76,8 +76,8 @@ class RestaurantRepository {
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
-    if (_cachedNearbyShops != null && 
-        _lastCacheKey == cacheKey && 
+    if (_cachedNearbyShops != null &&
+        _lastCacheKey == cacheKey &&
         _lastFetchTime != null &&
         now.difference(_lastFetchTime!).inSeconds < 30) {
       return _cachedNearbyShops!;
@@ -93,13 +93,15 @@ class RestaurantRepository {
         search: search,
       );
       final response = await _remoteDataSource.getNearbyShops(request);
-      final results = response.data.content.map((dto) => _mapShopDtoToDomain(dto)).toList();
-      
+      final results = response.data.content
+          .map((dto) => _mapShopDtoToDomain(dto))
+          .toList();
+
       // Update cache
       _cachedNearbyShops = results;
       _lastCacheKey = cacheKey;
       _lastFetchTime = now;
-      
+
       return results;
     } catch (e) {
       // If we have a recent in-memory cache, return it silently
@@ -111,9 +113,12 @@ class RestaurantRepository {
     }
   }
 
-
   Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
-    final response = await _remoteDataSource.getShopById(id, lat: lat, lon: lon);
+    final response = await _remoteDataSource.getShopById(
+      id,
+      lat: lat,
+      lon: lon,
+    );
     return _mapShopDetailDtoToDomain(response.data);
   }
 
@@ -148,7 +153,7 @@ class RestaurantRepository {
 
   Restaurant _mapShopDtoToDomain(ShopListItemDto dto) {
     String imagePath = '';
-    
+
     // 1. Prioritize coverUrl (Banner image) as requested
     if (dto.coverUrl != null && dto.coverUrl!.isNotEmpty) {
       imagePath = dto.coverUrl!;
@@ -156,18 +161,18 @@ class RestaurantRepository {
     // 2. Fallback to imageUrls list
     else if (dto.imageUrls.isNotEmpty) {
       imagePath = dto.imageUrls.first;
-    } 
+    }
     // 3. Fallback to logoUrl if available and NOT a Pinterest link
-    else if (dto.logoUrl != null && 
-             dto.logoUrl!.isNotEmpty && 
-             !dto.logoUrl!.contains('pinterest.com')) {
+    else if (dto.logoUrl != null &&
+        dto.logoUrl!.isNotEmpty &&
+        !dto.logoUrl!.contains('pinterest.com')) {
       imagePath = dto.logoUrl!;
     }
     // 4. Last fallback to primaryPhotoUrl
     else if (dto.primaryPhotoUrl != null && dto.primaryPhotoUrl!.isNotEmpty) {
       imagePath = dto.primaryPhotoUrl!;
     }
-    
+
     // If still empty, return empty string so UI can show "No Image" fallback
     if (imagePath.isEmpty) {
       imagePath = '';
@@ -181,9 +186,11 @@ class RestaurantRepository {
       reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
       imagePath: _getImageUrl(imagePath),
-      logoPath: _getImageUrl((dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
-          ? dto.logoUrl! 
-          : ''), 
+      logoPath: _getImageUrl(
+        (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
+            ? dto.logoUrl!
+            : '',
+      ),
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
       deliveryFee: dto.displayDeliveryFee,
       originalDeliveryFee: dto.originalDeliveryFee,
@@ -199,8 +206,8 @@ class RestaurantRepository {
     final imagePath = (dto.coverUrl != null && dto.coverUrl!.isNotEmpty)
         ? dto.coverUrl!
         : (dto.primaryPhotoUrl != null && dto.primaryPhotoUrl!.isNotEmpty)
-            ? dto.primaryPhotoUrl!
-            : (dto.photos.isNotEmpty ? dto.photos.first : '');
+        ? dto.primaryPhotoUrl!
+        : (dto.photos.isNotEmpty ? dto.photos.first : '');
 
     return Restaurant(
       id: dto.id.toString(),
@@ -210,9 +217,11 @@ class RestaurantRepository {
       reviewCount: dto.reviewCount,
       distance: '${dto.distance.toStringAsFixed(1)} km',
       imagePath: _getImageUrl(imagePath),
-      logoPath: _getImageUrl((dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com')) 
-          ? dto.logoUrl! 
-          : ''),
+      logoPath: _getImageUrl(
+        (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
+            ? dto.logoUrl!
+            : '',
+      ),
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
       status: dto.isOpen ? 'Open' : 'Closed',
       latitude: dto.latitude,
@@ -236,7 +245,11 @@ class RestaurantRepository {
   }
 
   static const _feedTypes = [
-    'right-now', 'for-you', 'hot-deals', 'trending', 'popular-dishes'
+    'right-now',
+    'for-you',
+    'hot-deals',
+    'trending',
+    'popular-dishes',
   ];
 
   /// Fires all 5 feed requests in parallel. Call this on page entry for
@@ -271,8 +284,8 @@ class RestaurantRepository {
     final now = DateTime.now();
     final cached = _feedCache[key];
     final cacheTime = _feedCacheTime[key];
-    
-    if (!forceRefresh && 
+
+    if (!forceRefresh &&
         cached != null &&
         cacheTime != null &&
         now.difference(cacheTime).inMinutes < 1) {
@@ -350,7 +363,8 @@ class RestaurantRepository {
     if (shopId != null) {
       _feedCache.removeWhere((key, _) => key.startsWith('$shopId-'));
       _feedCacheTime.removeWhere((key, _) => key.startsWith('$shopId-'));
-      _cachedNearbyShops = null; // Clear nearby shops as status might have changed
+      _cachedNearbyShops =
+          null; // Clear nearby shops as status might have changed
     } else {
       _feedCache.clear();
       _feedCacheTime.clear();

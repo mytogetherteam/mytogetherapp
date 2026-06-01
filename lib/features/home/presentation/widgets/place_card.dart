@@ -31,8 +31,7 @@ class PlaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        child: ClipRRect(
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: Stack(
           children: [
@@ -43,10 +42,8 @@ class PlaceCard extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: imagePath,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const ImageSkeletonLoader(
-                    height: 320,
-                    width: 240,
-                  ),
+                  placeholder: (context, url) =>
+                      const ImageSkeletonLoader(height: 320, width: 240),
                   errorWidget: (context, url, error) => Container(
                     width: 240,
                     height: 320,
@@ -56,7 +53,7 @@ class PlaceCard extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Favorite Button
             Positioned(
               top: 16,
@@ -64,13 +61,15 @@ class PlaceCard extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => AppDialog.showUnavailable(context),
                 child: Container(
-                    padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isFavorite ? PhosphorIcons.heart(PhosphorIconsStyle.fill) : PhosphorIcons.heart(),
+                    isFavorite
+                        ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                        : PhosphorIcons.heart(),
                     color: isFavorite ? AppColors.primary : Colors.white,
                     size: 20,
                   ),
@@ -88,12 +87,15 @@ class PlaceCard extends StatelessWidget {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
@@ -120,23 +122,27 @@ class PlaceCard extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6.0,
+                              ),
                               child: Text(
                                 '•',
-                                style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                ),
                               ),
                             ),
                             Icon(
                               PhosphorIcons.car(),
                               size: 14,
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -144,10 +150,9 @@ class PlaceCard extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
-
                           ],
                         ),
                       ],
@@ -159,7 +164,6 @@ class PlaceCard extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
+    );
   }
 }

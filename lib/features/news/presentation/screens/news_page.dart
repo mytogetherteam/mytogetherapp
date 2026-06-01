@@ -14,7 +14,6 @@ class NewsPage extends StatefulWidget {
 class _NewsPageState extends State<NewsPage> {
   final List<NewsItem> _newsItems = [];
   bool _isLoading = false;
-  bool _isRefreshing = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -31,7 +30,8 @@ class _NewsPageState extends State<NewsPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoading) {
         _loadMoreData();
       }
@@ -42,10 +42,10 @@ class _NewsPageState extends State<NewsPage> {
     setState(() {
       _isLoading = true;
     });
-    
+
     // Simulate API delay
     await Future.delayed(const Duration(seconds: 1));
-    
+
     if (mounted) {
       setState(() {
         _newsItems.clear();
@@ -56,17 +56,12 @@ class _NewsPageState extends State<NewsPage> {
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isRefreshing = true;
-    });
-    
     await Future.delayed(const Duration(seconds: 1));
-    
+
     if (mounted) {
       setState(() {
         _newsItems.clear();
         _newsItems.addAll(_getMockData());
-        _isRefreshing = false;
       });
     }
   }
@@ -75,23 +70,27 @@ class _NewsPageState extends State<NewsPage> {
     setState(() {
       _isLoading = true;
     });
-    
+
     await Future.delayed(const Duration(seconds: 1));
-    
+
     if (mounted) {
       setState(() {
         // Appending mock data again for infinite scroll demo
-        final moreData = _getMockData().map((e) => NewsItem(
-          id: '${_newsItems.length + int.parse(e.id)}',
-          authorName: e.authorName,
-          authorAvatar: e.authorAvatar,
-          content: '[More News] ${e.content}',
-          imageUrls: e.imageUrls,
-          likesCount: e.likesCount,
-          commentsCount: e.commentsCount,
-          timeAgo: 'Just now',
-        )).toList();
-        
+        final moreData = _getMockData()
+            .map(
+              (e) => NewsItem(
+                id: '${_newsItems.length + int.parse(e.id)}',
+                authorName: e.authorName,
+                authorAvatar: e.authorAvatar,
+                content: '[More News] ${e.content}',
+                imageUrls: e.imageUrls,
+                likesCount: e.likesCount,
+                commentsCount: e.commentsCount,
+                timeAgo: 'Just now',
+              ),
+            )
+            .toList();
+
         _newsItems.addAll(moreData);
         _isLoading = false;
       });
@@ -162,44 +161,35 @@ class _NewsPageState extends State<NewsPage> {
               snap: true,
               pinned: false,
               toolbarHeight: 48,
-              title: Image.asset(
-                'assets/images/icon.png',
-                height: 28,
-              ),
+              title: Image.asset('assets/images/icon.png', height: 28),
               centerTitle: true,
               backgroundColor: Colors.white,
-              surfaceTintColor: Colors.transparent, // Prevents tinting on scroll in M3
+              surfaceTintColor:
+                  Colors.transparent, // Prevents tinting on scroll in M3
               elevation: 0,
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(1),
                 child: Container(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   height: 1,
                 ),
               ),
             ),
             if (_newsItems.isEmpty && _isLoading)
               const SliverFillRemaining(
-                child: Center(
-                  child: CustomLoadingIndicator(size: 40),
-                ),
+                child: Center(child: CustomLoadingIndicator(size: 40)),
               )
             else
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return NewsFeedItem(item: _newsItems[index]);
-                  },
-                  childCount: _newsItems.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return NewsFeedItem(item: _newsItems[index]);
+                }, childCount: _newsItems.length),
               ),
             if (_isLoading && _newsItems.isNotEmpty)
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: CustomLoadingIndicator(size: 24),
-                  ),
+                  child: Center(child: CustomLoadingIndicator(size: 24)),
                 ),
               ),
             // Bottom padding

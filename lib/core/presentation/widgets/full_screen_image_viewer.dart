@@ -23,7 +23,8 @@ class FullScreenImageViewer extends StatefulWidget {
 class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   late PageController _pageController;
   late int _currentIndex;
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   TapDownDetails? _doubleTapDetails;
 
   @override
@@ -39,8 +40,8 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     } else {
       final position = _doubleTapDetails!.localPosition;
       _transformationController.value = Matrix4.identity()
-        ..translate(-position.dx * 2, -position.dy * 2)
-        ..scale(3.0);
+        ..translateByDouble(-position.dx * 2, -position.dy * 2, 0, 1.0)
+        ..scaleByDouble(3.0, 3.0, 3.0, 1.0);
     }
   }
 
@@ -62,9 +63,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                color: Colors.black.withOpacity(0.85),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.85)),
             ),
           ),
 
@@ -93,9 +92,13 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                         imageUrl: widget.imageUrls[index],
                         fit: BoxFit.contain,
                         placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(color: Colors.white24, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white24,
+                            strokeWidth: 2,
+                          ),
                         ),
-                        errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error, color: Colors.white),
                       ),
                     ),
                   ),
@@ -114,21 +117,28 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   GestureDetector(
+                  GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

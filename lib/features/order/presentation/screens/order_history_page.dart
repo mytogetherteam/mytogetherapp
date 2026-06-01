@@ -13,46 +13,49 @@ class OrderHistoryPage extends StatefulWidget {
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
 }
 
-class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProviderStateMixin {
+class _OrderHistoryPageState extends State<OrderHistoryPage>
+    with TickerProviderStateMixin {
   bool _isLoading = true;
   TabController? _tabController;
-  List<OrderHistoryDto> _activeOrders = [];
   List<OrderHistoryDto> _completedOrders = [];
   List<OrderHistoryDto> _cancelledOrders = [];
-  
+
   @override
   void initState() {
     super.initState();
     _loadData();
   }
-  
+
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
     });
-    
-    final grouped = await OrderRepository().getGroupedOrders(shopId: widget.shopId);
-    
+
+    final grouped = await OrderRepository().getGroupedOrders(
+      shopId: widget.shopId,
+    );
+
     if (mounted) {
       setState(() {
         if (grouped != null) {
-          _activeOrders = grouped.currentOrders;
-          // Further split past orders into completed and cancelled if possible, 
-          // or just show them in separate lists by status
-          _completedOrders = grouped.pastOrders.where((o) => o.status == 'DELIVERED').toList();
-          _cancelledOrders = grouped.pastOrders.where((o) => o.status == 'CANCELLED').toList();
+          _completedOrders = grouped.pastOrders
+              .where((o) => o.status == 'DELIVERED')
+              .toList();
+          _cancelledOrders = grouped.pastOrders
+              .where((o) => o.status == 'CANCELLED')
+              .toList();
         }
         _isLoading = false;
         _initTabController();
       });
     }
   }
-  
+
   void _initTabController() {
     if (_tabController != null) {
       _tabController!.dispose();
     }
-    
+
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -78,28 +81,30 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
             fontWeight: FontWeight.bold,
           ),
         ),
-        bottom: _isLoading ? null : TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppColors.primary,
-          indicatorSize: TabBarIndicatorSize.tab,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: 'Completed'),
-            Tab(text: 'Cancelled'),
-          ],
-        ),
+        bottom: _isLoading
+            ? null
+            : TabBar(
+                controller: _tabController,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: AppColors.primary,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                tabs: const [
+                  Tab(text: 'Completed'),
+                  Tab(text: 'Cancelled'),
+                ],
+              ),
       ),
-      body: _isLoading 
-        ? _buildSkeletonLoading()
-        : TabBarView(
-            controller: _tabController,
-            children: [
-              _buildOrdersList(_completedOrders, 'No Completed Orders'),
-              _buildOrdersList(_cancelledOrders, 'No Cancelled Orders'),
-            ],
-          ),
+      body: _isLoading
+          ? _buildSkeletonLoading()
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildOrdersList(_completedOrders, 'No Completed Orders'),
+                _buildOrdersList(_cancelledOrders, 'No Cancelled Orders'),
+              ],
+            ),
     );
   }
 
@@ -138,13 +143,13 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
         children: [
           // Illustration Placeholder
           Container(
-             width: 150,
-             height: 150,
-             decoration: BoxDecoration(
-               color: Colors.grey[200],
-               shape: BoxShape.circle,
-             ),
-             child: Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
           Text(
@@ -179,31 +184,59 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> with TickerProvider
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                   children: [
-                     Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8))),
-                     const SizedBox(width: 12),
-                     Container(width: 120, height: 16, color: Colors.grey[200]),
-                     const Spacer(),
-                     Container(width: 60, height: 16, color: Colors.grey[200]),
-                   ],
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(width: 120, height: 16, color: Colors.grey[200]),
+                    const Spacer(),
+                    Container(width: 60, height: 16, color: Colors.grey[200]),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
-                   children: [
-                     Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8))),
-                     const SizedBox(width: 8),
-                     Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8))),
-                     const Spacer(),
-                     Container(width: 80, height: 16, color: Colors.grey[200]),
-                   ],
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(width: 80, height: 16, color: Colors.grey[200]),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                      Container(width: 100, height: 14, color: Colors.grey[200]),
-                      Container(width: 100, height: 36, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(100))),
-                   ],
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(width: 100, height: 14, color: Colors.grey[200]),
+                    Container(
+                      width: 100,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

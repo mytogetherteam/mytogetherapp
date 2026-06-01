@@ -30,14 +30,16 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = await LocationService().getCurrentPosition();
-      
+
       // Fetch popular restaurants (reusing nearby API for now)
-      return await RestaurantRepository.instance.getNearbyShops(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        radius: 10.0,
-        size: 10,
-      ).timeout(const Duration(seconds: 5));
+      return await RestaurantRepository.instance
+          .getNearbyShops(
+            lat: activeLoc?.latitude ?? pos.latitude,
+            lon: activeLoc?.longitude ?? pos.longitude,
+            radius: 10.0,
+            size: 10,
+          )
+          .timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('PopularBrandsSection: API error: $e');
       return [];
@@ -59,7 +61,9 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
         // Group brands into chunks of 3 for the horizontal scroll
         final List<List<Restaurant>> brandChunks = [];
         for (var i = 0; i < brands.length; i += 3) {
-          brandChunks.add(brands.sublist(i, i + 3 > brands.length ? brands.length : i + 3));
+          brandChunks.add(
+            brands.sublist(i, i + 3 > brands.length ? brands.length : i + 3),
+          );
         }
 
         return Container(
@@ -115,14 +119,17 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                               color: Colors.black,
                             ),
                           ),
-                          ViewAllIconButton(onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RestaurantNearbyListPage(),
-                              ),
-                            );
-                          }),
+                          ViewAllIconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const RestaurantNearbyListPage(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -133,8 +140,9 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
-                        itemCount: brandChunks.length + 1, // +1 for the "More" button
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemCount:
+                            brandChunks.length + 1, // +1 for the "More" button
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           if (index == brandChunks.length) {
                             return const _MoreCard();
@@ -199,7 +207,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: 3,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, index) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -362,7 +370,11 @@ class _BrandCard extends StatelessWidget {
                 child: Image.network(
                   brand.logoPath.isNotEmpty ? brand.logoPath : brand.imagePath,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: Colors.grey.shade400, size: 24),
+                  errorBuilder: (_, _, _) => Icon(
+                    Icons.store_rounded,
+                    color: Colors.grey.shade400,
+                    size: 24,
+                  ),
                 ),
               ),
             ),
@@ -386,7 +398,11 @@ class _BrandCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Colors.amber,
+                        size: 14,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         brand.rating.toString(),

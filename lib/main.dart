@@ -17,41 +17,43 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  print('[BOOT] --- APP BOOT START ---');
+  debugPrint('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  print('[BOOT] WidgetsBinding initialized.');
-  
+  debugPrint('[BOOT] WidgetsBinding initialized.');
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  print('[BOOT] Splash preserved.');
+  debugPrint('[BOOT] Splash preserved.');
 
   try {
-    print('[BOOT] Initializing Firebase...');
+    debugPrint('[BOOT] Initializing Firebase...');
     await Firebase.initializeApp();
-    print('[BOOT] Firebase initialized successfully.');
+    debugPrint('[BOOT] Firebase initialized successfully.');
   } catch (e) {
-    print('[BOOT] Firebase initialization failed: $e');
+    debugPrint('[BOOT] Firebase initialization failed: $e');
   }
-  
-  print('[BOOT] Initializing AuthService...');
+
+  debugPrint('[BOOT] Initializing AuthService...');
   await AuthService().initialize();
-  print('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
-  
-  print('[BOOT] Initializing NotificationService (background)...');
+  debugPrint(
+    '[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}',
+  );
+
+  debugPrint('[BOOT] Initializing NotificationService (background)...');
   NotificationService().initialize();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  print('[BOOT] NotificationService initialization triggered.');
+  debugPrint('[BOOT] NotificationService initialization triggered.');
 
-  print('[BOOT] Starting LocationService pre-fetch...');
+  debugPrint('[BOOT] Starting LocationService pre-fetch...');
   LocationService().getCurrentPosition();
-  print('[BOOT] LocationService pre-fetch triggered.');
+  debugPrint('[BOOT] LocationService pre-fetch triggered.');
 
-  print('[BOOT] Loading active order state...');
+  debugPrint('[BOOT] Loading active order state...');
   await ActiveOrderState.instance.loadFromPrefs();
-  print('[BOOT] Active order state loaded.');
+  debugPrint('[BOOT] Active order state loaded.');
 
-  print('[BOOT] Syncing cart...');
+  debugPrint('[BOOT] Syncing cart...');
   CartManager.instance.syncWithApi();
-  print('[BOOT] Cart sync triggered.');
+  debugPrint('[BOOT] Cart sync triggered.');
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -62,7 +64,7 @@ void main() async {
 
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  print('[BOOT] Calling runApp()...');
+  debugPrint('[BOOT] Calling runApp()...');
   runApp(const App());
-  print('[BOOT] runApp() called.');
+  debugPrint('[BOOT] runApp() called.');
 }

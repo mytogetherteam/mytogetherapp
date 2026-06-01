@@ -6,7 +6,6 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../widgets/nearby_restaurant_list_item.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../widgets/map_skeleton_loader.dart';
@@ -20,33 +19,37 @@ import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
-
 class RestaurantNearbyListPage extends StatefulWidget {
   const RestaurantNearbyListPage({super.key});
 
   @override
-  State<RestaurantNearbyListPage> createState() => _RestaurantNearbyListPageState();
+  State<RestaurantNearbyListPage> createState() =>
+      _RestaurantNearbyListPageState();
 }
 
 class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   Future<List<Restaurant>>? _restaurantsFuture;
   final Map<String, bool> _localFavorites = {};
   final ScrollController _listScrollController = ScrollController();
-  final Completer<GoogleMapController> _mapController = Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _mapController =
+      Completer<GoogleMapController>();
   Set<Marker> _markers = {};
   String? _expandedRestaurantId;
   final Map<String, GlobalKey> _itemKeys = {};
-  static const LatLng _initialPosition = LatLng(13.7000, 100.5018); // Shifted north to move view "down"
+  static const LatLng _initialPosition = LatLng(
+    13.7000,
+    100.5018,
+  ); // Shifted north to move view "down"
   LatLng? _currentLocation;
   Set<Polyline> _polylines = {};
   bool _isRouting = false;
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _showMap = false;
   double _currentZoom = 14.0;
-  LatLngBounds? _visibleRegion;
 
   late final Dio _dio;
-  static const String _googleMapsApiKey = 'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
+  static const String _googleMapsApiKey =
+      'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
 
   @override
   void initState() {
@@ -69,7 +72,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     // Rely on LocationService singleton for permissions (handled at startup)
     // or just check briefly without requesting to avoid double prompts.
     permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || 
+    if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       return;
     }
@@ -84,18 +87,19 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     // 2. Start streaming for real-time updates (Keep GPS warm)
     // Distance filter of 10m to avoid too many UI rebuilds
-    _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        distanceFilter: 10,
-      ),
-    ).listen((Position position) {
-      if (mounted) {
-        setState(() {
-          _currentLocation = LatLng(position.latitude, position.longitude);
+    _positionStreamSubscription =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            distanceFilter: 10,
+          ),
+        ).listen((Position position) {
+          if (mounted) {
+            setState(() {
+              _currentLocation = LatLng(position.latitude, position.longitude);
+            });
+          }
         });
-      }
-    });
 
     // 3. One-shot high-ish accuracy fetch to refine position if stream is slow
     try {
@@ -115,21 +119,21 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
   }
 
-
-
   // Cached route bounds for re-centering when route already exists
   LatLngBounds? _routeBounds;
 
   Future<void> _onCurrentLocationTapped() async {
     if (_expandedRestaurantId == null || _restaurantsFuture == null) return;
-    
+
     // SECOND CLICK: route already displayed — re-center camera to show full route
     if (_polylines.isNotEmpty && _routeBounds != null) {
       final GoogleMapController controller = await _mapController.future;
-      controller.animateCamera(CameraUpdate.newLatLngBounds(
-        _routeBounds!,
-        80.0, // Just use a generous flat padding since map padding will handle the sheet
-      ));
+      controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          _routeBounds!,
+          80.0, // Just use a generous flat padding since map padding will handle the sheet
+        ),
+      );
       return;
     }
 
@@ -139,12 +143,16 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     final rList = await _restaurantsFuture!;
     final selected = rList.cast<Restaurant?>().firstWhere(
-      (element) => element?.id == _expandedRestaurantId, 
-      orElse: () => null
+      (element) => element?.id == _expandedRestaurantId,
+      orElse: () => null,
     );
-    
-    if (selected == null || selected.latitude == null || selected.longitude == null) {
-      setState(() { _isRouting = false; });
+
+    if (selected == null ||
+        selected.latitude == null ||
+        selected.longitude == null) {
+      setState(() {
+        _isRouting = false;
+      });
       return;
     }
 
@@ -174,10 +182,12 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
 
     if (startLoc == null) {
-      setState(() { _isRouting = false; });
+      setState(() {
+        _isRouting = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not determine your location.'))
+          const SnackBar(content: Text('Could not determine your location.')),
         );
       }
       return;
@@ -185,20 +195,33 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     // Visual feedback: move camera immediately to start point
     final GoogleMapController controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(LatLng(startLoc.latitude - 0.003, startLoc.longitude), 15.5));
+    controller.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(startLoc.latitude - 0.003, startLoc.longitude),
+        15.5,
+      ),
+    );
 
     // Using Google Maps Directions API
     final url = 'https://maps.googleapis.com/maps/api/directions/json';
-    
-    try {
-      final response = await _dio.get(url, queryParameters: {
-        'origin': '${startLoc.latitude},${startLoc.longitude}',
-        'destination': '${selected.latitude},${selected.longitude}',
-        'key': _googleMapsApiKey,
-      }).timeout(const Duration(seconds: 8));
 
-      if (response.statusCode == 200 && response.data['routes'] != null && response.data['routes'].isNotEmpty) {
-        final String encodedPolyline = response.data['routes'][0]['overview_polyline']['points'];
+    try {
+      final response = await _dio
+          .get(
+            url,
+            queryParameters: {
+              'origin': '${startLoc.latitude},${startLoc.longitude}',
+              'destination': '${selected.latitude},${selected.longitude}',
+              'key': _googleMapsApiKey,
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200 &&
+          response.data['routes'] != null &&
+          response.data['routes'].isNotEmpty) {
+        final String encodedPolyline =
+            response.data['routes'][0]['overview_polyline']['points'];
         final List<LatLng> finalPoints = _decodePolyline(encodedPolyline);
 
         if (mounted) {
@@ -223,65 +246,81 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                 jointType: JointType.round,
                 endCap: Cap.roundCap,
                 startCap: Cap.roundCap,
-              )
+              ),
             };
             _isRouting = false;
           });
 
-          // Fit camera to show both endpoints. 
+          // Fit camera to show both endpoints.
           // Map padding will automatically handle the bottom sheet offset.
           controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80.0));
         }
       } else {
-        setState(() { _isRouting = false; });
+        setState(() {
+          _isRouting = false;
+        });
       }
     } catch (e) {
-      setState(() { _isRouting = false; });
+      setState(() {
+        _isRouting = false;
+      });
     }
   }
 
-
   void _fetchRestaurants() {
     final activeLoc = UserLocationRepository.instance.activeLocation;
-    
-    _restaurantsFuture = RestaurantRepository.instance.getNearbyShops(
-      lat: activeLoc?.latitude ?? _initialPosition.latitude,
-      lon: activeLoc?.longitude ?? _initialPosition.longitude,
-    ).then((restaurants) {
-      _updateMarkers(restaurants);
-      
-      // Smoothly transition from skeletal loader to map when map is ready
-      // (handled in onMapCreated for speed)
-      
-      // AUTO-ZOOM to show all restaurants on load
-      if (restaurants.isNotEmpty) {
-        final validPoints = restaurants
-            .where((r) => r.latitude != null && r.longitude != null)
-            .map((r) => LatLng(r.latitude!, r.longitude!))
-            .toList();
-            
-        if (validPoints.isNotEmpty) {
-          // Slightly longer delay to ensure map is ready
-          Future.delayed(const Duration(milliseconds: 500), () async {
-            if (mounted) {
-              final GoogleMapController controller = await _mapController.future;
 
-              final southwestLat = validPoints.map((p) => p.latitude).reduce(min);
-              final southwestLon = validPoints.map((p) => p.longitude).reduce(min);
-              final northeastLat = validPoints.map((p) => p.latitude).reduce(max);
-              final northeastLon = validPoints.map((p) => p.longitude).reduce(max);
-              final bounds = LatLngBounds(
-                southwest: LatLng(southwestLat, southwestLon),
-                northeast: LatLng(northeastLat, northeastLon),
-              );
+    _restaurantsFuture = RestaurantRepository.instance
+        .getNearbyShops(
+          lat: activeLoc?.latitude ?? _initialPosition.latitude,
+          lon: activeLoc?.longitude ?? _initialPosition.longitude,
+        )
+        .then((restaurants) {
+          _updateMarkers(restaurants);
 
-              controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100.0));
+          // Smoothly transition from skeletal loader to map when map is ready
+          // (handled in onMapCreated for speed)
+
+          // AUTO-ZOOM to show all restaurants on load
+          if (restaurants.isNotEmpty) {
+            final validPoints = restaurants
+                .where((r) => r.latitude != null && r.longitude != null)
+                .map((r) => LatLng(r.latitude!, r.longitude!))
+                .toList();
+
+            if (validPoints.isNotEmpty) {
+              // Slightly longer delay to ensure map is ready
+              Future.delayed(const Duration(milliseconds: 500), () async {
+                if (mounted) {
+                  final GoogleMapController controller =
+                      await _mapController.future;
+
+                  final southwestLat = validPoints
+                      .map((p) => p.latitude)
+                      .reduce(min);
+                  final southwestLon = validPoints
+                      .map((p) => p.longitude)
+                      .reduce(min);
+                  final northeastLat = validPoints
+                      .map((p) => p.latitude)
+                      .reduce(max);
+                  final northeastLon = validPoints
+                      .map((p) => p.longitude)
+                      .reduce(max);
+                  final bounds = LatLngBounds(
+                    southwest: LatLng(southwestLat, southwestLon),
+                    northeast: LatLng(northeastLat, northeastLon),
+                  );
+
+                  controller.animateCamera(
+                    CameraUpdate.newLatLngBounds(bounds, 100.0),
+                  );
+                }
+              });
             }
-          });
-        }
-      }
-      return restaurants;
-    });
+          }
+          return restaurants;
+        });
   }
 
   /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
@@ -313,14 +352,18 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     return points;
   }
 
-
   /// Creates a custom branded map pin with a fork/spoon icon and restaurant name.
-  Future<BitmapDescriptor> _createCustomMarker(Restaurant restaurant, {bool selected = false, required double zoom, required int index}) async {
+  Future<BitmapDescriptor> _createCustomMarker(
+    Restaurant restaurant, {
+    bool selected = false,
+    required double zoom,
+    required int index,
+  }) async {
     // Progressive Disclosure Logic
     // Tier 1: Zoom < 12 -> Only show small icon circle
     // Tier 2: Zoom 12-14.9 -> Show icon + text for the 8 closest shops, others just icon
     // Tier 3: Zoom >= 15 -> Show icon + text for all shops
-    
+
     // Always show full pill if selected
     bool showText = selected;
     if (!selected) {
@@ -333,12 +376,12 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       }
     }
 
-    final String nameStr = restaurant.name.length > 14 
-        ? '${restaurant.name.substring(0, 12)}…' 
+    final String nameStr = restaurant.name.length > 14
+        ? '${restaurant.name.substring(0, 12)}…'
         : restaurant.name;
-    
+
     final double fontSize = 9.5;
-    
+
     final textSpan = TextSpan(
       text: nameStr,
       style: GoogleFonts.poppins(
@@ -376,7 +419,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     const tailH = 6.0;
     const dotSize = 4.0;
 
-    final pillW = showText ? (iconCircleSize + spacing + textPainter.width + hPad * 2) : iconCircleSize + (selected ? (hPad * 2) : 0);
+    final pillW = showText
+        ? (iconCircleSize + spacing + textPainter.width + hPad * 2)
+        : iconCircleSize + (selected ? (hPad * 2) : 0);
     final pillH = iconCircleSize + vPad;
     final totalH = pillH + tailH + dotSize;
 
@@ -391,7 +436,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.2)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      
+
     if (selected || showText) {
       if (selected) {
         canvas.drawRRect(
@@ -402,15 +447,26 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           shadowPaint,
         );
       } else {
-        canvas.drawCircle(Offset(vPad/2 + iconCircleSize/2 + 1, pillH / 2 + 2), iconCircleSize / 2, shadowPaint);
+        canvas.drawCircle(
+          Offset(vPad / 2 + iconCircleSize / 2 + 1, pillH / 2 + 2),
+          iconCircleSize / 2,
+          shadowPaint,
+        );
       }
     } else {
       // Small icon shadow
-      canvas.drawCircle(Offset(iconCircleSize/2 + 1, iconCircleSize/2 + 1), iconCircleSize/2, shadowPaint);
+      canvas.drawCircle(
+        Offset(iconCircleSize / 2 + 1, iconCircleSize / 2 + 1),
+        iconCircleSize / 2,
+        shadowPaint,
+      );
     }
 
     // Pill background
-    final bgPaint = Paint()..color = selected ? AppColors.primary : (showText ? Colors.transparent : AppColors.primary);
+    final bgPaint = Paint()
+      ..color = selected
+          ? AppColors.primary
+          : (showText ? Colors.transparent : AppColors.primary);
     if (selected) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -423,26 +479,44 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     // Icon Circle
     if (showText || selected) {
-      final circlePaint = Paint()..color = selected ? Colors.white : AppColors.primary;
-      canvas.drawCircle(Offset(vPad/2 + iconCircleSize/2, pillH / 2), iconCircleSize / 2, circlePaint);
-      
+      final circlePaint = Paint()
+        ..color = selected ? Colors.white : AppColors.primary;
+      canvas.drawCircle(
+        Offset(vPad / 2 + iconCircleSize / 2, pillH / 2),
+        iconCircleSize / 2,
+        circlePaint,
+      );
+
       // Icon inside circle
-      iconPainter.paint(canvas, Offset(
-        vPad/2 + (iconCircleSize - iconPainter.width) / 2,
-        (pillH - iconPainter.height) / 2,
-      ));
+      iconPainter.paint(
+        canvas,
+        Offset(
+          vPad / 2 + (iconCircleSize - iconPainter.width) / 2,
+          (pillH - iconPainter.height) / 2,
+        ),
+      );
     } else {
       // Just drawn small standalone circle
-      canvas.drawCircle(Offset(iconCircleSize/2, iconCircleSize/2), iconCircleSize/2, bgPaint);
-      iconPainter.paint(canvas, Offset(
-        (iconCircleSize - iconPainter.width) / 2,
-        (iconCircleSize - iconPainter.height) / 2,
-      ));
+      canvas.drawCircle(
+        Offset(iconCircleSize / 2, iconCircleSize / 2),
+        iconCircleSize / 2,
+        bgPaint,
+      );
+      iconPainter.paint(
+        canvas,
+        Offset(
+          (iconCircleSize - iconPainter.width) / 2,
+          (iconCircleSize - iconPainter.height) / 2,
+        ),
+      );
     }
 
     // Text
     if (showText) {
-      final textOffset = Offset(vPad/2 + iconCircleSize + spacing, (pillH - textPainter.height) / 2);
+      final textOffset = Offset(
+        vPad / 2 + iconCircleSize + spacing,
+        (pillH - textPainter.height) / 2,
+      );
       textPainter.paint(canvas, textOffset);
     }
 
@@ -463,8 +537,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     // width/height passed to BitmapDescriptor.bytes needs to match the canvas size
     final finalW = showText || selected ? pillW : iconCircleSize;
     final finalH = showText || selected ? totalH : iconCircleSize;
-    
-    final img = await pic.toImage((finalW * pixelRatio).ceil(), (finalH * pixelRatio).ceil());
+
+    final img = await pic.toImage(
+      (finalW * pixelRatio).ceil(),
+      (finalH * pixelRatio).ceil(),
+    );
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.bytes(
       data!.buffer.asUint8List(),
@@ -474,33 +551,38 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     );
   }
 
-
   void _updateMarkers(List<Restaurant> restaurants) {
     // Create all custom markers in parallel for speed
-    Future.wait(restaurants
-        .where((r) => r.latitude != null && r.longitude != null)
-        .toList()
-        .asMap()
-        .entries
-        .map((entry) async {
-          final int index = entry.key;
-          final Restaurant r = entry.value;
-          final isSelected = _expandedRestaurantId == r.id;
-          
-          // Optimization: if we're zoomed way in (>=15), we could filter by _visibleRegion
-          // But for now, returning all markers and relying on progressive disclosure in _createCustomMarker
-          
-          final icon = await _createCustomMarker(r, selected: isSelected, zoom: _currentZoom, index: index);
-          return Marker(
-            markerId: MarkerId(r.id),
-            position: LatLng(r.latitude!, r.longitude!),
-            icon: icon,
-            onTap: () => _onMarkerTapped(r),
-            anchor: const Offset(0.5, 1.0),
-            zIndexInt: isSelected ? 1 : 0,
-          );
-        })
-        .toList()
+    Future.wait(
+      restaurants
+          .where((r) => r.latitude != null && r.longitude != null)
+          .toList()
+          .asMap()
+          .entries
+          .map((entry) async {
+            final int index = entry.key;
+            final Restaurant r = entry.value;
+            final isSelected = _expandedRestaurantId == r.id;
+
+            // Optimization: if zoomed in (>=15), we could filter markers by visible map region.
+            // But for now, returning all markers and relying on progressive disclosure in _createCustomMarker
+
+            final icon = await _createCustomMarker(
+              r,
+              selected: isSelected,
+              zoom: _currentZoom,
+              index: index,
+            );
+            return Marker(
+              markerId: MarkerId(r.id),
+              position: LatLng(r.latitude!, r.longitude!),
+              icon: icon,
+              onTap: () => _onMarkerTapped(r),
+              anchor: const Offset(0.5, 1.0),
+              zIndexInt: isSelected ? 1 : 0,
+            );
+          })
+          .toList(),
     ).then((markers) {
       if (mounted) {
         setState(() {
@@ -510,16 +592,21 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     });
   }
 
-  void _centerMapOnRestaurant(Restaurant r, {bool isExpandedAtTarget = false}) async {
+  void _centerMapOnRestaurant(
+    Restaurant r, {
+    bool isExpandedAtTarget = false,
+  }) async {
     if (r.latitude == null || r.longitude == null) return;
-    
+
     // Map padding automatically offsets the optical center to the visible area
     // No manual latitude offset is needed anymore.
     final GoogleMapController controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(
-      LatLng(r.latitude!, r.longitude!),
-      16.5, // Zoom in closer on selected restaurant
-    ));
+    controller.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(r.latitude!, r.longitude!),
+        16.5, // Zoom in closer on selected restaurant
+      ),
+    );
   }
 
   void _onMarkerTapped(Restaurant r) {
@@ -583,9 +670,10 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
-    final newStatus = !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
+    final newStatus =
+        !(_localFavorites[restaurant.id] ?? restaurant.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
-    
+
     // Immediate local feedback
     setState(() {
       _localFavorites[restaurant.id] = newStatus;
@@ -593,16 +681,18 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     try {
       await RestaurantRepository.instance.toggleShopFavorite(
-        int.tryParse(restaurant.id) ?? 0, 
+        int.tryParse(restaurant.id) ?? 0,
         newStatus,
       );
       // No longer refreshing the future here to prevent flickering.
       // The local state _localFavorites handles the immediate color change.
-      
+
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
+            content: Text(
+              newStatus ? 'Added to favorites' : 'Removed from favorites',
+            ),
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
           ),
@@ -631,16 +721,13 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     super.dispose();
   }
 
-
   void _onCameraMove(CameraPosition position) {
     // Only update state if crossing a threshold OR just store it
     _currentZoom = position.zoom;
   }
 
   Future<void> _onCameraIdle() async {
-    final GoogleMapController controller = await _mapController.future;
-    _visibleRegion = await controller.getVisibleRegion();
-    
+    await _mapController.future;
     if (_restaurantsFuture != null) {
       final restaurants = await _restaurantsFuture!;
       _updateMarkers(restaurants);
@@ -694,10 +781,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                   ),
                 );
               },
-
             ),
           ),
-          
+
           // Top Search Bar Area
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
@@ -718,7 +804,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     ],
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.black,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -741,7 +831,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(PhosphorIcons.magnifyingGlass(), color: Colors.grey[600], size: 20),
+                        Icon(
+                          PhosphorIcons.magnifyingGlass(),
+                          color: Colors.grey[600],
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -759,7 +853,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
               ],
             ),
           ),
-          
+
           // Route Pill Button - shown above restaurant list when a restaurant is selected
           Positioned(
             bottom: MediaQuery.of(context).size.height * 0.52 + 16,
@@ -767,7 +861,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
             right: 0,
             child: Center(
               child: AnimatedSlide(
-                offset: _expandedRestaurantId != null ? Offset.zero : const Offset(0, 1.5),
+                offset: _expandedRestaurantId != null
+                    ? Offset.zero
+                    : const Offset(0, 1.5),
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
@@ -778,10 +874,15 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     child: GestureDetector(
                       onTap: _isRouting ? null : _onCurrentLocationTapped,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 11,
+                        ),
                         decoration: BoxDecoration(
                           color: _isRouting ? Colors.white : null,
-                          gradient: _isRouting ? null : AppColors.primaryGradient,
+                          gradient: _isRouting
+                              ? null
+                              : AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
@@ -806,9 +907,13 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                             Text(
                               _isRouting
                                   ? 'Finding route…'
-                                  : (_polylines.isNotEmpty ? 'See full route' : 'Show me the way'),
+                                  : (_polylines.isNotEmpty
+                                        ? 'See full route'
+                                        : 'Show me the way'),
                               style: GoogleFonts.poppins(
-                                color: _isRouting ? AppColors.primary : Colors.white,
+                                color: _isRouting
+                                    ? AppColors.primary
+                                    : Colors.white,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -850,7 +955,12 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                 children: [
                   // Header
                   Padding(
-                    padding: const EdgeInsets.only(top: 20, left: 24, right: 24, bottom: 12),
+                    padding: const EdgeInsets.only(
+                      top: 20,
+                      left: 24,
+                      right: 24,
+                      bottom: 12,
+                    ),
                     child: Text(
                       'Restaurants Nearby',
                       style: GoogleFonts.poppins(
@@ -865,11 +975,13 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     child: FutureBuilder<List<Restaurant>>(
                       future: _restaurantsFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return ListView.builder(
                             padding: const EdgeInsets.only(top: 10),
                             itemCount: 3,
-                            itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
+                            itemBuilder: (_, _) =>
+                                const NearbyRestaurantListItemSkeleton(),
                           );
                         }
 
@@ -880,11 +992,28 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.cloud_off, color: Colors.red.shade300, size: 48),
+                                  Icon(
+                                    Icons.cloud_off,
+                                    color: Colors.red.shade300,
+                                    size: 48,
+                                  ),
                                   const SizedBox(height: 12),
-                                  Text('Connection Error', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    'Connection Error',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                   const SizedBox(height: 8),
-                                  Text('Couldn\'t load restaurants.', style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13), textAlign: TextAlign.center),
+                                  Text(
+                                    'Couldn\'t load restaurants.',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey[600],
+                                      fontSize: 13,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                   const SizedBox(height: 16),
                                   PrimaryGradientButton(
                                     onPressed: _fetchRestaurants,
@@ -892,7 +1021,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                     width: 100,
                                     borderRadius: BorderRadius.circular(12),
                                     child: Text(
-                                      'Retry', 
+                                      'Retry',
                                       style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,
@@ -909,7 +1038,10 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                           return Center(
                             child: Text(
                               'No restaurants found nearby.',
-                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                             ),
                           );
                         }
@@ -918,11 +1050,16 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         return ListView.builder(
                           controller: _listScrollController,
                           physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 40),
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom + 40,
+                          ),
                           itemCount: restaurants.length,
                           itemBuilder: (context, index) {
                             final data = restaurants[index];
-                            final key = _itemKeys.putIfAbsent(data.id, () => GlobalKey());
+                            final key = _itemKeys.putIfAbsent(
+                              data.id,
+                              () => GlobalKey(),
+                            );
 
                             return RestaurantCard(
                               key: key,
@@ -935,20 +1072,28 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               deliveryTime: data.deliveryTime,
                               deliveryFee: data.deliveryFee,
                               originalDeliveryFee: data.originalDeliveryFee,
-                              isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+                              isFavorite:
+                                  _localFavorites[data.id] ?? data.isFavorite,
                               onFavoriteToggle: () => _toggleFavorite(data),
                               onTap: () {
                                 // First select/expand for map interaction
                                 setState(() {
                                   _expandedRestaurantId = data.id;
-                                  _centerMapOnRestaurant(data, isExpandedAtTarget: true);
+                                  _centerMapOnRestaurant(
+                                    data,
+                                    isExpandedAtTarget: true,
+                                  );
                                   _updateMarkers(restaurants);
                                 });
                                 // Then navigate to detail
                                 _navigateToDetail(data);
                               },
                               width: double.infinity,
-                              margin: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
+                              margin: const EdgeInsets.only(
+                                bottom: 24,
+                                left: 20,
+                                right: 20,
+                              ),
                             );
                           },
                         );
