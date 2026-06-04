@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class ViewAllIconButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -26,7 +26,7 @@ class ViewAllIconButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           child: Center(
             child: Icon(
-              PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+              PhosphorIcons.caretRightBold,
               color: Colors.white,
               size: 12,
             ),

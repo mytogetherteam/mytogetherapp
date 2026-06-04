@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
@@ -118,7 +118,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
         centerTitle: true,
         leading: IconButton(
           icon: Icon(
-            PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+            PhosphorIcons.arrowLeftBold,
             color: Colors.black,
           ),
           onPressed: () {
@@ -171,7 +171,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               shape: BoxShape.circle,
             ),
             child: Icon(
-              PhosphorIcons.warning(PhosphorIconsStyle.fill),
+              PhosphorIcons.warningFill,
               size: 52,
               color: Colors.red.shade500,
             ),
@@ -193,28 +193,28 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
 
           // Warning cards
           _buildWarningCard(
-            icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
+            icon: PhosphorIcons.shoppingCartFill,
             title: 'အော်ဒါများ ပျောက်ကွယ်မည်',
             subtitle: 'Your orders history will be permanently deleted',
             color: Colors.orange,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.wallet(PhosphorIconsStyle.fill),
+            icon: PhosphorIcons.walletFill,
             title: 'ငွေလက်ကျန် ဆုံးရှုံးမည်',
             subtitle: 'Any remaining balance or credits will be lost',
             color: Colors.purple,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.userMinus(PhosphorIconsStyle.fill),
+            icon: PhosphorIcons.userMinusFill,
             title: 'ပြန်ရယူ၍ မရနိုင်ပါ',
             subtitle: 'This action is permanent and cannot be undone',
             color: Colors.red,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
-            icon: PhosphorIcons.lock(PhosphorIconsStyle.fill),
+            icon: PhosphorIcons.lockFill,
             title: 'ဝင်ရောက်မှု ပိတ်မည်',
             subtitle: 'You will be immediately logged out and access revoked',
             color: Colors.blue,
@@ -351,7 +351,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                PhosphorIcons.lockKey(PhosphorIconsStyle.fill),
+                PhosphorIcons.lockKeyFill,
                 size: 52,
                 color: Colors.red.shade500,
               ),
@@ -394,7 +394,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                     radius: 20,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Icon(
-                      PhosphorIcons.user(PhosphorIconsStyle.bold),
+                      PhosphorIcons.userBold,
                       size: 20,
                       color: AppColors.primary,
                     ),
@@ -443,15 +443,15 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                   fontSize: 14,
                 ),
                 prefixIcon: Icon(
-                  PhosphorIcons.lock(),
+                  PhosphorIcons.lock,
                   color: Colors.grey[500],
                   size: 20,
                 ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword
-                        ? PhosphorIcons.eye()
-                        : PhosphorIcons.eyeSlash(),
+                        ? PhosphorIcons.eye
+                        : PhosphorIcons.eyeSlash,
                     color: Colors.grey[500],
                     size: 20,
                   ),

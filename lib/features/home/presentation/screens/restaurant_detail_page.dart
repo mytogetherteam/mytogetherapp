@@ -5,7 +5,7 @@ import '../../../cart/data/cart_manager.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/presentation/screens/order_summary_page.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -75,6 +75,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   bool _isScrolled = false;
   bool _isFavorite = false;
   StreamSubscription? _menuUpdateSubscription;
+  StreamSubscription? _shopProfileUpdateSubscription;
 
   Restaurant? _currentRestaurant;
 
@@ -163,6 +164,19 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         _handleRefresh();
       }
     });
+
+    // Listen for real-time shop-profile updates (open/closed, delivery state).
+    _shopProfileUpdateSubscription = WebSocketService()
+        .shopProfileUpdates
+        .listen((event) {
+      final updatedShopId = event['shopId']?.toString();
+      if (updatedShopId == widget.id && mounted) {
+        debugPrint(
+          ' [RestaurantDetailPage] Real-time shop-profile update detected. Refreshing header...',
+        );
+        _handleRefresh();
+      }
+    });
   }
 
   @override
@@ -232,6 +246,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   void dispose() {
     App.routeObserver.unsubscribe(this);
     _menuUpdateSubscription?.cancel();
+    _shopProfileUpdateSubscription?.cancel();
     _scrollController.dispose();
     // Clear shop context
     ActiveOrderState.instance.setCurrentShopId(null);
@@ -548,7 +563,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   children: [
                     const SizedBox(width: 16),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.arrowLeft(),
+                      icon: PhosphorIcons.arrowLeft,
                       onPressed: () => Navigator.pop(context),
                       isScrolled: _isScrolled,
                     ),
@@ -571,15 +586,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                     ),
                     const SizedBox(width: 8),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.shareNetwork(),
+                      icon: PhosphorIcons.shareNetwork,
                       onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 12),
                     _buildCircleIconButton(
                       icon: _isFavorite
-                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.heart(),
+                          ? PhosphorIcons.heartFill
+                          : PhosphorIcons.heart,
                       onPressed: () => AppDialog.showUnavailable(context),
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,
@@ -733,7 +748,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         spacing: 4,
                                         children: [
                                           Icon(
-                                            PhosphorIcons.car(),
+                                            PhosphorIcons.car,
                                             size: 16,
                                             color: Colors.grey[700],
                                           ),
@@ -751,7 +766,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                             ),
                                           ),
                                           Icon(
-                                            PhosphorIcons.clock(),
+                                            PhosphorIcons.clock,
                                             size: 16,
                                             color: Colors.grey[700],
                                           ),

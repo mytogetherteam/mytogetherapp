@@ -3,7 +3,9 @@ import '../auth_remote_data_source.dart';
 import '../models/auth_models.dart';
 import '../models/user_location_model.dart';
 import '../../../../core/auth/auth_service.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/auth/user_model.dart';
+import '../../../notifications/data/repositories/notification_repository.dart';
 
 class AuthRepository {
   static final AuthRepository instance = AuthRepository._internal();
@@ -59,23 +61,47 @@ class AuthRepository {
   Future<void> logout() async {
     try {
       if (AuthService().isLoggedIn) {
-         await _dataSource.logout();
+        await NotificationService().unregisterDevice();
+        await _dataSource.logout();
       }
     } catch (_) {
-      // Ignore network errors on logout. 
+      // Ignore network errors on logout.
       // Main goal is ensuring the user is locally logged out.
     } finally {
+      NotificationRepository().setUnreadCount(0);
       await AuthService().clearSession();
+    }
+  }
+
+  /// Updates the current user's profile and refreshes the cached session.
+  Future<UserModel> updateProfile({
+    String? name,
+    String? username,
+    String? phone,
+    String? address,
+  }) async {
+    try {
+      final updated = await _dataSource.updateUserProfile(
+        name: name,
+        username: username,
+        phone: phone,
+        address: address,
+      );
+      await AuthService().updateCurrentUser(updated);
+      return updated;
+    } on DioException catch (e) {
+      throw _parseError(e);
     }
   }
 
   Future<void> deleteAccount({required String password}) async {
     try {
+      await NotificationService().unregisterDevice();
       await _dataSource.deleteAccount(password: password);
     } on DioException catch (e) {
       throw _parseError(e);
     } finally {
-      // Always clear local session after delete attempt
+      NotificationRepository().setUnreadCount(0);
       await AuthService().clearSession();
     }
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
@@ -190,7 +190,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                                 ),
                                 const SizedBox(width: 4),
                                 Icon(
-                                  PhosphorIcons.caretDown(),
+                                  PhosphorIcons.caretDown,
                                   color: Colors.white.withValues(alpha: 0.9),
                                   size: 16,
                                 ),
@@ -203,7 +203,7 @@ class _FoodHeaderState extends State<FoodHeader> {
               ),
               const SizedBox(width: 12),
               Icon(
-                PhosphorIcons.funnel(),
+                PhosphorIcons.funnel,
                 color: Colors.white,
                 size: 24,
               ),
@@ -227,7 +227,7 @@ class _FoodHeaderState extends State<FoodHeader> {
               child: Row(
                 children: [
                   Icon(
-                    PhosphorIcons.magnifyingGlass(),
+                    PhosphorIcons.magnifyingGlass,
                     color: Colors.white.withValues(alpha: 0.8),
                     size: 20,
                   ),

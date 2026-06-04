@@ -81,6 +81,27 @@ class AuthRemoteDataSource {
     return UserModel.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Backend: PUT /api/user/profile (UsersController.updateProfile).
+  /// Accepts name, username, phone, address.
+  Future<UserModel> updateUserProfile({
+    String? name,
+    String? username,
+    String? phone,
+    String? address,
+  }) async {
+    final response = await _dio.put(
+      '${ApiClient.apiPrefix}/user/profile',
+      data: {
+        'name': ?name,
+        'username': ?username,
+        'phone': ?phone,
+        'address': ?address,
+      },
+    );
+    final data = response.data['data'] ?? response.data;
+    return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<List<UserLocationModel>> getUserLocations() async {
     try {
       final response = await _dio.get('${ApiClient.apiPrefix}/user/locations');

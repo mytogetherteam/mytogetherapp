@@ -61,4 +61,20 @@ class OrderRepository {
     } catch (_) {}
     return [];
   }
+
+  /// Re-submits a REVISED order with a new item list.
+  /// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.updateItems).
+  /// Items not included are removed; totals are recomputed; status resets to
+  /// PENDING. Each item: { menuItemId, quantity, variantId?,
+  /// specialInstructions?, menuItemOptionId? }.
+  Future<bool> reviseOrderItems({
+    required int orderId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final response = await _apiClient.dio.patch(
+      '${ApiClient.apiPrefix}/user/orders/$orderId/items',
+      data: {'items': items},
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
 }

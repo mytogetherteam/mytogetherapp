@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../auth/data/models/user_location_model.dart';
@@ -383,7 +383,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(color: const Color(0xFFF1F5F9), shape: BoxShape.circle),
-              child: Icon(PhosphorIcons.crosshairSimple(), size: 22, color: Colors.grey.shade700),
+              child: Icon(PhosphorIcons.crosshairSimple, size: 22, color: Colors.grey.shade700),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -431,7 +431,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                location.locationType == 'HOME' ? PhosphorIcons.house() : location.locationType == 'WORK' ? PhosphorIcons.briefcase() : PhosphorIcons.mapPin(),
+                location.locationType == 'HOME' ? PhosphorIcons.house : location.locationType == 'WORK' ? PhosphorIcons.briefcase : PhosphorIcons.mapPin,
                 size: 18,
                 color: location.isPrimary ? AppColors.primary : Colors.grey.shade600,
               ),
@@ -483,7 +483,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               elevation: 4,
               shadowColor: Colors.black26,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              icon: Icon(PhosphorIcons.dotsThreeVertical(), size: 22, color: Colors.grey.shade500),
+              icon: Icon(PhosphorIcons.dotsThreeVertical, size: 22, color: Colors.grey.shade500),
               onSelected: (val) {
                 if (val == 'primary') _updateLocation(location, setPrimary: true);
                 if (val == 'edit') {
@@ -522,7 +522,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(color: const Color(0xFFF1F5F9), shape: BoxShape.circle),
-              child: Icon(PhosphorIcons.mapPin(), size: 22, color: Colors.grey.shade600),
+              child: Icon(PhosphorIcons.mapPin, size: 22, color: Colors.grey.shade600),
             ),
             const SizedBox(width: 14),
             Expanded(

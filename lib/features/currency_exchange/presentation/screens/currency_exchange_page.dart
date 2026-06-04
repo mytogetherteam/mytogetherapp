@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/currency_rate_model.dart';
 import '../../data/repositories/currency_exchange_repository.dart';
@@ -198,7 +198,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        PhosphorIcons.warningCircle(),
+                        PhosphorIcons.warningCircle,
                         size: 48,
                         color: Colors.red,
                       ),
@@ -300,7 +300,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           const SizedBox(height: 12),
           // Equals Sign
           Center(
-            child: Icon(PhosphorIcons.equals(), color: Colors.white, size: 24),
+            child: Icon(PhosphorIcons.equals, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 12),
           // Foreign Input Box

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'view_all_icon_button.dart';
 import '../screens/restaurant_nearby_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -31,12 +31,10 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = await LocationService().getCurrentPosition();
 
-      // Fetch popular restaurants (reusing nearby API for now)
       return await RestaurantRepository.instance
-          .getNearbyShops(
+          .getPopularShops(
             lat: activeLoc?.latitude ?? pos.latitude,
             lon: activeLoc?.longitude ?? pos.longitude,
-            radius: 10.0,
             size: 10,
           )
           .timeout(const Duration(seconds: 5));
@@ -298,7 +296,7 @@ class _MoreCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                PhosphorIcons.caretRightBold,
                 color: Colors.black87,
                 size: 20,
               ),

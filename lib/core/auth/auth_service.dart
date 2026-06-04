@@ -153,6 +153,16 @@ class AuthService {
     _secureStorage.write(key: _keyAccessToken, value: newToken);
   }
 
+  /// Updates the locally cached profile after a successful profile edit.
+  Future<void> updateCurrentUser(UserModel user) async {
+    _currentUser = user;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUsername, user.username);
+    await prefs.setString(_keyEmail, user.email);
+    await prefs.setString(_keyFullName, user.fullName);
+    await prefs.setString(_keyUserProfile, json.encode(user.toJson()));
+  }
+
   Future<void> updateTokens(String accessToken, String? refreshToken) async {
     _accessToken = accessToken;
     await _secureStorage.write(key: _keyAccessToken, value: accessToken);

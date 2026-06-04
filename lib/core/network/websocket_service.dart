@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
@@ -28,19 +27,23 @@ class WebSocketService {
 
   Stream<Map<String, dynamic>> get menuUpdates => _menuUpdateController.stream;
 
+  /// Public broadcast: a shop's realtime fields changed (isOpen /
+  /// deliveryEnabled). Payload: { type: SHOP_PROFILE_UPDATE, shopId, ... }.
+  final StreamController<Map<String, dynamic>> _shopProfileUpdateController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get shopProfileUpdates =>
+      _shopProfileUpdateController.stream;
+
   bool _isConnecting = false;
 
   /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
   /// (see `src/modules/events/events.gateway.ts`).
   ///
-  /// Mirrors `ApiClient.baseUrl` so local dev hits localhost and Android
-  /// emulators hit the host loopback (`10.0.2.2`). Falls back to plain
-  /// `ws://` because the local server is not TLS-enabled.
+  /// Mirrors `ApiClient.baseUrl`; uses secure `wss://` for the production
+  /// (TLS) host.
   static String get _wsUrl {
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'ws://10.0.2.2:3001/ws/websocket';
-    }
-    return 'ws://localhost:3001/ws/websocket';
+    return 'wss://api.mytogether.org/ws/websocket';
   }
 
   void connect({bool force = false}) {
@@ -122,22 +125,78 @@ class WebSocketService {
     final token = AuthService().accessToken;
     final headers = {if (token != null) 'Authorization': 'Bearer $token'};
 
-    // Shop API uses /user/queue/shop-order-updates
+    // Private per-user order updates: /user/queue/shop-order-updates
     const destination = '/user/queue/shop-order-updates';
     debugPrint(' [WS] Subscribing to: $destination');
 
     _stompClient?.subscribe(
       destination: destination,
       headers: {...headers, 'receipt': 'rcpt-order-updates'},
-      callback: (StompFrame frame) {
-        if (frame.body == null) return;
+      callback: _handleOrderFrame,
+    );
 
-        try {
-          final decoded = json.decode(frame.body!);
-          if (decoded is! Map) return;
+    // Public broadcasts: shop open/closed + menu structure changes.
+    _stompClient?.subscribe(
+      destination: '/topic/shop-profile-updates',
+      headers: {...headers, 'receipt': 'rcpt-shop-profile-updates'},
+      callback: _handleShopProfileFrame,
+    );
 
-          final raw = Map<String, dynamic>.from(decoded);
-          final messageType = raw['type']?.toString();
+    _stompClient?.subscribe(
+      destination: '/topic/shop-menu-updates',
+      headers: {...headers, 'receipt': 'rcpt-shop-menu-updates'},
+      callback: _handleShopMenuFrame,
+    );
+  }
+
+  /// Handles `/topic/shop-profile-updates` (SHOP_PROFILE_UPDATE).
+  /// Invalidates the affected shop's cache and forwards the payload so
+  /// listeners (e.g. shop detail/list) can refresh open/closed state.
+  void _handleShopProfileFrame(StompFrame frame) {
+    if (frame.body == null) return;
+    try {
+      final decoded = json.decode(frame.body!);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      final id = int.tryParse(raw['shopId']?.toString() ?? '');
+      if (id != null) {
+        debugPrint(' 📡 [WS] SHOP_PROFILE_UPDATE shopId=$id: $raw');
+        RestaurantRepository.instance.clearCache(shopId: id);
+        _shopProfileUpdateController.add(raw);
+      }
+    } catch (_) {
+      // Ignore malformed frames.
+    }
+  }
+
+  /// Handles `/topic/shop-menu-updates` (MENU_UPDATE).
+  void _handleShopMenuFrame(StompFrame frame) {
+    if (frame.body == null) return;
+    try {
+      final decoded = json.decode(frame.body!);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      final id = int.tryParse(raw['shopId']?.toString() ?? '');
+      if (id != null) {
+        debugPrint(' 📡 [WS] MENU_UPDATE shopId=$id: $raw');
+        RestaurantRepository.instance.clearCache(shopId: id);
+        _menuUpdateController.add(raw);
+      }
+    } catch (_) {
+      // Ignore malformed frames.
+    }
+  }
+
+  void _handleOrderFrame(StompFrame frame) {
+    {
+      if (frame.body == null) return;
+
+      try {
+        final decoded = json.decode(frame.body!);
+        if (decoded is! Map) return;
+
+        final raw = Map<String, dynamic>.from(decoded);
+        final messageType = raw['type']?.toString();
 
           // ── MENU_ITEM_UPDATE (Real-time Menu synchronization) ─────────────
           if (messageType == 'MENU_ITEM_UPDATE') {
@@ -210,8 +269,7 @@ class WebSocketService {
         } catch (e) {
           // Silent fail for demo
         }
-      },
-    );
+    }
   }
 
   void disconnect() {

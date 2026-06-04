@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'news_image_viewer.dart'; // Added import
@@ -120,7 +120,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                           backgroundColor: Colors.grey[100],
                           child: widget.item.authorAvatar.isEmpty
                               ? Icon(
-                                  PhosphorIcons.user(),
+                                  PhosphorIcons.user,
                                   size: 22,
                                   color: Colors.grey[400],
                                 )
@@ -166,9 +166,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                 Row(
                                   children: [
                                     Icon(
-                                      PhosphorIcons.mapPin(
-                                        PhosphorIconsStyle.fill,
-                                      ),
+                                      PhosphorIcons.mapPinFill,
                                       color: AppColors.primary,
                                       size: 18,
                                     ),
@@ -191,9 +189,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                 Row(
                                   children: [
                                     Icon(
-                                      PhosphorIcons.moneyWavy(
-                                        PhosphorIconsStyle.fill,
-                                      ),
+                                      PhosphorIcons.moneyWavyFill,
                                       color: const Color(0xFF48BB78),
                                       size: 18,
                                     ),
@@ -321,7 +317,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                           Container(
                                             color: Colors.grey[100],
                                             child: Icon(
-                                              PhosphorIcons.image(),
+                                              PhosphorIcons.image,
                                               color: Colors.grey[400],
                                             ),
                                           ),
@@ -391,7 +387,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                                     Container(
                                                       color: Colors.grey[100],
                                                       child: Icon(
-                                                        PhosphorIcons.image(),
+                                                        PhosphorIcons.image,
                                                         color: Colors.grey[400],
                                                       ),
                                                     ),
@@ -439,7 +435,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          PhosphorIcons.phoneCall(PhosphorIconsStyle.fill),
+                          PhosphorIcons.phoneCallFill,
                           color: Colors.white,
                           size: 12,
                         ),
@@ -475,8 +471,8 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 onTap: _toggleLike,
                 child: Icon(
                   _isLiked
-                      ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                      : PhosphorIcons.heart(),
+                      ? PhosphorIcons.heartFill
+                      : PhosphorIcons.heart,
                   color: _isLiked ? AppColors.primary : Colors.black87,
                   size: 24,
                 ),
@@ -507,7 +503,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 child: Row(
                   children: [
                     Icon(
-                      PhosphorIcons.chatCircle(),
+                      PhosphorIcons.chatCircle,
                       color: Colors.black87,
                       size: 24,
                     ),

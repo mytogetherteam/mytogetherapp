@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
@@ -322,7 +322,7 @@ class _DealCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  PhosphorIcons.bicycle(),
+                  PhosphorIcons.bicycle,
                   size: 12,
                   color: Colors.grey.shade500,
                 ),

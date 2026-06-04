@@ -4,6 +4,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
+import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -31,20 +32,23 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       _isLoading = true;
     });
 
-    final grouped = await OrderRepository().getGroupedOrders(
-      shopId: widget.shopId,
-    );
+    // Server-side filtering via `?status=` (see UserOrdersController). The
+    // backend enum spells it `CANCELED` (single L).
+    final results = await Future.wait([
+      OrderRepository().getOrderHistory(
+        statuses: const ['DELIVERED'],
+        shopId: widget.shopId,
+      ),
+      OrderRepository().getOrderHistory(
+        statuses: const ['CANCELED'],
+        shopId: widget.shopId,
+      ),
+    ]);
 
     if (mounted) {
       setState(() {
-        if (grouped != null) {
-          _completedOrders = grouped.pastOrders
-              .where((o) => o.status == 'DELIVERED')
-              .toList();
-          _cancelledOrders = grouped.pastOrders
-              .where((o) => o.status == 'CANCELLED')
-              .toList();
-        }
+        _completedOrders = results[0];
+        _cancelledOrders = results[1];
         _isLoading = false;
         _initTabController();
       });
@@ -81,6 +85,20 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          // TEMP (testing): opens the review screen directly so the
+          // image-upload UI is reachable without a delivered order.
+          IconButton(
+            tooltip: 'Write a Review (test)',
+            icon: const Icon(Icons.rate_review_outlined, color: AppColors.primary),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WriteReviewPage()),
+              );
+            },
+          ),
+        ],
         bottom: _isLoading
             ? null
             : TabBar(
@@ -130,7 +148,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: orders.length,
         itemBuilder: (context, index) {
-          return OrderHistoryCard(order: orders[index]);
+          return OrderHistoryCard(
+            order: orders[index],
+            onReviewSubmitted: _loadData,
+          );
         },
       ),
     );

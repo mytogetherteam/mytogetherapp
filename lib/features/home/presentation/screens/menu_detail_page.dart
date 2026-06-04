@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
@@ -732,7 +732,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                   children: [
                     const SizedBox(width: 16),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.arrowLeft(),
+                      icon: PhosphorIcons.arrowLeft,
                       onPressed: () => Navigator.pop(context),
                       isScrolled: _isScrolled,
                     ),
@@ -758,15 +758,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       ),
                     ),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.shareNetwork(),
+                      icon: PhosphorIcons.shareNetwork,
                       onPressed: () {},
                       isScrolled: _isScrolled,
                     ),
                     const SizedBox(width: 12),
                     _buildCircleIconButton(
                       icon: _isFavorite
-                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.heart(),
+                          ? PhosphorIcons.heartFill
+                          : PhosphorIcons.heart,
                       onPressed: () async {
                         if (_isTogglingFavorite) return;
                         _isTogglingFavorite = true;

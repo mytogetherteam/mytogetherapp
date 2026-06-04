@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../../../../core/auth/auth_service.dart';
 import 'models/banner_image_dto.dart';
 import 'models/shop_dto.dart';
@@ -219,40 +220,59 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  // ── Favorites ─────────────────────────────────────────────────────────────
-  // NOTE: The new backend (myshop_demo_api) does not yet expose user-facing
-  // favorites endpoints. These calls are soft-failed so the UI keeps working
-  // and we can wire them up once the backend ships them.
+  /// Backend (auth): GET /api/user/menu-items/:id
+  /// (UserMenuItemsController.findOne). Returns a published menu item with
+  /// the current user's favorite state. Falls back to the public food
+  /// endpoint when the user is not logged in.
+  Future<FoodDetailDto?> getUserMenuItemById(int id) async {
+    if (!AuthService().isLoggedIn) {
+      return getFoodById(id);
+    }
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/menu-items/$id',
+      );
+      if (response.statusCode == 200) {
+        final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
+        return apiResponse.data;
+      }
+      return null;
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        return getFoodById(id);
+      }
+      rethrow;
+    }
+  }
+
+  // ── Favorites (wishlist) ─────────────────────────────────────────────────
+  // The new backend exposes wishlist endpoints under /api/user/wishlist.
+  // We keep the legacy add/remove method names so callers stay unchanged,
+  // but route everything through WishlistRepository which handles the
+  // wishlist-id ↔ shop/menu-item id translation needed for DELETE.
 
   Future<void> addShopFavorite(int shopId) async {
     try {
-      await _apiClient.dio.post(
-        '${ApiClient.apiPrefix}/user/favorites/shop/$shopId',
-      );
+      await WishlistRepository.instance.addShop(shopId);
     } catch (_) {}
   }
 
   Future<void> removeShopFavorite(int shopId) async {
     try {
-      await _apiClient.dio.delete(
-        '${ApiClient.apiPrefix}/user/favorites/shop/$shopId',
-      );
+      await WishlistRepository.instance.removeShop(shopId);
     } catch (_) {}
   }
 
   Future<void> addMenuFavorite(int menuItemId) async {
     try {
-      await _apiClient.dio.post(
-        '${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId',
-      );
+      await WishlistRepository.instance.addMenuItem(menuItemId);
     } catch (_) {}
   }
 
   Future<void> removeMenuFavorite(int menuItemId) async {
     try {
-      await _apiClient.dio.delete(
-        '${ApiClient.apiPrefix}/user/favorites/menu-item/$menuItemId',
-      );
+      await WishlistRepository.instance.removeMenuItem(menuItemId);
     } catch (_) {}
   }
 

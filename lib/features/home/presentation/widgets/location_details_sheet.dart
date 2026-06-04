@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
 
 class LocationDetailsSheet extends StatefulWidget {
@@ -123,7 +123,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             _buildTextField(
               controller: _nameController,
               hint: 'e.g. Grandma\'s House, Office',
-              icon: PhosphorIcons.tag(),
+              icon: PhosphorIcons.tag,
             ),
             const SizedBox(height: 16),
             _buildLabel('Location Type'),
@@ -136,7 +136,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             _buildTextField(
               controller: _buildingController,
               hint: 'Building name, Apartment complex',
-              icon: PhosphorIcons.buildings(),
+              icon: PhosphorIcons.buildings,
             ),
             const SizedBox(height: 12),
             Row(
@@ -145,7 +145,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                   child: _buildTextField(
                     controller: _floorController,
                     hint: 'Floor / Unit',
-                    icon: PhosphorIcons.stairs(),
+                    icon: PhosphorIcons.stairs,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -153,7 +153,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                   child: _buildTextField(
                     controller: _postalController,
                     hint: 'Postal Code',
-                    icon: PhosphorIcons.envelope(),
+                    icon: PhosphorIcons.envelope,
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -164,7 +164,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             _buildTextField(
               controller: _noteController,
               hint: 'Door code, delivery instructions...',
-              icon: PhosphorIcons.note(),
+              icon: PhosphorIcons.note,
               maxLines: 2,
             ),
             const SizedBox(height: 32),
@@ -243,9 +243,9 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
     final isSelected = _selectedType == type;
     IconData icon;
     switch (type) {
-      case 'HOME': icon = PhosphorIcons.house(); break;
-      case 'WORK': icon = PhosphorIcons.briefcase(); break;
-      default: icon = PhosphorIcons.mapPin(); break;
+      case 'HOME': icon = PhosphorIcons.house; break;
+      case 'WORK': icon = PhosphorIcons.briefcase; break;
+      default: icon = PhosphorIcons.mapPin; break;
     }
 
     return Expanded(

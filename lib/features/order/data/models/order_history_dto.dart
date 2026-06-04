@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../../../reviews/data/models/order_review_dto.dart';
+
 class OrderHistoryGroupedDto {
   final List<OrderHistoryDto> currentOrders;
   final List<OrderHistoryDto> pastOrders;
@@ -43,6 +45,7 @@ class OrderHistoryDto {
   final List<OrderHistoryItemDto> items;
   final double? deliveryFee;
   final String? displayDeliveryFee;
+  final OrderReviewDto? orderReview;
 
   OrderHistoryDto({
     required this.id,
@@ -61,6 +64,7 @@ class OrderHistoryDto {
     required this.items,
     this.deliveryFee,
     this.displayDeliveryFee,
+    this.orderReview,
   });
 
   String get dateDisplay {
@@ -115,6 +119,9 @@ class OrderHistoryDto {
           [],
       deliveryFee: (json['deliveryFee'] as num?)?.toDouble(),
       displayDeliveryFee: json['displayDeliveryFee'] as String?,
+      orderReview: json['orderReview'] is Map<String, dynamic>
+          ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

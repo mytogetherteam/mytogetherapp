@@ -4,6 +4,9 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
+import 'package:mytogetherapp/features/reviews/data/models/order_review_dto.dart';
+import 'package:mytogetherapp/features/reviews/data/repositories/order_review_repository.dart';
+import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -11,9 +14,14 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
 
+  /// Optional callback the parent can use to refresh the list after a review
+  /// is created (so the rating strip flips to "My rating …").
+  final VoidCallback? onReviewSubmitted;
+
   const OrderHistoryCard({
     super.key,
     required this.order,
+    this.onReviewSubmitted,
   });
 
   @override
@@ -21,14 +29,23 @@ class OrderHistoryCard extends StatefulWidget {
 }
 
 class _OrderHistoryCardState extends State<OrderHistoryCard> {
-  late bool _isRated;
-  late int _ratingScore;
+  /// Locally-cached review (either from the order list response or the
+  /// one we just created). Initialized from the order's embedded review,
+  /// then overwritten when the user submits one.
+  OrderReviewDto? _review;
 
   @override
   void initState() {
     super.initState();
-    _isRated = false; // Real API might need this field later
-    _ratingScore = 0;
+    _review = widget.order.orderReview;
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderHistoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.orderReview != widget.order.orderReview) {
+      _review = widget.order.orderReview;
+    }
   }
 
   Color get primaryColor => AppColors.primary;
@@ -308,8 +325,42 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
              bottomRight: Radius.circular(16),
           ),
        ),
-       child: _isRated ? _buildRatedContent() : _buildPromptContent(),
+       child: _review != null ? _buildRatedContent(_review!) : _buildPromptContent(),
     );
+  }
+
+  Future<void> _openReviewFlow({int initialRating = 0}) async {
+    final orderIdInt = int.tryParse(widget.order.id);
+    if (orderIdInt == null) {
+      AppDialog.showToast(context, 'Invalid order reference.', isError: true);
+      return;
+    }
+
+    final submitted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => WriteReviewPage(
+          orderId: orderIdInt,
+          shopName: widget.order.shopName,
+          initialRating: initialRating,
+        ),
+      ),
+    );
+
+    if (submitted == true) {
+      // Pull the saved review so the strip flips locally without waiting
+      // for the parent list to refresh.
+      try {
+        final fresh = await OrderReviewRepository.instance
+            .getReviewForOrder(orderIdInt);
+        if (!mounted) return;
+        if (fresh != null) {
+          setState(() => _review = fresh);
+        }
+      } catch (_) {
+        // Best-effort refresh — leave the strip as-is on failure.
+      }
+      widget.onReviewSubmitted?.call();
+    }
   }
 
   Widget _buildPromptContent() {
@@ -326,12 +377,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         const SizedBox(width: 12),
         Row(
            children: List.generate(5, (index) => GestureDetector(
-              onTap: () {
-                setState(() {
-                  _ratingScore = index + 1;
-                  _isRated = true;
-                });
-              },
+              onTap: () => _openReviewFlow(initialRating: index + 1),
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -343,12 +389,16 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 
-  Widget _buildRatedContent() {
+  Widget _buildRatedContent(OrderReviewDto review) {
+    final score = review.rating;
+    final scoreLabel = score == score.roundToDouble()
+        ? score.toInt().toString()
+        : score.toStringAsFixed(1);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'My rating $_ratingScore/5',
+          'My rating $scoreLabel/5',
            style: GoogleFonts.poppins(
              fontSize: 13,
              color: Colors.grey[600],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../data/cart_manager.dart';
@@ -97,7 +97,7 @@ class _CartPageState extends State<CartPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(PhosphorIcons.shoppingCart(), size: 80, color: Colors.grey[300]),
+          Icon(PhosphorIcons.shoppingCart, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'Your cart is empty',

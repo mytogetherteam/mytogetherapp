@@ -1,60 +1,96 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
-import 'package:image_picker/image_picker.dart';
+import '../../data/repositories/order_review_repository.dart';
 import '../../data/review_demo_data.dart';
 import '../widgets/review_success_bottom_sheet.dart';
-import '../widgets/image_upload_bottom_sheet.dart';
 
+/// Lets a user rate a delivered order via the new backend endpoint
+/// `POST /api/user/order-reviews`. The local tags are kept as a UI
+/// affordance — tags are prepended to the `comment` field so they aren't
+/// lost server-side. Image upload is intentionally omitted for now.
 class WriteReviewPage extends StatefulWidget {
-  const WriteReviewPage({super.key});
+  final int? orderId;
+  final String? shopName;
+  final int initialRating;
+
+  const WriteReviewPage({
+    super.key,
+    this.orderId,
+    this.shopName,
+    this.initialRating = 0,
+  });
 
   @override
   State<WriteReviewPage> createState() => _WriteReviewPageState();
 }
 
 class _WriteReviewPageState extends State<WriteReviewPage> {
-  int _rating = 0;
+  late int _rating;
   final Set<String> _selectedTags = {};
-  File? _imageFile;
-  final TextEditingController _reviewController = TextEditingController();
 
-  Future<void> _handleImageSelection() async {
-    final action = await ImageUploadBottomSheet.show(context, showRemove: _imageFile != null);
-    
-    if (action == null) return;
-    
-    if (action == ImageUploadAction.remove) {
-      setState(() {
-        _imageFile = null;
-      });
+  final TextEditingController _reviewController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _rating = widget.initialRating.clamp(0, 5);
+  }
+
+  /// Builds the comment payload by prefixing selected tags so they aren't
+  /// lost: e.g. "[Taste, Customer Service] Great food, fast delivery."
+  String? _composeComment() {
+    final body = _reviewController.text.trim();
+    final tagsLine =
+        _selectedTags.isNotEmpty ? '[${_selectedTags.join(', ')}]' : '';
+
+    if (tagsLine.isEmpty && body.isEmpty) return null;
+    if (tagsLine.isEmpty) return body;
+    if (body.isEmpty) return tagsLine;
+    return '$tagsLine $body';
+  }
+
+  Future<void> _submitReview() async {
+    if (_submitting) return;
+    if (_rating <= 0) return;
+
+    final orderId = widget.orderId;
+    if (orderId == null) {
+      // Demo mode (no order context) — keep the legacy success flow.
+      final result = await ReviewSuccessBottomSheet.show(context);
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
       return;
     }
 
-    final picker = ImagePicker();
-    final source = action == ImageUploadAction.gallery ? ImageSource.gallery : ImageSource.camera;
-    final pickedFile = await picker.pickImage(source: source);
+    setState(() => _submitting = true);
 
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
-  }
+    final result = await OrderReviewRepository.instance.create(
+      orderId: orderId,
+      rating: _rating.toDouble(),
+      comment: _composeComment(),
+    );
 
-  void _submitReview() async {
-    // In a real app we'd send data to API here
-    
-    // Show Success Bottom Sheet
-    final result = await ReviewSuccessBottomSheet.show(context);
-    // When back button is clicked in the bottom sheet, return true and pop screen
-    if (result == true) {
-      if (mounted) {
-        Navigator.pop(context); // Go back to Rating and Reviews page
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (result.success) {
+      final ok = await ReviewSuccessBottomSheet.show(context);
+      if (ok == true && mounted) {
+        Navigator.pop(context, true);
       }
+      return;
     }
+
+    AppDialog.showToast(
+      context,
+      result.errorMessage ?? 'Could not submit review.',
+      isError: true,
+    );
   }
 
   @override
@@ -83,11 +119,29 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
+            padding: const EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: 100,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Star Rating
+                if (widget.shopName != null && widget.shopName!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(
+                      child: Text(
+                        widget.shopName!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
@@ -100,18 +154,21 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Icon(
-                          _rating > index ? Icons.star_rounded : Icons.star_border_rounded,
-                          color: _rating > index ? const Color(0xFFFFC107) : Colors.grey[300],
+                          _rating > index
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: _rating > index
+                              ? const Color(0xFFFFC107)
+                              : Colors.grey[300],
                           size: 48,
                         ),
                       ),
                     );
                   }),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
-                // Tags
+
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -128,13 +185,18 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           gradient: isSelected ? AppColors.primaryGradient : null,
                           color: isSelected ? null : Colors.grey[100],
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : Colors.grey[300]!,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey[300]!,
                             width: 1,
                           ),
                         ),
@@ -143,17 +205,17 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                            fontWeight:
+                                isSelected ? FontWeight.w500 : FontWeight.normal,
                           ),
                         ),
                       ),
                     );
                   }).toList(),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
-                // Prompt text
+
                 Text(
                   'How was your experience? Tell us what you liked and what could be improved.',
                   style: GoogleFonts.poppins(
@@ -162,10 +224,9 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                     height: 1.5,
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-                
-                // Text Area
+
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
@@ -175,6 +236,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                   child: TextField(
                     controller: _reviewController,
                     maxLines: 5,
+                    maxLength: 500,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.black87,
@@ -187,89 +249,14 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                       ),
                       contentPadding: const EdgeInsets.all(16),
                       border: InputBorder.none,
+                      counterText: '',
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Image Upload
-                Text(
-                  'Image',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                GestureDetector(
-                  onTap: _handleImageSelection,
-                  child: _imageFile != null
-                      ? Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  _imageFile!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: -12,
-                              right: -12,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.refresh_rounded,
-                                  color: AppColors.primary,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            color: Colors.grey[500],
-                            size: 32,
-                          ),
-                        ),
                 ),
               ],
             ),
           ),
-          
-          // Sticky Submit Button
+
           Positioned(
             bottom: 0,
             left: 0,
@@ -288,15 +275,25 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
               ),
               child: SafeArea(
                 child: PrimaryGradientButton(
-                  onPressed: _rating > 0 ? _submitReview : null,
-                  child: Text(
-                    'Submit Review',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  onPressed: (_rating > 0 && !_submitting) ? _submitReview : null,
+                  child: _submitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Submit Review',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ),

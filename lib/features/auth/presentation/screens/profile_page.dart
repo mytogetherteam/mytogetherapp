@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/delete_account_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
+import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
   String _getImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
@@ -62,7 +69,7 @@ class ProfilePage extends StatelessWidget {
                           ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
                           : null,
                       child: user?.avatarUrl == null
-                          ? Icon(PhosphorIcons.user(PhosphorIconsStyle.bold),
+                          ? Icon(PhosphorIcons.userBold,
                               size: 40, color: Colors.grey[400])
                           : null,
                     ),
@@ -92,27 +99,42 @@ class ProfilePage extends StatelessWidget {
 
             // Profile Options
             _buildOptionTile(
-              icon: PhosphorIcons.userCircle(),
+              icon: PhosphorIcons.userCircle,
               title: 'Edit Profile',
-              onTap: () => AppDialog.showUnavailable(context),
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                );
+                if (mounted) setState(() {});
+              },
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.mapPin(),
+              icon: PhosphorIcons.heart,
+              title: 'Saved Items',
+              subtitle: 'Your wishlist of foods and shops',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WishlistPage()),
+              ),
+            ),
+            _buildOptionTile(
+              icon: PhosphorIcons.mapPin,
               title: 'My Addresses',
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.bell(),
+              icon: PhosphorIcons.bell,
               title: 'Notifications',
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.shieldCheck(),
+              icon: PhosphorIcons.shieldCheck,
               title: 'Security',
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.question(),
+              icon: PhosphorIcons.question,
               title: 'Help Center',
               subtitle: 'အကူအညီနှင့် ဆက်သွယ်ရန်',
               onTap: () => Navigator.push(
@@ -138,7 +160,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                   child: ListTile(
                     leading: Icon(
-                      PhosphorIcons.trash(PhosphorIconsStyle.fill),
+                      PhosphorIcons.trashFill,
                       color: Colors.red.shade500,
                       size: 22,
                     ),
@@ -158,7 +180,7 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                     trailing: Icon(
-                      PhosphorIcons.caretRight(),
+                      PhosphorIcons.caretRight,
                       size: 18,
                       color: Colors.red.shade400,
                     ),
@@ -242,7 +264,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                 )
               : null,
-          trailing: Icon(PhosphorIcons.caretRight(), size: 18, color: Colors.grey),
+          trailing: Icon(PhosphorIcons.caretRight, size: 18, color: Colors.grey),
         ),
       ),
     );

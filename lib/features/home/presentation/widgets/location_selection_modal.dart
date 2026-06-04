@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
@@ -346,7 +346,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                PhosphorIcons.crosshairSimple(),
+                PhosphorIcons.crosshairSimple,
                 size: 22,
                 color: Colors.grey.shade700,
               ),
@@ -491,12 +491,12 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   IconData _getLocationIcon(String? type) {
     switch (type?.toUpperCase()) {
       case 'HOME':
-        return PhosphorIcons.house();
+        return PhosphorIcons.house;
       case 'WORK':
       case 'OFFICE':
-        return PhosphorIcons.briefcase();
+        return PhosphorIcons.briefcase;
       default:
-        return PhosphorIcons.mapPin();
+        return PhosphorIcons.mapPin;
     }
   }
 }

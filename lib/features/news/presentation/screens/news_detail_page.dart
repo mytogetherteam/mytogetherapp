@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -265,7 +265,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   backgroundColor: Colors.grey[100],
                   child: widget.item.authorAvatar.isEmpty
                       ? Icon(
-                          PhosphorIcons.user(),
+                          PhosphorIcons.user,
                           size: 14,
                           color: Colors.grey[400],
                         )
@@ -315,7 +315,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              PhosphorIcons.phoneCall(PhosphorIconsStyle.fill),
+                              PhosphorIcons.phoneCallFill,
                               color: Colors.white,
                               size: 12,
                             ),
@@ -366,7 +366,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     Row(
                       children: [
                         Icon(
-                          PhosphorIcons.mapPin(PhosphorIconsStyle.fill),
+                          PhosphorIcons.mapPinFill,
                           color: AppColors.primary,
                           size: 18,
                         ),
@@ -389,7 +389,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     Row(
                       children: [
                         Icon(
-                          PhosphorIcons.moneyWavy(PhosphorIconsStyle.fill),
+                          PhosphorIcons.moneyWavyFill,
                           color: const Color(0xFF48BB78),
                           size: 18,
                         ),
@@ -454,7 +454,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 errorWidget: (context, url, error) => Container(
                                   color: Colors.grey[100],
                                   child: Icon(
-                                    PhosphorIcons.image(),
+                                    PhosphorIcons.image,
                                     color: Colors.grey[400],
                                   ),
                                 ),
@@ -511,7 +511,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                           Container(
                                             color: Colors.grey[100],
                                             child: Icon(
-                                              PhosphorIcons.image(),
+                                              PhosphorIcons.image,
                                               color: Colors.grey[400],
                                             ),
                                           ),
@@ -542,8 +542,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           onTap: _toggleLike,
                           child: Icon(
                             _isLiked
-                                ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                                : PhosphorIcons.heart(),
+                                ? PhosphorIcons.heartFill
+                                : PhosphorIcons.heart,
                             color: _isLiked
                                 ? AppColors.primary
                                 : Colors.black87,
@@ -565,7 +565,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           child: Row(
                             children: [
                               Icon(
-                                PhosphorIcons.chatCircle(),
+                                PhosphorIcons.chatCircle,
                                 color: Colors.black87,
                                 size: 22,
                               ),
@@ -740,7 +740,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             child: Icon(
-                              PhosphorIcons.gif(PhosphorIconsStyle.bold),
+                              PhosphorIcons.gifBold,
                               color: _isGifPickerVisible
                                   ? AppColors.primary
                                   : Colors.grey[600],
@@ -763,7 +763,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      PhosphorIcons.paperPlaneRight(PhosphorIconsStyle.fill),
+                      PhosphorIcons.paperPlaneRightFill,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -788,7 +788,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            PhosphorIcons.warningCircle(),
+                            PhosphorIcons.warningCircle,
                             color: Colors.grey[400],
                             size: 32,
                           ),

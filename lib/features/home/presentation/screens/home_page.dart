@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/category_card.dart';
 import '../widgets/together_deals_section.dart';
 import '../widgets/todays_overview_section.dart';
@@ -251,7 +251,7 @@ class _HomePageState extends State<HomePage> {
                             child: Row(
                               children: [
                                 Icon(
-                                  PhosphorIcons.magnifyingGlass(),
+                                  PhosphorIcons.magnifyingGlass,
                                   color: Colors.grey.shade500,
                                   size: 20,
                                 ),
@@ -708,7 +708,7 @@ class _HomePageState extends State<HomePage> {
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
-                                            PhosphorIcons.bell(),
+                                            PhosphorIcons.bell,
                                             size: 24,
                                             color: Colors.black,
                                           ),

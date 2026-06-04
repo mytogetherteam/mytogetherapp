@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../../presentation/widgets/image_skeleton_loader.dart';
@@ -457,9 +457,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                   Row(
                                     children: [
                                       Icon(
-                                        PhosphorIcons.mapPin(
-                                          PhosphorIconsStyle.fill,
-                                        ),
+                                        PhosphorIcons.mapPinFill,
                                         color: AppColors.primary,
                                         size: 14,
                                       ),
@@ -481,9 +479,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                     Row(
                                       children: [
                                         Icon(
-                                          PhosphorIcons.clock(
-                                            PhosphorIconsStyle.regular,
-                                          ),
+                                          PhosphorIcons.clock,
                                           color: Colors.green[600],
                                           size: 14,
                                         ),
@@ -564,7 +560,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                   children: [
                     const SizedBox(width: 16),
                     _buildCircleIconButton(
-                      icon: PhosphorIcons.arrowLeft(),
+                      icon: PhosphorIcons.arrowLeft,
                       onPressed: () => Navigator.pop(context),
                       isScrolled: _isScrolled,
                     ),
@@ -589,8 +585,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                     const Spacer(),
                     _buildCircleIconButton(
                       icon: _isFavorite
-                          ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.heart(),
+                          ? PhosphorIcons.heartFill
+                          : PhosphorIcons.heart,
                       onPressed: () {
                         setState(() => _isFavorite = !_isFavorite);
                         ScaffoldMessenger.of(context).showSnackBar(

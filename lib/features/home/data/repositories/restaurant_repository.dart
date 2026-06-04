@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../restaurant_data.dart';
 import '../models/banner_image_dto.dart';
 import '../models/trending_item_dto.dart';
@@ -6,7 +8,10 @@ import '../remote_restaurant_data_source.dart';
 import '../models/shop_dto.dart';
 import '../models/food_detail_dto.dart';
 import '../models/shop_review_dto.dart';
+import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/features/search/data/search_repository.dart';
+import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 
 class RestaurantRepository {
   static final RestaurantRepository instance = RestaurantRepository(
@@ -84,18 +89,46 @@ class RestaurantRepository {
     }
 
     try {
-      final request = ShopRequestDto(
-        lat: lat,
-        lon: lon,
-        radius: radius,
-        page: page,
-        size: size,
-        search: search,
-      );
-      final response = await _remoteDataSource.getNearbyShops(request);
-      final results = response.data.content
-          .map((dto) => _mapShopDtoToDomain(dto))
-          .toList();
+      List<Restaurant> results;
+
+      if (AuthService().isLoggedIn) {
+        final SearchPageResult response;
+        final hasSearch = search != null && search.trim().isNotEmpty;
+        if (hasSearch) {
+          response = await SearchRepository.instance.searchShops(
+            latitude: lat,
+            longitude: lon,
+            search: search,
+            radiusKm: radius,
+            page: page + 1,
+            size: size,
+          );
+        } else {
+          response = await SearchRepository.instance.searchNearby(
+            latitude: lat,
+            longitude: lon,
+            radiusKm: radius,
+            page: page + 1,
+            size: size,
+          );
+        }
+        results = response.shops
+            .map((dto) => _mapShopDtoToDomain(dto.shop))
+            .toList();
+      } else {
+        final request = ShopRequestDto(
+          lat: lat,
+          lon: lon,
+          radius: radius,
+          page: page,
+          size: size,
+          search: search,
+        );
+        final response = await _remoteDataSource.getNearbyShops(request);
+        results = response.data.content
+            .map((dto) => _mapShopDtoToDomain(dto))
+            .toList();
+      }
 
       // Update cache
       _cachedNearbyShops = results;
@@ -113,14 +146,127 @@ class RestaurantRepository {
     }
   }
 
-  Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
-    final response = await _remoteDataSource.getShopById(
-      id,
+  /// Popular shops from `GET /api/user/shop-profile/popular`.
+  /// Falls back to nearby search when the user is not logged in.
+  Future<List<Restaurant>> getPopularShops({
+    required double lat,
+    required double lon,
+    int page = 1,
+    int size = 10,
+  }) async {
+    if (AuthService().isLoggedIn) {
+      final response = await SearchRepository.instance.getPopularShops(
+        page: page,
+        size: size,
+      );
+      return response.shops
+          .map((dto) => _mapShopDtoToDomain(dto.shop))
+          .toList();
+    }
+
+    return getNearbyShops(
       lat: lat,
       lon: lon,
+      radius: 10.0,
+      page: page - 1,
+      size: size,
     );
-    return _mapShopDetailDtoToDomain(response.data);
   }
+
+  /// Full shop search with preview menu items (for FoodSearchPage).
+  Future<SearchPageResult> searchShopsWithMenu({
+    required double lat,
+    required double lon,
+    required String query,
+    double radiusKm = 10.0,
+    int page = 1,
+    int size = 20,
+  }) {
+    return SearchRepository.instance.searchShops(
+      latitude: lat,
+      longitude: lon,
+      search: query,
+      radiusKm: radiusKm,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// Paginated catalog of user-visible shops from
+  /// `GET /api/user/shop-profile`. When [originLat]/[originLon] are supplied
+  /// and a shop has coordinates, distance is computed client-side (the catalog
+  /// endpoint is not geo-aware and omits `distanceKm`).
+  ///
+  /// Requires an authenticated user; throws otherwise.
+  Future<List<Restaurant>> getShopProfiles({
+    String? search,
+    int? categoryId,
+    int page = 1,
+    int size = 20,
+    double? originLat,
+    double? originLon,
+  }) async {
+    final response = await SearchRepository.instance.listShopProfiles(
+      search: search,
+      categoryId: categoryId,
+      page: page,
+      size: size,
+    );
+    return response.shops.map((dto) {
+      final shop = dto.shop;
+      final hasOrigin = originLat != null && originLon != null;
+      final distance = (hasOrigin &&
+              shop.latitude != null &&
+              shop.longitude != null)
+          ? _haversineKm(originLat, originLon, shop.latitude!, shop.longitude!)
+          : null;
+      return _mapShopDtoToDomain(shop, distanceKmOverride: distance);
+    }).toList();
+  }
+
+  Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
+    try {
+      final response = await _remoteDataSource.getShopById(
+        id,
+        lat: lat,
+        lon: lon,
+      );
+      return _mapShopDetailDtoToDomain(response.data);
+    } catch (e) {
+      // Auth fallback: enriched user shop-profile detail
+      // (GET /api/user/shop-profile/:id) enforces verified-visible shops and
+      // carries the authoritative `isFavorite` flag.
+      if (AuthService().isLoggedIn) {
+        final shop = await SearchRepository.instance.getShopProfileById(id);
+        if (shop != null) {
+          final dist = (lat != null &&
+                  lon != null &&
+                  shop.latitude != null &&
+                  shop.longitude != null)
+              ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
+              : null;
+          return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+        }
+      }
+      rethrow;
+    }
+  }
+
+  /// Great-circle distance in kilometers (haversine).
+  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusKm = 6371.0;
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_deg2rad(lat1)) *
+            math.cos(_deg2rad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  double _deg2rad(double deg) => deg * (math.pi / 180.0);
 
   Future<TrendingSectionDto> getTrendingItems({
     required double lat,
@@ -151,7 +297,10 @@ class RestaurantRepository {
     return result;
   }
 
-  Restaurant _mapShopDtoToDomain(ShopListItemDto dto) {
+  Restaurant _mapShopDtoToDomain(
+    ShopListItemDto dto, {
+    double? distanceKmOverride,
+  }) {
     String imagePath = '';
 
     // 1. Prioritize coverUrl (Banner image) as requested
@@ -184,7 +333,8 @@ class RestaurantRepository {
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
-      distance: '${dto.distance.toStringAsFixed(1)} km',
+      distance:
+          '${(distanceKmOverride ?? dto.distance).toStringAsFixed(1)} km',
       imagePath: _getImageUrl(imagePath),
       logoPath: _getImageUrl(
         (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
@@ -334,6 +484,12 @@ class RestaurantRepository {
 
   Future<FoodDetailDto?> getFoodById(int id) async {
     return _remoteDataSource.getFoodById(id);
+  }
+
+  /// Auth-aware menu item fetch (includes favorite state). Falls back to the
+  /// public food endpoint when not logged in.
+  Future<FoodDetailDto?> getUserFoodById(int id) async {
+    return _remoteDataSource.getUserMenuItemById(id);
   }
 
   // ── Favorites ─────────────────────────────────────────────────────────────

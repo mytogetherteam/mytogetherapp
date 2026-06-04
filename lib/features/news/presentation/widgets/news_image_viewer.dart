@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/models/news_item.dart';
 import '../screens/news_detail_page.dart';
 
@@ -213,8 +213,8 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                         children: [
                           Icon(
                             _isLiked
-                                ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
-                                : PhosphorIcons.heart(),
+                                ? PhosphorIcons.heartFill
+                                : PhosphorIcons.heart,
                             color: _isLiked ? AppColors.primary : Colors.white,
                             size: 24,
                           ),
@@ -248,7 +248,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                       child: Row(
                         children: [
                           Icon(
-                            PhosphorIcons.chatCircle(),
+                            PhosphorIcons.chatCircle,
                             color: Colors.white,
                             size: 24,
                           ),

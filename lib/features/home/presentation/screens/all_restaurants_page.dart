@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import 'restaurant_detail_page.dart';
@@ -47,6 +48,35 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     super.dispose();
   }
 
+  /// Fetches a page of shops. Logged-in users browse the authenticated
+  /// catalog (`GET /api/user/shop-profile`, server-side search + client-side
+  /// distance); guests fall back to the public geo "nearby" listing.
+  Future<List<Restaurant>> _fetchShops(int page) async {
+    final activeLoc = UserLocationRepository.instance.activeLocation;
+    final pos = LocationService().cachedPosition;
+    final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+    final lon =
+        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+
+    if (AuthService().isLoggedIn) {
+      return RestaurantRepository.instance.getShopProfiles(
+        page: page + 1,
+        size: _pageSize,
+        search: _searchQuery.trim().isEmpty ? null : _searchQuery,
+        originLat: lat,
+        originLon: lon,
+      );
+    }
+
+    return RestaurantRepository.instance.getNearbyShops(
+      lat: lat,
+      lon: lon,
+      page: page,
+      size: _pageSize,
+      search: _searchQuery,
+    );
+  }
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -72,20 +102,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     });
 
     try {
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = LocationService().cachedPosition;
-      final lat =
-          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon =
-          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
-
-      final results = await RestaurantRepository.instance.getNearbyShops(
-        lat: lat,
-        lon: lon,
-        page: _currentPage,
-        size: _pageSize,
-        search: _searchQuery,
-      );
+      final results = await _fetchShops(_currentPage);
 
       if (mounted) {
         setState(() {
@@ -120,20 +137,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
 
     try {
       _currentPage++;
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = LocationService().cachedPosition;
-      final lat =
-          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon =
-          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
-
-      final results = await RestaurantRepository.instance.getNearbyShops(
-        lat: lat,
-        lon: lon,
-        page: _currentPage,
-        size: _pageSize,
-        search: _searchQuery,
-      );
+      final results = await _fetchShops(_currentPage);
 
       if (mounted) {
         setState(() {
@@ -237,14 +241,14 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                     fontSize: 13,
                   ),
                   prefixIcon: Icon(
-                    PhosphorIcons.magnifyingGlass(),
+                    PhosphorIcons.magnifyingGlass,
                     color: Colors.grey[400],
                     size: 20,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: Icon(
-                            PhosphorIcons.xCircle(PhosphorIconsStyle.fill),
+                            PhosphorIcons.xCircleFill,
                             color: Colors.grey[400],
                             size: 20,
                           ),
@@ -354,7 +358,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(PhosphorIcons.bag(), size: 64, color: Colors.grey[300]),
+          Icon(PhosphorIcons.bag, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No restaurants found',

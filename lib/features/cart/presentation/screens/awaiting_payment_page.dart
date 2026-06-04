@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
@@ -1006,7 +1006,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                PhosphorIcons.clock(),
+                                PhosphorIcons.clock,
                                 size: 16,
                                 color: AppColors.primary,
                               ),
@@ -1151,7 +1151,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              PhosphorIcons.info(),
+                              PhosphorIcons.info,
                               size: 14,
                               color: AppColors.primary,
                             ),
@@ -1201,7 +1201,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            PhosphorIcons.downloadSimple(),
+                            PhosphorIcons.downloadSimple,
                             size: 20,
                             color: Colors.white,
                           ),
@@ -1430,7 +1430,7 @@ class _CameraUploadIcon extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
       ),
-      child: GradientIcon(icon: PhosphorIcons.cameraPlus(), size: 28),
+      child: GradientIcon(icon: PhosphorIcons.cameraPlus, size: 28),
     );
   }
 }

@@ -4,6 +4,8 @@ import '../../data/models/notification_model.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../announcements/presentation/screens/announcements_page.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -103,6 +105,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  Future<void> _deleteNotification(NotificationModel notification) async {
+    final removed = notification;
+    final index = _notifications.indexOf(notification);
+    setState(() => _notifications.remove(notification));
+
+    final ok = await _repository.deleteNotification(notification.id);
+    if (!ok && mounted) {
+      setState(() => _notifications.insert(index, removed));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete notification')),
+      );
+    } else {
+      _repository.getUnreadCount();
+    }
+  }
+
   Future<void> _markAllAsRead() async {
     final success = await _repository.markAllAsRead();
     if (success) {
@@ -147,6 +165,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          IconButton(
+            tooltip: 'Announcements',
+            icon: Icon(PhosphorIcons.megaphone, color: Colors.black),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AnnouncementsPage()),
+            ),
+          ),
           if (_notifications.any((n) => !n.read))
             TextButton(
               onPressed: _markAllAsRead,
@@ -181,9 +207,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           );
                         }
                         final notification = _notifications[index];
-                        return NotificationItemWidget(
-                          notification: notification,
-                          onTap: () => _markAsRead(notification),
+                        return Dismissible(
+                          key: ValueKey(notification.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 24),
+                            color: Colors.red.shade400,
+                            child: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onDismissed: (_) => _deleteNotification(notification),
+                          child: NotificationItemWidget(
+                            notification: notification,
+                            onTap: () => _markAsRead(notification),
+                          ),
                         );
                       },
                     ),

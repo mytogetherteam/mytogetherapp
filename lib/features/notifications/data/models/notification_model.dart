@@ -22,23 +22,54 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    // Determine title and body based on available localized fields or defaults
-    // The API seems to have title, titleMm, titleTh, titleEn etc.
-    // For now we'll use 'title' and 'body' but fallback to 'titleEn' if available.
-    String resolvedTitle = json['titleEn'] ?? json['title'] ?? '';
-    String resolvedBody = json['bodyEn'] ?? json['body'] ?? '';
+    final mainType = json['mainType']?.toString();
+    final subType = json['subType']?.toString();
+
+    // Map NestJS notification enums to legacy UI type strings.
+    final String type;
+    if (mainType == 'ORDER') {
+      type = 'ORDER_STATUS';
+    } else if (mainType == 'ESCALATION') {
+      type = 'SYSTEM';
+    } else {
+      type = json['type']?.toString() ?? subType ?? 'GENERAL';
+    }
+
+    final dynamic dataField = json['data'];
+    final int? referenceId = _parseReferenceId(
+      json['orderId'] ?? json['referenceId'] ??
+          (dataField is Map
+              ? (dataField['orderId'] ?? dataField['referenceId'])
+              : null),
+    );
+
+    final sentAtRaw = json['createdAt'] ?? json['sentAt'];
+    final readAtRaw = json['readAt'];
 
     return NotificationModel(
-      id: json['id'],
-      title: resolvedTitle,
-      body: resolvedBody,
-      type: json['type'] ?? 'GENERAL',
-      referenceId: json['referenceId'],
-      imageUrl: json['imageUrl'],
-      sentAt: DateTime.parse(json['sentAt']),
-      readAt: json['readAt'] != null ? DateTime.parse(json['readAt']) : null,
-      read: json['read'] ?? false,
+      id: json['id'] as int,
+      title: json['title']?.toString() ?? json['titleEn']?.toString() ?? '',
+      body: json['message']?.toString() ??
+          json['body']?.toString() ??
+          json['bodyEn']?.toString() ??
+          '',
+      type: type,
+      referenceId: referenceId,
+      imageUrl: json['imageUrl']?.toString(),
+      sentAt: sentAtRaw != null
+          ? DateTime.parse(sentAtRaw.toString())
+          : DateTime.now(),
+      readAt:
+          readAtRaw != null ? DateTime.parse(readAtRaw.toString()) : null,
+      read: json['isRead'] == true || json['read'] == true,
     );
+  }
+
+  static int? _parseReferenceId(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
   }
 
   Map<String, dynamic> toJson() {

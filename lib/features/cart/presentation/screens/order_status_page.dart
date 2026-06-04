@@ -8,7 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'dart:ui' as ui;
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/network/websocket_service.dart';
@@ -138,7 +138,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             //   SnackBar(
             //     content: Row(
             //       children: [
-            //         Icon(PhosphorIcons.warningCircle(PhosphorIconsStyle.fill), color: Colors.white, size: 20),
+            //         Icon(PhosphorIcons.warningCircleFill, color: Colors.white, size: 20),
             //         const SizedBox(width: 10),
             //         Expanded(
             //           child: Text('New payment slip requested by restaurant',
@@ -672,9 +672,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 ),
                               ),
                             ),
-                            _buildSmallCircleButton(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill)),
+                            _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
                             const SizedBox(width: 6),
-                            _buildSmallCircleButton(PhosphorIcons.chatCircleText(PhosphorIconsStyle.fill)),
+                            _buildSmallCircleButton(PhosphorIcons.chatCircleTextFill),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -687,7 +687,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                             ),
                             Row(
                               children: [
-                                Icon(PhosphorIcons.qrCode(), size: 18, color: const Color(0xFF1E3A8A)),
+                                Icon(PhosphorIcons.qrCode, size: 18, color: const Color(0xFF1E3A8A)),
                                 const SizedBox(width: 6),
                                 Text(
                                   'QR Prompt Pay',
@@ -1059,7 +1059,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           ),
                         ),
                         if (state.riderPhone != null)
-                          _buildSmallCircleButton(PhosphorIcons.phoneCall(PhosphorIconsStyle.fill)),
+                          _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
                       ],
                     ),
                   ],
@@ -1136,10 +1136,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildStepNode(1, PhosphorIcons.package(PhosphorIconsStyle.fill)),
-            _buildStepNode(2, PhosphorIcons.cookingPot(PhosphorIconsStyle.fill)),
-            _buildStepNode(3, PhosphorIcons.bicycle(PhosphorIconsStyle.fill)),
-            _buildStepNode(4, PhosphorIcons.house()),
+            _buildStepNode(1, PhosphorIcons.packageFill),
+            _buildStepNode(2, PhosphorIcons.cookingPotFill),
+            _buildStepNode(3, PhosphorIcons.bicycleFill),
+            _buildStepNode(4, PhosphorIcons.house),
           ],
         ),
       ],

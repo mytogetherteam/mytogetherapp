@@ -138,27 +138,59 @@ class ShopListItemDto {
   });
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
+    final ratingRaw = json['rating'];
+    final double rating = ratingRaw is Map
+        ? (ratingRaw['avg'] ?? ratingRaw['ratingAvg'] ?? 0.0).toDouble()
+        : (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble();
+    final int reviewCount = ratingRaw is Map
+        ? int.tryParse(
+                (ratingRaw['count'] ?? ratingRaw['ratingCount'] ?? 0).toString(),
+              ) ??
+              0
+        : int.tryParse(
+                (json['reviewCount'] ?? json['ratingCount'] ?? 0).toString(),
+              ) ??
+              0;
+
+    // The public endpoints flatten photos to `imageUrls`/`primaryPhotoUrl`,
+    // but the authenticated user shop-profile endpoints
+    // (GET /api/user/shop-profile[/:id]) return the raw `galleries` relation
+    // ([{ imageUrl }]). Support both so gallery photos surface either way.
+    List<String> imageUrls = (json['imageUrls'] as List? ?? [])
+        .map((e) => ImageUtils.cleanImageUrl(e.toString()))
+        .whereType<String>()
+        .toList();
+    if (imageUrls.isEmpty && json['galleries'] is List) {
+      imageUrls = (json['galleries'] as List)
+          .map((e) => e is Map ? ImageUtils.cleanImageUrl(e['imageUrl']) : null)
+          .whereType<String>()
+          .toList();
+    }
+
+    final primaryPhotoUrl = ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
+        (imageUrls.isNotEmpty ? imageUrls.first : null);
+
     return ShopListItemDto(
       id: json['id'] ?? 0,
       name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
       nameEn: json['nameEn'],
-      category: json['category'],
-      rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
-      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
-      primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
+      category: json['category'] ??
+          (json['shopCategory'] is Map
+              ? (json['shopCategory'] as Map)['nameEn'] as String?
+              : null),
+      rating: rating,
+      reviewCount: reviewCount,
+      primaryPhotoUrl: primaryPhotoUrl,
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
-      distance: (json['distance'] ?? 0.0).toDouble(),
+      distance: (json['distanceKm'] ?? json['distance'] ?? 0.0).toDouble(),
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,
       estimatedTime: json['estimatedTime']?.toString(),
       isFavorite: json['isFavorite'] ?? false,
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
       longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
-      imageUrls: (json['imageUrls'] as List? ?? [])
-          .map((e) => ImageUtils.cleanImageUrl(e.toString()))
-          .whereType<String>()
-          .toList(),
+      imageUrls: imageUrls,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
     );

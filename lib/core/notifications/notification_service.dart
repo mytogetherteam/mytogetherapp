@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
@@ -30,9 +30,10 @@ class NotificationService {
     }
     return _fcm!; 
   }
-  final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
+  String? _registeredFcmToken;
   bool _isInitialized = false;
 
   Future<void> initialize() async {
@@ -147,8 +148,28 @@ class NotificationService {
   }
 
   Future<void> registerDevice() async {
-    // Run registration in background to avoid blocking main execution
     _registerDeviceInBackground();
+  }
+
+  /// Removes the current FCM token from the backend (call before logout).
+  Future<void> unregisterDevice() async {
+    try {
+      final token = _registeredFcmToken ??
+          await FirebaseMessaging.instance
+              .getToken()
+              .timeout(const Duration(seconds: 5));
+      if (token == null || token.isEmpty) return;
+
+      await ApiClient().dio.delete(
+        '${ApiClient.apiPrefix}/user/device-tokens',
+        data: {'token': token},
+      );
+      if (_registeredFcmToken == token) {
+        _registeredFcmToken = null;
+      }
+    } catch (e) {
+      debugPrint('FCM token unregister failed: $e');
+    }
   }
 
   Future<void> _registerDeviceInBackground() async {
@@ -164,18 +185,24 @@ class NotificationService {
 
   Future<void> _sendTokenToServer(String token) async {
     try {
-      String deviceId = await _getDeviceId();
-      
       await ApiClient().dio.post(
-        '/api/v1/mobile/notifications/register-device',
+        '${ApiClient.apiPrefix}/user/device-tokens',
         data: {
-          'fcmToken': token,
-          'deviceId': deviceId,
+          'token': token,
+          'platform': _devicePlatform,
         },
       );
+      _registeredFcmToken = token;
     } catch (e) {
-      // Ignore token registration errors
+      debugPrint('FCM token registration failed: $e');
     }
+  }
+
+  String get _devicePlatform {
+    if (kIsWeb) return 'web';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isAndroid) return 'android';
+    return 'web';
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
@@ -198,17 +225,6 @@ class NotificationService {
       platformChannelSpecifics,
       payload: 'item_id',
     );
-  }
-
-  Future<String> _getDeviceId() async {
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await _deviceInfo.androidInfo;
-      return androidInfo.id;
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await _deviceInfo.iosInfo;
-      return iosInfo.identifierForVendor ?? 'unknown_ios_device';
-    }
-    return 'unknown_device';
   }
 
   void _handleNotificationClick(RemoteMessage? message) {

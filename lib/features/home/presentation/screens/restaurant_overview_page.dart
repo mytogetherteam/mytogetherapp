@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/restaurant_data.dart';
@@ -146,9 +146,9 @@ class RestaurantOverviewPage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildInfoItem(PhosphorIcons.car(), restaurant.distance),
+                      _buildInfoItem(PhosphorIcons.car, restaurant.distance),
                       _buildDot(),
-                      _buildInfoItem(PhosphorIcons.clock(), restaurant.deliveryTime),
+                      _buildInfoItem(PhosphorIcons.clock, restaurant.deliveryTime),
                       _buildDot(),
                       Text(
                         restaurant.status,
@@ -194,10 +194,20 @@ class RestaurantOverviewPage extends StatelessWidget {
                           ];
                         }
 
-                        // Sort from Monday (1) to Sunday (7)
-                        int dayToNumber(String day) {
+                        // The backend stores dayOfWeek using the JavaScript
+                        // convention: 0 = Sunday, 1 = Monday … 6 = Saturday.
+                        // We normalize to a Monday-first index (Mon = 1 …
+                        // Sun = 7) so the list reads Monday → Sunday and lines
+                        // up with Dart's `DateTime.weekday` for "today".
+                        int mondayFirstIndex(String day) {
                           final number = int.tryParse(day);
-                          if (number != null) return number;
+                          if (number != null) {
+                            // JS Sunday (0) → 7 so it sorts last. Tolerate
+                            // legacy 1–7 data where 7 already means Sunday.
+                            if (number == 0) return 7;
+                            if (number >= 1 && number <= 7) return number;
+                            return 8;
+                          }
 
                           switch (day.toUpperCase()) {
                             case 'MONDAY': return 1;
@@ -211,20 +221,25 @@ class RestaurantOverviewPage extends StatelessWidget {
                           }
                         }
 
+                        const dayNames = <int, String>{
+                          1: 'Monday',
+                          2: 'Tuesday',
+                          3: 'Wednesday',
+                          4: 'Thursday',
+                          5: 'Friday',
+                          6: 'Saturday',
+                          7: 'Sunday',
+                        };
+
                         String formatDayName(String day) {
-                          if (day == '1') return 'Monday';
-                          if (day == '2') return 'Tuesday';
-                          if (day == '3') return 'Wednesday';
-                          if (day == '4') return 'Thursday';
-                          if (day == '5') return 'Friday';
-                          if (day == '6') return 'Saturday';
-                          if (day == '7') return 'Sunday';
+                          final name = dayNames[mondayFirstIndex(day)];
+                          if (name != null) return name;
                           if (day.isEmpty) return '';
                           return day[0].toUpperCase() + day.substring(1).toLowerCase();
                         }
 
                         final sortedHours = List<OperatingHourDto>.from(restaurant.operatingHours)
-                          ..sort((a, b) => dayToNumber(a.dayOfWeek).compareTo(dayToNumber(b.dayOfWeek)));
+                          ..sort((a, b) => mondayFirstIndex(a.dayOfWeek).compareTo(mondayFirstIndex(b.dayOfWeek)));
 
                         final currentDay = DateTime.now().weekday;
 
@@ -232,7 +247,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                           final int index = entry.key;
                           final h = entry.value;
                           final bool isLast = index == sortedHours.length - 1;
-                          final bool isToday = dayToNumber(h.dayOfWeek) == currentDay;
+                          final bool isToday = mondayFirstIndex(h.dayOfWeek) == currentDay;
 
                           return Column(
                             children: [
