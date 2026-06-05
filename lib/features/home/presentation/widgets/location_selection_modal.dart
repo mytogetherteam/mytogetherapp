@@ -106,6 +106,18 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
             );
           }
         } else {
+          if (UserLocationRepository.instance.isAtLocationLimit(_apiLocations)) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(UserLocationRepository.locationLimitMessage),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
           // Add as new primary
           final newLoc = UserLocationModel(
             id: 0,
@@ -128,8 +140,14 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating location: $e'),
+            content: Text(
+              UserLocationRepository.errorMessage(
+                e,
+                fallback: 'Could not update your location. Please try again.',
+              ),
+            ),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

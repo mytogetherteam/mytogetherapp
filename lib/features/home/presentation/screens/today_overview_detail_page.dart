@@ -119,16 +119,6 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       );
       // We don't necessarily need to reload everything here as we have the local override,
       // but we could refresh if needed.
-      
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       // Rollback on error
       if (mounted) {

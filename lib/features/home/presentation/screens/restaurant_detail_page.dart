@@ -1068,17 +1068,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         shopId,
         newStatus,
       );
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              newStatus ? 'Added to favorites' : 'Removed from favorites',
-            ),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (_) {
       if (mounted) {
         setState(() => _isFavorite = !newStatus);
@@ -1106,18 +1095,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         item.id,
         newStatus,
       );
-
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              newStatus ? 'Added to favorites' : 'Removed from favorites',
-            ),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       // Rollback on error
       if (mounted) {

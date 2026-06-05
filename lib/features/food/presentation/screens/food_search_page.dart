@@ -10,7 +10,9 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
+import 'package:mytogetherapp/features/home/data/models/master_category_dto.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/menu_detail_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
@@ -20,8 +22,6 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../data/demo_food_search_data.dart';
-
 enum SearchFlowState { idle, typing, searched }
 
 class FoodSearchPage extends StatefulWidget {
@@ -29,7 +29,15 @@ class FoodSearchPage extends StatefulWidget {
   /// search immediately (used by the Popular Categories rail).
   final String? initialQuery;
 
-  const FoodSearchPage({super.key, this.initialQuery});
+  /// When set, applies `masterCategoryId` to shop search filters (from
+  /// `GET /api/user/master-menu-categories/popular`).
+  final int? initialMasterCategoryId;
+
+  const FoodSearchPage({
+    super.key,
+    this.initialQuery,
+    this.initialMasterCategoryId,
+  });
 
   @override
   State<FoodSearchPage> createState() => _FoodSearchPageState();
@@ -47,6 +55,8 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   List<SearchShopDto> _shopResults = [];
   List<MenuItemSearchResultDto> _menuItemResults = [];
   List<String> _recentSearches = [];
+  List<MasterCategoryDto> _popularCategories = [];
+  bool _isLoadingCategories = true;
   bool _isLoading = false;
   String? _errorMessage;
   SearchFilters _filters = SearchFilters.empty;
@@ -55,7 +65,13 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   void initState() {
     super.initState();
     _loadRecentSearches();
+    _loadPopularCategories();
     final seed = widget.initialQuery?.trim();
+    if (widget.initialMasterCategoryId != null) {
+      _filters = SearchFilters(
+        masterCategoryId: widget.initialMasterCategoryId,
+      );
+    }
     if (seed != null && seed.isNotEmpty) {
       _searchController.text = seed;
       _currentState = SearchFlowState.searched;
@@ -73,6 +89,26 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPopularCategories() async {
+    if (!AuthService().isLoggedIn) {
+      if (mounted) setState(() => _isLoadingCategories = false);
+      return;
+    }
+    try {
+      final categories = await RestaurantRepository.instance
+          .getPopularMasterCategories(limit: 16)
+          .timeout(const Duration(seconds: 10));
+      if (mounted) {
+        setState(() {
+          _popularCategories = categories;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingCategories = false);
+    }
   }
 
   Future<void> _loadRecentSearches() async {
@@ -170,6 +206,23 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     setState(() => _currentState = SearchFlowState.searched);
     _searchFocus.unfocus();
     _runSearch(term, persistRecent: true);
+  }
+
+  /// Filters shops/menu by master category id (`GET /api/user/search`).
+  void _onPopularCategoryTap(MasterCategoryDto category) {
+    setState(() {
+      _filters = SearchFilters(masterCategoryId: category.id);
+      _searchController.text = category.displayName;
+      _currentState = SearchFlowState.searched;
+    });
+    _searchFocus.unfocus();
+    _runSearch(category.displayName, persistRecent: true);
+  }
+
+  String _categoryImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http') || path.startsWith('assets/')) return path;
+    return '${ApiClient.baseUrl}/$path';
   }
 
   Future<void> _runSearch(String query, {required bool persistRecent}) async {
@@ -501,56 +554,91 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               ),
               const SizedBox(height: 28),
             ],
-            Text(
-              'Popular Categories',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.blueGrey[400],
+            if (_isLoadingCategories)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: CustomLoadingIndicator(size: 28),
+                ),
+              )
+            else if (_popularCategories.isNotEmpty) ...[
+              Text(
+                'Popular Categories',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blueGrey[400],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: DemoFoodSearchData.categories.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 2.6,
-              ),
-              itemBuilder: (context, index) {
-                final category = DemoFoodSearchData.categories[index];
-                return GestureDetector(
-                  onTap: () => _onRecentOrCategoryTap(category['name']!),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          category['name']!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _popularCategories.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 2.6,
+                ),
+                itemBuilder: (context, index) {
+                  final category = _popularCategories[index];
+                  final imageUrl = _categoryImageUrl(category.imageUrl);
+                  return GestureDetector(
+                    onTap: () => _onPopularCategoryTap(category),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              category.displayName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        Text(
-                          category['emoji']!,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: imageUrl.isEmpty
+                                ? Icon(
+                                    PhosphorIcons.forkKnife,
+                                    size: 22,
+                                    color: Colors.grey[400],
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: 32,
+                                    height: 32,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, _) =>
+                                        const ImageSkeletonLoader(
+                                      width: 32,
+                                      height: 32,
+                                    ),
+                                    errorWidget: (_, _, _) => Icon(
+                                      PhosphorIcons.forkKnife,
+                                      size: 22,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),

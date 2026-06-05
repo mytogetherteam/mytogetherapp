@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'image_skeleton_loader.dart';
-import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'food_menu_item_card.dart';
@@ -209,18 +208,6 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
       );
       // No longer refreshing the future here to prevent flickering.
       // The local state _localFavorites handles the immediate color change.
-
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              newStatus ? 'Added to favorites' : 'Removed from favorites',
-            ),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       // Rollback on error
       if (mounted) {

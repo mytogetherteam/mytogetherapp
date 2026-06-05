@@ -1,24 +1,36 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../data/repositories/order_review_repository.dart';
+import '../../data/repositories/shop_review_repository.dart';
 import '../../data/review_demo_data.dart';
 import '../widgets/review_success_bottom_sheet.dart';
 
-/// Lets a user rate a delivered order via the new backend endpoint
-/// `POST /api/user/order-reviews`. The local tags are kept as a UI
-/// affordance — tags are prepended to the `comment` field so they aren't
-/// lost server-side. Image upload is intentionally omitted for now.
+/// Lets a user write a review in one of two modes:
+///   • Order review  — `POST /api/user/order-reviews` (when [orderId] is set).
+///     These are permanent (no edit/delete endpoint on the backend).
+///   • Shop review   — `POST /api/user/reviews` (when [shopId] is set).
+///     One review per shop; submitting again returns 409.
+///
+/// The local tags are a UI affordance — they are prepended to the `comment`
+/// field so they aren't lost server-side. Image upload is intentionally
+/// omitted for now.
 class WriteReviewPage extends StatefulWidget {
   final int? orderId;
+
+  /// Shop being reviewed directly. Used when [orderId] is null.
+  final int? shopId;
   final String? shopName;
   final int initialRating;
 
   const WriteReviewPage({
     super.key,
     this.orderId,
+    this.shopId,
     this.shopName,
     this.initialRating = 0,
   });
@@ -58,15 +70,22 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     if (_rating <= 0) return;
 
     final orderId = widget.orderId;
-    if (orderId == null) {
-      // Demo mode (no order context) — keep the legacy success flow.
+    final shopId = widget.shopId;
+
+    if (orderId != null) {
+      await _submitOrderReview(orderId);
+    } else if (shopId != null) {
+      await _submitShopReview(shopId);
+    } else {
+      // Demo mode (no order/shop context) — keep the legacy success flow.
       final result = await ReviewSuccessBottomSheet.show(context);
       if (result == true && mounted) {
         Navigator.pop(context, true);
       }
-      return;
     }
+  }
 
+  Future<void> _submitOrderReview(int orderId) async {
     setState(() => _submitting = true);
 
     final result = await OrderReviewRepository.instance.create(
@@ -93,10 +112,108 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     );
   }
 
+  Future<void> _submitShopReview(int shopId) async {
+    setState(() => _submitting = true);
+
+    try {
+      await ShopReviewRepository.instance.create(
+        shopId: shopId,
+        rating: _rating.toDouble(),
+        comment: _composeComment(),
+      );
+
+      if (!mounted) return;
+      setState(() => _submitting = false);
+
+      final ok = await ReviewSuccessBottomSheet.show(context);
+      if (ok == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+
+      final message = e.response?.statusCode == 409
+          ? 'You have already reviewed this shop.'
+          : dioErrorMessage(e, fallback: 'Could not submit review.');
+      AppDialog.showToast(context, message, isError: true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      AppDialog.showToast(
+        context,
+        'Something went wrong. Please try again.',
+        isError: true,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _reviewController.dispose();
     super.dispose();
+  }
+
+  Widget _buildPermanentNotice() {
+    const Color amber700 = Color(0xFFB45309);
+    const Color amber50 = Color(0xFFFFFBEB);
+    const Color amber200 = Color(0xFFFDE68A);
+
+    // Order reviews are permanent (no edit/delete endpoint). Shop reviews can
+    // be updated/deleted, so we soften the wording but still stress honesty.
+    final bool isPermanent = widget.orderId != null;
+    final String title =
+        isPermanent ? 'Reviews are permanent' : 'Reviews are public';
+    final String body = isPermanent
+        ? 'Once submitted, your review cannot be edited or deleted. '
+            'Please make sure your rating and feedback are honest and fair.'
+        : 'Your review will be visible to others and represents your honest '
+            'experience. You can only review this shop once, so please make '
+            'sure your rating and feedback are fair.';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: amber50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: amber200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: amber700,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: amber700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  body,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: amber700.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -128,6 +245,8 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildPermanentNotice(),
+                const SizedBox(height: 20),
                 if (widget.shopName != null && widget.shopName!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),

@@ -44,7 +44,7 @@ class OrderSummaryPage extends StatefulWidget {
 class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isDelivery = true;
   bool _isPriorityDelivery = true;
-  String _selectedPaymentMethodCode = 'PROMPTPAY';
+  int? _selectedPaymentMethodId;
   Restaurant? _restaurant;
 
   bool _isPlacingOrder = false;
@@ -66,45 +66,48 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               cachedPaymentTypes != null &&
               cachedPaymentTypes.isNotEmpty) {
             setState(() {
-              _paymentTypes = cachedPaymentTypes;
-              final firstActive = cachedPaymentTypes
-                  .where((t) => t.isActive)
-                  .firstOrNull;
-              if (firstActive != null) {
-                _selectedPaymentMethodCode = firstActive.paymentMethodCode;
-              }
+              _applyPaymentTypes(cachedPaymentTypes);
             });
           }
         });
 
-        // 2. Fetch from API to ensure data is fresh
+        // 2. Fetch shop details (restaurant info + route pre-fetch).
         RestaurantRepository.instance.getShopById(restaurantId).then((shop) {
           if (mounted) {
-            setState(() {
-              _restaurant = shop;
-              _paymentTypes = shop.paymentTypes;
-              if (shop.paymentTypes.isNotEmpty) {
-                // Only override if the currently selected one is not in the new list or we haven't selected anything yet
-                final firstActive = shop.paymentTypes
-                    .where((t) => t.isActive)
-                    .firstOrNull;
-                if (firstActive != null) {
-                  // If the currently selected code is NOT in the fresh list, or it's just the default, update it
-                  final currentStillExists = shop.paymentTypes.any(
-                    (t) =>
-                        t.paymentMethodCode == _selectedPaymentMethodCode &&
-                        t.isActive,
-                  );
-                  if (!currentStillExists) {
-                    _selectedPaymentMethodCode = firstActive.paymentMethodCode;
-                  }
-                }
-              }
-            });
+            setState(() => _restaurant = shop);
             _preFetchRoute(); // Start pre-fetching route
           }
         });
+
+        // 3. Fetch the authoritative payment methods for this shop from the
+        //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
+        _loadShopPaymentMethods(restaurantId);
       }
+    }
+  }
+
+  Future<void> _loadShopPaymentMethods(int shopId) async {
+    try {
+      final methods = await RestaurantRepository.instance
+          .getShopPaymentMethods(shopId);
+      if (!mounted || methods.isEmpty) return;
+      setState(() => _applyPaymentTypes(methods));
+    } catch (_) {
+      // Keep cached / shop-profile payment types as a fallback on failure.
+    }
+  }
+
+  /// Stores the payment list and keeps the current selection valid, defaulting
+  /// to the first active method when nothing valid is selected yet.
+  void _applyPaymentTypes(List<ShopPaymentTypeDto> methods) {
+    _paymentTypes = methods;
+    final active = methods.where((t) => t.isActive).toList();
+    final stillValid =
+        active.any((t) => t.paymentMethodId == _selectedPaymentMethodId);
+    if (!stillValid) {
+      _selectedPaymentMethodId = active.isNotEmpty
+          ? active.first.paymentMethodId
+          : null;
     }
   }
 
@@ -599,9 +602,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 final paymentTypes = allPaymentTypes.where((
                                   type,
                                 ) {
-                                  if (type.paymentMethodCode ==
-                                          'CASH_ON_DELIVERY' &&
-                                      _isDelivery) {
+                                  if (type.isCashOnDelivery && _isDelivery) {
                                     return false;
                                   }
                                   return true;
@@ -635,33 +636,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     final type = paymentTypes[index];
 
                                     return _buildPaymentOptionTile(
-                                      type.paymentMethodCode,
-                                      type.paymentMethodName ??
-                                          type.paymentMethodCode,
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          type.paymentMethodCode ==
-                                                  'CASH_ON_DELIVERY'
-                                              ? PhosphorIconsRegular.money
-                                              : type.paymentMethodCode ==
-                                                    'PROMPTPAY'
-                                              ? PhosphorIconsRegular.qrCode
-                                              : PhosphorIconsRegular.creditCard,
-                                          color: const Color(0xFF64748B),
-                                          size: 20,
-                                        ),
-                                      ),
+                                      type.paymentMethodId,
+                                      type.displayName,
+                                      _buildPaymentIcon(type),
                                     );
                                   },
                                 );
@@ -809,7 +786,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         "paymentMethodId":
                                             _resolvePaymentMethodId(
                                               _paymentTypes,
-                                              _selectedPaymentMethodCode,
+                                              _selectedPaymentMethodId,
                                             ),
                                         "items": storeItems
                                             .map(
@@ -924,17 +901,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     final selectedMethodId =
                                         _resolvePaymentMethodId(
                                           _paymentTypes,
-                                          _selectedPaymentMethodCode,
+                                          _selectedPaymentMethodId,
                                         );
                                     final selectedMethodImage =
                                         _resolvePaymentMethodImageUrl(
                                           _paymentTypes,
-                                          _selectedPaymentMethodCode,
+                                          _selectedPaymentMethodId,
                                         );
 
                                     ActiveOrderState.instance.setOrderDetails(
                                       totalAmount: foodTotal.toDouble(),
-                                      paymentMethod: _selectedPaymentMethodCode,
+                                      paymentMethod:
+                                          _selectedPaymentType?.displayName ??
+                                          'Payment',
                                       paymentMethodId: selectedMethodId,
                                       paymentMethodImageUrl:
                                           selectedMethodImage,
@@ -1009,62 +988,108 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
+  /// The currently selected payment method, or the first active one.
+  ShopPaymentTypeDto? get _selectedPaymentType {
+    final types = _paymentTypes;
+    if (types == null || types.isEmpty) return null;
+    final active = types.where((t) => t.isActive).toList();
+    if (active.isEmpty) return null;
+    return active.firstWhere(
+      (t) => t.paymentMethodId == _selectedPaymentMethodId,
+      orElse: () => active.first,
+    );
+  }
+
   int _resolvePaymentMethodId(
     List<ShopPaymentTypeDto>? paymentTypes,
-    String selectedCode,
+    int? selectedId,
   ) {
     if (paymentTypes == null || paymentTypes.isEmpty) {
-      return 1;
+      return selectedId ?? 1;
     }
-
-    try {
-      final match = paymentTypes.firstWhere(
-        (type) => type.paymentMethodCode == selectedCode && type.isActive,
-      );
-      return match.paymentMethodId;
-    } catch (_) {
-      try {
-        return paymentTypes.firstWhere((type) => type.isActive).paymentMethodId;
-      } catch (_) {
-        return 1;
-      }
-    }
+    final active = paymentTypes.where((t) => t.isActive).toList();
+    final match = active
+        .where((t) => t.paymentMethodId == selectedId)
+        .firstOrNull;
+    if (match != null) return match.paymentMethodId;
+    if (active.isNotEmpty) return active.first.paymentMethodId;
+    return selectedId ?? 1;
   }
 
   String? _resolvePaymentMethodImageUrl(
     List<ShopPaymentTypeDto>? paymentTypes,
-    String selectedCode,
+    int? selectedId,
   ) {
     if (paymentTypes == null || paymentTypes.isEmpty) return null;
-    try {
-      final match = paymentTypes.firstWhere(
-        (type) => type.paymentMethodCode == selectedCode && type.isActive,
-      );
-      String? imageUrl = match.qrImageUrl;
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        imageUrl = imageUrl.replaceAll('\\', '/');
-        if (imageUrl.startsWith('http://localhost') ||
-            imageUrl.startsWith('http://10.0.2.2')) {
-          imageUrl = imageUrl.replaceAll(
-            RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
-            ApiClient.baseUrl,
-          );
-        } else if (!imageUrl.startsWith('http')) {
-          imageUrl = imageUrl.startsWith('/')
-              ? '${ApiClient.baseUrl}$imageUrl'
-              : '${ApiClient.baseUrl}/$imageUrl';
-        }
-      }
-      return imageUrl;
-    } catch (_) {
-      return null;
-    }
+    final active = paymentTypes.where((t) => t.isActive).toList();
+    final match =
+        active.where((t) => t.paymentMethodId == selectedId).firstOrNull;
+    if (match == null) return null;
+    return _normalizeImageUrl(match.qrImageUrl);
   }
 
-  Widget _buildPaymentOptionTile(String code, String title, Widget iconWidget) {
-    final isSelected = _selectedPaymentMethodCode == code;
+  /// Rewrites a stored image path/URL to an absolute, reachable URL.
+  String? _normalizeImageUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    var imageUrl = raw.replaceAll('\\', '/');
+    if (imageUrl.startsWith('http://localhost') ||
+        imageUrl.startsWith('http://10.0.2.2')) {
+      imageUrl = imageUrl.replaceAll(
+        RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
+        ApiClient.baseUrl,
+      );
+    } else if (!imageUrl.startsWith('http')) {
+      imageUrl = imageUrl.startsWith('/')
+          ? '${ApiClient.baseUrl}$imageUrl'
+          : '${ApiClient.baseUrl}/$imageUrl';
+    }
+    return imageUrl;
+  }
+
+  /// Renders the payment-method avatar: the backend icon when available,
+  /// otherwise a sensible Phosphor fallback based on the method type.
+  Widget _buildPaymentIcon(ShopPaymentTypeDto type) {
+    final iconUrl = _normalizeImageUrl(type.iconUrl);
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: iconUrl != null
+          ? Image.network(
+              iconUrl,
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stack) =>
+                  _fallbackPaymentIcon(type),
+            )
+          : _fallbackPaymentIcon(type),
+    );
+  }
+
+  Widget _fallbackPaymentIcon(ShopPaymentTypeDto type) {
+    return Center(
+      child: Icon(
+        type.isCashOnDelivery
+            ? PhosphorIconsRegular.money
+            : type.qrImageUrl != null && type.qrImageUrl!.isNotEmpty
+            ? PhosphorIconsRegular.qrCode
+            : PhosphorIconsRegular.creditCard,
+        color: const Color(0xFF64748B),
+        size: 20,
+      ),
+    );
+  }
+
+  Widget _buildPaymentOptionTile(int id, String title, Widget iconWidget) {
+    final isSelected = _selectedPaymentMethodId == id;
     return InkWell(
-      onTap: () => setState(() => _selectedPaymentMethodCode = code),
+      onTap: () => setState(() => _selectedPaymentMethodId = id),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),

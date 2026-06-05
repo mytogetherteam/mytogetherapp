@@ -4,6 +4,7 @@ class AnnouncementModel {
   final int id;
   final String title;
   final String message;
+  final String? imageUrl;
   final String? audience;
   final Map<String, dynamic>? data;
   final DateTime createdAt;
@@ -14,6 +15,7 @@ class AnnouncementModel {
     required this.id,
     required this.title,
     required this.message,
+    this.imageUrl,
     this.audience,
     this.data,
     required this.createdAt,
@@ -28,6 +30,7 @@ class AnnouncementModel {
       id: (json['id'] as num).toInt(),
       title: json['title']?.toString() ?? '',
       message: json['message']?.toString() ?? json['body']?.toString() ?? '',
+      imageUrl: (json['imageUrl'] ?? json['image_url'])?.toString(),
       audience: json['audience']?.toString(),
       data: json['data'] is Map<String, dynamic>
           ? json['data'] as Map<String, dynamic>
@@ -45,6 +48,7 @@ class AnnouncementModel {
       id: id,
       title: title,
       message: message,
+      imageUrl: imageUrl,
       audience: audience,
       data: data,
       createdAt: createdAt,

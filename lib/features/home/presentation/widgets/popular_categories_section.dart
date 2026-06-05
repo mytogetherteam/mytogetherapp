@@ -51,7 +51,10 @@ class _PopularCategoriesSectionState extends State<PopularCategoriesSection> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FoodSearchPage(initialQuery: category.displayName),
+        builder: (_) => FoodSearchPage(
+          initialQuery: category.displayName,
+          initialMasterCategoryId: category.id,
+        ),
       ),
     );
   }

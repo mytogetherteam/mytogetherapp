@@ -686,18 +686,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       );
       // No longer refreshing the future here to prevent flickering.
       // The local state _localFavorites handles the immediate color change.
-
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              newStatus ? 'Added to favorites' : 'Removed from favorites',
-            ),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       // Rollback on error
       if (mounted) {

@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/models/announcement_model.dart';
 import '../../data/repositories/announcement_repository.dart';
+import '../widgets/announcement_detail_sheet.dart';
 
 class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({super.key});
@@ -72,6 +73,11 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       });
       _load();
     }
+  }
+
+  void _openDetail(AnnouncementModel item) {
+    AnnouncementDetailSheet.show(context, item);
+    _markAsRead(item);
   }
 
   Future<void> _markAsRead(AnnouncementModel item) async {
@@ -188,7 +194,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       ),
       onDismissed: (_) => _dismiss(item),
       child: InkWell(
-        onTap: () => _markAsRead(item),
+        onTap: () => _openDetail(item),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

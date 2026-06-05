@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/fallback_data.dart';
-import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../screens/place_detail_page.dart';
 import '../screens/places_list_page.dart';
 
@@ -27,18 +26,6 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
         _favoriteIndices.add(index);
       }
     });
-
-    if (mounted) {
-      final isAdded = _favoriteIndices.contains(index);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isAdded ? 'Added to favorites' : 'Removed from favorites'),
-          duration: const Duration(seconds: 2),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   @override

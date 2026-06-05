@@ -84,6 +84,24 @@ class RemoteRestaurantDataSource {
     }
   }
 
+  /// Active payment methods for a shop, used in the order/checkout flow.
+  /// Backend (auth): `GET /api/user/shops/:shopId/payment-methods`
+  /// (`UserShopPaymentMethodsController`). Returns `{ success, data: [...] }`
+  /// where each row is a `shopPaymentMethod` with its `paymentMethod` relation.
+  Future<List<ShopPaymentTypeDto>> getShopPaymentMethods(int shopId) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/shops/$shopId/payment-methods',
+    );
+    final raw = response.data;
+    final List<dynamic> data = raw is Map
+        ? (raw['data'] as List<dynamic>? ?? const [])
+        : (raw is List ? raw : const []);
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(ShopPaymentTypeDto.fromUserApiJson)
+        .toList();
+  }
+
   Future<TrendingSectionDto> getTrendingItems({
     required double lat,
     required double lon,

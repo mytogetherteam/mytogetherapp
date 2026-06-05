@@ -781,19 +781,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                 int.tryParse(widget.id) ?? 0,
                                 _isFavorite,
                               );
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _isFavorite
-                                      ? 'Added to favorites'
-                                      : 'Removed from favorites',
-                                ),
-                                backgroundColor: AppColors.primary,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
                         } catch (e) {
                           // Rollback on error
                           if (mounted) {

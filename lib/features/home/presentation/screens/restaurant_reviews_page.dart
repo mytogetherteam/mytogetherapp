@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../reviews/presentation/screens/write_review_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
 
@@ -37,10 +38,37 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
     );
   }
 
+  Future<void> _writeReview() async {
+    final submitted = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WriteReviewPage(
+          shopId: widget.shopId,
+          shopName: widget.restaurantName,
+        ),
+      ),
+    );
+    if (submitted == true && mounted) {
+      setState(_loadData);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Very light gray background
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _writeReview,
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.rate_review_outlined, color: Colors.white),
+        label: Text(
+          'Write a Review',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

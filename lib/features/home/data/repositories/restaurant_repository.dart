@@ -313,6 +313,12 @@ class RestaurantRepository {
     }
   }
 
+  /// Active payment methods for a shop, used by the checkout flow.
+  /// Backend (auth): `GET /api/user/shops/:shopId/payment-methods`.
+  Future<List<ShopPaymentTypeDto>> getShopPaymentMethods(int shopId) async {
+    return _remoteDataSource.getShopPaymentMethods(shopId);
+  }
+
   /// Great-circle distance in kilometers (haversine).
   double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
     const earthRadiusKm = 6371.0;

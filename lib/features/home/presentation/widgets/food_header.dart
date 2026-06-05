@@ -124,7 +124,21 @@ class _FoodHeaderState extends State<FoodHeader> {
             UserLocationRepository.instance.setActiveLocation(savedLoc);
           }
         } catch (e) {
-          // We still show the detected location even if saving fails
+          // Keep showing the detected location; explain why save failed.
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  UserLocationRepository.errorMessage(
+                    e,
+                    fallback: 'Could not save your location.',
+                  ),
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       } else {
         if (mounted) setState(() => _isLoading = false);

@@ -33,6 +33,33 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   bool _isProcessingApi = false;
   bool _hasChanges = false;
 
+  bool get _isAtLocationLimit =>
+      UserLocationRepository.instance.isAtLocationLimit(_apiLocations);
+
+  void _showLocationLimitSnack() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(UserLocationRepository.locationLimitMessage),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showLocationErrorSnack(Object error, String fallback) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          UserLocationRepository.errorMessage(error, fallback: fallback),
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +125,11 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
   Future<void> _saveNewLocation(PlaceResult place) async {
     if (_isProcessingApi) return;
-    
+    if (_isAtLocationLimit) {
+      _showLocationLimitSnack();
+      return;
+    }
+
     try {
       setState(() => _isProcessingApi = true);
       // Get details (lat/lon) if missing
@@ -147,11 +178,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 );
               }
             } catch (e) {
-               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error saving location: $e'), backgroundColor: Colors.red),
-                );
-              }
+              _showLocationErrorSnack(
+                e,
+                'Could not save this location. Please try again.',
+              );
             } finally {
               if (mounted) setState(() => _isProcessingApi = false);
             }
@@ -161,9 +191,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingApi = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        _showLocationErrorSnack(e, 'Could not load place details.');
       }
     }
   }
@@ -173,6 +201,11 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   /// current location / last known GPS fix when available so the saved
   /// location still has usable coordinates.
   void _createNewLocation() {
+    if (_isAtLocationLimit) {
+      _showLocationLimitSnack();
+      return;
+    }
+
     final current = _currentLocationResult;
     final initialModel = UserLocationModel(
       id: 0,
@@ -202,11 +235,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               );
             }
           } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error creating location: $e'), backgroundColor: Colors.red),
-              );
-            }
+            _showLocationErrorSnack(
+              e,
+              'Could not create this location. Please try again.',
+            );
           } finally {
             if (mounted) setState(() => _isProcessingApi = false);
           }
@@ -229,11 +261,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating location: $e'), backgroundColor: Colors.red),
-        );
-      }
+      _showLocationErrorSnack(
+        e,
+        'Could not update this location. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _isProcessingApi = false);
     }
@@ -418,19 +449,36 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
             ),
           ),
-          TextButton.icon(
-            onPressed: _createNewLocation,
-            icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-            label: Text(
-              'Add New',
-              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
-            ),
-            style: TextButton.styleFrom(
+          if (_isAtLocationLimit)
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: const Size(0, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              child: Text(
+                '3/3 saved',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            )
+          else
+            TextButton.icon(
+              onPressed: _createNewLocation,
+              icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
+              label: Text(
+                'Add New',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -589,18 +589,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                           : PhosphorIcons.heart,
                       onPressed: () {
                         setState(() => _isFavorite = !_isFavorite);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _isFavorite
-                                  ? 'Saved to favorites'
-                                  : 'Removed from favorites',
-                            ),
-                            duration: const Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
                       },
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,

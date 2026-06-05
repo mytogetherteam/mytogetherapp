@@ -8,7 +8,6 @@ import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/location/location_service.dart';
-import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -59,15 +58,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         int.tryParse(restaurant.id) ?? 0,
         newStatus,
       );
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(newStatus ? 'Added to favorites' : 'Removed from favorites'),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       if (mounted) {
         setState(() {

@@ -1,11 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/dio_error_message.dart';
 import '../models/user_location_model.dart';
 
 class UserLocationRepository extends ChangeNotifier {
   static final UserLocationRepository instance = UserLocationRepository._internal();
   UserLocationRepository._internal();
+
+  /// Mirrors `MAX_USER_LOCATIONS` in the NestJS backend.
+  static const int maxSavedLocations = 3;
+
+  static const String locationLimitMessage =
+      'You can save at most 3 locations. Delete one before adding another.';
 
   final Dio _dio = ApiClient().dio;
   // Backend: UserLocationsController @Controller('user') with @Get('locations')
@@ -52,13 +59,30 @@ class UserLocationRepository extends ChangeNotifier {
     }
   }
 
+  bool isAtLocationLimit(Iterable<UserLocationModel> locations) =>
+      locations.length >= maxSavedLocations;
+
+  Future<bool> canAddLocation() async {
+    final locations = await getRawLocations();
+    return !isAtLocationLimit(locations);
+  }
+
+  /// User-facing text for location create/update failures.
+  static String errorMessage(Object error, {required String fallback}) {
+    if (error is DioException && error.response?.statusCode == 409) {
+      return dioErrorMessage(error, fallback: locationLimitMessage);
+    }
+    return dioErrorMessage(error, fallback: fallback);
+  }
+
   Future<UserLocationModel> addLocation(UserLocationModel location) async {
     try {
       final response = await _dio.post(
         _baseUrl,
         data: location.toJson()..remove('id'), // ID is assigned by backend
       );
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data != null) {
         final dynamic rawData = response.data;
         UserLocationModel saved;
         if (rawData is Map && rawData.containsKey('data')) {
@@ -71,7 +95,7 @@ class UserLocationRepository extends ChangeNotifier {
         return saved;
       }
       throw Exception('Failed to add location');
-    } catch (e) {
+    } on DioException {
       rethrow;
     }
   }

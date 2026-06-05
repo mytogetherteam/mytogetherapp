@@ -518,16 +518,36 @@ class ShopPaymentTypeDto {
   final String? qrImageUrl;
   final String? accountNumber;
   final String? accountName;
+  final String? iconUrl;
 
   ShopPaymentTypeDto({
     required this.paymentMethodId,
-    required this.paymentMethodCode,
+    this.paymentMethodCode = '',
     this.paymentMethodName,
     required this.isActive,
     this.qrImageUrl,
     this.accountNumber,
     this.accountName,
+    this.iconUrl,
   });
+
+  /// Human-readable label for the tile (falls back to the code, then a generic).
+  String get displayName {
+    if (paymentMethodName != null && paymentMethodName!.trim().isNotEmpty) {
+      return paymentMethodName!.trim();
+    }
+    if (paymentMethodCode.isNotEmpty) return paymentMethodCode;
+    return 'Payment';
+  }
+
+  /// Cash-on-delivery is identified by name/code since the backend
+  /// `PaymentMethod` model has no dedicated `code` column.
+  bool get isCashOnDelivery {
+    final value = (paymentMethodName ?? paymentMethodCode).toUpperCase();
+    return value.contains('CASH') ||
+        value.contains('COD') ||
+        value.contains('DELIVERY');
+  }
 
   factory ShopPaymentTypeDto.fromJson(Map<String, dynamic> json) {
     return ShopPaymentTypeDto(
@@ -538,6 +558,35 @@ class ShopPaymentTypeDto {
       qrImageUrl: json['qrImageUrl'],
       accountNumber: json['accountNumber'],
       accountName: json['accountName'],
+      iconUrl: json['iconUrl'],
+    );
+  }
+
+  /// Parses a row from `GET /api/user/shops/:shopId/payment-methods`
+  /// (`UserShopPaymentMethodsController`). Each row is a `shopPaymentMethod`
+  /// with an included `paymentMethod` relation:
+  /// `{ shopId, paymentMethodId, accountName, accountNumber, isActive, qr,
+  ///    paymentMethod: { id, name, iconUrl, isActive } }`.
+  factory ShopPaymentTypeDto.fromUserApiJson(Map<String, dynamic> json) {
+    final pm = json['paymentMethod'] as Map<String, dynamic>?;
+    final name = pm?['name']?.toString();
+    return ShopPaymentTypeDto(
+      paymentMethodId:
+          (json['paymentMethodId'] as num?)?.toInt() ??
+          (pm?['id'] as num?)?.toInt() ??
+          0,
+      paymentMethodName: name,
+      // Synthesize a stable code from the name for icon heuristics
+      // (e.g. "PromptPay" -> "PROMPTPAY", "Cash on Delivery" -> "CASH_ON_DELIVERY").
+      paymentMethodCode: (name ?? '')
+          .trim()
+          .toUpperCase()
+          .replaceAll(RegExp(r'\s+'), '_'),
+      isActive: json['isActive'] as bool? ?? true,
+      qrImageUrl: json['qr']?.toString(),
+      accountNumber: json['accountNumber']?.toString(),
+      accountName: json['accountName']?.toString(),
+      iconUrl: pm?['iconUrl']?.toString(),
     );
   }
 }
