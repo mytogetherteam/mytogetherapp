@@ -1,4 +1,4 @@
-/// Mirrors the recipient-facing broadcast returned by `GET /api/announcements`.
+/// Mirrors the recipient-facing broadcast returned by `GET /api/user/announcements`.
 /// Backend: myshop_demo_api/src/modules/broadcast/user/broadcast-user.service.ts
 class AnnouncementModel {
   final int id;

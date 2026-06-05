@@ -8,6 +8,7 @@ class ShopItemMetadataRow extends StatelessWidget {
   final String? deliveryTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  final bool showDeliveryFee;
   final double iconSize;
   final double fontSize;
 
@@ -19,6 +20,7 @@ class ShopItemMetadataRow extends StatelessWidget {
     this.deliveryTime,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.showDeliveryFee = true,
     this.iconSize = 14.0,
     this.fontSize = 12.0,
   });
@@ -96,8 +98,8 @@ class ShopItemMetadataRow extends StatelessWidget {
       );
     }
 
-    // 4. Delivery Fee
-    if (deliveryFee != null && deliveryFee!.isNotEmpty) {
+    // 4. Delivery Fee (hide empty/zero — API often returns "0" for menu items)
+    if (showDeliveryFee && _hasMeaningfulDeliveryFee(deliveryFee)) {
       elements.add(
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -151,5 +153,16 @@ class ShopItemMetadataRow extends StatelessWidget {
         ]
       ],
     );
+  }
+
+  /// Returns false for null, blank, or zero-valued fees (e.g. "0", "฿0", "Free" is kept).
+  static bool _hasMeaningfulDeliveryFee(String? fee) {
+    if (fee == null || fee.trim().isEmpty) return false;
+    final lower = fee.trim().toLowerCase();
+    if (lower == 'free') return true;
+    final numeric = fee.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (numeric.isEmpty) return true; // non-numeric label, show it
+    final value = double.tryParse(numeric);
+    return value != null && value > 0;
   }
 }

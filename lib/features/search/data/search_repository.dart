@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../home/data/models/shop_dto.dart';
+import '../../home/data/models/trending_item_dto.dart';
 import 'models/search_shop_dto.dart';
+import 'models/search_filters.dart';
 
 /// Talks to the authenticated user search & shop-profile endpoints on the
 /// NestJS backend (`dev` branch):
@@ -18,7 +20,9 @@ class SearchRepository {
 
   bool get _isLoggedIn => AuthService().isLoggedIn;
 
-  /// Full shop search with optional text query and preview menu items.
+  /// Full shop search with optional text query, preview menu items, and
+  /// optional dietary / rating / category filters supported by
+  /// `GET /api/user/search` on the backend.
   Future<SearchPageResult> searchShops({
     required double latitude,
     required double longitude,
@@ -26,6 +30,7 @@ class SearchRepository {
     double? radiusKm,
     int page = 1,
     int size = 20,
+    SearchFilters? filters,
   }) async {
     _requireAuth();
     final response = await _apiClient.dio.get(
@@ -37,15 +42,36 @@ class SearchRepository {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'page': page,
         'size': size,
+        ...?filters?.toQueryParameters(),
+      },
+    );
+    return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Trending shops ranked by completed (DELIVERED) order count in the last
+  /// `days`. Backend: `GET /api/user/shop-profile/trending`.
+  Future<SearchPageResult> getTrendingShops({
+    int page = 1,
+    int size = 10,
+    int? days,
+  }) async {
+    _requireAuth();
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/shop-profile/trending',
+      queryParameters: {
+        'page': page,
+        'size': size,
+        'days': ?days,
       },
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Trending menu items in nearby shops for the current meal type.
-  /// `timeZone` maps to the `X-Timezone` header used by the backend to pick
-  /// the meal type; falls back to Asia/Bangkok server-side.
-  Future<SearchPageResult> searchTrendingNearby({
+  /// Backend: `GET /api/user/search/trending-nearby`.
+  /// `timeZone` maps to the `X-Timezone` header used to pick the meal type;
+  /// falls back to Asia/Bangkok server-side when omitted.
+  Future<TrendingSectionDto> searchTrendingNearby({
     required double latitude,
     required double longitude,
     double? radiusKm,
@@ -67,7 +93,9 @@ class SearchRepository {
           ? Options(headers: {'X-Timezone': timeZone})
           : null,
     );
-    return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
+    return TrendingSectionDto.fromTrendingNearbyResponse(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Nearby shops sorted by rating (no text query).

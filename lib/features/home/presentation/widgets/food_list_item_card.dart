@@ -123,7 +123,8 @@ class FoodListItemCard extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => AppDialog.showUnavailable(context),
+                          onTap: onFavoriteToggle ??
+                              () => AppDialog.showUnavailable(context),
                           child: Icon(
                             isFavorite ? PhosphorIcons.heartFill : PhosphorIcons.heart,
                             color: isFavorite ? AppColors.primary : Colors.grey[400],
@@ -138,8 +139,7 @@ class FoodListItemCard extends StatelessWidget {
                       reviewCount: reviewCount,
                       distanceKm: distanceKm,
                       deliveryTime: estimatedTime,
-                      deliveryFee: deliveryFee,
-                      originalDeliveryFee: originalDeliveryFee,
+                      showDeliveryFee: false,
                     ),
                     if (description.isNotEmpty) ...[
                       const SizedBox(height: 4),

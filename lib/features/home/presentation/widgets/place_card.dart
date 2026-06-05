@@ -59,7 +59,8 @@ class PlaceCard extends StatelessWidget {
               top: 16,
               right: 16,
               child: GestureDetector(
-                onTap: () => AppDialog.showUnavailable(context),
+                onTap: onFavoriteToggle ??
+                    () => AppDialog.showUnavailable(context),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

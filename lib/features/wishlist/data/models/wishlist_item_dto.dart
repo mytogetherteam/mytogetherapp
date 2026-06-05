@@ -53,8 +53,9 @@ class WishlistMenuItemRef {
   final String? nameMm;
   final String? nameTh;
   final String? imageUrl;
-  final double? price;
   final double? originalPrice;
+  final double? discountAmount;
+  final double? discountPercentage;
   final int? shopId;
   final bool isAvailable;
 
@@ -64,14 +65,40 @@ class WishlistMenuItemRef {
     this.nameMm,
     this.nameTh,
     this.imageUrl,
-    this.price,
     this.originalPrice,
+    this.discountAmount,
+    this.discountPercentage,
     this.shopId,
     this.isAvailable = true,
   });
 
   String get displayName =>
       nameEn ?? nameMm ?? nameTh ?? 'Item #$id';
+
+  /// Whether a fixed or percentage discount applies to this item.
+  bool get hasDiscount {
+    if (originalPrice == null) return false;
+    return (discountAmount != null && discountAmount! > 0) ||
+        (discountPercentage != null && discountPercentage! > 0);
+  }
+
+  /// Customer-facing selling price. Mirrors the backend's
+  /// `effectiveMenuItemPrice` (originalPrice minus fixed/percentage discount).
+  /// The backend no longer ships a flat `price` field on menu items.
+  double? get effectivePrice {
+    final base = originalPrice;
+    if (base == null) return null;
+    if (discountAmount != null && discountAmount! > 0) {
+      final discounted = base - discountAmount!;
+      // Bad legacy rows (discount >= price) fall back to the list price.
+      return discounted > 0 ? discounted : base;
+    }
+    if (discountPercentage != null && discountPercentage! > 0) {
+      final discounted = base * (1 - discountPercentage! / 100);
+      return discounted < 0 ? 0 : discounted;
+    }
+    return base;
+  }
 
   factory WishlistMenuItemRef.fromJson(Map<String, dynamic> json) {
     return WishlistMenuItemRef(
@@ -80,8 +107,12 @@ class WishlistMenuItemRef {
       nameMm: json['nameMm']?.toString(),
       nameTh: json['nameTh']?.toString(),
       imageUrl: json['imageUrl']?.toString(),
-      price: (json['price'] as num?)?.toDouble(),
-      originalPrice: (json['originalPrice'] as num?)?.toDouble(),
+      // Backend now sends `originalPrice` + discount fields (no flat `price`).
+      // Keep `price` as a legacy fallback for older payloads.
+      originalPrice: (json['originalPrice'] as num?)?.toDouble() ??
+          (json['price'] as num?)?.toDouble(),
+      discountAmount: (json['discountAmount'] as num?)?.toDouble(),
+      discountPercentage: (json['discountPercentage'] as num?)?.toDouble(),
       shopId: (json['shopId'] as num?)?.toInt(),
       isAvailable: json['isAvailable'] as bool? ?? true,
     );

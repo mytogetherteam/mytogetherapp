@@ -256,7 +256,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                 top: 10,
                                 right: 10,
                                 child: GestureDetector(
-                                  onTap: () => AppDialog.showUnavailable(context),
+                                  onTap: widget.onFavoriteToggle ??
+                                      () => AppDialog.showUnavailable(context),
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
@@ -356,8 +357,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   reviewCount: widget.reviewCount,
                                   distanceKm: widget.distanceKm,
                                   deliveryTime: widget.estimatedTime,
-                                  deliveryFee: widget.deliveryFee,
-                                  originalDeliveryFee: widget.originalDeliveryFee,
+                                  showDeliveryFee: false,
                                   fontSize: 10,
                                   iconSize: 12,
                                 ),

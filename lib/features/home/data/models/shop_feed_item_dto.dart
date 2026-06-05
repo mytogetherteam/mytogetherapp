@@ -1,4 +1,5 @@
 import '../../../../core/utils/image_utils.dart';
+import 'trending_item_dto.dart';
 
 /// A single food item returned by any of the 5 shop feed endpoints
 /// (right-now, for-you, hot-deals, trending, popular-dishes).
@@ -93,6 +94,30 @@ class ShopFeedItemDto {
 
   bool get hasDiscount =>
       originalPrice != null && originalPrice! > price && price > 0;
+
+  /// Builds a feed card from `GET /api/user/search/trending-nearby` items.
+  factory ShopFeedItemDto.fromTrendingItem(TrendingItemDto item) {
+    return ShopFeedItemDto(
+      id: item.id,
+      name: item.name,
+      imageUrl: item.imageUrl.isNotEmpty ? item.imageUrl : null,
+      price: item.price,
+      originalPrice: item.originalPrice,
+      rating: item.rating,
+      reviewCount: item.reviewCount,
+      shopId: item.shopId,
+      shopName: item.shopName,
+      isFavorite: item.isFavorite,
+      currency: item.currency,
+      displayPrice: item.displayPrice,
+      distanceKm: item.distanceKm,
+      estimatedTime: item.estimatedTime,
+      deliveryFee: item.deliveryFee,
+      originalDeliveryFee: item.originalDeliveryFee,
+      isAvailable: item.isAvailable,
+      publishStatus: item.publishStatus,
+    );
+  }
 }
 
 /// Wraps the top-level API response for any shop feed endpoint

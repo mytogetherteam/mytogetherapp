@@ -713,33 +713,37 @@ class _HomePageState extends State<HomePage> {
                                             color: Colors.black,
                                           ),
                                         ),
-                                        Positioned(
-                                          top: -2,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Colors.white,
-                                                width: 1.5,
+                                        if (count > 0)
+                                          Positioned(
+                                            top: -2,
+                                            right: 0,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 16,
+                                                minHeight: 16,
                                               ),
-                                            ),
-                                            child: Text(
-                                              count > 0
-                                                  ? (count > 9
-                                                        ? '9+'
-                                                        : count.toString())
-                                                  : '4', // Mockup shows 4
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                count > 9
+                                                    ? '9+'
+                                                    : count.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   );

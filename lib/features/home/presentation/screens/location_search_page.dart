@@ -168,6 +168,53 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     }
   }
 
+  /// Opens the location form in "create" mode without requiring the user to
+  /// first pick a place from search. Seeds coordinates from the detected
+  /// current location / last known GPS fix when available so the saved
+  /// location still has usable coordinates.
+  void _createNewLocation() {
+    final current = _currentLocationResult;
+    final initialModel = UserLocationModel(
+      id: 0,
+      latitude: current?.lat ?? LocationService().lat,
+      longitude: current?.lon ?? LocationService().lon,
+      locationName: null,
+      address: current?.displayName,
+      locationType: 'OTHER',
+      // First-ever location becomes the primary one.
+      isPrimary: _apiLocations.isEmpty,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => LocationDetailsSheet(
+        location: initialModel,
+        onSave: (UserLocationModel finalModel) async {
+          setState(() => _isProcessingApi = true);
+          try {
+            await UserLocationRepository.instance.addLocation(finalModel);
+            _hasChanges = true;
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Location created successfully'), backgroundColor: AppColors.primary),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error creating location: $e'), backgroundColor: Colors.red),
+              );
+            }
+          } finally {
+            if (mounted) setState(() => _isProcessingApi = false);
+          }
+        },
+      ),
+    );
+  }
+
   Future<void> _updateLocation(UserLocationModel location, {bool? setPrimary, UserLocationModel? fullUpdate}) async {
     if (_isProcessingApi) return;
     setState(() => _isProcessingApi = true);
@@ -326,7 +373,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         _buildCurrentLocationTile(),
-        _buildHeader('Saved Locations'),
+        _buildSavedLocationsHeader(),
         if (_isLoadingApi)
           const LocationSkeletonLoader(isList: true, itemCount: 4)
         else if (_apiLocations.isEmpty)
@@ -360,12 +407,31 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     );
   }
 
-  Widget _buildHeader(String title) {
+  Widget _buildSavedLocationsHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title,
-        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Saved Locations',
+              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _createNewLocation,
+            icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
+            label: Text(
+              'Add New',
+              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
       ),
     );
   }

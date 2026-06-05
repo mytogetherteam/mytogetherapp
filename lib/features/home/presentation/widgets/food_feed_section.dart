@@ -280,8 +280,6 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                   reviewCount: item.reviewCount,
                   distanceKm: item.distanceKm,
                   estimatedTime: item.estimatedTime,
-                  deliveryFee: item.deliveryFee,
-                  originalDeliveryFee: item.originalDeliveryFee,
                   id: item.id.toString(),
                   isAvailable: item.isAvailable,
                   publishStatus: item.publishStatus,

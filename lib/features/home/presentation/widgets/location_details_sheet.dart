@@ -87,7 +87,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.isEdit ? 'Edit Location' : 'Save New Location',
+                    widget.isEdit ? 'Edit Location' : 'Create Location',
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -182,7 +182,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 widget.onSave(updated);
               },
               child: Text(
-                widget.isEdit ? 'Update Location' : 'Save Location',
+                widget.isEdit ? 'Update Location' : 'Create Location',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

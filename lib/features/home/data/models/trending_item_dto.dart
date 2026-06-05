@@ -41,33 +41,96 @@ class TrendingItemDto {
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
     // Prioritize English name if available
-    final name = json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '';
-    final shopName = json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '';
-    
+    final name = json['nameEn'] as String? ??
+        json['name'] as String? ??
+        json['nameMm'] as String? ??
+        '';
+
+    // `GET /user/search/trending-nearby` nests shop + rating; public feed is flat.
+    final shop = json['shop'];
+    final shopMap = shop is Map<String, dynamic> ? shop : null;
+    final ratingObj = shopMap?['rating'];
+    final ratingMap = ratingObj is Map<String, dynamic> ? ratingObj : null;
+
+    final shopName = json['shopNameEn'] as String? ??
+        json['shopName'] as String? ??
+        json['shopNameMm'] as String? ??
+        shopMap?['nameEn'] as String? ??
+        shopMap?['nameMm'] as String? ??
+        '';
+
+    final shopId = (json['shopId'] as num?)?.toInt() ??
+        (shopMap?['id'] as num?)?.toInt() ??
+        0;
+
+    final rating = _parsePrice(
+      json['rating'] ?? ratingMap?['avg'] ?? shopMap?['ratingAvg'],
+    );
+    final reviewCount = (json['reviewCount'] as num?)?.toInt() ??
+        (ratingMap?['count'] as num?)?.toInt() ??
+        (shopMap?['ratingCount'] as num?)?.toInt() ??
+        0;
+
+    final originalPrice = json['originalPrice'] != null
+        ? _parsePrice(json['originalPrice'])
+        : null;
+    final price = json['price'] != null
+        ? _parsePrice(json['price'])
+        : _effectivePrice(
+            originalPrice,
+            json['discountAmount'],
+            json['discountPercentage'],
+          );
+
+    double? distanceKm;
+    final rawDistance =
+        json['distanceKm'] ?? shopMap?['distanceKm'] ?? json['shopDistanceKm'];
+    if (rawDistance is num) {
+      distanceKm = rawDistance.toDouble();
+    } else if (rawDistance != null) {
+      distanceKm = double.tryParse(rawDistance.toString());
+    }
+
     return TrendingItemDto(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       name: name,
       imageUrl: json['imageUrl'] as String? ?? '',
-      shopId: json['shopId'] as int? ?? 0,
+      shopId: shopId,
       shopName: shopName,
-      price: _parsePrice(json['price']),
-      rating: _parsePrice(json['rating']),
-      reviewCount: json['reviewCount'] as int? ?? 0,
-      isFavorite: json['isFavorite'] ?? false,
+      price: price,
+      rating: rating,
+      reviewCount: reviewCount,
+      isFavorite: json['isFavorite'] == true,
       currency: json['currency'] as String? ?? '฿',
-      originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
+      originalPrice: originalPrice,
       displayPrice: json['displayPrice'] as String?,
-      distanceKm: json['distanceKm'] != null 
-          ? (json['distanceKm'] is num 
-              ? (json['distanceKm'] as num).toDouble() 
-              : double.tryParse(json['distanceKm'].toString()))
-          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
-      estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
+      distanceKm: distanceKm,
+      estimatedTime:
+          json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       isAvailable: json['isAvailable'] as bool? ?? true,
       publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
     );
+  }
+
+  /// Mirrors backend `effectiveMenuItemPrice` when `price` is omitted.
+  static double _effectivePrice(
+    double? originalPrice,
+    dynamic discountAmount,
+    dynamic discountPercentage,
+  ) {
+    final base = originalPrice ?? 0;
+    final amount = discountAmount is num ? discountAmount.toDouble() : 0;
+    if (amount > 0) {
+      final discounted = base - amount;
+      return discounted > 0 ? discounted : base;
+    }
+    final pct = discountPercentage is num ? discountPercentage.toDouble() : 0;
+    if (pct > 0) {
+      return base * (1 - pct / 100);
+    }
+    return base;
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
@@ -95,12 +158,14 @@ class TrendingSectionDto {
   final String description;
   final List<TrendingItemDto> items;
   final int totalCount;
+  final String? mealType;
 
   TrendingSectionDto({
     required this.title,
     required this.description,
     required this.items,
     required this.totalCount,
+    this.mealType,
   });
 
   factory TrendingSectionDto.fromJson(Map<String, dynamic> json) {
@@ -111,6 +176,31 @@ class TrendingSectionDto {
           .map((e) => TrendingItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       totalCount: json['totalCount'] as int? ?? 0,
+    );
+  }
+
+  /// Parses `GET /api/user/search/trending-nearby` (menu items + meta + mealType).
+  factory TrendingSectionDto.fromTrendingNearbyResponse(
+    Map<String, dynamic> json,
+  ) {
+    final data = json['data'];
+    final items = data is List
+        ? data
+            .whereType<Map<String, dynamic>>()
+            .map(TrendingItemDto.fromJson)
+            .toList()
+        : <TrendingItemDto>[];
+    final meta = json['meta'] is Map<String, dynamic>
+        ? json['meta'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final total = (meta['total'] as num?)?.toInt() ?? items.length;
+
+    return TrendingSectionDto(
+      title: 'Trending Near By',
+      description: '',
+      items: items,
+      totalCount: total,
+      mealType: json['mealType']?.toString(),
     );
   }
 }

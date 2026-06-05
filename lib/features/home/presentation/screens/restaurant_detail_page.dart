@@ -13,6 +13,7 @@ import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/network/websocket_service.dart';
+import '../../../../core/auth/auth_service.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
@@ -595,7 +596,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                       icon: _isFavorite
                           ? PhosphorIcons.heartFill
                           : PhosphorIcons.heart,
-                      onPressed: () => AppDialog.showUnavailable(context),
+                      onPressed: _toggleShopFavorite,
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,
                     ),
@@ -1043,6 +1044,52 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         ],
       ),
     );
+  }
+
+  /// Toggles the shop (restaurant) wishlist via `POST/DELETE /api/user/wishlist`.
+  Future<void> _toggleShopFavorite() async {
+    final shopId = int.tryParse(_currentRestaurant?.id ?? '');
+    if (shopId == null) return;
+
+    if (!AuthService().isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save restaurants.')),
+      );
+      return;
+    }
+
+    final newStatus = !_isFavorite;
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _isFavorite = newStatus);
+
+    try {
+      await RestaurantRepository.instance.toggleShopFavorite(
+        shopId,
+        newStatus,
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus ? 'Added to favorites' : 'Removed from favorites',
+            ),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isFavorite = !newStatus);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update favorite. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {

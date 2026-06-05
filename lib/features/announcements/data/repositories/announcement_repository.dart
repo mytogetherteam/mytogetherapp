@@ -5,11 +5,11 @@ import '../models/announcement_model.dart';
 
 /// Recipient-facing announcements (admin broadcasts), separate from the
 /// order-notification feed. Backend (`dev`):
-///   GET    /api/announcements
-///   GET    /api/announcements/unread-count
-///   PUT    /api/announcements/read-all
-///   PUT    /api/announcements/:id/read
-///   DELETE /api/announcements/:id   (per-recipient dismiss)
+///   GET    /api/user/announcements
+///   GET    /api/user/announcements/unread-count
+///   PUT    /api/user/announcements/read-all
+///   PUT    /api/user/announcements/:id/read
+///   DELETE /api/user/announcements/:id   (per-recipient dismiss)
 class AnnouncementRepository {
   static final AnnouncementRepository _instance =
       AnnouncementRepository._internal();
@@ -26,7 +26,7 @@ class AnnouncementRepository {
     int size = 20,
   }) async {
     final response = await _dio.get(
-      '${ApiClient.apiPrefix}/announcements',
+      '${ApiClient.apiPrefix}/user/announcements',
       queryParameters: {'page': page, 'size': size},
     );
 
@@ -47,7 +47,7 @@ class AnnouncementRepository {
   Future<int> getUnreadCount() async {
     try {
       final response = await _dio.get(
-        '${ApiClient.apiPrefix}/announcements/unread-count',
+        '${ApiClient.apiPrefix}/user/announcements/unread-count',
       );
       if (response.statusCode == 200 && response.data != null) {
         final count = _extractCount(response.data);
@@ -63,7 +63,7 @@ class AnnouncementRepository {
   Future<bool> markAsRead(int id) async {
     try {
       final response = await _dio.put(
-        '${ApiClient.apiPrefix}/announcements/$id/read',
+        '${ApiClient.apiPrefix}/user/announcements/$id/read',
       );
       if (response.statusCode == 200) {
         if (unreadCount.value > 0) unreadCount.value--;
@@ -78,7 +78,7 @@ class AnnouncementRepository {
   Future<bool> markAllAsRead() async {
     try {
       final response = await _dio.put(
-        '${ApiClient.apiPrefix}/announcements/read-all',
+        '${ApiClient.apiPrefix}/user/announcements/read-all',
       );
       if (response.statusCode == 200) {
         unreadCount.value = 0;
@@ -93,7 +93,7 @@ class AnnouncementRepository {
   Future<bool> dismiss(int id) async {
     try {
       final response = await _dio.delete(
-        '${ApiClient.apiPrefix}/announcements/$id',
+        '${ApiClient.apiPrefix}/user/announcements/$id',
       );
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (_) {

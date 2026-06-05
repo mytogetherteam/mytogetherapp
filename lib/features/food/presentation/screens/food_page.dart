@@ -12,6 +12,9 @@ import 'package:mytogetherapp/features/home/presentation/screens/all_restaurants
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurants_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/popular_categories_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -94,6 +97,10 @@ class _FoodPageState extends State<FoodPage> {
                           // Hiding special promotion for now
                           // const SpecialPromotionSection(),
                           const SizedBox(height: 20),
+                          // ── New backend-powered rails ──────────────────────
+                          const PopularCategoriesSection(),
+                          const CollectionsSection(),
+                          const TrendingShopsSection(),
                           // ── 5 live feed sections ───────────────────────────
                           const FoodRestaurantsSection(),
                           ..._buildFeedSections(),

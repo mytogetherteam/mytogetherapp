@@ -239,8 +239,11 @@ class _MenuWishlistTile extends StatelessWidget {
     final menu = item.menuItem;
     final name = menu?.displayName ?? 'Menu item';
     final imageUrl = _absoluteImageUrl(menu?.imageUrl);
-    final priceText = menu?.price != null
-        ? '฿${menu!.price!.toStringAsFixed(0)}'
+    final effectivePrice = menu?.effectivePrice;
+    final priceText =
+        effectivePrice != null ? '฿${effectivePrice.toStringAsFixed(0)}' : null;
+    final originalText = (menu?.hasDiscount ?? false) && menu?.originalPrice != null
+        ? '฿${menu!.originalPrice!.toStringAsFixed(0)}'
         : null;
 
     return Container(
@@ -303,12 +306,28 @@ class _MenuWishlistTile extends StatelessWidget {
                 ),
                 if (priceText != null) ...[
                   const SizedBox(height: 6),
-                  GradientText(
-                    priceText,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      GradientText(
+                        priceText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (originalText != null) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          originalText,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.grey[400],
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
                 if (menu?.isAvailable == false) ...[

@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
+import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -23,6 +28,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool _isSaving = false;
 
+  final ImagePicker _picker = ImagePicker();
+  File? _pickedImage;
+  String? _currentAvatarUrl;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +40,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _usernameController = TextEditingController(text: user?.username ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _addressController = TextEditingController(text: user?.address ?? '');
+    _currentAvatarUrl = user?.avatarUrl;
+  }
+
+  String _resolveAvatarUrl(String path) {
+    if (path.startsWith('http')) return path;
+    return '${ApiClient.baseUrl}/$path';
+  }
+
+  Future<void> _pickAvatar() async {
+    final action = await ImageUploadBottomSheet.show(context);
+    if (action == null) return;
+
+    final source = action == ImageUploadAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1024,
+      );
+      if (picked != null) {
+        setState(() => _pickedImage = File(picked.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        AppDialog.showToast(context, 'Could not pick image', isError: true);
+      }
+    }
   }
 
   @override
@@ -48,6 +86,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     setState(() => _isSaving = true);
     try {
+      // Upload the new photo first (if changed) so the subsequent profile
+      // update response carries the fresh avatar URL.
+      if (_pickedImage != null) {
+        await AuthRepository.instance.updateAvatar(_pickedImage!.path);
+      }
       await AuthRepository.instance.updateProfile(
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
@@ -93,6 +136,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 children: [
+                  _buildAvatarPicker(),
+                  const SizedBox(height: 28),
                   _buildField(
                     controller: _nameController,
                     label: 'Full Name',
@@ -125,6 +170,59 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             ),
             _buildBottomBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarPicker() {
+    ImageProvider? avatarImage;
+    if (_pickedImage != null) {
+      avatarImage = FileImage(_pickedImage!);
+    } else if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
+      avatarImage = CachedNetworkImageProvider(
+        _resolveAvatarUrl(_currentAvatarUrl!),
+      );
+    }
+
+    return Center(
+      child: GestureDetector(
+        onTap: _isSaving ? null : _pickAvatar,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: avatarImage,
+                child: avatarImage == null
+                    ? Icon(PhosphorIcons.userBold, size: 40, color: Colors.grey[400])
+                    : null,
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, Color(0xFFF96232)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+              ),
+            ),
           ],
         ),
       ),

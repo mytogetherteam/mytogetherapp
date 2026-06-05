@@ -75,7 +75,8 @@ class RestaurantCard extends StatelessWidget {
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: () => AppDialog.showUnavailable(context),
+                  onTap: onFavoriteToggle ??
+                      () => AppDialog.showUnavailable(context),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(

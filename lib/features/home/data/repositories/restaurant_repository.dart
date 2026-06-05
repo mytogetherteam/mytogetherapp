@@ -8,10 +8,13 @@ import '../remote_restaurant_data_source.dart';
 import '../models/shop_dto.dart';
 import '../models/food_detail_dto.dart';
 import '../models/shop_review_dto.dart';
+import '../models/master_category_dto.dart';
+import '../models/collection_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
+import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
 
 class RestaurantRepository {
   static final RestaurantRepository instance = RestaurantRepository(
@@ -181,6 +184,7 @@ class RestaurantRepository {
     double radiusKm = 10.0,
     int page = 1,
     int size = 20,
+    SearchFilters? filters,
   }) {
     return SearchRepository.instance.searchShops(
       latitude: lat,
@@ -189,7 +193,64 @@ class RestaurantRepository {
       radiusKm: radiusKm,
       page: page,
       size: size,
+      filters: filters,
     );
+  }
+
+  /// Trending shops (by completed orders) from
+  /// `GET /api/user/shop-profile/trending`. Returns mapped domain models.
+  /// Falls back to nearby shops when the user is not logged in.
+  Future<List<Restaurant>> getTrendingShops({
+    required double lat,
+    required double lon,
+    int page = 1,
+    int size = 10,
+    int? days,
+  }) async {
+    if (AuthService().isLoggedIn) {
+      final response = await SearchRepository.instance.getTrendingShops(
+        page: page,
+        size: size,
+        days: days,
+      );
+      return response.shops.map((dto) {
+        final shop = dto.shop;
+        final dist = (shop.latitude != null && shop.longitude != null)
+            ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
+            : null;
+        return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+      }).toList();
+    }
+
+    return getNearbyShops(
+      lat: lat,
+      lon: lon,
+      radius: 10.0,
+      page: page - 1,
+      size: size,
+    );
+  }
+
+  /// Popular master menu categories (`GET /api/user/master-menu-categories/popular`).
+  Future<List<MasterCategoryDto>> getPopularMasterCategories({
+    int limit = 10,
+    int? days,
+  }) {
+    return _remoteDataSource.getPopularMasterCategories(limit: limit, days: days);
+  }
+
+  /// Curated collections (`GET /api/user/collections`).
+  Future<List<CollectionDto>> getCollections({
+    int page = 1,
+    int size = 20,
+    String? search,
+  }) {
+    return _remoteDataSource.getCollections(page: page, size: size, search: search);
+  }
+
+  /// One collection with its items (`GET /api/user/collections/:id`).
+  Future<CollectionDto?> getCollectionById(int id) {
+    return _remoteDataSource.getCollectionById(id);
   }
 
   /// Paginated catalog of user-visible shops from
@@ -283,19 +344,43 @@ class RestaurantRepository {
         now.difference(_trendingLastFetch!).inSeconds < 120) {
       return _cachedTrending!;
     }
-    final result = await _remoteDataSource.getTrendingItems(
-      lat: lat,
-      lon: lon,
-      radiusKm: radiusKm,
-      page: page,
-      size: size,
-    );
+
+    TrendingSectionDto result;
+    if (AuthService().isLoggedIn) {
+      try {
+        result = await SearchRepository.instance.searchTrendingNearby(
+          latitude: lat,
+          longitude: lon,
+          radiusKm: radiusKm,
+          page: page + 1, // user endpoint is 1-based
+          size: size,
+        );
+      } catch (_) {
+        result = await _remoteDataSource.getTrendingItems(
+          lat: lat,
+          lon: lon,
+          radiusKm: radiusKm,
+          page: page,
+          size: size,
+        );
+      }
+    } else {
+      result = await _remoteDataSource.getTrendingItems(
+        lat: lat,
+        lon: lon,
+        radiusKm: radiusKm,
+        page: page,
+        size: size,
+      );
+    }
+
     if (page == 0) {
       _cachedTrending = result;
       _trendingLastFetch = now;
     }
     return result;
   }
+
 
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../../../../core/auth/auth_service.dart';
 import 'models/banner_image_dto.dart';
@@ -8,6 +9,8 @@ import 'models/trending_item_dto.dart';
 import 'models/shop_feed_item_dto.dart';
 import 'models/food_detail_dto.dart';
 import 'models/shop_review_dto.dart';
+import 'models/master_category_dto.dart';
+import 'models/collection_dto.dart';
 
 import 'shop_storage.dart';
 
@@ -179,6 +182,44 @@ class RemoteRestaurantDataSource {
       return ShopFeedSectionDto(items: []);
     }
 
+    // Trending nearby uses the authenticated meal-type-aware user search endpoint.
+    // Fall back to the public feed when empty or on error.
+    if (feedType == 'trending') {
+      try {
+        final section = await SearchRepository.instance.searchTrendingNearby(
+          latitude: lat,
+          longitude: lon,
+          radiusKm: radiusKm,
+          page: page + 1,
+          size: size,
+        );
+        if (section.items.isNotEmpty) {
+          return ShopFeedSectionDto(
+            items: section.items.map(ShopFeedItemDto.fromTrendingItem).toList(),
+          );
+        }
+      } catch (_) {
+        // Fall through to the public feed below.
+      }
+    }
+
+    // Personalized "for-you" uses the authenticated, location-aware endpoint.
+    // Fall back to the public feed if it's empty (e.g. no order history) or errors.
+    if (feedType == 'for-you') {
+      try {
+        final personalized = await getForYouFeed(
+          lat: lat,
+          lon: lon,
+          radiusKm: radiusKm,
+          page: page + 1, // user endpoint is 1-based
+          size: size,
+        );
+        if (personalized.items.isNotEmpty) return personalized;
+      } catch (_) {
+        // Fall through to the public feed below.
+      }
+    }
+
     try {
       // Backend (public): GET /api/menu/feed/:feedType
       // (PublicController.getMenuFeed). Latitude/longitude are not used by
@@ -204,6 +245,115 @@ class RemoteRestaurantDataSource {
       }
       rethrow;
     }
+  }
+
+  /// Personalized "For You" menu items for the current user.
+  /// Backend (auth): GET /api/user/menu-items/for-you (UserMenuItemsController.forYou).
+  /// Returns `{ data: { content: [...menu items...] } }`. Requires location.
+  /// Returns an empty section when the user has no order history yet.
+  Future<ShopFeedSectionDto> getForYouFeed({
+    required double lat,
+    required double lon,
+    double? radiusKm,
+    int page = 1,
+    int size = 20,
+  }) async {
+    if (!AuthService().isLoggedIn) {
+      return ShopFeedSectionDto(items: []);
+    }
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/menu-items/for-you',
+      queryParameters: {
+        'latitude': lat,
+        'longitude': lon,
+        'radiusKm': ?radiusKm,
+        'page': page,
+        'size': size,
+      },
+    );
+    final raw = response.data;
+    final data = raw is Map ? raw['data'] : null;
+    final content = data is Map ? data['content'] : null;
+    final items = content is List
+        ? content
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .toList()
+        : <ShopFeedItemDto>[];
+    return ShopFeedSectionDto(items: items);
+  }
+
+  /// Popular master menu categories ranked by completed orders.
+  /// Backend (auth): GET /api/user/master-menu-categories/popular.
+  Future<List<MasterCategoryDto>> getPopularMasterCategories({
+    int limit = 10,
+    int? days,
+  }) async {
+    if (!AuthService().isLoggedIn) return [];
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/master-menu-categories/popular',
+        queryParameters: {'limit': limit, 'days': ?days},
+      );
+      final raw = response.data;
+      final list = raw is Map ? raw['data'] : raw;
+      if (list is List) {
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(MasterCategoryDto.fromJson)
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) return [];
+      rethrow;
+    }
+  }
+
+  /// Curated collections (paginated). Backend (auth): GET /api/user/collections.
+  Future<List<CollectionDto>> getCollections({
+    int page = 1,
+    int size = 20,
+    String? search,
+  }) async {
+    if (!AuthService().isLoggedIn) return [];
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/collections',
+        queryParameters: {
+          'page': page,
+          'size': size,
+          if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        },
+      );
+      final raw = response.data;
+      final list = raw is Map ? raw['data'] : raw;
+      if (list is List) {
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(CollectionDto.fromJson)
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) return [];
+      rethrow;
+    }
+  }
+
+  /// One collection with its menu items. Backend (auth): GET /api/user/collections/:id.
+  Future<CollectionDto?> getCollectionById(int id) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/collections/$id',
+    );
+    final raw = response.data;
+    final data = raw is Map ? raw['data'] : raw;
+    if (data is Map<String, dynamic>) {
+      return CollectionDto.fromJson(data);
+    }
+    return null;
   }
 
   Future<FoodDetailDto?> getFoodById(int id) async {

@@ -34,7 +34,7 @@ class UserModel {
       email: json['email'] as String? ?? '',
       fullName: json['fullName'] as String? ?? json['name'] as String? ?? '',
       role: json['role'] as String? ?? 'USER',
-      avatarUrl: json['avatarUrl'] as String?,
+      avatarUrl: json['avatarUrl'] as String? ?? json['profileUrl'] as String?,
       phone: json['phone'] as String?,
       address: json['address'] as String?,
       isVegetarian: json['isVegetarian'] as bool?,

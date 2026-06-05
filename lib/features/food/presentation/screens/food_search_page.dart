@@ -14,6 +14,7 @@ import 'package:mytogetherapp/features/home/data/repositories/restaurant_reposit
 import 'package:mytogetherapp/features/home/presentation/screens/menu_detail_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
+import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,7 +25,11 @@ import '../../data/demo_food_search_data.dart';
 enum SearchFlowState { idle, typing, searched }
 
 class FoodSearchPage extends StatefulWidget {
-  const FoodSearchPage({super.key});
+  /// When provided, the page opens with this query pre-filled and runs the
+  /// search immediately (used by the Popular Categories rail).
+  final String? initialQuery;
+
+  const FoodSearchPage({super.key, this.initialQuery});
 
   @override
   State<FoodSearchPage> createState() => _FoodSearchPageState();
@@ -44,12 +49,22 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   List<String> _recentSearches = [];
   bool _isLoading = false;
   String? _errorMessage;
+  SearchFilters _filters = SearchFilters.empty;
 
   @override
   void initState() {
     super.initState();
     _loadRecentSearches();
-    Future.microtask(() => _searchFocus.requestFocus());
+    final seed = widget.initialQuery?.trim();
+    if (seed != null && seed.isNotEmpty) {
+      _searchController.text = seed;
+      _currentState = SearchFlowState.searched;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _runSearch(seed, persistRecent: true);
+      });
+    } else {
+      Future.microtask(() => _searchFocus.requestFocus());
+    }
   }
 
   @override
@@ -181,6 +196,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           lon: loc.lon,
           query: query,
           size: _currentState == SearchFlowState.searched ? 20 : 6,
+          filters: _filters,
         ),
         SearchRepository.instance.searchMenuItems(query: query),
       ]);
@@ -721,13 +737,30 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             children: [
               _buildFilterIconButton(),
               const SizedBox(width: 8),
-              _buildFilterChip('Category', true),
+              _buildToggleChip(
+                'Top Rated',
+                _filters.topRated,
+                () => _updateFilters(_filters.copyWith(topRated: !_filters.topRated)),
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('Under 25 Min', false),
+              _buildToggleChip(
+                'Vegetarian',
+                _filters.isVegetarian,
+                () => _updateFilters(
+                    _filters.copyWith(isVegetarian: !_filters.isVegetarian)),
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('Top Rated', false),
+              _buildToggleChip(
+                'Halal',
+                _filters.isHalal,
+                () => _updateFilters(_filters.copyWith(isHalal: !_filters.isHalal)),
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('Offers', false),
+              _buildToggleChip(
+                'Spicy',
+                _filters.isSpicy,
+                () => _updateFilters(_filters.copyWith(isSpicy: !_filters.isSpicy)),
+              ),
             ],
           ),
         ),
@@ -744,58 +777,202 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
+  void _updateFilters(SearchFilters filters) {
+    setState(() => _filters = filters);
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      _runSearch(query, persistRecent: false);
+    }
+  }
+
   Widget _buildFilterIconButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Center(
-        child: Icon(
-          PhosphorIcons.slidersHorizontal,
-          size: 16,
-          color: Colors.black87,
+    final count = _filters.activeCount;
+    return GestureDetector(
+      onTap: _openFilterSheet,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: count > 0 ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+          border: Border.all(
+            color: count > 0 ? AppColors.primary : Colors.grey[300]!,
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIcons.slidersHorizontal,
+              size: 16,
+              color: count > 0 ? AppColors.primary : Colors.black87,
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Text(
+                '$count',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool hasDropdown) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (label == 'Category') ...[
-            const Icon(Icons.grid_view_outlined, size: 16, color: Colors.black54),
-            const SizedBox(width: 6),
-          ],
-          if (label == 'Under 25 Min') ...[
-            Icon(PhosphorIcons.lightning, size: 16, color: Colors.black54),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _buildToggleChip(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.white,
+          border: Border.all(
+            color: active ? AppColors.primary : Colors.grey[300]!,
           ),
-          if (hasDropdown) ...[
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black54),
-          ],
-        ],
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: active ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
+  }
+
+  Future<void> _openFilterSheet() async {
+    var draft = _filters;
+    final result = await showModalBottomSheet<SearchFilters>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Widget switchTile(String label, bool value, ValueChanged<bool> onChanged) {
+              return SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: AppColors.primary,
+                title: Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                value: value,
+                onChanged: (v) => setSheetState(() => onChanged(v)),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                16 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Filters',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  switchTile('Top Rated only', draft.topRated,
+                      (v) => draft = draft.copyWith(topRated: v)),
+                  const Divider(height: 1),
+                  switchTile('Vegetarian', draft.isVegetarian,
+                      (v) => draft = draft.copyWith(isVegetarian: v)),
+                  switchTile('Halal', draft.isHalal,
+                      (v) => draft = draft.copyWith(isHalal: v)),
+                  switchTile('Spicy', draft.isSpicy,
+                      (v) => draft = draft.copyWith(isSpicy: v)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(context, SearchFilters.empty),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey[300]!),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Clear all',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, draft),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Apply',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      _updateFilters(result);
+    }
   }
 
   Widget _buildSearchedRestaurantBlock(SearchShopDto shopDto) {

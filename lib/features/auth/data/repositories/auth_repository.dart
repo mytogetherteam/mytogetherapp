@@ -94,6 +94,18 @@ class AuthRepository {
     }
   }
 
+  /// Uploads a new profile photo, then refreshes the cached session so the
+  /// avatar updates everywhere it's shown.
+  Future<UserModel> updateAvatar(String filePath) async {
+    try {
+      final updated = await _dataSource.uploadAvatar(filePath);
+      await AuthService().updateCurrentUser(updated);
+      return updated;
+    } on DioException catch (e) {
+      throw _parseError(e);
+    }
+  }
+
   Future<void> deleteAccount({required String password}) async {
     try {
       await NotificationService().unregisterDevice();

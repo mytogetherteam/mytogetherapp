@@ -102,6 +102,35 @@ class AuthRemoteDataSource {
     return UserModel.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Backend: PATCH /api/user/profile/avatar (UsersController.updateAvatar).
+  /// Sends a multipart `avatar` file field and returns the updated profile
+  /// (with the new `avatarUrl`).
+  Future<UserModel> uploadAvatar(String filePath) async {
+    final extension = filePath.split('.').last.toLowerCase();
+    final mimeType = switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'gif' => 'image/gif',
+      _ => 'image/jpeg',
+    };
+    final filename = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+    final formData = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(
+        filePath,
+        filename: filename,
+        contentType: DioMediaType.parse(mimeType),
+      ),
+    });
+
+    final response = await _dio.patch(
+      '${ApiClient.apiPrefix}/user/profile/avatar',
+      data: formData,
+    );
+    final data = response.data['data'] ?? response.data;
+    return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<List<UserLocationModel>> getUserLocations() async {
     try {
       final response = await _dio.get('${ApiClient.apiPrefix}/user/locations');
