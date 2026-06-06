@@ -9,25 +9,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../../presentation/widgets/image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
+import '../../data/models/place_dto.dart';
+import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 
 class PlaceDetailPage extends StatefulWidget {
-  final String name;
-  final String category;
-  final String distance;
-  final String imagePath;
-  final String description;
-  final String? openingHours;
-  final List<String> images;
+  final PlaceDto place;
 
   const PlaceDetailPage({
     super.key,
-    required this.name,
-    required this.category,
-    required this.distance,
-    required this.imagePath,
-    required this.description,
-    this.openingHours,
-    required this.images,
+    required this.place,
   });
 
   @override
@@ -43,7 +33,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   late Animation<double> _entranceOpacity;
   late Animation<Offset> _entranceSlide;
   bool _isScrolled = false;
-  bool _isFavorite = false;
+  late bool _isFavorite;
 
   // Slideshow state
   late List<String> _allImages;
@@ -54,9 +44,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _isFavorite = widget.place.isFavorite;
 
-    // Combine main image with gallery
-    _allImages = [widget.imagePath, ...widget.images];
+    final cover = widget.place.coverImage.isNotEmpty
+        ? widget.place.coverImage
+        : '';
+    _allImages = [
+      if (cover.isNotEmpty) cover,
+      ...widget.place.galleryUrls,
+    ];
+    if (_allImages.isEmpty) {
+      _allImages = [''];
+    }
 
     // Ken Burns Animation Setup
     _zoomController = AnimationController(
@@ -114,6 +113,16 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     super.dispose();
   }
 
+  Future<void> _toggleFavorite() async {
+    final next = !_isFavorite;
+    setState(() => _isFavorite = next);
+    try {
+      await WishlistRepository.instance.togglePlace(widget.place.id, next);
+    } catch (_) {
+      if (mounted) setState(() => _isFavorite = !next);
+    }
+  }
+
   void _onScroll() {
     if (_scrollController.hasClients) {
       final double offset = _scrollController.offset;
@@ -159,7 +168,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                         ScaleTransition(
                           scale: _zoomAnimation,
                           child: Hero(
-                            tag: 'top_places_${widget.name}',
+                            tag: 'top_places_${widget.place.displayTitle}',
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 1000),
                               layoutBuilder:
@@ -274,7 +283,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       horizontal: 20.0,
                                     ),
                                     child: Text(
-                                      widget.description,
+                                      widget.place.displayDescription,
                                       style: GoogleFonts.poppins(
                                         fontSize: 15,
                                         color: Colors.grey[600],
@@ -305,7 +314,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                         left: 20.0,
                                       ),
                                       scrollDirection: Axis.horizontal,
-                                      itemCount: widget.images.length,
+                                      itemCount: widget.place.galleryUrls.length,
                                       itemBuilder: (context, index) {
                                         return GestureDetector(
                                           onTap: () {
@@ -316,10 +325,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                                 barrierDismissible: true,
                                                 pageBuilder: (context, _, _) =>
                                                     FullScreenImageViewer(
-                                                      imageUrls: widget.images,
+                                                      imageUrls: widget.place.galleryUrls,
                                                       initialIndex: index,
                                                       heroTagPrefix:
-                                                          'gallery_${widget.name}_',
+                                                          'gallery_${widget.place.displayTitle}_',
                                                     ),
                                               ),
                                             );
@@ -338,10 +347,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                                   BorderRadius.circular(20),
                                               child: Hero(
                                                 tag:
-                                                    'gallery_${widget.name}_${widget.images[index]}',
+                                                    'gallery_${widget.place.displayTitle}_${widget.place.galleryUrls[index]}',
                                                 child: CachedNetworkImage(
                                                   imageUrl:
-                                                      widget.images[index],
+                                                      widget.place.galleryUrls[index],
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) =>
                                                       const ImageSkeletonLoader(
@@ -443,7 +452,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   AutoSizeText(
-                                    widget.name,
+                                    widget.place.displayTitle,
                                     maxLines: 2,
                                     minFontSize: 16,
                                     style: GoogleFonts.poppins(
@@ -464,7 +473,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        widget.category,
+                                        widget.place.locationName,
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
@@ -475,7 +484,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       ),
                                     ],
                                   ),
-                                  if (widget.openingHours != null) ...[
+                                  if (widget.place.formattedHours.isNotEmpty) ...[
                                     const SizedBox(height: 10),
                                     Row(
                                       children: [
@@ -486,7 +495,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          widget.openingHours!,
+                                          widget.place.formattedHours,
                                           style: GoogleFonts.poppins(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
@@ -571,7 +580,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                         duration: const Duration(milliseconds: 300),
                         opacity: _isScrolled ? 1.0 : 0.0,
                         child: AutoSizeText(
-                          widget.name,
+                          widget.place.displayTitle,
                           maxLines: 1,
                           minFontSize: 14,
                           style: GoogleFonts.poppins(
@@ -588,9 +597,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                       icon: _isFavorite
                           ? PhosphorIcons.heartFill
                           : PhosphorIcons.heart,
-                      onPressed: () {
-                        setState(() => _isFavorite = !_isFavorite);
-                      },
+                      onPressed: _toggleFavorite,
                       isScrolled: _isScrolled,
                       iconColorOverride: _isFavorite ? AppColors.primary : null,
                     ),

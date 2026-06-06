@@ -6,8 +6,10 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../data/repositories/visa_repository.dart';
 
 class VisaDetailArgs {
+  final int? visaId;
   final String title;
   final String description;
   final String? imageUrl;
@@ -15,6 +17,7 @@ class VisaDetailArgs {
   final bool canTakeAppointmentOnline;
 
   VisaDetailArgs({
+    this.visaId,
     required this.title,
     required this.description,
     this.imageUrl,
@@ -36,10 +39,12 @@ class _VisaDetailPageState extends State<VisaDetailPage>
     with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   late AnimationController _shimmerController;
+  late VisaDetailArgs _args;
 
   @override
   void initState() {
     super.initState();
+    _args = widget.args;
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -55,8 +60,22 @@ class _VisaDetailPageState extends State<VisaDetailPage>
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    // Simulate network request
-    await Future.delayed(const Duration(milliseconds: 1200));
+    if (_args.visaId != null) {
+      try {
+        final visa = await VisaRepository.instance.fetchOne(_args.visaId!);
+        if (visa != null && mounted) {
+          _args = VisaDetailArgs(
+            visaId: visa.id,
+            title: visa.displayTitle,
+            description: visa.displayDescription,
+            imageUrl: visa.resolvedImageUrl,
+            officialWebsite: visa.linkUrl,
+            canTakeAppointmentOnline: visa.linkUrl != null &&
+                visa.linkUrl!.toLowerCase().contains('evisa'),
+          );
+        }
+      } catch (_) {}
+    }
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -111,7 +130,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
 
   Widget _buildSliverHeader(Color pink, Color orange) {
     final hasImage =
-        widget.args.imageUrl != null && widget.args.imageUrl!.isNotEmpty;
+        _args.imageUrl != null && _args.imageUrl!.isNotEmpty;
 
     return SliverAppBar(
       expandedHeight: 250,
@@ -133,7 +152,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                 children: [
                   if (hasImage)
                     CachedNetworkImage(
-                      imageUrl: widget.args.imageUrl!,
+                      imageUrl: _args.imageUrl!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
                           Container(color: Colors.grey.shade200),
@@ -242,7 +261,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.args.title,
+          _args.title,
           style: GoogleFonts.poppins(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -251,7 +270,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
         ),
         const SizedBox(height: 16),
         Text(
-          widget.args.description,
+          _args.description,
           style: GoogleFonts.poppins(
             fontSize: 15,
             color: Colors.black54,
@@ -259,7 +278,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
           ),
         ),
         const SizedBox(height: 24),
-        if (widget.args.canTakeAppointmentOnline) ...[
+        if (_args.canTakeAppointmentOnline) ...[
           _buildInfoCard(
             icon: PhosphorIconsRegular.calendarPlus,
             title: context.tr('visa.online_appointment'),
@@ -268,14 +287,14 @@ class _VisaDetailPageState extends State<VisaDetailPage>
           ),
           const SizedBox(height: 16),
         ],
-        if (widget.args.officialWebsite != null &&
-            widget.args.officialWebsite!.isNotEmpty) ...[
+        if (_args.officialWebsite != null &&
+            _args.officialWebsite!.isNotEmpty) ...[
           _buildActionCard(
             icon: PhosphorIconsRegular.globe,
             title: context.tr('visa.official_website'),
             subtitle: context.tr('visa.official_website_sub'),
             color: primaryColor,
-            onTap: () => _launchUrl(widget.args.officialWebsite!),
+            onTap: () => _launchUrl(_args.officialWebsite!),
           ),
         ],
         const SizedBox(height: 40),

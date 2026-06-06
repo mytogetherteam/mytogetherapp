@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import 'place_card.dart';
 import 'view_all_icon_button.dart';
-import '../../data/fallback_data.dart';
+import '../../data/models/place_dto.dart';
+import '../../data/repositories/places_repository.dart';
 import '../screens/place_detail_page.dart';
 import '../screens/places_list_page.dart';
 
@@ -15,22 +18,69 @@ class TopPlacesNearbySection extends StatefulWidget {
 }
 
 class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
-  final Set<int> _favoriteIndices = {};
+  List<PlaceDto> _places = [];
+  bool _isLoading = true;
 
-  List<Map<String, dynamic>> get _places => FallbackData.topPlaces.take(10).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadPlaces();
+  }
 
-  void _toggleFavorite(int index) {
+  Future<void> _loadPlaces() async {
+    try {
+      await WishlistRepository.instance.loadAll();
+      final pos = await LocationService().getCurrentPosition();
+      final feed = await PlacesRepository.instance.fetchPlaces(
+        page: 1,
+        size: 10,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _places = feed.items;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleFavorite(PlaceDto place) async {
+    final next = !place.isFavorite;
     setState(() {
-      if (_favoriteIndices.contains(index)) {
-        _favoriteIndices.remove(index);
-      } else {
-        _favoriteIndices.add(index);
+      final index = _places.indexWhere((p) => p.id == place.id);
+      if (index != -1) {
+        _places[index] = place.copyWith(isFavorite: next);
       }
     });
+    try {
+      await WishlistRepository.instance.togglePlace(place.id, next);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          final index = _places.indexWhere((p) => p.id == place.id);
+          if (index != -1) {
+            _places[index] = place.copyWith(isFavorite: !next);
+          }
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 320,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (_places.isEmpty) return const SizedBox.shrink();
+
     return Column(
       children: [
         Padding(
@@ -50,7 +100,9 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PlacesListPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const PlacesListPage(),
+                    ),
                   );
                 },
               ),
@@ -67,41 +119,38 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
             itemCount: _places.length,
             itemBuilder: (context, index) {
               final place = _places[index];
+              final image = place.coverImage.isNotEmpty
+                  ? place.coverImage
+                  : (place.galleryUrls.isNotEmpty
+                      ? place.galleryUrls.first
+                      : '');
               return Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: SizedBox(
                   width: 240,
                   height: 320,
                   child: PlaceCard(
-                    name: place['name']!,
-                  category: place['category']!,
-                  distance: place['distance']!,
-                  imagePath: place['imagePath']!,
-                  isFavorite: _favoriteIndices.contains(index),
-                  onFavoriteToggle: () => _toggleFavorite(index),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlaceDetailPage(
-                          name: place['name']!,
-                          category: place['category']!,
-                          distance: place['distance']!,
-                          imagePath: place['imagePath']!,
-                          description: place['description']!,
-                          openingHours: place['hours'],
-                          images: List<String>.from(place['gallery']),
+                    name: place.displayTitle,
+                    category: place.locationName,
+                    distance: place.formattedDistance,
+                    imagePath: image,
+                    isFavorite: place.isFavorite,
+                    onFavoriteToggle: () => _toggleFavorite(place),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PlaceDetailPage(place: place),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 }

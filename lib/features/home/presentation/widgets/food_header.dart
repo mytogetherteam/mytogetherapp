@@ -217,10 +217,21 @@ class _FoodHeaderState extends State<FoodHeader> {
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(
-                PhosphorIcons.funnel,
-                color: Colors.white,
-                size: 24,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const FoodSearchPage(openFilterOnLoad: true),
+                    ),
+                  );
+                },
+                child: Icon(
+                  PhosphorIcons.funnel,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ],
           ),

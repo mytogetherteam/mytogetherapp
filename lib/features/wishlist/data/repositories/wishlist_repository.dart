@@ -3,9 +3,10 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import '../models/wishlist_item_dto.dart';
 
 /// Wraps the new backend's `WishlistModule`:
-///   POST   /api/user/wishlist                  body: {menuItemId} | {shopId}
+///   POST   /api/user/wishlist                  body: {menuItemId} | {shopId} | {placeId}
 ///   GET    /api/user/wishlist/menu-items       paginated
 ///   GET    /api/user/wishlist/shop             paginated
+///   GET    /api/user/wishlist/places           paginated
 ///   DELETE /api/user/wishlist/:id              by wishlist row id
 ///
 /// Since DELETE expects the wishlist row id (not the menuItemId/shopId), we
@@ -23,6 +24,9 @@ class WishlistRepository {
   /// shopId -> wishlist row id
   final Map<int, int> _shopIndex = {};
 
+  /// placeId -> wishlist row id
+  final Map<int, int> _placeIndex = {};
+
   /// Whether `loadAll()` has primed the indexes at least once during this
   /// session. We use this to know if a missing key means "really missing"
   /// or "we haven't loaded yet".
@@ -36,18 +40,24 @@ class WishlistRepository {
   /// Returns the cached wishlist id for a shop (or null if not saved).
   int? wishlistIdForShop(int shopId) => _shopIndex[shopId];
 
+  int? wishlistIdForPlace(int placeId) => _placeIndex[placeId];
+
   bool isMenuItemSaved(int menuItemId) =>
       _menuItemIndex.containsKey(menuItemId);
 
   bool isShopSaved(int shopId) => _shopIndex.containsKey(shopId);
 
+  bool isPlaceSaved(int placeId) => _placeIndex.containsKey(placeId);
+
   /// Pre-loads the entire wishlist into memory. Cheap to call repeatedly
   /// since the backend paginates and the lists are user-scoped.
   Future<void> loadAll({int size = 100}) async {
     try {
-      final menuFuture = listMenuItems(size: size);
-      final shopFuture = listShops(size: size);
-      await Future.wait([menuFuture, shopFuture]);
+      await Future.wait([
+        listMenuItems(size: size),
+        listShops(size: size),
+        listPlaces(size: size),
+      ]);
       _primed = true;
     } catch (_) {
       // Soft-fail: indexes stay empty, callers degrade gracefully.
@@ -117,6 +127,26 @@ class WishlistRepository {
     }
   }
 
+  Future<List<WishlistItemDto>> listPlaces({
+    int page = 1,
+    int size = 50,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/wishlist/places',
+      queryParameters: {'page': page, 'size': size},
+    );
+
+    final items = _parseList(response.data);
+    for (final item in items) {
+      if (item.placeId != null) {
+        _placeIndex[item.placeId!] = item.id;
+      } else if (item.place != null) {
+        _placeIndex[item.place!.id] = item.id;
+      }
+    }
+    return items;
+  }
+
   Future<WishlistItemDto?> addShop(int shopId) async {
     try {
       final response = await _apiClient.dio.post(
@@ -137,6 +167,26 @@ class WishlistRepository {
     }
   }
 
+  Future<WishlistItemDto?> addPlace(int placeId) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '${ApiClient.apiPrefix}/user/wishlist',
+        data: {'placeId': placeId},
+      );
+      final created = _parseSingle(response.data);
+      if (created != null) {
+        _placeIndex[placeId] = created.id;
+      }
+      return created;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        await listPlaces();
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   /// Removes a wishlist row by its primary key.
   Future<void> removeById(int wishlistId) async {
     await _apiClient.dio.delete(
@@ -144,6 +194,7 @@ class WishlistRepository {
     );
     _menuItemIndex.removeWhere((_, value) => value == wishlistId);
     _shopIndex.removeWhere((_, value) => value == wishlistId);
+    _placeIndex.removeWhere((_, value) => value == wishlistId);
   }
 
   /// Convenience helper: removes a menu item from the wishlist by its
@@ -169,6 +220,25 @@ class WishlistRepository {
     if (wishlistId == null) return false;
     await removeById(wishlistId);
     return true;
+  }
+
+  Future<bool> removePlace(int placeId) async {
+    var wishlistId = _placeIndex[placeId];
+    if (wishlistId == null) {
+      await listPlaces();
+      wishlistId = _placeIndex[placeId];
+    }
+    if (wishlistId == null) return false;
+    await removeById(wishlistId);
+    return true;
+  }
+
+  Future<void> togglePlace(int placeId, bool save) async {
+    if (save) {
+      await addPlace(placeId);
+    } else {
+      await removePlace(placeId);
+    }
   }
 
   // ── Parsing helpers ───────────────────────────────────────────────────

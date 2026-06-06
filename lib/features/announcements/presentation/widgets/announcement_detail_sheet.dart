@@ -7,9 +7,9 @@ import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import '../../data/models/announcement_model.dart';
 
 /// Full-bleed announcement detail, styled after the early-access reference:
-/// a hero image that fades into the sheet, a gradient title, and the body
-/// copy. There is no action button — the user dismisses with the close
-/// affordance or by dragging the sheet down.
+/// a centered modal box with a hero image that fades into the white body,
+/// a gradient title, and the body copy. The user dismisses with the close
+/// affordance or by tapping the barrier.
 class AnnouncementDetailSheet extends StatelessWidget {
   final AnnouncementModel announcement;
 
@@ -19,11 +19,10 @@ class AnnouncementDetailSheet extends StatelessWidget {
     BuildContext context,
     AnnouncementModel announcement,
   ) {
-    return showModalBottomSheet<void>(
+    return showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.55),
+      barrierDismissible: true,
       builder: (_) => AnnouncementDetailSheet(announcement: announcement),
     );
   }
@@ -32,20 +31,24 @@ class AnnouncementDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasImage =
         announcement.imageUrl != null && announcement.imageUrl!.isNotEmpty;
+    final size = MediaQuery.of(context).size;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
-      maxChildSize: 0.92,
-      builder: (context, scrollController) {
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          child: Container(
-            color: Colors.white,
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  controller: scrollController,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: size.height * 0.82,
+        ),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Container(
+                color: Colors.white,
+                child: SingleChildScrollView(
                   padding: EdgeInsets.zero,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,13 +56,13 @@ class AnnouncementDetailSheet extends StatelessWidget {
                       if (hasImage)
                         _buildImageHeader(context)
                       else
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 48),
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           24,
-                          hasImage ? 0 : 16,
+                          hasImage ? 0 : 8,
                           24,
-                          24 + MediaQuery.of(context).padding.bottom,
+                          28,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,37 +99,29 @@ class AnnouncementDetailSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: _CloseButton(onTap: () => Navigator.pop(context)),
-                ),
-                if (!hasImage)
-                  Positioned(
-                    top: 10,
-                    left: 0,
-                    right: 0,
-                    child: Center(child: _buildGrabber()),
-                  ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+            Positioned(
+              top: 16,
+              right: 16,
+              child: _CloseButton(onTap: () => Navigator.pop(context)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildImageHeader(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    return SizedBox(
-      width: width,
-      height: width * 0.62,
+    return AspectRatio(
+      aspectRatio: 16 / 11,
       child: Stack(
         fit: StackFit.expand,
         children: [
           CachedNetworkImage(
             imageUrl: announcement.imageUrl!,
             fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
             placeholder: (context, url) =>
                 Container(color: Colors.grey.shade200),
             errorWidget: (context, url, error) => Container(
@@ -138,38 +133,23 @@ class AnnouncementDetailSheet extends StatelessWidget {
               ),
             ),
           ),
-          // Fade the bottom of the image into the white sheet body.
+          // Fade the bottom of the image into the white body so the photo
+          // blends into the content instead of showing a hard edge.
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0.45, 1.0],
+                stops: const [0.35, 0.75, 1.0],
                 colors: [
                   Colors.white.withValues(alpha: 0.0),
+                  Colors.white.withValues(alpha: 0.55),
                   Colors.white,
                 ],
               ),
             ),
           ),
-          Positioned(
-            top: 12,
-            left: 0,
-            right: 0,
-            child: Center(child: _buildGrabber()),
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGrabber() {
-    return Container(
-      width: 44,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(2),
       ),
     );
   }

@@ -18,6 +18,7 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
+import 'revise_order_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -802,6 +803,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             children: [
               const SizedBox(height: 10),
 
+              if (order?.isRevised == true) ...[
+                _buildReviseBanner(order?.reviseReason),
+                const SizedBox(height: 14),
+              ],
+
               // ── Payment Summary Card ──
               Container(
                 padding: const EdgeInsets.all(20),
@@ -1330,6 +1336,70 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ),
           ),
       ],
+    );
+  }
+
+  Future<void> _openReviseOrder() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReviseOrderPage(orderId: widget.orderId ?? ''),
+      ),
+    );
+    // State refreshes via the ActiveOrderState listener after re-submit.
+    if (mounted) setState(() {});
+  }
+
+  Widget _buildReviseBanner(String? reason) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(PhosphorIcons.warningCircle,
+                  color: Colors.orange.shade800, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                context.tr('revise.banner_title'),
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            (reason != null && reason.trim().isNotEmpty)
+                ? reason
+                : context.tr('revise.banner_message'),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryGradientButton(
+              onPressed: _openReviseOrder,
+              child: Text(
+                context.tr('revise.review_button'),
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

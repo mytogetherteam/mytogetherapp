@@ -7,6 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'news_image_viewer.dart'; // Added import
 import '../../data/models/news_item.dart';
+import '../../data/repositories/news_repository.dart';
+import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import '../screens/news_detail_page.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 
@@ -36,15 +38,35 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     super.dispose();
   }
 
-  void _toggleLike() {
+  Future<void> _toggleLike() async {
+    final previousLiked = _isLiked;
+    final previousCount = _likesCount;
     setState(() {
       _isLiked = !_isLiked;
-      if (_isLiked) {
-        _likesCount++;
-      } else {
-        _likesCount--;
-      }
+      _likesCount += _isLiked ? 1 : -1;
     });
+
+    if (!widget.item.isApiBacked) return;
+
+    try {
+      final id = widget.item.entityId!;
+      final result = widget.item.source == FeedSource.news
+          ? await NewsRepository.instance.toggleLike(id)
+          : await ItemPostRepository.instance.toggleLike(id);
+      if (!mounted) return;
+      setState(() {
+        _isLiked = result.liked;
+        _likesCount = result.likeCount;
+        widget.item.isLiked = result.liked;
+        widget.item.likesCount = result.likeCount;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLiked = previousLiked;
+        _likesCount = previousCount;
+      });
+    }
   }
 
   Future<void> _makeCall(String phoneNumber) async {
@@ -135,14 +157,23 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    widget.item.authorName,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
+                                  Flexible(
+                                    child: Text(
+                                      widget.item.authorName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
+                                  if (widget.item.itemPostType != null) ...[
+                                    const SizedBox(width: 8),
+                                    _ItemPostTypeBadge(
+                                      type: widget.item.itemPostType!,
+                                    ),
+                                  ],
                                   const Spacer(),
                                   // Placeholder for Connect button to maintain layout height
                                   if (widget.item.phoneNumber != null)
@@ -180,27 +211,6 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                           color: const Color(0xFF7B8794),
                                           fontWeight: FontWeight.w500,
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                              if (widget.item.rewardAmount != null) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      PhosphorIcons.moneyWavyFill,
-                                      color: const Color(0xFF48BB78),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      widget.item.rewardAmount!,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        color: const Color(0xFF768CA2),
-                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
@@ -525,6 +535,52 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
         ),
         const Divider(height: 1, thickness: 0.5, color: Color(0xFFEEEEEE)),
       ],
+    );
+  }
+}
+
+/// Small pill that labels a Lost & Found post as LOST or FOUND.
+class _ItemPostTypeBadge extends StatelessWidget {
+  final String type;
+
+  const _ItemPostTypeBadge({required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFound = type.toUpperCase() == 'FOUND';
+    final Color color = isFound ? const Color(0xFF48BB78) : AppColors.primary;
+    final String label = isFound
+        ? context.tr('lost.badge_found')
+        : context.tr('lost.badge_lost');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isFound
+                ? PhosphorIcons.checkCircleFill
+                : PhosphorIcons.magnifyingGlassFill,
+            size: 11,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

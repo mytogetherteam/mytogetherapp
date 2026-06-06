@@ -15,37 +15,47 @@ class WishlistItemDto {
   final int? userId;
   final int? menuItemId;
   final int? shopId;
+  final int? placeId;
   final String? createdAt;
   final WishlistMenuItemRef? menuItem;
   final WishlistShopRef? shop;
+  final WishlistPlaceRef? place;
 
   WishlistItemDto({
     required this.id,
     this.userId,
     this.menuItemId,
     this.shopId,
+    this.placeId,
     this.createdAt,
     this.menuItem,
     this.shop,
+    this.place,
   });
 
   bool get isMenuItem => menuItemId != null || menuItem != null;
   bool get isShop => shopId != null || shop != null;
+  bool get isPlace => placeId != null || place != null;
 
   factory WishlistItemDto.fromJson(Map<String, dynamic> json) {
     final menuMap = json['menuItem'];
     final shopMap = json['shop'];
+    final placeMap = json['place'];
     return WishlistItemDto(
       id: (json['id'] as num).toInt(),
       userId: (json['userId'] as num?)?.toInt(),
       menuItemId: (json['menuItemId'] as num?)?.toInt(),
       shopId: (json['shopId'] as num?)?.toInt(),
+      placeId: (json['placeId'] as num?)?.toInt(),
       createdAt: json['createdAt']?.toString(),
       menuItem: menuMap is Map<String, dynamic>
           ? WishlistMenuItemRef.fromJson(menuMap)
           : null,
       shop: shopMap is Map<String, dynamic>
           ? WishlistShopRef.fromJson(shopMap)
+          : null,
+      place: placeMap is Map<String, dynamic>
+          ? WishlistPlaceRef.fromJson(placeMap)
           : null,
     );
   }
@@ -169,6 +179,44 @@ class WishlistShopRef {
       ratingAvg: (json['ratingAvg'] as num?)?.toDouble(),
       ratingCount: (json['ratingCount'] as num?)?.toInt(),
       isOpen: json['isOpen'] as bool? ?? true,
+    );
+  }
+}
+
+class WishlistPlaceRef {
+  final int id;
+  final String? titleEn;
+  final String? titleMm;
+  final String? titleTh;
+  final String? coverUrl;
+  final String? locationName;
+
+  WishlistPlaceRef({
+    required this.id,
+    this.titleEn,
+    this.titleMm,
+    this.titleTh,
+    this.coverUrl,
+    this.locationName,
+  });
+
+  String get displayName {
+    final name = LocaleController.instance.localized(
+      en: titleEn,
+      mm: titleMm,
+      th: titleTh,
+    );
+    return name.isNotEmpty ? name : 'Place #$id';
+  }
+
+  factory WishlistPlaceRef.fromJson(Map<String, dynamic> json) {
+    return WishlistPlaceRef(
+      id: (json['id'] as num).toInt(),
+      titleEn: json['titleEn']?.toString(),
+      titleMm: json['titleMm']?.toString(),
+      titleTh: json['titleTh']?.toString(),
+      coverUrl: json['coverUrl']?.toString(),
+      locationName: json['locationName']?.toString(),
     );
   }
 }

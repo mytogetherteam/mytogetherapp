@@ -22,18 +22,18 @@ class _LanguagePageState extends State<LanguagePage> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0.5,
+        elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(PhosphorIcons.caretLeft, color: Colors.black87),
+          icon: Icon(PhosphorIcons.arrowLeftBold, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           context.tr('language.title'),
           style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
           ),
         ),
       ),

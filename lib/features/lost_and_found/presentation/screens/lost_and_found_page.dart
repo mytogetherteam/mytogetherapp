@@ -6,7 +6,10 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../news/presentation/widgets/news_feed_item.dart';
 import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
 import '../../../news/data/models/news_item.dart';
+import '../../data/repositories/item_post_repository.dart';
 import '../../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import 'create_item_post_page.dart';
+import 'my_item_posts_page.dart';
 
 class LostAndFoundPage extends StatefulWidget {
   const LostAndFoundPage({super.key});
@@ -18,6 +21,8 @@ class LostAndFoundPage extends StatefulWidget {
 class _LostAndFoundPageState extends State<LostAndFoundPage> {
   final List<NewsItem> _items = [];
   bool _isLoading = false;
+  bool _hasMore = true;
+  int _page = 1;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -36,167 +41,95 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoading) {
+      if (!_isLoading && _hasMore) {
         _loadMoreData();
       }
     }
   }
 
   Future<void> _loadInitialData() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      setState(() {
-        _items
-          ..clear()
-          ..addAll(_getMockData());
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _page = 1;
+      _hasMore = true;
+    });
+
+    try {
+      final feed = await ItemPostRepository.instance.fetchFeed(page: 1);
+      if (mounted) {
+        setState(() {
+          _items
+            ..clear()
+            ..addAll(feed.items.map(NewsItem.fromItemPost));
+          _hasMore = feed.page < feed.totalPages;
+          _page = 1;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _onRefresh() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      setState(() {
-        _items
-          ..clear()
-          ..addAll(_getMockData());
-      });
-    }
+    await _loadInitialData();
   }
 
   Future<void> _loadMoreData() async {
+    if (!_hasMore) return;
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      setState(() {
-        final more = _getMockData()
-            .map(
-              (e) => NewsItem(
-                id: '${_items.length + int.parse(e.id)}',
-                authorName: e.authorName,
-                authorAvatar: e.authorAvatar,
-                content: e.content,
-                imageUrls: e.imageUrls,
-                likesCount: e.likesCount,
-                commentsCount: e.commentsCount,
-                timeAgo: 'Just now',
-              ),
-            )
-            .toList();
-        _items.addAll(more);
-        _isLoading = false;
-      });
+    try {
+      final nextPage = _page + 1;
+      final feed = await ItemPostRepository.instance.fetchFeed(page: nextPage);
+      if (mounted) {
+        setState(() {
+          _items.addAll(feed.items.map(NewsItem.fromItemPost));
+          _page = nextPage;
+          _hasMore = feed.page < feed.totalPages;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  List<NewsItem> _getMockData() {
-    return [
-      NewsItem(
-        id: '1',
-        authorName: 'Aye Mya Thu',
-        authorAvatar: 'https://i.pravatar.cc/150?img=47',
-        location: 'MBK Center, Bangkok',
-        rewardAmount: '฿500',
-        content:
-            'Black leather wallet near MBK Center, Bangkok. Contains ID card, credit cards, and some cash. If anyone found it please contact me urgently. Reward offered! 🙏',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 312,
-        commentsCount: 47,
-        timeAgo: '5min ago',
-        phoneNumber: '09791234567',
-      ),
-      NewsItem(
-        id: '2',
-        authorName: 'Ko Zaw Lin',
-        authorAvatar: 'https://i.pravatar.cc/150?img=12',
-        location: 'Lumphini Park',
-        content:
-            'A set of keys with a blue Toyota keychain found at Lumphini Park near the main gate. The owner can contact me to describe and claim. I will keep them safe until then.',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1582139329536-e7284fece509?q=80&w=800&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 198,
-        commentsCount: 33,
-        timeAgo: '20min ago',
-        phoneNumber: '09792345678',
-      ),
-      NewsItem(
-        id: '3',
-        authorName: 'Ma Ei Phyu',
-        authorAvatar: 'https://i.pravatar.cc/150?img=22',
-        location: 'Asok Station',
-        rewardAmount: '฿1000',
-        content:
-            'Black Adidas backpack left in the BTS Skytrain (Asok station) around 6:30 PM today. Contains a laptop, charger, and important documents. Please help me find it! 😭',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1547949003-9792a18a2601?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 482,
-        commentsCount: 89,
-        timeAgo: '1h ago',
-        phoneNumber: '09793456789',
-      ),
-      NewsItem(
-        id: '4',
-        authorName: 'Min Khant Kyaw',
-        authorAvatar: 'https://i.pravatar.cc/150?img=33',
-        location: 'Chatuchak Market',
-        content:
-            'An iPhone 13 Pro with a transparent case found near Chatuchak Weekend Market. The phone is locked. If this is yours, please DM me with the lock screen wallpaper to verify ownership.',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1632733711679-5292d6676184?q=80&w=800&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1512428813834-c294be702989?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 720,
-        commentsCount: 156,
-        timeAgo: '2h ago',
-        phoneNumber: '09794567890',
-      ),
-      NewsItem(
-        id: '5',
-        authorName: 'Su Myat Noe',
-        authorAvatar: 'https://i.pravatar.cc/150?img=54',
-        location: 'Sukhumvit Soi 11',
-        rewardAmount: '฿300',
-        content:
-            'Ray-Ban Aviator sunglasses (gold frame, brown lens) lost somewhere between Sukhumvit Soi 11 and Asok. Last seen when I got out of a Grab car around noon. Very sentimental, please help! 🥺',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 94,
-        commentsCount: 12,
-        timeAgo: '3h ago',
-        phoneNumber: '09795678901',
-      ),
-      NewsItem(
-        id: '6',
-        authorName: 'Kyaw Zin Thant',
-        authorAvatar: 'https://i.pravatar.cc/150?img=8',
-        location: 'Siam Paragon',
-        content:
-            'A brown leather handbag left at Siam Paragon food court, Level B1. It has some cosmetics, a notebook, and a Thai ID inside. Please come to claim it at the security counter.',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=800&auto=format&fit=crop',
-        ],
-        likesCount: 536,
-        commentsCount: 24,
-        timeAgo: '4h ago',
-        phoneNumber: '09796789012',
-      ),
-    ];
+  Future<void> _openCreatePost() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateItemPostPage()),
+    );
+    if (created == true) {
+      await _loadInitialData();
+    }
+  }
+
+  Future<void> _openMyPosts() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const MyItemPostsPage()),
+    );
+    if (changed == true) {
+      await _loadInitialData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreatePost,
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          context.tr('lost.post'),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         color: AppColors.primary,
@@ -246,6 +179,19 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   ),
                 ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: _openMyPosts,
+                  child: Text(
+                    context.tr('lost.my_posts'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(1),
                 child: Container(
@@ -259,6 +205,15 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => const NewsFeedItemSkeleton(),
                   childCount: 3,
+                ),
+              )
+            else if (_items.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    context.tr('lost.empty'),
+                    style: const TextStyle(color: Colors.black54),
+                  ),
                 ),
               )
             else
@@ -275,7 +230,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   child: Center(child: CustomLoadingIndicator(size: 24)),
                 ),
               ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
         ),
       ),

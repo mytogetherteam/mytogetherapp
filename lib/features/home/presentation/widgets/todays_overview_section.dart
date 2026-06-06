@@ -10,7 +10,6 @@ import '../../data/models/menu_item_dto.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
-import '../../data/fallback_data.dart';
 
 class TodaysOverviewSection extends StatefulWidget {
   final String? title;
@@ -127,11 +126,17 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
           return _buildSkeleton();
         }
 
-        final displayItems = (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty)
-            ? FallbackData.trendingItems.take(10).toList()
-            : snapshot.data!.take(10).toList();
+        // No bundled mock data: hide the section when the API errors or
+        // returns nothing, matching the other home rails.
+        if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
-        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By'); // Use displayItems
+        final displayItems = snapshot.data!.take(10).toList();
+
+        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By');
       },
     );
   }

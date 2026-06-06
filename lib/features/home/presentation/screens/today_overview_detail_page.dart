@@ -9,9 +9,17 @@ import '../../data/models/menu_item_dto.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
 import '../../data/models/trending_item_dto.dart';
+import '../../data/models/shop_feed_item_dto.dart';
 
 class TodayOverviewDetailPage extends StatefulWidget {
-  const TodayOverviewDetailPage({super.key});
+  /// When provided, the page paginates this shop-feed type (e.g. `hot-deals`)
+  /// via `getFoodTabFeed`. When null, it shows trending items.
+  final String? feedType;
+
+  /// Optional title override; defaults to "Trending Near By".
+  final String? title;
+
+  const TodayOverviewDetailPage({super.key, this.feedType, this.title});
 
   @override
   State<TodayOverviewDetailPage> createState() => _TodayOverviewDetailPageState();
@@ -56,17 +64,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     });
     
     try {
-      final List<MenuItemDto> items;
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
-      
-      final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        page: 0,
-        size: _pageSize,
-      );
-      items = section.items.map((t) => _mapTrendingToMenuItem(t)).toList();
+      final items = await _fetchPage(0);
       _hasMore = items.length >= _pageSize;
 
       if (mounted) {
@@ -79,6 +77,56 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<List<MenuItemDto>> _fetchPage(int page) async {
+    final activeLoc = UserLocationRepository.instance.activeLocation;
+    final pos = await LocationService().getCurrentPosition();
+    final lat = activeLoc?.latitude ?? pos.latitude;
+    final lon = activeLoc?.longitude ?? pos.longitude;
+
+    if (widget.feedType != null) {
+      final section = await RestaurantRepository.instance.getFoodTabFeed(
+        feedType: widget.feedType!,
+        lat: lat,
+        lon: lon,
+        page: page,
+        size: _pageSize,
+      );
+      return section.items.map(_mapShopFeedToMenuItem).toList();
+    }
+
+    final section = await RestaurantRepository.instance.getTrendingItems(
+      lat: lat,
+      lon: lon,
+      page: page,
+      size: _pageSize,
+    );
+    return section.items.map(_mapTrendingToMenuItem).toList();
+  }
+
+  MenuItemDto _mapShopFeedToMenuItem(ShopFeedItemDto s) {
+    return MenuItemDto(
+      id: s.id.toString(),
+      restaurantId: s.shopId.toString(),
+      restaurantName: s.shopName,
+      title: s.name,
+      price: s.price,
+      currency: s.currency,
+      imagePath: s.imageUrl ?? '',
+      category: '',
+      isFavorite: s.isFavorite,
+      displayPrice: s.displayPrice,
+      rating: s.rating,
+      reviewCount: s.reviewCount,
+      distanceKm: s.distanceKm,
+      estimatedTime: s.estimatedTime,
+      deliveryFee: s.deliveryFee,
+      originalDeliveryFee: s.originalDeliveryFee,
+      originalPrice: s.originalPrice,
+      isAvailable: s.isAvailable,
+      publishStatus: s.publishStatus,
+    );
   }
 
   MenuItemDto _mapTrendingToMenuItem(TrendingItemDto t) {
@@ -146,18 +194,8 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     
     try {
       final nextPage = _currentPage + 1;
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
-      
-      final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
-        page: nextPage,
-        size: _pageSize,
-      );
-      
-      final moreItems = section.items.map((t) => _mapTrendingToMenuItem(t)).toList();
-      
+      final moreItems = await _fetchPage(nextPage);
+
       if (mounted) {
         setState(() {
           _items.addAll(moreItems);
@@ -173,7 +211,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const displayTitle = 'Trending Near By';
+    final String displayTitle = widget.title ?? 'Trending Near By';
     final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
 
     return Scaffold(

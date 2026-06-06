@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
-import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 
 class FoodListItemCard extends StatelessWidget {
   final String title;
@@ -16,7 +14,6 @@ class FoodListItemCard extends StatelessWidget {
   final double originalPrice;
   final String currency;
   final String imagePath;
-  final bool isFavorite;
   final String? displayPrice;
   final double rating;
   final int reviewCount;
@@ -25,7 +22,6 @@ class FoodListItemCard extends StatelessWidget {
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final VoidCallback? onTap;
-  final VoidCallback? onFavoriteToggle;
   final String? id;
   final bool isAvailable;
   final String publishStatus;
@@ -38,7 +34,6 @@ class FoodListItemCard extends StatelessWidget {
     required this.originalPrice,
     required this.imagePath,
     this.currency = '฿',
-    this.isFavorite = false,
     this.displayPrice,
     this.rating = 0.0,
     this.reviewCount = 0,
@@ -47,7 +42,6 @@ class FoodListItemCard extends StatelessWidget {
     this.deliveryFee,
     this.originalDeliveryFee,
     this.onTap,
-    this.onFavoriteToggle,
     this.id,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
@@ -108,31 +102,15 @@ class FoodListItemCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: onFavoriteToggle ??
-                              () => AppDialog.showUnavailable(context),
-                          child: Icon(
-                            isFavorite ? PhosphorIcons.heartFill : PhosphorIcons.heart,
-                            color: isFavorite ? AppColors.primary : Colors.grey[400],
-                            size: 20,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     ShopItemMetadataRow(

@@ -12,6 +12,7 @@ import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../screens/restaurant_detail_page.dart';
+import '../screens/today_overview_detail_page.dart';
 import '../../../../core/utils/price_formatter.dart';
 
 class TogetherDealsSection extends StatefulWidget {
@@ -105,7 +106,19 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                       ],
                     ),
                   ),
-                  ViewAllIconButton(onPressed: () {}),
+                  ViewAllIconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TodayOverviewDetailPage(
+                            feedType: 'hot-deals',
+                            title: context.tr('home.together_deals'),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

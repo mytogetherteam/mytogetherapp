@@ -3,9 +3,9 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'news_card.dart';
 import 'view_all_icon_button.dart';
-import '../../data/fallback_data.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import '../../../../features/news/data/models/news_item.dart';
+import '../../../../features/news/data/repositories/news_repository.dart';
 import '../../../../features/news/presentation/screens/news_detail_page.dart';
 
 class TrendingNewsSection extends StatefulWidget {
@@ -17,29 +17,52 @@ class TrendingNewsSection extends StatefulWidget {
 
 class _TrendingNewsSectionState extends State<TrendingNewsSection> {
   final PageController _pageController = PageController();
+  List<NewsItem> _items = [];
+  bool _isLoading = true;
 
-  void _navigateToDetail(BuildContext context, Map<String, String> item) {
-    final newsItem = NewsItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: item['source']!,
-      authorAvatar: '',
-      content: item['title']!,
-      imageUrls: [item['imageUrl']!],
-      likesCount: 156,
-      commentsCount: 24,
-      timeAgo: item['timeAgo']!,
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadNews();
+  }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadNews() async {
+    try {
+      final feed = await NewsRepository.instance.fetchFeed(page: 1, size: 10);
+      if (mounted) {
+        setState(() {
+          _items = feed.items.map(NewsItem.fromNewsArticle).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _navigateToDetail(NewsItem item) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => NewsDetailPage(item: newsItem)),
+      MaterialPageRoute(builder: (context) => NewsDetailPage(item: item)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Use high-quality fallback data
-    final List<Map<String, String>> newsItems = FallbackData.news.take(10).toList();
+    if (_isLoading) {
+      return const SizedBox(
+        height: 250,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (_items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       children: [
@@ -70,7 +93,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
           height: 250,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: (newsItems.length / 2).ceil(),
+            itemCount: (_items.length / 2).ceil(),
             itemBuilder: (context, pageIndex) {
               final firstItemIndex = pageIndex * 2;
               final secondItemIndex = firstItemIndex + 1;
@@ -79,21 +102,34 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   children: [
-                    NewsCard(
-                      title: newsItems[firstItemIndex]['title']!,
-                      imageUrl: newsItems[firstItemIndex]['imageUrl']!,
-                      source: newsItems[firstItemIndex]['source']!,
-                      timeAgo: newsItems[firstItemIndex]['timeAgo']!,
-                      onTap: () => _navigateToDetail(context, newsItems[firstItemIndex]),
-                    ),
-                    if (secondItemIndex < newsItems.length)
-                      NewsCard(
-                        title: newsItems[secondItemIndex]['title']!,
-                        imageUrl: newsItems[secondItemIndex]['imageUrl']!,
-                        source: newsItems[secondItemIndex]['source']!,
-                        timeAgo: newsItems[secondItemIndex]['timeAgo']!,
-                        onTap: () => _navigateToDetail(context, newsItems[secondItemIndex]),
+                    Expanded(
+                      child: NewsCard(
+                        title: _items[firstItemIndex].content.split('\n').first,
+                        source: _items[firstItemIndex].authorName,
+                        imageUrl: _items[firstItemIndex].imageUrls.isNotEmpty
+                            ? _items[firstItemIndex].imageUrls.first
+                            : '',
+                        timeAgo: _items[firstItemIndex].timeAgo,
+                        onTap: () => _navigateToDetail(_items[firstItemIndex]),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (secondItemIndex < _items.length)
+                      Expanded(
+                        child: NewsCard(
+                          title: _items[secondItemIndex].content.split('\n').first,
+                          source: _items[secondItemIndex].authorName,
+                          imageUrl:
+                              _items[secondItemIndex].imageUrls.isNotEmpty
+                                  ? _items[secondItemIndex].imageUrls.first
+                                  : '',
+                          timeAgo: _items[secondItemIndex].timeAgo,
+                          onTap: () =>
+                              _navigateToDetail(_items[secondItemIndex]),
+                        ),
+                      )
+                    else
+                      const Expanded(child: SizedBox()),
                   ],
                 ),
               );
@@ -102,11 +138,5 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
         ),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 }

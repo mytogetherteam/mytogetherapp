@@ -23,6 +23,7 @@ import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/features/lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
@@ -52,6 +53,7 @@ class _HomePageState extends State<HomePage> {
   List<BannerImageDto> _bottomBanners = [];
   bool _isLoadingBanners = true;
   int _refreshKey = 0;
+  int _lostFoundCount = 0;
 
   @override
   void initState() {
@@ -80,6 +82,18 @@ class _HomePageState extends State<HomePage> {
 
     NotificationRepository().getUnreadCount();
     _fetchBanners();
+    _fetchLostFoundCount();
+  }
+
+  Future<void> _fetchLostFoundCount() async {
+    try {
+      final feed = await ItemPostRepository.instance.fetchFeed(size: 1);
+      if (mounted) {
+        setState(() => _lostFoundCount = feed.totalElements);
+      }
+    } catch (_) {
+      // Leave count at 0 (badge hidden) on failure.
+    }
   }
 
   Future<void> _fetchBanners() async {
@@ -217,6 +231,7 @@ class _HomePageState extends State<HomePage> {
                     _refreshKey++;
                   });
                   await _fetchBanners();
+                  await _fetchLostFoundCount();
                 },
                 color: AppColors.primary,
                 displacement: MediaQuery.of(context).padding.top + 80,
@@ -394,7 +409,11 @@ class _HomePageState extends State<HomePage> {
                                     title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
-                                    badgeText: '4',
+                                    badgeText: _lostFoundCount > 0
+                                        ? (_lostFoundCount > 99
+                                            ? '99+'
+                                            : '$_lostFoundCount')
+                                        : null,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(

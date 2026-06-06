@@ -165,7 +165,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     }
 
     try {
-      final food = await RestaurantRepository.instance.getFoodById(foodId);
+      final food = await RestaurantRepository.instance.getUserFoodById(foodId);
       if (mounted) {
         setState(() {
           _currentFood = food;

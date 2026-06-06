@@ -21,6 +21,9 @@ class ActiveOrderItem {
   double? totalAmount;
   String? paymentMethod;
   String? cancelReason;
+  // Set when the shop sends the order back for revision (status REVISED).
+  bool isRevised;
+  String? reviseReason;
   List<CartItem> orderItems;
   bool showUploadSection;
   bool isPaymentChecking;
@@ -72,6 +75,8 @@ class ActiveOrderItem {
     this.totalAmount,
     this.paymentMethod,
     this.cancelReason,
+    this.isRevised = false,
+    this.reviseReason,
     this.orderItems = const [],
     this.showUploadSection = false,
     this.isPaymentChecking = false,
@@ -118,6 +123,8 @@ class ActiveOrderItem {
     'totalAmount': totalAmount,
     'paymentMethod': paymentMethod,
     'cancelReason': cancelReason,
+    'isRevised': isRevised,
+    'reviseReason': reviseReason,
     'showUploadSection': showUploadSection,
     'isPaymentChecking': isPaymentChecking,
     'routeDistanceKm': routeDistanceKm,
@@ -160,6 +167,8 @@ class ActiveOrderItem {
     totalAmount: json['totalAmount'],
     paymentMethod: json['paymentMethod'],
     cancelReason: json['cancelReason'],
+    isRevised: json['isRevised'] ?? false,
+    reviseReason: json['reviseReason'],
     showUploadSection: json['showUploadSection'] ?? false,
     isPaymentChecking: json['isPaymentChecking'] ?? false,
     routeDistanceKm: json['routeDistanceKm'],
@@ -537,6 +546,16 @@ class ActiveOrderState extends ChangeNotifier {
     if (statusStr != null) {
       final upStatus = statusStr.toUpperCase();
       switch (upStatus) {
+        case 'REVISED':
+          // Shop sent the order back for revision. Keep it on the awaiting
+          // screen (status 0) but flag it so the revise banner shows.
+          item.orderStatus = 0;
+          item.showUploadSection = false;
+          item.isPaymentChecking = false;
+          item.isRevised = true;
+          item.reviseReason =
+              _parseSafeString(data['reviseReason']) ?? item.reviseReason;
+          break;
         case 'PENDING':
         case 'AWAITING_APPROVAL':
           item.orderStatus = 0; 
@@ -584,6 +603,12 @@ class ActiveOrderState extends ChangeNotifier {
       if (upStatus != 'PAYMENT_SLIP_REQUESTED') {
         item.hasNotifiedSlipRequest = false;
         item.isSlipRequested = false;
+      }
+
+      // Clear the revise flag once the order moves past REVISED.
+      if (upStatus != 'REVISED') {
+        item.isRevised = false;
+        item.reviseReason = null;
       }
     } else if (data['orderStatus'] != null) {
       item.orderStatus = data['orderStatus'] as int;

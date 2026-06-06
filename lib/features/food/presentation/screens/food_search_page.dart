@@ -34,10 +34,15 @@ class FoodSearchPage extends StatefulWidget {
   /// `GET /api/user/master-menu-categories/popular`).
   final int? initialMasterCategoryId;
 
+  /// When true, opens the filter sheet automatically after the page loads
+  /// (used by the Food header filter icon).
+  final bool openFilterOnLoad;
+
   const FoodSearchPage({
     super.key,
     this.initialQuery,
     this.initialMasterCategoryId,
+    this.openFilterOnLoad = false,
   });
 
   @override
@@ -79,6 +84,8 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _runSearch(seed, persistRecent: true);
       });
+    } else if (widget.openFilterOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openFilterSheet());
     } else {
       Future.microtask(() => _searchFocus.requestFocus());
     }

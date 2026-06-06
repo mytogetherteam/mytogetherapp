@@ -6,6 +6,7 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_secti
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
+import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 // import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/all_restaurants_page.dart';
@@ -52,6 +53,9 @@ class _FoodPageState extends State<FoodPage> {
   }
 
   Future<void> _onRefresh() async {
+    // Drop cached feeds/shops so the rebuilt sections refetch from the API
+    // instead of serving stale (up to ~5 min TTL) cache.
+    RestaurantRepository.instance.clearCache();
     // Small delay for better UX and to allow skeletons to show
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {

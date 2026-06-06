@@ -1,14 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../widgets/place_card.dart';
-import '../../data/fallback_data.dart';
+import '../../data/models/place_dto.dart';
+import '../../data/repositories/places_repository.dart';
 import 'place_detail_page.dart';
 
-class PlacesListPage extends StatelessWidget {
+class PlacesListPage extends StatefulWidget {
   const PlacesListPage({super.key});
 
-  List<Map<String, dynamic>> get _places => FallbackData.topPlaces;
+  @override
+  State<PlacesListPage> createState() => _PlacesListPageState();
+}
+
+class _PlacesListPageState extends State<PlacesListPage> {
+  List<PlaceDto> _places = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlaces();
+  }
+
+  Future<void> _loadPlaces() async {
+    try {
+      await WishlistRepository.instance.loadAll();
+      final pos = await LocationService().getCurrentPosition();
+      final feed = await PlacesRepository.instance.fetchPlaces(
+        page: 1,
+        size: 50,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _places = feed.items;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleFavorite(PlaceDto place) async {
+    final next = !place.isFavorite;
+    setState(() {
+      final index = _places.indexWhere((p) => p.id == place.id);
+      if (index != -1) {
+        _places[index] = place.copyWith(isFavorite: next);
+      }
+    });
+    try {
+      await WishlistRepository.instance.togglePlace(place.id, next);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          final index = _places.indexWhere((p) => p.id == place.id);
+          if (index != -1) {
+            _places[index] = place.copyWith(isFavorite: !next);
+          }
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,43 +89,47 @@ class PlacesListPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.75,
-        ),
-        itemCount: _places.length,
-        itemBuilder: (context, index) {
-          final place = _places[index];
-          return PlaceCard(
-            name: place['name']!,
-            category: place['category']!,
-            distance: place['distance']!,
-            imagePath: place['imagePath']!,
-            isFavorite: false, // Default for list page
-            onFavoriteToggle: () {},
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PlaceDetailPage(
-                    name: place['name']!,
-                    category: place['category']!,
-                    distance: place['distance']!,
-                    imagePath: place['imagePath']!,
-                    description: place['description']!,
-                    openingHours: place['hours'],
-                    images: List<String>.from(place['gallery']),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _places.isEmpty
+              ? Center(child: Text(context.tr('place.none_found')))
+              : GridView.builder(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount:
+                        MediaQuery.of(context).size.width > 600 ? 3 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.75,
                   ),
+                  itemCount: _places.length,
+                  itemBuilder: (context, index) {
+                    final place = _places[index];
+                    final image = place.coverImage.isNotEmpty
+                        ? place.coverImage
+                        : (place.galleryUrls.isNotEmpty
+                            ? place.galleryUrls.first
+                            : '');
+                    return PlaceCard(
+                      name: place.displayTitle,
+                      category: place.locationName,
+                      distance: place.formattedDistance,
+                      imagePath: image,
+                      isFavorite: place.isFavorite,
+                      onFavoriteToggle: () => _toggleFavorite(place),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PlaceDetailPage(place: place),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              );
-            },
-          );
-        },
-      ),
     );
   }
 }

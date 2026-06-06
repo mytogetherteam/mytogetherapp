@@ -3,27 +3,42 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/news_image_viewer.dart';
 import '../../data/models/news_item.dart';
-import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../data/repositories/news_repository.dart';
+import '../../../lost_and_found/data/repositories/item_post_repository.dart';
+import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 class NewsComment {
+  final int? id;
   final String authorName;
   final String authorAvatar;
   final String content;
   final String timeAgo;
-  final String? gifUrl;
+  final bool isMine;
 
   NewsComment({
+    this.id,
     required this.authorName,
     required this.authorAvatar,
     required this.content,
     required this.timeAgo,
-    this.gifUrl,
+    this.isMine = false,
   });
+
+  NewsComment copyWith({String? content}) {
+    return NewsComment(
+      id: id,
+      authorName: authorName,
+      authorAvatar: authorAvatar,
+      content: content ?? this.content,
+      timeAgo: timeAgo,
+      isMine: isMine,
+    );
+  }
 }
 
 class NewsDetailPage extends StatefulWidget {
@@ -47,46 +62,67 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   final PageController _pageController = PageController(viewportFraction: 0.80);
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
-  bool _isGifPickerVisible = false;
-  List<String> _trendingGifs = [];
-  bool _isLoadingGifs = false;
 
-  late List<NewsComment> _comments;
-
-  final List<NewsComment> _initialMocks = [
-    NewsComment(
-      authorName: 'Alex Rivers',
-      authorAvatar: 'https://i.pravatar.cc/150?u=alex',
-      content: 'This is such an insightful update! Thanks for sharing.',
-      timeAgo: '2h ago',
-    ),
-    NewsComment(
-      authorName: 'Sarah Jenkins',
-      authorAvatar: 'https://i.pravatar.cc/150?u=sarah',
-      content: 'I completely agree. The attention to detail is amazing.',
-      timeAgo: '1h ago',
-    ),
-    NewsComment(
-      authorName: 'Michael Chen',
-      authorAvatar: 'https://i.pravatar.cc/150?u=mike',
-      content: 'Can\'t wait to see what\'s next!',
-      timeAgo: '45m ago',
-    ),
-  ];
+  List<NewsComment> _comments = [];
 
   @override
   void initState() {
     super.initState();
     _isLiked = widget.item.isLiked;
     _likesCount = widget.item.likesCount;
-    _comments = List.from(_initialMocks);
+    if (widget.item.isApiBacked) {
+      _loadComments();
+    }
 
-    // Handle auto-focus for comments if triggered from feed
     if (widget.autoFocusComment) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _commentFocusNode.requestFocus();
       });
     }
+  }
+
+  Future<void> _loadComments() async {
+    final id = widget.item.entityId;
+    if (id == null) return;
+    final myId = AuthService().currentUser?.id;
+    try {
+      if (widget.item.source == FeedSource.news) {
+        final rows = await NewsRepository.instance.fetchComments(id);
+        if (!mounted) return;
+        setState(() {
+          _comments = rows
+              .map(
+                (c) => NewsComment(
+                  id: c.id,
+                  authorName: c.authorName,
+                  authorAvatar: c.authorAvatar,
+                  content: c.content,
+                  timeAgo: c.timeAgo,
+                  isMine: myId != null &&
+                      (c.userId == myId || c.user?.id == myId),
+                ),
+              )
+              .toList();
+        });
+      } else if (widget.item.source == FeedSource.itemPost) {
+        final rows = await ItemPostRepository.instance.fetchComments(id);
+        if (!mounted) return;
+        setState(() {
+          _comments = rows
+              .map(
+                (c) => NewsComment(
+                  id: c.id,
+                  authorName: c.authorName,
+                  authorAvatar: c.authorAvatar,
+                  content: c.content,
+                  timeAgo: c.timeAgo,
+                  isMine: myId != null && c.user?.id == myId,
+                ),
+              )
+              .toList();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -97,15 +133,33 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     super.dispose();
   }
 
-  void _toggleLike() {
+  Future<void> _toggleLike() async {
+    final previousLiked = _isLiked;
+    final previousCount = _likesCount;
     setState(() {
       _isLiked = !_isLiked;
-      if (_isLiked) {
-        _likesCount++;
-      } else {
-        _likesCount--;
-      }
+      _likesCount += _isLiked ? 1 : -1;
     });
+
+    if (!widget.item.isApiBacked) return;
+
+    try {
+      final id = widget.item.entityId!;
+      final result = widget.item.source == FeedSource.news
+          ? await NewsRepository.instance.toggleLike(id)
+          : await ItemPostRepository.instance.toggleLike(id);
+      if (!mounted) return;
+      setState(() {
+        _isLiked = result.liked;
+        _likesCount = result.likeCount;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLiked = previousLiked;
+        _likesCount = previousCount;
+      });
+    }
   }
 
   Future<void> _makeCall(String phoneNumber) async {
@@ -127,19 +181,66 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     }
   }
 
-  void _postComment() {
+  Future<void> _postComment() async {
     final text = _commentController.text.trim();
-    if (text.isNotEmpty) {
-      _addComment(text: text);
-      _commentController.clear();
-      _commentFocusNode.unfocus();
-      if (_isGifPickerVisible) {
-        setState(() => _isGifPickerVisible = false);
+    if (text.isEmpty) return;
+
+    _commentController.clear();
+    _commentFocusNode.unfocus();
+
+    if (widget.item.isApiBacked && widget.item.entityId != null) {
+      try {
+        if (widget.item.source == FeedSource.news) {
+          final created = await NewsRepository.instance.addComment(
+            widget.item.entityId!,
+            text,
+          );
+          if (created != null && mounted) {
+            setState(() {
+              _comments.insert(
+                0,
+                NewsComment(
+                  id: created.id,
+                  authorName: created.authorName,
+                  authorAvatar: created.authorAvatar,
+                  content: created.content,
+                  timeAgo: created.timeAgo,
+                  isMine: true,
+                ),
+              );
+            });
+          }
+        } else if (widget.item.source == FeedSource.itemPost) {
+          final created = await ItemPostRepository.instance.addComment(
+            widget.item.entityId!,
+            text,
+          );
+          if (created != null && mounted) {
+            setState(() {
+              _comments.insert(
+                0,
+                NewsComment(
+                  id: created.id,
+                  authorName: created.authorName,
+                  authorAvatar: created.authorAvatar,
+                  content: created.content,
+                  timeAgo: created.timeAgo,
+                  isMine: true,
+                ),
+              );
+            });
+          }
+        }
+      } catch (_) {
+        _addComment(text: text);
       }
+      return;
     }
+
+    _addComment(text: text);
   }
 
-  void _addComment({String text = '', String? gifUrl}) {
+  void _addComment({String text = ''}) {
     setState(() {
       _comments.insert(
         0,
@@ -148,86 +249,110 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           authorAvatar: 'https://i.pravatar.cc/150?u=you',
           content: text,
           timeAgo: 'Just now',
-          gifUrl: gifUrl,
         ),
       );
     });
   }
 
-  void _toggleGifPicker() {
-    setState(() {
-      _isGifPickerVisible = !_isGifPickerVisible;
-      if (_isGifPickerVisible) {
-        _commentFocusNode.unfocus();
-        if (_trendingGifs.isEmpty) {
-          _fetchGifsToCache();
-        }
-      }
-    });
-  }
+  Future<void> _editComment(int index) async {
+    final comment = _comments[index];
+    final commentId = comment.id;
+    final entityId = widget.item.entityId;
+    if (commentId == null || entityId == null) return;
 
-  Future<void> _fetchGifsToCache() async {
-    setState(() {
-      _isLoadingGifs = true;
-      _trendingGifs = []; // Clear previous errors
-    });
-    final gifs = await _fetchGifs();
-    if (mounted) {
-      setState(() {
-        _trendingGifs = gifs;
-        _isLoadingGifs = false;
-      });
+    final controller = TextEditingController(text: comment.content);
+    final newText = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          context.tr('comment.edit'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          minLines: 1,
+          autofocus: true,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(context.tr('common.cancel')),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(context.tr('common.save')),
+          ),
+        ],
+      ),
+    );
+
+    if (newText == null || newText.isEmpty || newText == comment.content) {
+      return;
+    }
+
+    // Optimistic update with rollback on failure.
+    setState(() => _comments[index] = comment.copyWith(content: newText));
+    try {
+      if (widget.item.source == FeedSource.news) {
+        await NewsRepository.instance
+            .updateComment(entityId, commentId, newText);
+      } else {
+        await ItemPostRepository.instance
+            .updateComment(entityId, commentId, newText);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _comments[index] = comment);
+      AppDialog.showToast(
+        context,
+        context.tr('comment.update_failed'),
+        isError: true,
+      );
     }
   }
 
-  final List<String> _fallbackGifs = [
-    'https://i.giphy.com/media/3o7TKMGpxVf7C1pG0M/200.gif', // Happy
-    'https://i.giphy.com/media/l0HlHFRbmaZtBRhXG/200.gif', // Confused
-    'https://i.giphy.com/media/3o7TKVUn7iM8FMEU24/200.gif', // Love
-    'https://i.giphy.com/media/26AHONQ79FdWzhAI0/200.gif', // Cool
-    'https://i.giphy.com/media/3o7TKV4YyM7BMrANMc/200.gif', // Excited
-    'https://i.giphy.com/media/3o7TKvaO83GZAnRE0o/200.gif', // Smile
-    'https://i.giphy.com/media/l41lTfVp2m9PZ9m1O/200.gif', // Wow
-    'https://i.giphy.com/media/3o84sq21z7SBiqpCxy/200.gif', // Celebrate
-    'https://i.giphy.com/media/26n6R4xg77ekzchRS/200.gif', // Clap
-    'https://i.giphy.com/media/l0MYvV3LXpxS8G3ug/200.gif', // Dancing
-    'https://i.giphy.com/media/3o7TKDkRoU6AN0p1u0/200.gif', // Thumbs up
-    'https://i.giphy.com/media/26AHvXn1pWvS/200.gif', // Shock
-    'https://i.giphy.com/media/3o84sq2Y10kK1G9mS0/200.gif', // Laugh
-    'https://i.giphy.com/media/l0HlUvH6yA6H3ug/200.gif', // Party
-    'https://i.giphy.com/media/l41lS9B5kQpWpH1m0/200.gif', // Cry
-  ];
+  Future<void> _deleteComment(int index) async {
+    final comment = _comments[index];
+    final commentId = comment.id;
+    final entityId = widget.item.entityId;
+    if (commentId == null || entityId == null) return;
 
-  Future<List<String>> _fetchGifs() async {
+    final confirmed = await AppDialog.show<bool>(
+      context: context,
+      title: context.tr('comment.delete_title'),
+      content: context.tr('comment.delete_confirm'),
+      buttonText: context.tr('common.delete'),
+      secondaryButtonText: context.tr('common.cancel'),
+      showCloseIcon: false,
+    );
+    if (confirmed != true) return;
+
+    setState(() => _comments.removeAt(index));
     try {
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-        ),
-      );
-      final response = await dio.get(
-        'https://tenor.googleapis.com/v2/featured',
-        queryParameters: {
-          'key': 'LIVDSRZULELA', // Public demo key
-          'limit': 15,
-        },
-      );
-
-      if (response.statusCode == 200 && response.data != null) {
-        final List results = response.data['results'] ?? [];
-        final List<String> gifs = results.map((e) {
-          final formats = e['media_formats'] as Map<String, dynamic>;
-          final gifData =
-              formats['tinygif'] ?? formats['gif'] ?? formats['mediumgif'];
-          return (gifData['url'] as String).replaceFirst('http:', 'https:');
-        }).toList();
-        if (gifs.isNotEmpty) return gifs;
+      if (widget.item.source == FeedSource.news) {
+        await NewsRepository.instance.deleteComment(entityId, commentId);
+      } else {
+        await ItemPostRepository.instance.deleteComment(entityId, commentId);
       }
-      return _fallbackGifs;
-    } catch (e) {
-      debugPrint('Tenor Exception: $e');
-      return _fallbackGifs;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _comments.insert(index, comment));
+      AppDialog.showToast(
+        context,
+        context.tr('comment.delete_failed'),
+        isError: true,
+      );
     }
   }
 
@@ -380,27 +505,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               color: const Color(0xFF7B8794),
                               fontWeight: FontWeight.w500,
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (widget.item.rewardAmount != null) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(
-                          PhosphorIcons.moneyWavyFill,
-                          color: const Color(0xFF48BB78),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          widget.item.rewardAmount!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: const Color(0xFF768CA2),
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -659,26 +763,39 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 height: 1.4,
                               ),
                             ),
-                          if (comment.gifUrl != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: CachedNetworkImage(
-                                  imageUrl: comment.gifUrl!,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    height: 150,
-                                    width: 200,
-                                    color: Colors.grey[100],
-                                  ),
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
+                    if (comment.isMine && comment.id != null)
+                      SizedBox(
+                        height: 24,
+                        width: 28,
+                        child: PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.more_horiz,
+                            size: 18,
+                            color: Colors.black45,
+                          ),
+                          onSelected: (value) {
+                            if (value == 'edit') _editComment(index);
+                            if (value == 'delete') _deleteComment(index);
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(context.tr('common.edit')),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(
+                                context.tr('common.delete'),
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               );
@@ -720,11 +837,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     child: TextField(
                       controller: _commentController,
                       focusNode: _commentFocusNode,
-                      onTap: () {
-                        if (_isGifPickerVisible) {
-                          setState(() => _isGifPickerVisible = false);
-                        }
-                      },
                       decoration: InputDecoration(
                         hintText: context.tr('news.add_comment'),
                         hintStyle: GoogleFonts.poppins(
@@ -735,19 +847,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 12,
-                        ),
-                        suffixIcon: GestureDetector(
-                          onTap: _toggleGifPicker,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              PhosphorIcons.gifBold,
-                              color: _isGifPickerVisible
-                                  ? AppColors.primary
-                                  : Colors.grey[600],
-                              size: 24,
-                            ),
-                          ),
                         ),
                       ),
                       style: GoogleFonts.poppins(fontSize: 14),
@@ -771,83 +870,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   ),
                 ),
               ],
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutQuart,
-              height: _isGifPickerVisible ? 200 : 0,
-              padding: const EdgeInsets.only(top: 12),
-              child: _isLoadingGifs
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : _trendingGifs.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            PhosphorIcons.warningCircle,
-                            color: Colors.grey[400],
-                            size: 32,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr('news.failed_gifs'),
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[600],
-                              fontSize: 13,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: _fetchGifsToCache,
-                            child: GradientText(
-                              context.tr('common.retry'),
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 1.2,
-                          ),
-                      itemCount: _trendingGifs.length,
-                      itemBuilder: (context, index) {
-                        final url = _trendingGifs[index];
-                        return GestureDetector(
-                          onTap: () {
-                            _addComment(gifUrl: url);
-                            setState(() => _isGifPickerVisible = false);
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: url,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) =>
-                                  Container(color: Colors.grey[100]),
-                              errorWidget: (context, url, error) => Container(
-                                color: Colors.grey[100],
-                                child: const Icon(
-                                  Icons.error_outline,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
             ),
           ],
         ),

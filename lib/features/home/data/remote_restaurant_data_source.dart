@@ -17,13 +17,11 @@ import 'shop_storage.dart';
 class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
 
+  /// Backend (auth): GET /api/user/banners?position=Ads|Promotions
   Future<List<BannerImageDto>> getBanners({String? position}) async {
-    // The new backend exposes banners only under /admin/banners (admin-guarded).
-    // There is no user-facing banner endpoint yet, so we soft-fail with an
-    // empty list and let the UI fall back to bundled assets.
     try {
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/banners',
+        '${ApiClient.apiPrefix}/user/banners',
         queryParameters: position != null ? {'position': position} : null,
       );
 
@@ -32,7 +30,10 @@ class RemoteRestaurantDataSource {
         final List<dynamic> data = raw is Map
             ? (raw['data'] as List<dynamic>? ?? const [])
             : (raw is List ? raw : const []);
-        return data.map((json) => BannerImageDto.fromJson(json)).toList();
+        return data
+            .whereType<Map<String, dynamic>>()
+            .map(BannerImageDto.fromJson)
+            .toList();
       }
       return [];
     } catch (_) {

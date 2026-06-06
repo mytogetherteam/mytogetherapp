@@ -264,7 +264,6 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                   originalPrice: item.originalPrice ?? 0.0,
                   currency: item.currency,
                   imagePath: item.imageUrl ?? '',
-                  isFavorite: _localFavorites[item.id] ?? item.isFavorite,
                   displayPrice: item.displayPrice,
                   rating: item.rating,
                   reviewCount: item.reviewCount,
@@ -273,7 +272,6 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                   id: item.id.toString(),
                   isAvailable: item.isAvailable,
                   publishStatus: item.publishStatus,
-                  onFavoriteToggle: () => _toggleFavorite(item),
                   onTap: () {
                     Navigator.push(
                       context,
