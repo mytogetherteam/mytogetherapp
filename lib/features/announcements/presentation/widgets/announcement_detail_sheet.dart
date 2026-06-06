@@ -32,27 +32,33 @@ class AnnouncementDetailSheet extends StatelessWidget {
     final hasImage =
         announcement.imageUrl != null && announcement.imageUrl!.isNotEmpty;
     final size = MediaQuery.of(context).size;
+    // Fill the available width (minus the dialog inset) up to a comfortable
+    // max, so the box never collapses around short content.
+    final double boxWidth = (size.width - 48).clamp(0.0, 400.0);
 
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 420,
-          maxHeight: size.height * 0.82,
-        ),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Container(
-                color: Colors.white,
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+      child: SizedBox(
+        width: boxWidth,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: size.height * 0.82,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       if (hasImage)
                         _buildImageHeader(context)
                       else
@@ -101,12 +107,13 @@ class AnnouncementDetailSheet extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: _CloseButton(onTap: () => Navigator.pop(context)),
-            ),
-          ],
+              Positioned(
+                top: 12,
+                right: 12,
+                child: _CloseButton(onTap: () => Navigator.pop(context)),
+              ),
+            ],
+          ),
         ),
       ),
     );
