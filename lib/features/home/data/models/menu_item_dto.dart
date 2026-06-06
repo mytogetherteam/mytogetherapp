@@ -1,10 +1,17 @@
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 
 class MenuItemDto {
   final String id;
   final String restaurantId;
-  final String restaurantName;
-  final String title;
+  final String _restaurantName;
+  final String? restaurantNameEn;
+  final String? restaurantNameMm;
+  final String? restaurantNameTh;
+  final String _title;
+  final String? titleEn;
+  final String? titleMm;
+  final String? titleTh;
   final double price;
   final String currency;
   final String imagePath;
@@ -21,11 +28,27 @@ class MenuItemDto {
   final bool isAvailable;
   final String publishStatus;
 
+  String get restaurantName => LocaleController.instance.localizedOr(
+        _restaurantName,
+        en: restaurantNameEn,
+        mm: restaurantNameMm,
+        th: restaurantNameTh,
+      );
+
+  String get title => LocaleController.instance
+      .localizedOr(_title, en: titleEn, mm: titleMm, th: titleTh);
+
   MenuItemDto({
     required this.id,
     required this.restaurantId,
-    required this.restaurantName,
-    required this.title,
+    required String restaurantName,
+    this.restaurantNameEn,
+    this.restaurantNameMm,
+    this.restaurantNameTh,
+    required String title,
+    this.titleEn,
+    this.titleMm,
+    this.titleTh,
     required this.price,
     required this.currency,
     required this.imagePath,
@@ -41,7 +64,8 @@ class MenuItemDto {
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
-  });
+  })  : _restaurantName = restaurantName,
+        _title = title;
 
   factory MenuItemDto.fromJson(Map<String, dynamic> json) {
     return MenuItemDto(
@@ -103,8 +127,14 @@ class MenuItemDto {
     return MenuItemDto(
       id: json['id']?.toString() ?? '',
       restaurantId: json['shopId']?.toString() ?? '',
-      restaurantName: json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '',
-      title: json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '',
+      restaurantName: (json['shopNameEn'] as String? ?? json['shopName'] as String?) ?? '',
+      restaurantNameEn: json['shopNameEn'] as String? ?? json['shopName'] as String?,
+      restaurantNameMm: json['shopNameMm'] as String?,
+      restaurantNameTh: json['shopNameTh'] as String?,
+      title: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
+      titleEn: json['nameEn'] as String? ?? json['name'] as String?,
+      titleMm: json['nameMm'] as String?,
+      titleTh: json['nameTh'] as String?,
       price: _parsePrice(json['price']),
       currency: json['currency'] as String? ?? '฿',
       imagePath: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',

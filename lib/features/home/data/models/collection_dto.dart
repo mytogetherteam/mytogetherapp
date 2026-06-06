@@ -10,6 +10,7 @@ Map<String, dynamic> flattenMenuItemForFeed(Map<String, dynamic> json) {
     flat['shopId'] ??= shop['id'];
     flat['shopNameEn'] ??= shop['nameEn'];
     flat['shopNameMm'] ??= shop['nameMm'];
+    flat['shopNameTh'] ??= shop['nameTh'];
   }
   return flat;
 }

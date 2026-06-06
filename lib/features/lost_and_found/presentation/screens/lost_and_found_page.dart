@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -236,7 +237,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Lost & Found',
+                    context.tr('lost.title'),
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,

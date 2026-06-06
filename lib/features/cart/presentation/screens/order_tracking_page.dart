@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -911,7 +912,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Finding route...',
+                        context.tr('order_tracking.finding_route'),
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.black87,
@@ -974,7 +975,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           GradientText(
-                            'Awaiting Restaurant Confirmation',
+                            context.tr('order_tracking.awaiting_confirmation'),
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -987,7 +988,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             children: [
                               Expanded(
                                 child: Text(
-                                  'The restaurant is reviewing your order and arranging a delivery rider.',
+                                  context.tr('order_tracking.restaurant_reviewing'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 13,
                                     color: Colors.grey[600],
@@ -1063,7 +1064,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           const SizedBox(height: 20),
 
                           _buildInfoRow(
-                            label: 'Food Total',
+                            label: context.tr('order_status.food_total'),
                             value:
                                 '฿ ${widget.foodTotal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
                             valueColor: Colors.black,
@@ -1076,7 +1077,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           const SizedBox(height: 12),
 
                           _buildInfoRow(
-                            label: 'Total Amount',
+                            label: context.tr('order_status.total_amount'),
                             value: '฿ ${widget.foodTotal.toInt()}',
                             isGradientValue: true,
                           ),
@@ -1106,7 +1107,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                   ),
                                   const SizedBox(width: 8),
                                   GradientText(
-                                    'This usually takes 1–2 minutes.',
+                                    context.tr('order_tracking.usually_takes'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -1124,7 +1125,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             child: TextButton(
                               onPressed: () => _showCancelConfirm(),
                               child: Text(
-                                'Cancel order',
+                                context.tr('order_tracking.cancel_order'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -1188,7 +1189,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         Row(
           children: [
             Text(
-              'Delivery Fee',
+              context.tr('order_status.delivery_fee'),
               style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(width: 4),
@@ -1238,7 +1239,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               ),
               const SizedBox(height: 20),
               Text(
-                'Cancel Order?',
+                context.tr('order_tracking.cancel_title'),
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1246,7 +1247,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               ),
               const SizedBox(height: 8),
               Text(
-                'Are you sure you want to cancel this order?',
+                context.tr('order_tracking.cancel_confirm'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   color: Colors.grey[600],
@@ -1267,7 +1268,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: Text(
-                        'Keep Order',
+                        context.tr('order_tracking.keep_order'),
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -1327,7 +1328,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             },
                       isLoading: _showCancelLoading,
                       child: Text(
-                        'Cancel Order',
+                        context.tr('order_tracking.cancel_order'),
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                           color: Colors.white,

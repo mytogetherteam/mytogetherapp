@@ -8,6 +8,7 @@ import '../../../../core/presentation/widgets/global_modal.dart';
 import '../widgets/confirm_remove_modal.dart';
 import 'order_summary_page.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_translations.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -50,7 +51,7 @@ class _CartPageState extends State<CartPage> {
             centerTitle: false,
             titleSpacing: 0,
             title: Text(
-              'My Cart',
+              context.tr('cart.title'),
               style: GoogleFonts.poppins(
                 color: Colors.black,
                 fontSize: 18,
@@ -66,7 +67,7 @@ class _CartPageState extends State<CartPage> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
-                        'Select Shop',
+                        context.tr('cart.select_shop'),
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -100,7 +101,7 @@ class _CartPageState extends State<CartPage> {
           Icon(PhosphorIcons.shoppingCart, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'Your cart is empty',
+            context.tr('cart.empty'),
             style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
           ),
         ],
@@ -120,8 +121,8 @@ class _CartPageState extends State<CartPage> {
               GlobalModal.show(
                 context: context,
                 child: ConfirmRemoveModal(
-                  title: 'Remove Shop',
-                  message: 'Are you sure you want to remove this shop and all its items from your cart?',
+                  title: context.tr('cart.remove_shop'),
+                  message: context.tr('cart.remove_shop_confirm'),
                   onConfirm: () async {
                     await CartManager.instance.removeStore(store.name);
                   },
@@ -131,7 +132,7 @@ class _CartPageState extends State<CartPage> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             icon: Icons.delete_outline,
-            label: 'Remove',
+            label: context.tr('common.remove'),
           ),
         ],
       ),
@@ -157,7 +158,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${store.items.fold(0, (int sum, item) => sum + item.quantity)} ${store.items.fold(0, (int sum, item) => sum + item.quantity) == 1 ? 'item' : 'items'}  •  From ${store.time}  •  ${store.distance}',
+                    '${context.trArgs(store.items.fold(0, (int sum, item) => sum + item.quantity) == 1 ? 'cart.item' : 'cart.items', {'count': store.items.fold(0, (int sum, item) => sum + item.quantity).toString()})}  •  ${context.tr('cart.from')} ${store.time}  •  ${store.distance}',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[600],
@@ -168,7 +169,7 @@ class _CartPageState extends State<CartPage> {
                     Row(
                       children: [
                         Text(
-                          'Closed Now',
+                          context.tr('cart.closed_now'),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: AppColors.primary,
@@ -179,7 +180,7 @@ class _CartPageState extends State<CartPage> {
                         const Icon(Icons.circle, size: 3, color: Colors.grey),
                         const SizedBox(width: 8),
                         Text(
-                          'Order tomorrow 9:00 AM',
+                          context.tr('cart.order_tomorrow'),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[500],

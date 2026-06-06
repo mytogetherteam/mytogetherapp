@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'place_card.dart';
 import 'view_all_icon_button.dart';
@@ -38,7 +39,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Top Places Nearby',
+                context.tr('home.top_places_nearby'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import '../../data/models/announcement_model.dart';
@@ -175,12 +175,8 @@ class AnnouncementDetailSheet extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d, yyyy').format(date);
+    return LocaleController.instance
+        .relativeTime(date, olderFormat: 'MMM d, yyyy');
   }
 }
 

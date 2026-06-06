@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -239,7 +240,7 @@ class _OutOfStockListWrapper extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'Out of Stock',
+                context.tr('common.out_of_stock'),
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 10,

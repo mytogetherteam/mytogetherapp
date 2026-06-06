@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../../../reviews/data/models/order_review_dto.dart';
+import '../../../../core/localization/locale_controller.dart';
 
 class OrderHistoryGroupedDto {
   final List<OrderHistoryDto> currentOrders;
@@ -78,10 +79,14 @@ class OrderHistoryDto {
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
     final shop = json['shop'] as Map<String, dynamic>?;
-    final shopName =
-        json['shopName'] as String? ??
-        shop?['name'] as String? ??
-        shop?['nameEn'] as String?;
+    final localizedShopName = LocaleController.instance.localized(
+      en: json['shopName'] as String? ??
+          shop?['name'] as String? ??
+          shop?['nameEn'] as String?,
+      mm: json['shopNameMm'] as String? ?? shop?['nameMm'] as String?,
+      th: json['shopNameTh'] as String? ?? shop?['nameTh'] as String?,
+    );
+    final shopName = localizedShopName.isEmpty ? null : localizedShopName;
     final shopImageUrl =
         json['shopImageUrl'] as String? ??
         json['imageUrl'] as String? ??
@@ -150,9 +155,14 @@ class OrderHistoryItemDto {
     // Legacy shape used: menuItemName / menuItemNameMm / menuItemImageUrl.
     return OrderHistoryItemDto(
       menuItemId: json['menuItemId'] as int?,
-      menuItemName: (json['menuItemName'] as String?) ??
-          (json['nameEn'] as String?) ??
-          'Item',
+      menuItemName: () {
+        final name = LocaleController.instance.localized(
+          en: (json['menuItemName'] as String?) ?? (json['nameEn'] as String?),
+          mm: (json['menuItemNameMm'] as String?) ?? (json['nameMm'] as String?),
+          th: (json['menuItemNameTh'] as String?) ?? (json['nameTh'] as String?),
+        );
+        return name.isEmpty ? 'Item' : name;
+      }(),
       menuItemNameMm: (json['menuItemNameMm'] as String?) ??
           (json['nameMm'] as String?),
       menuItemImageUrl: (json['menuItemImageUrl'] as String?) ??

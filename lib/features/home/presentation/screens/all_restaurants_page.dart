@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -122,7 +123,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading restaurants: $e')),
+          SnackBar(content: Text(context.trArgs('restaurant.load_error', {'error': '$e'}))),
         );
       }
     }
@@ -235,7 +236,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                 controller: _searchController,
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Search restaurants...',
+                  hintText: context.tr('restaurant.search_hint'),
                   hintStyle: GoogleFonts.poppins(
                     color: Colors.grey[400],
                     fontSize: 13,
@@ -361,7 +362,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           Icon(PhosphorIcons.bag, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'No restaurants found',
+            context.tr('restaurant.no_restaurants'),
             style: GoogleFonts.poppins(
               color: Colors.grey[500],
               fontSize: 16,
@@ -370,7 +371,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Try adjusting your filters or location',
+            context.tr('restaurant.adjust_filters'),
             style: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -68,7 +69,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   @override
   Widget build(BuildContext context) {
     final state = ActiveOrderState.instance;
-    final storeName = state.restaurantName ?? state.storeName ?? 'Restaurant';
+    final storeName = state.restaurantName ?? state.storeName ?? context.tr('common.restaurant');
     final total = state.totalAmount ?? 0.0;
     
     // In a real app we'd format actual Arrival time, mocked for now
@@ -95,7 +96,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Order Completed',
+              context.tr('order_complete.title'),
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -104,7 +105,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Arrived at: $arrivalTime',
+              context.trArgs('order_complete.arrived_at', {'time': arrivalTime}),
               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
@@ -158,7 +159,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Rate Your Experience at $storeName',
+                          context.trArgs('order_complete.rate_experience', {'shop': storeName}),
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -167,7 +168,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Your feedback helps improve food quality and delivery service.',
+                          context.tr('order_complete.rate_subtitle'),
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: Colors.grey[600],
@@ -201,7 +202,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       title: Text(
-                        'Total',
+                        context.tr('cart.total'),
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -230,7 +231,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: state.orderItems.isEmpty 
                                 ? [
-                                    Text('Items ordered will be displayed here.', 
+                                    Text(context.tr('order_complete.items_placeholder'), 
                                       style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
                                     )
                                   ]
@@ -275,7 +276,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                 _goToFoodTab();
               },
               child: Text(
-                'Done',
+                context.tr('order_complete.done'),
                 style: GoogleFonts.poppins(
                   fontSize: 16, 
                   fontWeight: FontWeight.bold,

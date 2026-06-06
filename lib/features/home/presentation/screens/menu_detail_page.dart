@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -472,7 +473,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         if (_currentFood != null &&
                             _currentFood!.variants.isNotEmpty) ...[
                           Text(
-                            'Variants',
+                            context.tr('menu.variants'),
                             style: GoogleFonts.poppins(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -513,7 +514,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         if (_currentFood != null &&
                             _currentFood!.optionGroups.isNotEmpty) ...[
                           Text(
-                            'Add On',
+                            context.tr('menu.add_on'),
                             style: GoogleFonts.poppins(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -595,7 +596,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                         // Special Instructions
                         Text(
-                          'Special Instructions',
+                          context.tr('menu.special_instructions'),
                           style: GoogleFonts.poppins(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
@@ -629,7 +630,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                 }) => null,
                             decoration: InputDecoration(
                               hintText:
-                                  'Any special requests? (e.g., no onions, extra spicy)',
+                                  context.tr('menu.special_instructions_hint'),
                               hintStyle: GoogleFonts.poppins(
                                 color: Colors.grey[500],
                                 fontSize: 14,
@@ -659,7 +660,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Recommended with this',
+                                context.tr('menu.recommended_with'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
@@ -787,8 +788,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             setState(() => _isFavorite = !_isFavorite);
                             messenger.showSnackBar(
                               SnackBar(
-                                content: const Text(
-                                  'Failed to update favorite. Please try again.',
+                                content: Text(
+                                  context.tr('common.favorite_failed'),
                                 ),
                                 backgroundColor: Colors.red,
                               ),
@@ -886,7 +887,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         if (_currentFood!.variants.isNotEmpty && _selectedVariantId == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Please select a variant'),
+                              content: Text(context.tr('menu.select_variant')),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -905,7 +906,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Please select an option for ${group.nameMm ?? group.name}',
+                                            context.trArgs('menu.select_option_for', {
+                                              'name': group.nameMm ?? group.name,
+                                            }),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -1069,11 +1072,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         final bool? clearConfirmed =
                                             await AppDialog.show<bool>(
                                               context: context,
-                                              title: 'New Cart?',
+                                              title: context.tr('menu.new_cart_title'),
                                               content:
-                                                  'Your cart contains items from a different shop. Would you like to clear the existing cart and add this item?',
-                                              buttonText: 'Clear and Add',
-                                              secondaryButtonText: 'Cancel',
+                                                  context.tr('menu.new_cart_message'),
+                                              buttonText: context.tr('menu.clear_and_add'),
+                                              secondaryButtonText: context.tr('common.cancel'),
                                             );
 
                                         if (clearConfirmed == true && mounted) {
@@ -1125,9 +1128,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
-                                                    'Cart cleared and item added',
+                                                    context.tr('menu.cart_cleared_added'),
                                                   ),
                                                   backgroundColor:
                                                       AppColors.primary,
@@ -1168,7 +1171,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Failed to add to cart: $e',
+                                            context.trArgs('menu.failed_add_cart', {'error': '$e'}),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -1179,9 +1182,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   if (mounted) {
                                     setState(() => _isAddingToCart = false);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Invalid item or shop ID',
+                                          context.tr('menu.invalid_item_shop'),
                                         ),
                                         backgroundColor: Colors.red,
                                       ),
@@ -1422,7 +1425,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               price: price,
               imagePath: imageUrl,
               description:
-                  'Authentic flavors made with fresh ingredients. A perfect companion to your meal.',
+                  context.tr('menu.default_description'),
             ),
           ),
         );
@@ -1531,7 +1534,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
           children: [
             Expanded(
               child: Text(
-                'Customer Reviews (11.4K)',
+                context.trArgs('menu.customer_reviews', {'count': '11.4K'}),
                 style: GoogleFonts.poppins(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -1595,7 +1598,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'No Image',
+              context.tr('common.no_image'),
               style: GoogleFonts.poppins(
                 color: Colors.grey[500],
                 fontSize: (width != null && width < 200) ? 12 : 14,

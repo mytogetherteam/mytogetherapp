@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'restaurant_card.dart';
 import 'image_skeleton_loader.dart';
@@ -65,7 +66,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -98,7 +99,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Restaurants Nearby',
+                    context.tr('home.restaurants_nearby'),
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                       fontSize: 18,

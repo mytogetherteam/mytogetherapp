@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -395,7 +396,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
             ),
             const SizedBox(height: 4),
             Text(
-              'No Image',
+              context.tr('common.no_image'),
               style: GoogleFonts.poppins(
                 color: Colors.grey[500],
                 fontSize: 10,
@@ -448,7 +449,7 @@ class _OutOfStockWrapper extends StatelessWidget {
                           border: Border.all(color: Colors.white24, width: 1),
                         ),
                         child: Text(
-                          'Unavailable',
+                          context.tr('common.unavailable'),
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 12,

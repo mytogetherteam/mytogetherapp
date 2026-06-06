@@ -9,7 +9,10 @@ import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart
 import 'package:mytogetherapp/features/auth/presentation/screens/delete_account_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -81,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
             
             // User Info
             Text(
-              user?.fullName ?? user?.username ?? 'User Name',
+              user?.fullName ?? user?.username ?? context.tr('common.user_name'),
               style: GoogleFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -100,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // Profile Options
             _buildOptionTile(
               icon: PhosphorIcons.userCircle,
-              title: 'Edit Profile',
+              title: context.tr('profile.edit_profile'),
               onTap: () async {
                 await Navigator.push(
                   context,
@@ -111,8 +114,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             _buildOptionTile(
               icon: PhosphorIcons.heart,
-              title: 'Saved Items',
-              subtitle: 'Your wishlist of foods and shops',
+              title: context.tr('profile.saved_items'),
+              subtitle: context.tr('profile.saved_items_sub'),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WishlistPage()),
@@ -120,23 +123,35 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             _buildOptionTile(
               icon: PhosphorIcons.mapPin,
-              title: 'My Addresses',
+              title: context.tr('profile.my_addresses'),
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
               icon: PhosphorIcons.bell,
-              title: 'Notifications',
+              title: context.tr('profile.notifications'),
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
+              icon: PhosphorIcons.translate,
+              title: context.tr('profile.language'),
+              subtitle: LocaleController.instance.language.nativeName,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LanguagePage()),
+                );
+                if (mounted) setState(() {});
+              },
+            ),
+            _buildOptionTile(
               icon: PhosphorIcons.shieldCheck,
-              title: 'Security',
+              title: context.tr('profile.security'),
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
               icon: PhosphorIcons.question,
-              title: 'Help Center',
-              subtitle: 'အကူအညီနှင့် ဆက်သွယ်ရန်',
+              title: context.tr('profile.help_center'),
+              subtitle: context.tr('profile.help_center_sub'),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const HelpSupportPage()),
@@ -165,7 +180,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       size: 22,
                     ),
                     title: Text(
-                      'Delete Account',
+                      context.tr('profile.delete_account'),
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -173,7 +188,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     subtitle: Text(
-                      'အကောင့်ဖျက်ရန်',
+                      context.tr('profile.delete_account_sub'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.red.shade400,
@@ -206,7 +221,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: Center(
                     child: Text(
-                      'Logout',
+                      context.tr('profile.logout'),
                       style: GoogleFonts.poppins(
                         color: Colors.red,
                         fontWeight: FontWeight.w600,
@@ -273,10 +288,10 @@ class _ProfilePageState extends State<ProfilePage> {
   void _handleLogout(BuildContext context) {
     AppDialog.show(
       context: context,
-      title: 'Logout',
-      content: 'Are you sure you want to log out?',
-      buttonText: 'Logout',
-      secondaryButtonText: 'Cancel',
+      title: context.tr('profile.logout'),
+      content: context.tr('profile.logout_confirm'),
+      buttonText: context.tr('profile.logout'),
+      secondaryButtonText: context.tr('common.cancel'),
       onButtonPressed: () async {
         Navigator.pop(context); // Close dialog
         

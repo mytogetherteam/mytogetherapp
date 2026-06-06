@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
@@ -216,7 +217,7 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );

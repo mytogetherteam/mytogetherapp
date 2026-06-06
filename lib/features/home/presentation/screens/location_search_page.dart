@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -39,10 +40,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   void _showLocationLimitSnack() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(UserLocationRepository.locationLimitMessage),
+      SnackBar(
+        content: Text(context.tr('location.limit_message')),
         backgroundColor: Colors.red,
-        duration: Duration(seconds: 4),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -141,7 +142,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
       if (fullPlace == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not get place details'), backgroundColor: Colors.red),
+          SnackBar(content: Text(context.tr('location.place_details_failed')), backgroundColor: Colors.red),
         );
         return;
       }
@@ -174,13 +175,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 _searchController.clear();
                 setState(() => _searchResults = []);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Location saved successfully'), backgroundColor: AppColors.primary),
+                  SnackBar(content: Text(context.tr('location.saved_success')), backgroundColor: AppColors.primary),
                 );
               }
             } catch (e) {
               _showLocationErrorSnack(
                 e,
-                'Could not save this location. Please try again.',
+                context.tr('location.save_failed'),
               );
             } finally {
               if (mounted) setState(() => _isProcessingApi = false);
@@ -191,7 +192,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingApi = false);
-        _showLocationErrorSnack(e, 'Could not load place details.');
+        _showLocationErrorSnack(e, context.tr('location.load_place_failed'));
       }
     }
   }
@@ -231,13 +232,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             _hasChanges = true;
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Location created successfully'), backgroundColor: AppColors.primary),
+                SnackBar(content: Text(context.tr('location.created_success')), backgroundColor: AppColors.primary),
               );
             }
           } catch (e) {
             _showLocationErrorSnack(
               e,
-              'Could not create this location. Please try again.',
+              context.tr('location.create_failed'),
             );
           } finally {
             if (mounted) setState(() => _isProcessingApi = false);
@@ -257,13 +258,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       _hasChanges = true;
       if (mounted && fullUpdate != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location updated successfully'), backgroundColor: AppColors.primary),
+          SnackBar(content: Text(context.tr('location.updated_success')), backgroundColor: AppColors.primary),
         );
       }
     } catch (e) {
       _showLocationErrorSnack(
         e,
-        'Could not update this location. Please try again.',
+        context.tr('location.update_failed'),
       );
     } finally {
       if (mounted) setState(() => _isProcessingApi = false);
@@ -274,9 +275,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     if (location.isPrimary) {
       AppDialog.show(
         context: context,
-        title: 'Cannot Delete',
-        content: 'You cannot delete your primary location. Please set another location as primary first.',
-        buttonText: 'OK',
+        title: context.tr('location.cannot_delete'),
+        content: context.tr('location.cannot_delete_primary'),
+        buttonText: context.tr('common.confirm'),
       );
       return;
     }
@@ -289,13 +290,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       _hasChanges = true;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location deleted successfully'), backgroundColor: AppColors.primary),
+          SnackBar(content: Text(context.tr('location.deleted_success')), backgroundColor: AppColors.primary),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting location: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(context.trArgs('location.delete_error', {'error': '$e'})), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -377,7 +378,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 onChanged: _onSearchChanged,
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Search for a location...',
+                  hintText: context.tr('location.search_hint'),
                   hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -411,7 +412,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           Padding(
             padding: const EdgeInsets.all(32),
             child: Center(
-              child: Text('No saved locations', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)),
+              child: Text(context.tr('location.no_saved'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)),
             ),
           )
         else
@@ -425,7 +426,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       return const Center(child: CustomLoadingIndicator(size: 30));
     }
     if (_searchResults.isEmpty) {
-      return Center(child: Text('No results found', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)));
+      return Center(child: Text(context.tr('location.no_results'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)));
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -445,7 +446,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         children: [
           Expanded(
             child: Text(
-              'Saved Locations',
+              context.tr('location.saved_locations'),
               style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
             ),
           ),
@@ -453,7 +454,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                '3/3 saved',
+                context.trArgs('location.saved_count', {'current': '3', 'max': '3'}),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -466,7 +467,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               onPressed: _createNewLocation,
               icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
               label: Text(
-                'Add New',
+                context.tr('location.add_new_short'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -504,10 +505,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Current location', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                  Text(context.tr('location.current'), style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 2),
                   Text(
-                    _isLoadingCurrent ? 'Detecting...' : (_currentLocationResult?.displayName ?? 'Location unavailable'),
+                    _isLoadingCurrent ? context.tr('location.detecting') : (_currentLocationResult?.displayName ?? context.tr('location.unavailable')),
                     style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -526,7 +527,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       onTap: () {
         final place = PlaceResult(
           placeId: location.id.toString(),
-          name: location.locationName ?? location.address ?? 'Saved Location',
+          name: location.locationName ?? location.address ?? context.tr('location.saved'),
           displayName: location.address ?? '',
           lat: location.latitude ?? 0,
           lon: location.longitude ?? 0,
@@ -559,7 +560,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          location.locationName ?? 'Saved Location',
+                          location.locationName ?? context.tr('location.saved'),
                           style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -573,7 +574,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Selected',
+                            context.tr('location.selected'),
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -615,8 +616,8 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 if (val == 'delete') _deleteLocation(location);
               },
               itemBuilder: (ctx) => [
-                const PopupMenuItem(value: 'edit', child: Text('Edit Details')),
-                const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                PopupMenuItem(value: 'edit', child: Text(context.tr('location.edit_details'))),
+                PopupMenuItem(value: 'delete', child: Text(context.tr('common.delete'), style: const TextStyle(color: Colors.red))),
               ],
             ),
           ],

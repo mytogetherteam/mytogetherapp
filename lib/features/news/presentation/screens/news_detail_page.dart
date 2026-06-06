@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -117,7 +118,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
         debugPrint('Could not launch from detail $launchUri');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch phone dialer')),
+            SnackBar(content: Text(context.tr('news.dialer_failed'))),
           );
         }
       }
@@ -321,7 +322,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Connect',
+                              context.tr('news.connect'),
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -591,7 +592,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Comments',
+                    context.tr('news.comments'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -725,7 +726,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         }
                       },
                       decoration: InputDecoration(
-                        hintText: 'Add a comment...',
+                        hintText: context.tr('news.add_comment'),
                         hintStyle: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[500],
@@ -794,7 +795,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Failed to load GIFs',
+                            context.tr('news.failed_gifs'),
                             style: GoogleFonts.poppins(
                               color: Colors.grey[600],
                               fontSize: 13,
@@ -803,7 +804,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           TextButton(
                             onPressed: _fetchGifsToCache,
                             child: GradientText(
-                              'Retry',
+                              context.tr('common.retry'),
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
                               ),

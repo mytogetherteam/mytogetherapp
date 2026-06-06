@@ -5,6 +5,10 @@
 ///   GET  /api/user/order-reviews/:id
 ///
 /// Backend service: myshop_demo_api/src/modules/order-review/user/user-order-review.service.ts
+library;
+
+import '../../../../core/localization/locale_controller.dart';
+
 class OrderReviewDto {
   final int id;
   final double rating;
@@ -90,4 +94,7 @@ class OrderReviewShopInfo {
       nameTh: json['nameTh']?.toString(),
     );
   }
+
+  String get displayName => LocaleController.instance
+      .localized(en: nameEn, mm: nameMm, th: nameTh);
 }

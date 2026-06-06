@@ -1,9 +1,17 @@
+import '../../../../core/localization/locale_controller.dart';
+
 class TrendingItemDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
+  final String? nameMm;
+  final String? nameTh;
   final String imageUrl;
   final int shopId;
-  final String shopName;
+  final String _shopName;
+  final String? shopNameEn;
+  final String? shopNameMm;
+  final String? shopNameTh;
   final double price;
   final double rating;
   final int reviewCount;
@@ -18,12 +26,24 @@ class TrendingItemDto {
   final bool isAvailable;
   final String publishStatus;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
+  String get shopName => LocaleController.instance
+      .localizedOr(_shopName, en: shopNameEn, mm: shopNameMm, th: shopNameTh);
+
   TrendingItemDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
+    this.nameMm,
+    this.nameTh,
     required this.imageUrl,
     required this.shopId,
-    required this.shopName,
+    required String shopName,
+    this.shopNameEn,
+    this.shopNameMm,
+    this.shopNameTh,
     required this.price,
     required this.rating,
     required this.reviewCount,
@@ -37,27 +57,27 @@ class TrendingItemDto {
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
-  });
+  })  : _name = name,
+        _shopName = shopName;
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
-    // Prioritize English name if available
-    final name = json['nameEn'] as String? ??
-        json['name'] as String? ??
-        json['nameMm'] as String? ??
-        '';
-
     // `GET /user/search/trending-nearby` nests shop + rating; public feed is flat.
     final shop = json['shop'];
     final shopMap = shop is Map<String, dynamic> ? shop : null;
     final ratingObj = shopMap?['rating'];
     final ratingMap = ratingObj is Map<String, dynamic> ? ratingObj : null;
 
-    final shopName = json['shopNameEn'] as String? ??
+    final nameEn = json['nameEn'] as String? ?? json['name'] as String?;
+    final nameMm = json['nameMm'] as String?;
+    final nameTh = json['nameTh'] as String?;
+
+    final shopNameEn = json['shopNameEn'] as String? ??
         json['shopName'] as String? ??
-        json['shopNameMm'] as String? ??
-        shopMap?['nameEn'] as String? ??
-        shopMap?['nameMm'] as String? ??
-        '';
+        shopMap?['nameEn'] as String?;
+    final shopNameMm =
+        json['shopNameMm'] as String? ?? shopMap?['nameMm'] as String?;
+    final shopNameTh =
+        json['shopNameTh'] as String? ?? shopMap?['nameTh'] as String?;
 
     final shopId = (json['shopId'] as num?)?.toInt() ??
         (shopMap?['id'] as num?)?.toInt() ??
@@ -93,10 +113,16 @@ class TrendingItemDto {
 
     return TrendingItemDto(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      name: name,
+      name: nameEn ?? '',
+      nameEn: nameEn,
+      nameMm: nameMm,
+      nameTh: nameTh,
       imageUrl: json['imageUrl'] as String? ?? '',
       shopId: shopId,
-      shopName: shopName,
+      shopName: shopNameEn ?? '',
+      shopNameEn: shopNameEn,
+      shopNameMm: shopNameMm,
+      shopNameTh: shopNameTh,
       price: price,
       rating: rating,
       reviewCount: reviewCount,

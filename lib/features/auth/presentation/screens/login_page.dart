@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -117,7 +118,7 @@ class _LoginPageState extends State<LoginPage>
                           const SizedBox(height: 48),
                           // Welcome text
                           Text(
-                            'Welcome back 👋',
+                            context.tr('auth.welcome_back'),
                             style: GoogleFonts.poppins(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
@@ -126,7 +127,7 @@ class _LoginPageState extends State<LoginPage>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Login to discover myTogether',
+                            context.tr('auth.login_subtitle'),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -134,7 +135,7 @@ class _LoginPageState extends State<LoginPage>
                           ),
                           const SizedBox(height: 40),
                           // Username / Email field
-                          _buildLabel('Username or Email'),
+                          _buildLabel(context.tr('auth.username_or_email')),
                           const SizedBox(height: 8),
                           _buildTextField(
                             controller: _identifierController,
@@ -142,18 +143,18 @@ class _LoginPageState extends State<LoginPage>
                             icon: Icons.person_outline_rounded,
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
-                                return 'Please enter your username or email';
+                                return context.tr('auth.enter_username');
                               }
                               return null;
                             },
                           ),
                           const SizedBox(height: 20),
                           // Password field
-                          _buildLabel('Password'),
+                          _buildLabel(context.tr('common.password')),
                           const SizedBox(height: 8),
                           _buildTextField(
                             controller: _passwordController,
-                            hint: 'Enter your password',
+                            hint: context.tr('auth.password_hint'),
                             icon: Icons.lock_outline_rounded,
                             obscure: _obscurePassword,
                             suffixWidget: IconButton(
@@ -170,7 +171,7 @@ class _LoginPageState extends State<LoginPage>
                             ),
                             validator: (v) {
                               if (v == null || v.isEmpty) {
-                                return 'Please enter your password';
+                                return context.tr('auth.enter_password');
                               }
                               return null;
                             },
@@ -185,7 +186,7 @@ class _LoginPageState extends State<LoginPage>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "Don't have an account? ",
+                                  context.tr('auth.no_account'),
                                   style: GoogleFonts.poppins(
                                     color: Colors.grey[600],
                                     fontSize: 14,
@@ -200,7 +201,7 @@ class _LoginPageState extends State<LoginPage>
                                     );
                                   },
                                   child: GradientText(
-                                    'Sign Up',
+                                    context.tr('common.sign_up'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -299,7 +300,7 @@ class _LoginPageState extends State<LoginPage>
       onPressed: _handleLogin,
       isLoading: _isLoading,
       child: Text(
-        'Login',
+        context.tr('common.login'),
         style: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,

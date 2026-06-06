@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/dio_error_message.dart';
@@ -107,7 +108,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
     AppDialog.showToast(
       context,
-      result.errorMessage ?? 'Could not submit review.',
+      result.errorMessage ?? context.tr('review.submit_failed'),
       isError: true,
     );
   }
@@ -134,15 +135,15 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
       setState(() => _submitting = false);
 
       final message = e.response?.statusCode == 409
-          ? 'You have already reviewed this shop.'
-          : dioErrorMessage(e, fallback: 'Could not submit review.');
+          ? context.tr('review.already_reviewed')
+          : dioErrorMessage(e, fallback: context.tr('review.submit_failed'));
       AppDialog.showToast(context, message, isError: true);
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
       AppDialog.showToast(
         context,
-        'Something went wrong. Please try again.',
+        context.tr('review.error_generic'),
         isError: true,
       );
     }
@@ -163,13 +164,10 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     // be updated/deleted, so we soften the wording but still stress honesty.
     final bool isPermanent = widget.orderId != null;
     final String title =
-        isPermanent ? 'Reviews are permanent' : 'Reviews are public';
+        isPermanent ? context.tr('review.permanent_title') : context.tr('review.public_title');
     final String body = isPermanent
-        ? 'Once submitted, your review cannot be edited or deleted. '
-            'Please make sure your rating and feedback are honest and fair.'
-        : 'Your review will be visible to others and represents your honest '
-            'experience. You can only review this shop once, so please make '
-            'sure your rating and feedback are fair.';
+        ? context.tr('review.permanent_body')
+        : context.tr('review.public_body');
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -222,7 +220,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          'Write a Review',
+          context.tr('review.write_title'),
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -336,7 +334,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                 const SizedBox(height: 32),
 
                 Text(
-                  'How was your experience? Tell us what you liked and what could be improved.',
+                  context.tr('review.experience_prompt'),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey[800],
@@ -361,7 +359,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                       color: Colors.black87,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Share your experience',
+                      hintText: context.tr('review.share_hint'),
                       hintStyle: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[400],
@@ -406,7 +404,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                           ),
                         )
                       : Text(
-                          'Submit Review',
+                          context.tr('review.submit'),
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 16,

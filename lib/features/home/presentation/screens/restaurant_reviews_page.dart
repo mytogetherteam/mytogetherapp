@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../reviews/presentation/screens/write_review_page.dart';
@@ -62,7 +63,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.rate_review_outlined, color: Colors.white),
         label: Text(
-          'Write a Review',
+          context.tr('review.write_title'),
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -77,7 +78,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Reviews',
+          context.tr('restaurant.reviews'),
           style: GoogleFonts.poppins(
             color: const Color(0xFF1E293B),
             fontSize: 20,
@@ -111,7 +112,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Customer ratings & reviews',
+                      context.tr('review.customer_ratings'),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -128,7 +129,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Text(
-                    'Recent Reviews',
+                    context.tr('review.recent'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -175,7 +176,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'out of 5',
+                  context.tr('review.out_of_5'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -369,7 +370,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            review.comment ?? 'No comment provided',
+            review.comment ?? context.tr('review.no_comment'),
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: const Color(0xFF475569),
@@ -383,10 +384,6 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
   }
 
   String _getTimeAgo(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inDays > 0) return '${diff.inDays} days ago';
-    if (diff.inHours > 0) return '${diff.inHours} hours ago';
-    if (diff.inMinutes > 0) return '${diff.inMinutes} minutes ago';
-    return 'just now';
+    return context.relativeTime(dateTime);
   }
 }

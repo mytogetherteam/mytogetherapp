@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'restaurant_card.dart';
 import 'image_skeleton_loader.dart';
@@ -88,7 +89,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Restaurants',
+                    context.tr('food.restaurants'),
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w700,
                       fontSize: 18,

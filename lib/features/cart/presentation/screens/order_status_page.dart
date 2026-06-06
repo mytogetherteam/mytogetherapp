@@ -1,3 +1,4 @@
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -390,26 +391,26 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     ));
   }
 
-  String get _statusTitle {
-    if (_currentStatus == -1) return 'Order Cancelled';
+  String _statusTitle(BuildContext context) {
+    if (_currentStatus == -1) return context.tr('order_status.cancelled');
     switch (_currentStatus) {
       case 1:
-        return 'Checking your Payment';
+        return context.tr('order_status.checking_payment');
       case 2:
-        return 'Preparing your order';
+        return context.tr('order_status.preparing');
       case 3:
-        return 'Delivering to you';
+        return context.tr('order_status.delivering');
       case 4:
-        return 'Arrived!';
+        return context.tr('order_status.arrived');
       default:
-        return 'Processing your order';
+        return context.tr('order_status.processing');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ActiveOrderState.instance;
-    final storeName = state.restaurantName ?? state.storeName ?? 'Restaurant';
+    final storeName = state.restaurantName ?? state.storeName ?? context.tr('common.restaurant');
     final total = widget.foodTotal + widget.deliveryFee;
 
     return Scaffold(
@@ -433,7 +434,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
               duration: const Duration(milliseconds: 500),
               child: _currentStatus == -1
                   ? Text(
-                      _statusTitle,
+                      _statusTitle(context),
                       key: ValueKey<int>(_currentStatus),
                       style: GoogleFonts.poppins(
                         fontSize: 24,
@@ -442,7 +443,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                       ),
                     )
                   : GradientText(
-                      _statusTitle,
+                      _statusTitle(context),
                       key: ValueKey<int>(_currentStatus),
                       style: GoogleFonts.poppins(
                         fontSize: 24,
@@ -454,7 +455,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             const SizedBox(height: 8),
             if (_currentStatus != -1) ...[
               Text(
-                'Estimate arrival: ${state.estimatedTime ?? "09:45 PM"}',
+                context.trArgs('order_status.estimate_arrival', {
+                  'time': state.estimatedTime ?? '09:45 PM',
+                }),
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
@@ -547,7 +550,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Est Waiting Time',
+                            context.tr('order_status.est_waiting_time'),
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -568,7 +571,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Delivery Fee',
+                          context.tr('order_status.delivery_fee'),
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -627,7 +630,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    state.cancelReason ?? 'This order was cancelled from the shop.',
+                                    state.cancelReason ?? context.tr('order_status.cancel_reason'),
                                     style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
                                   ),
                                 ),
@@ -682,7 +685,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Payment Method',
+                              context.tr('order_status.payment_method'),
                               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                             ),
                             Row(
@@ -690,7 +693,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 Icon(PhosphorIcons.qrCode, size: 18, color: const Color(0xFF1E3A8A)),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'QR Prompt Pay',
+                                  context.tr('order_status.qr_promptpay'),
                                   style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
                                 ),
                               ],
@@ -702,7 +705,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Total',
+                              context.tr('cart.total'),
                               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                             ),
                                 Row(
@@ -724,7 +727,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? 'Paid' : 'Waiting for Payment',
+                                        (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? context.tr('order_status.paid') : context.tr('order_status.waiting_payment'),
                                         style: GoogleFonts.poppins(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -753,7 +756,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                       title: Row(
                         children: [
                           Text(
-                            'View order summary',
+                            context.tr('order_status.view_summary'),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -775,7 +778,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                               if (state.orderItems.isEmpty)
                                 Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text('No items found', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                                  child: Text(context.tr('order_status.no_items'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
                                 )
                               else
                                 ...state.orderItems.map((item) => Padding(
@@ -849,14 +852,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 child: Divider(),
                               ),
                               
-                              _buildSummaryRow('Food Total', state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
+                              _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
                               const SizedBox(height: 8),
-                              _buildSummaryRow('Delivery Fee', state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                              _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
-                              _buildSummaryRow('Total Amount', (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(), isBold: true),
+                              _buildSummaryRow(context.tr('order_status.total_amount'), (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(), isBold: true),
                             ],
                           ),
                         ),
@@ -897,7 +900,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Deliver Information',
+                        context.tr('order_status.delivery_info'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -943,7 +946,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'Order Cancelled',
+                                      context.tr('order_status.cancelled'),
                                       style: GoogleFonts.poppins(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -994,7 +997,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          state.userLocationName ?? 'My Location',
+                                          state.userLocationName ?? context.tr('food.my_location'),
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
@@ -1042,14 +1045,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                               Text(
                                 (state.riderName != null && state.riderName!.trim().isNotEmpty)
                                     ? state.riderName!
-                                    : 'Assigning a rider...',
+                                    : context.tr('order_status.assigning_rider'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               Text(
-                                'Delivery Rider',
+                                context.tr('order_status.delivery_rider'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: Colors.grey[500],
@@ -1076,7 +1079,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                   _goHome();
                 },
                 child: Text(
-                  'Order Again',
+                  context.tr('order_status.order_again'),
                   style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),

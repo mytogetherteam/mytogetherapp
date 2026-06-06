@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -234,7 +235,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               App.scaffoldMessengerKey.currentState?.showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Your cart is empty now!',
+                    context.tr('cart.empty_now'),
                     style: GoogleFonts.poppins(),
                   ),
                   backgroundColor: AppColors.primary,
@@ -282,7 +283,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             centerTitle: false,
             titleSpacing: 0,
             title: Text(
-              'Order Summary',
+              context.tr('cart.order_summary'),
               style: GoogleFonts.poppins(
                 color: Colors.black,
                 fontSize: 18,
@@ -347,7 +348,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     );
                                   },
                                   child: Text(
-                                    'Add Items',
+                                    context.tr('cart.add_items'),
                                     style: GoogleFonts.poppins(
                                       color: const Color(0xFFF59E0B),
                                       fontWeight: FontWeight.w500,
@@ -394,7 +395,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Deliver Information',
+                                  context.tr('cart.delivery_info'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
@@ -426,7 +427,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         height: 50,
                                         alignment: Alignment.center,
                                         child: Text(
-                                          'Delivery',
+                                          context.tr('cart.delivery'),
                                           style: GoogleFonts.poppins(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w500,
@@ -457,7 +458,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         height: 50,
                                         alignment: Alignment.center,
                                         child: Text(
-                                          'Pickup',
+                                          context.tr('cart.pickup'),
                                           style: GoogleFonts.poppins(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w500,
@@ -503,7 +504,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           ? const LocationSkeletonLoader()
                                           : Text(
                                               _primaryLocation?.address ??
-                                                  'No address set',
+                                                  context.tr('cart.no_address'),
                                               style: GoogleFonts.poppins(
                                                 fontSize: 14,
                                                 color: Colors.black87,
@@ -518,7 +519,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               InkWell(
                                 onTap: _showLocationModal,
                                 child: Text(
-                                  'Edit Location',
+                                  context.tr('cart.edit_location'),
                                   style: GoogleFonts.poppins(
                                     color: AppColors.primary,
                                     fontSize: 13,
@@ -535,7 +536,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
                               // Delivery Options
                               _buildDeliveryOption(
-                                title: 'Priority',
+                                title: context.tr('cart.priority'),
                                 isPriority: true,
                                 fee: 20,
                                 time: '25 mins',
@@ -543,7 +544,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               ),
                               const SizedBox(height: 24),
                               _buildDeliveryOption(
-                                title: 'Standard',
+                                title: context.tr('cart.standard'),
                                 isPriority: false,
                                 fee: 20,
                                 time: '28 mins',
@@ -573,7 +574,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Payment Options',
+                              context.tr('cart.payment_options'),
                               style: GoogleFonts.poppins(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w600,
@@ -616,7 +617,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ),
                                     alignment: Alignment.center,
                                     child: Text(
-                                      'No payment methods available',
+                                      context.tr('cart.no_payment_methods'),
                                       style: GoogleFonts.poppins(
                                         color: const Color(0xFF64748B),
                                         fontSize: 14,
@@ -679,7 +680,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             0xFFFEF3C7,
                           ), // Yellowish orange background
                           child: Text(
-                            'Delivery fee is calculated based on distance.',
+                            context.tr('cart.delivery_fee_note'),
                             style: GoogleFonts.poppins(
                               color: const Color(0xFFD97706), // Orange text
                               fontSize: 13,
@@ -693,7 +694,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Total',
+                              context.tr('cart.total'),
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFF64748B),
                                 fontSize: 15,
@@ -913,7 +914,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       totalAmount: foodTotal.toDouble(),
                                       paymentMethod:
                                           _selectedPaymentType?.displayName ??
-                                          'Payment',
+                                          context.tr('cart.payment'),
                                       paymentMethodId: selectedMethodId,
                                       paymentMethodImageUrl:
                                           selectedMethodImage,
@@ -968,7 +969,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 },
                           isLoading: _isPlacingOrder,
                           child: Text(
-                            'Place Order',
+                            context.tr('cart.place_order'),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 16,
@@ -1162,7 +1163,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'This is a pickup',
+                      context.tr('cart.pickup_note_title'),
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -1171,7 +1172,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Remember to collect your food at the restaurant when it is ready!',
+                      context.tr('cart.pickup_note_body'),
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: const Color(0xFF64748B),
@@ -1261,7 +1262,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Promotion',
+                              context.tr('cart.promotion'),
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -1284,7 +1285,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Estimated Delivery Fee  •  ',
+                      context.tr('cart.est_delivery_fee'),
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF94A3B8),
                         fontSize: 13,
@@ -1309,7 +1310,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Estimated Time  •  ',
+                      context.tr('cart.est_time'),
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF94A3B8),
                         fontSize: 13,
@@ -1459,7 +1460,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         GlobalModal.show(
                           context: context,
                           child: ConfirmRemoveModal(
-                            title: 'Remove Item',
+                            title: context.tr('cart.remove_item'),
                             message:
                                 'Are you sure you want to remove ${item.title} from your order?',
                             onConfirm: () async {
@@ -1578,7 +1579,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 vertical: 2.0,
                               ),
                               child: Text(
-                                'Edit',
+                                context.tr('common.edit'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   color: const Color(0xFFF59E0B),
@@ -1622,7 +1623,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   GlobalModal.show(
                                     context: context,
                                     child: ConfirmRemoveModal(
-                                      title: 'Remove Item',
+                                      title: context.tr('cart.remove_item'),
                                       message:
                                           'Are you sure you want to remove ${item.title} from your order?',
                                       onConfirm: () async {

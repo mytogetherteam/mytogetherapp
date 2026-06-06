@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
@@ -159,31 +160,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               0,
               PhosphorIcons.house,
               PhosphorIcons.houseFill,
-              'Home',
+              context.tr('nav.home'),
             ),
             _buildNavItem(
               1,
               PhosphorIcons.forkKnife,
               PhosphorIcons.forkKnifeFill,
-              'Food',
+              context.tr('nav.food'),
             ),
             _buildNavItem(
               2,
               PhosphorIcons.receipt,
               PhosphorIcons.receiptFill,
-              'Orders',
+              context.tr('nav.orders'),
             ),
             _buildNavItem(
               3,
               PhosphorIcons.newspaper,
               PhosphorIcons.newspaperFill,
-              'News',
+              context.tr('nav.news'),
             ),
             _buildNavItem(
               4,
               PhosphorIcons.user,
               PhosphorIcons.userFill,
-              'Profile',
+              context.tr('nav.profile'),
             ),
           ],
         ),

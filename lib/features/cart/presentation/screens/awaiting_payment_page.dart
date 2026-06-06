@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -142,7 +143,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       final order = ActiveOrderState.instance.getOrder(widget.orderId);
       setState(() {
         // We intentionally do not override _showUploadSection here anymore.
-        // It will only change when the user clicks 'Save QR Code' or 'Yes, I have done Payment'.
+        // It will only change when the user clicks context.tr('payment.save_qr') or context.tr('payment.done_payment').
       });
       if (order?.paymentMethodImageUrl == null) {
         _fetchPaymentMethodDetails();
@@ -267,7 +268,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       );
 
       if (mounted) {
-        AppDialog.showToast(context, 'Payment image saved to gallery!');
+        AppDialog.showToast(context, context.tr('payment.image_saved'));
 
         // Transition to upload section automatically
         Future.delayed(const Duration(milliseconds: 1500), () {
@@ -284,7 +285,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (mounted) {
         AppDialog.showToast(
           context,
-          'Failed to save image. Please try again.',
+          context.tr('payment.save_failed'),
           isError: true,
         );
       }
@@ -314,7 +315,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       } else {
         AppDialog.showToast(
           context,
-          'Gallery permission required to upload receipt.',
+          context.tr('payment.gallery_required'),
           isError: true,
         );
       }
@@ -341,17 +342,20 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 borderRadius: BorderRadius.circular(16),
               ),
               title: Text(
-                'Image Too Large',
+                context.tr('payment.image_too_large'),
                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
               ),
               content: Text(
-                'The selected image is ${sizeInMb.toStringAsFixed(1)}MB, which exceeds the 5MB limit. Please choose a smaller image or compress it.',
+                context.trArgs('payment.image_too_large_msg', {'size': sizeInMb.toStringAsFixed(1)}),
                 style: GoogleFonts.poppins(fontSize: 13),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: GradientText('OK', style: GoogleFonts.poppins()),
+                  child: GradientText(
+                    context.tr('common.confirm'),
+                    style: GoogleFonts.poppins(),
+                  ),
                 ),
               ],
             ),
@@ -369,17 +373,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Gallery Permission',
+          context.tr('payment.gallery_permission'),
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Permission to access your gallery is permanently denied. Please enable it in your device settings.',
+          context.tr('payment.gallery_denied'),
           style: GoogleFonts.poppins(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.poppins()),
+            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins()),
           ),
           PrimaryGradientButton(
             onPressed: () {
@@ -390,7 +394,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             width: 150,
             borderRadius: BorderRadius.circular(8),
             child: Text(
-              'Open Settings',
+              context.tr('payment.open_settings'),
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -411,7 +415,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       setState(() => _isUploading = false);
       AppDialog.showToast(
         context,
-        'Order ID not found. Please try again.',
+        context.tr('payment.order_id_not_found'),
         isError: true,
       );
       return;
@@ -457,7 +461,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = 'Failed to upload receipt. Please try again.';
+        String errorMsg = context.tr('payment.upload_failed');
         if (e is DioException) {
           errorMsg = e.response?.data?['message'] ?? e.message ?? errorMsg;
         }
@@ -492,7 +496,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ),
             const SizedBox(height: 24),
             Text(
-              'Cancel Order?',
+              context.tr('order_tracking.cancel_title'),
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -501,7 +505,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'Are you sure you want to cancel this order?',
+              context.tr('order_tracking.cancel_confirm'),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             ),
@@ -519,7 +523,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text(
-                      'Keep Order',
+                      context.tr('order_tracking.keep_order'),
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -535,7 +539,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       _cancelOrder();
                     },
                     child: Text(
-                      'Cancel Order',
+                      context.tr('order_tracking.cancel_order'),
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -561,12 +565,12 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         orderId: widget.orderId,
       );
       if (success && mounted) {
-        AppDialog.showToast(context, 'Order cancelled successfully.');
+        AppDialog.showToast(context, context.tr('payment.cancel_success'));
         _goHome();
       } else if (mounted) {
         AppDialog.showToast(
           context,
-          'Failed to cancel order. Please try again.',
+          context.tr('payment.cancel_failed'),
           isError: true,
         );
       }
@@ -574,7 +578,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (mounted) {
         AppDialog.showToast(
           context,
-          'Connection error. Could not cancel order.',
+          context.tr('payment.connection_error'),
           isError: true,
         );
       }
@@ -631,8 +635,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               isError
-                  ? 'Error loading payment image'
-                  : 'Awaiting payment image...',
+                  ? context.tr('payment.error_loading_image')
+                  : context.tr('payment.awaiting_image'),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 10,
@@ -666,7 +670,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           const CustomLoadingIndicator(size: 40),
           const SizedBox(height: 24),
           Text(
-            'Verifying Payment',
+            context.tr('payment.verifying'),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -675,7 +679,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           ),
           const SizedBox(height: 12),
           Text(
-            'We are currently verifying your payment receipt. This usually takes a few minutes.',
+            context.tr('payment.verifying_desc'),
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 13,
@@ -748,8 +752,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     final bool isVerifying = order?.isPaymentChecking == true;
     final bool isReupload = order?.isSlipRequested == true;
     final String pageTitle = isReupload
-        ? 'Awaiting Payment'
-        : (isVerifying ? 'Verifying Payment' : 'Confirm Payment');
+        ? context.tr('payment.awaiting_title')
+        : (isVerifying
+            ? context.tr('payment.verifying')
+            : context.tr('payment.confirm_title'));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -817,7 +823,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'PAYMENT SUMMARY',
+                          context.tr('payment.summary'),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -829,7 +835,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     ),
                     const SizedBox(height: 14),
                     _summaryRow(
-                      'Food Price',
+                      context.tr('payment.food_price'),
                       order?.displayFoodPrice ??
                           '฿ ${widget.foodTotal.toStringAsFixed(0)}',
                       isValue: false,
@@ -837,8 +843,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     const SizedBox(height: 10),
                     _summaryRow(
                       order?.deliveryType == 'NORMAL'
-                          ? 'Est. Delivery Fee'
-                          : 'Delivery Fee',
+                          ? context.tr('payment.est_delivery_fee')
+                          : context.tr('order_status.delivery_fee'),
                       '',
                       customValue:
                           (order?.deliveryFee != null &&
@@ -861,7 +867,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                   ))
                           : (order?.deliveryType == 'NORMAL')
                           ? Text(
-                              'Calculate Later',
+                              context.tr('payment.calculate_later'),
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -879,7 +885,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Calculating',
+                                      context.tr('order_tracking.calculating'),
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -909,7 +915,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         child: _DottedDivider(color: Color(0xFFCCCCCC)),
                       ),
                       _summaryRow(
-                        'Total',
+                        context.tr('cart.total'),
                         '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
                         isValue: true,
                       ),
@@ -918,7 +924,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         order!.estimatedTime!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _summaryRow(
-                        'Estimated Waiting Time',
+                        context.tr('payment.est_waiting_time'),
                         order.estimatedTime!,
                         isValue: false,
                       ),
@@ -947,7 +953,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       const SizedBox(width: 12),
                       Expanded(
                         child: GradientText(
-                          'The shop will arrange a separate delivery service for you. Please pay for the food now; the delivery fee will be paid directly to the rider later.',
+                          context.tr('payment.separate_delivery_note'),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1085,7 +1091,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  'Upload Receipt',
+                                  context.tr('payment.upload_receipt'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
@@ -1106,7 +1112,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                       );
                                 },
                                 child: GradientText(
-                                  'Back',
+                                  context.tr('payment.back'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -1119,7 +1125,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         Padding(
                           padding: const EdgeInsets.only(left: 38),
                           child: Text(
-                            'Upload a screenshot of your payment confirmation.',
+                            context.tr('payment.upload_hint'),
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -1159,8 +1165,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                             Expanded(
                               child: GradientText(
                                 isReupload
-                                    ? 'The restaurant requested a new receipt. Please upload clearly.'
-                                    : 'Ensure the transaction date, amount and time are clearly visible.',
+                                    ? context.tr('payment.receipt_requested')
+                                    : context.tr('payment.receipt_visible_hint'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
                                   height: 1.5,
@@ -1207,7 +1213,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'Save QR Code',
+                            context.tr('payment.save_qr'),
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1239,7 +1245,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           ),
                         ),
                         child: Text(
-                          'Yes, I have done Payment',
+                          context.tr('payment.done_payment'),
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1255,7 +1261,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           : null,
                       isLoading: _isUploading,
                       child: Text(
-                        'Submit Receipt',
+                        context.tr('payment.submit_receipt'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -1276,7 +1282,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         foregroundColor: AppColors.primary,
                       ),
                       child: Text(
-                        'Cancel Order',
+                        context.tr('order_tracking.cancel_order'),
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -1329,8 +1335,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
   Widget _buildRiderInfoCard() {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
-    final name = order?.riderName ?? 'Unknown Rider';
-    final phone = order?.riderPhone ?? 'No Phone';
+    final name = order?.riderName ?? context.tr('payment.unknown_rider');
+    final phone = order?.riderPhone ?? context.tr('payment.no_phone');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1381,7 +1387,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: GradientText(
-                      'Vehicle No: ${order.riderVehicleNumber!}',
+                      context.trArgs('payment.vehicle_no', {'number': order.riderVehicleNumber!}),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1443,7 +1449,7 @@ class _UploadText extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'Tap to upload',
+          context.tr('payment.tap_to_upload'),
           style: GoogleFonts.poppins(
             fontSize: 15,
             fontWeight: FontWeight.w600,

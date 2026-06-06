@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -66,7 +67,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        AppDialog.showToast(context, 'Could not pick image', isError: true);
+        AppDialog.showToast(context, context.tr('auth.could_not_pick_image'), isError: true);
       }
     }
   }
@@ -98,7 +99,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         address: _addressController.text.trim(),
       );
       if (mounted) {
-        AppDialog.showToast(context, 'Profile updated');
+        AppDialog.showToast(context, context.tr('auth.profile_updated'));
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -120,7 +121,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
-          'Edit Profile',
+          context.tr('profile.edit_profile'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
@@ -140,29 +141,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   const SizedBox(height: 28),
                   _buildField(
                     controller: _nameController,
-                    label: 'Full Name',
+                    label: context.tr('auth.full_name'),
                     icon: PhosphorIcons.userBold,
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Name is required'
+                        ? context.tr('auth.name_required')
                         : null,
                   ),
                   _buildField(
                     controller: _usernameController,
-                    label: 'Username',
+                    label: context.tr('auth.username'),
                     icon: PhosphorIcons.at,
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Username is required'
+                        ? context.tr('auth.username_required')
                         : null,
                   ),
                   _buildField(
                     controller: _phoneController,
-                    label: 'Phone',
+                    label: context.tr('auth.phone'),
                     icon: PhosphorIcons.phone,
                     keyboardType: TextInputType.phone,
                   ),
                   _buildField(
                     controller: _addressController,
-                    label: 'Address',
+                    label: context.tr('auth.address'),
                     icon: PhosphorIcons.mapPin,
                     maxLines: 3,
                   ),
@@ -249,7 +250,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             onPressed: _isSaving ? null : _save,
             isLoading: _isSaving,
             child: Text(
-              'Save Changes',
+              context.tr('auth.save_changes'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -301,7 +302,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               isDense: true,
               filled: true,
               fillColor: Colors.white,
-              hintText: 'Enter $label',
+              hintText: context.trArgs('common.enter_label', {'label': label}),
               hintStyle: GoogleFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey[400],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notification_repository.dart';
@@ -63,7 +64,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load notifications')),
+          SnackBar(content: Text(context.tr('notification.load_failed'))),
         );
       }
     }
@@ -114,7 +115,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (!ok && mounted) {
       setState(() => _notifications.insert(index, removed));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete notification')),
+        SnackBar(content: Text(context.tr('notification.delete_failed'))),
       );
     } else {
       _repository.getUnreadCount();
@@ -153,7 +154,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       appBar: AppBar(
         centerTitle: false,
         title: Text(
-          'Notifications',
+          context.tr('notification.title'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
@@ -166,7 +167,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           IconButton(
-            tooltip: 'Announcements',
+            tooltip: context.tr('notification.announcements_tooltip'),
             icon: Icon(PhosphorIcons.megaphone, color: Colors.black),
             onPressed: () => Navigator.push(
               context,
@@ -176,7 +177,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           if (_notifications.any((n) => !n.read))
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text('Mark all as read'),
+              child: Text(context.tr('notification.mark_all_read')),
             ),
         ],
       ),
@@ -250,9 +251,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'No notifications yet',
-            style: TextStyle(
+          Text(
+            context.tr('notification.empty_title'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -260,7 +261,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'We will notify you when there is something new',
+            context.tr('notification.empty_sub'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,

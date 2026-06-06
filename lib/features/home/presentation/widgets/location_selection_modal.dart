@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -109,10 +110,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
           if (UserLocationRepository.instance.isAtLocationLimit(_apiLocations)) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(UserLocationRepository.locationLimitMessage),
+                SnackBar(
+                  content: Text(context.tr('location.limit_message')),
                   backgroundColor: Colors.red,
-                  duration: Duration(seconds: 4),
+                  duration: const Duration(seconds: 4),
                 ),
               );
             }
@@ -189,7 +190,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 child: Row(
                   children: [
                     Text(
-                      'Select Location',
+                      context.tr('location.select_title'),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -234,7 +235,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'Saved Locations',
+                              context.tr('location.saved_locations'),
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -316,7 +317,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Add new location',
+                          context.tr('location.add_new'),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -375,7 +376,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Current location',
+                    context.tr('location.current'),
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -385,7 +386,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   const SizedBox(height: 2),
                   if (_isLoadingCurrent)
                     Text(
-                      'Detecting...',
+                      context.tr('location.detecting'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade400,
@@ -394,7 +395,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   else
                     Text(
                       _currentLocationResult?.displayName ??
-                          'Location unavailable',
+                          context.tr('location.unavailable_short'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade500,
@@ -416,7 +417,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       onTap: () async {
         final place = PlaceResult(
           placeId: location.id.toString(),
-          name: location.locationName ?? location.address ?? 'Saved Location',
+          name: location.locationName ?? location.address ?? context.tr('location.saved'),
           displayName: location.address ?? location.addressTh ?? '',
           lat: location.latitude ?? 0,
           lon: location.longitude ?? 0,
@@ -455,7 +456,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         child: Text(
                           location.locationName ??
                               location.locationType ??
-                              'Saved Location',
+                              context.tr('location.saved'),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -476,7 +477,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Selected',
+                            context.tr('location.selected'),
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,

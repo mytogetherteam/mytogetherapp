@@ -1,4 +1,5 @@
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 import 'shop_dto.dart';
 
 class ApiResponseFoodDetailDto {
@@ -24,9 +25,14 @@ class ApiResponseFoodDetailDto {
 class FoodDetailDto {
   final int id;
   final int? shopId;
-  final String? shopName;
-  final String name;
+  final String? _shopName;
+  final String? shopNameEn;
+  final String? shopNameMm;
+  final String? shopNameTh;
+  final String _name;
+  final String? nameEn;
   final String? nameMm;
+  final String? nameTh;
   final String? description;
   final double price;
   final double? originalPrice;
@@ -39,12 +45,29 @@ class FoodDetailDto {
 
   final CuisineTypeDto? cuisineType;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
+  String? get shopName {
+    if (shopNameEn != null || shopNameMm != null || shopNameTh != null) {
+      final v = LocaleController.instance
+          .localized(en: shopNameEn, mm: shopNameMm, th: shopNameTh);
+      if (v.isNotEmpty) return v;
+    }
+    return _shopName;
+  }
+
   FoodDetailDto({
     required this.id,
     this.shopId,
-    this.shopName,
-    required this.name,
+    String? shopName,
+    this.shopNameEn,
+    this.shopNameMm,
+    this.shopNameTh,
+    required String name,
+    this.nameEn,
     this.nameMm,
+    this.nameTh,
     this.description,
     required this.price,
     this.originalPrice,
@@ -55,15 +78,21 @@ class FoodDetailDto {
     this.optionGroups = const [],
     required this.isFavorite,
     this.cuisineType,
-  });
+  })  : _name = name,
+        _shopName = shopName;
 
   factory FoodDetailDto.fromJson(Map<String, dynamic> json) {
     return FoodDetailDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       shopId: json['shopId'],
-      shopName: json['shopName'] as String? ?? json['shopNameEn'] as String? ?? json['shopNameMm'] as String?,
-      name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
+      shopName: (json['shopName'] as String? ?? json['shopNameEn'] as String?),
+      shopNameEn: json['shopNameEn'] as String? ?? json['shopName'] as String?,
+      shopNameMm: json['shopNameMm'] as String?,
+      shopNameTh: json['shopNameTh'] as String?,
+      name: (json['name'] as String? ?? json['nameEn'] as String?) ?? '',
+      nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       description: json['description'],
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       originalPrice: double.tryParse(json['originalPrice']?.toString() ?? '') ?? 0.0,
@@ -92,26 +121,35 @@ class FoodDetailDto {
 
 class MenuItemVariantDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
   final String? nameMm;
+  final String? nameTh;
   final double price;
   final String? displayPrice;
   final bool isAvailable;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
   MenuItemVariantDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
     this.nameMm,
+    this.nameTh,
     required this.price,
     this.displayPrice,
     this.isAvailable = true,
-  });
+  }) : _name = name;
 
   factory MenuItemVariantDto.fromJson(Map<String, dynamic> json) {
     return MenuItemVariantDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
+      name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
+      nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
       isAvailable: json['isAvailable'] ?? true,
@@ -121,30 +159,39 @@ class MenuItemVariantDto {
 
 class MenuItemOptionGroupDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
   final String? nameMm;
+  final String? nameTh;
   final String groupType; // SINGLE_SELECT, MULTI_SELECT
   final bool isRequired;
   final int minSelection;
   final int maxSelection;
   final List<MenuItemOptionDto> options;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
   MenuItemOptionGroupDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
     this.nameMm,
+    this.nameTh,
     required this.groupType,
     this.isRequired = false,
     this.minSelection = 0,
     this.maxSelection = 0,
     required this.options,
-  });
+  }) : _name = name;
 
   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
     return MenuItemOptionGroupDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
+      name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
+      nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       groupType: json['groupType'] ?? 'MULTI_SELECT',
       isRequired: json['isRequired'] ?? false,
       minSelection: json['minSelection'] ?? 0,
@@ -159,24 +206,33 @@ class MenuItemOptionGroupDto {
 
 class MenuItemOptionDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
   final String? nameMm;
+  final String? nameTh;
   final double price;
   final String? displayPrice;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
   MenuItemOptionDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
     this.nameMm,
+    this.nameTh,
     required this.price,
     this.displayPrice,
-  });
+  }) : _name = name;
 
   factory MenuItemOptionDto.fromJson(Map<String, dynamic> json) {
     return MenuItemOptionDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['nameEn'] as String? ?? json['name'] as String? ?? '',
+      name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
+      nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
     );

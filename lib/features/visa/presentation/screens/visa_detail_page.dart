@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -71,7 +72,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Could not launch $urlString')));
+        ).showSnackBar(SnackBar(content: Text(context.trArgs('visa.could_not_launch', {'url': urlString}))));
       }
     }
   }
@@ -261,8 +262,8 @@ class _VisaDetailPageState extends State<VisaDetailPage>
         if (widget.args.canTakeAppointmentOnline) ...[
           _buildInfoCard(
             icon: PhosphorIconsRegular.calendarPlus,
-            title: 'Online Appointment',
-            subtitle: 'You can book an appointment for this service online.',
+            title: context.tr('visa.online_appointment'),
+            subtitle: context.tr('visa.online_appointment_sub'),
             color: const Color(0xFF3B82F6),
           ),
           const SizedBox(height: 16),
@@ -271,8 +272,8 @@ class _VisaDetailPageState extends State<VisaDetailPage>
             widget.args.officialWebsite!.isNotEmpty) ...[
           _buildActionCard(
             icon: PhosphorIconsRegular.globe,
-            title: 'Official Website',
-            subtitle: 'Visit government site for more details',
+            title: context.tr('visa.official_website'),
+            subtitle: context.tr('visa.official_website_sub'),
             color: primaryColor,
             onTap: () => _launchUrl(widget.args.officialWebsite!),
           ),

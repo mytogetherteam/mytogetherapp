@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -143,7 +144,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            status,
+                            context.localizedStatus(status),
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -180,7 +181,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     GradientText(
-                                      'Direction',
+                                      context.tr('home.direction'),
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -281,7 +282,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                 onPressed: onViewMenu,
                 height: 48,
                 child: Text(
-                  'View Menu',
+                  context.tr('home.view_menu'),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

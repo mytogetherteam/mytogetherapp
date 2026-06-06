@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -67,12 +68,12 @@ class _WishlistPageState extends State<WishlistPage>
         _menuItems.removeWhere((it) => it.id == item.id);
         _shops.removeWhere((it) => it.id == item.id);
       });
-      AppDialog.showToast(context, 'Removed from saved items.');
+      AppDialog.showToast(context, context.tr('wishlist.removed'));
     } catch (_) {
       if (!mounted) return;
       AppDialog.showToast(
         context,
-        'Could not remove item. Please try again.',
+        context.tr('wishlist.remove_failed'),
         isError: true,
       );
     }
@@ -87,7 +88,7 @@ class _WishlistPageState extends State<WishlistPage>
         elevation: 0,
         centerTitle: false,
         title: Text(
-          'Saved Items',
+          context.tr('profile.saved_items'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 22,
@@ -103,8 +104,8 @@ class _WishlistPageState extends State<WishlistPage>
           indicatorSize: TabBarIndicatorSize.tab,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
           tabs: [
-            Tab(text: 'Menu Items (${_menuItems.length})'),
-            Tab(text: 'Shops (${_shops.length})'),
+            Tab(text: context.trArgs('wishlist.tab_menu', {'count': '${_menuItems.length}'})),
+            Tab(text: context.trArgs('wishlist.tab_shops', {'count': '${_shops.length}'})),
           ],
         ),
       ),
@@ -123,8 +124,8 @@ class _WishlistPageState extends State<WishlistPage>
   Widget _buildMenuItemList() {
     if (_menuItems.isEmpty) {
       return _buildEmpty(
-        title: 'No saved items yet',
-        subtitle: 'Tap the heart on any dish to keep it here.',
+        title: context.tr('wishlist.empty_title'),
+        subtitle: context.tr('wishlist.empty_sub'),
       );
     }
     return RefreshIndicator(
@@ -148,8 +149,8 @@ class _WishlistPageState extends State<WishlistPage>
   Widget _buildShopList() {
     if (_shops.isEmpty) {
       return _buildEmpty(
-        title: 'No saved shops yet',
-        subtitle: 'Tap the heart on any restaurant to save it here.',
+        title: context.tr('wishlist.empty_shops_title'),
+        subtitle: context.tr('wishlist.empty_shops_sub'),
       );
     }
     return RefreshIndicator(
@@ -237,7 +238,7 @@ class _MenuWishlistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final menu = item.menuItem;
-    final name = menu?.displayName ?? 'Menu item';
+    final name = menu?.displayName ?? context.tr('wishlist.menu_item');
     final imageUrl = _absoluteImageUrl(menu?.imageUrl);
     final effectivePrice = menu?.effectivePrice;
     final priceText =
@@ -333,7 +334,7 @@ class _MenuWishlistTile extends StatelessWidget {
                 if (menu?.isAvailable == false) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Currently unavailable',
+                    context.tr('wishlist.currently_unavailable'),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: Colors.red[400],
@@ -349,7 +350,7 @@ class _MenuWishlistTile extends StatelessWidget {
               Icons.favorite_rounded,
               color: AppColors.primary,
             ),
-            tooltip: 'Remove',
+            tooltip: context.tr('common.remove'),
           ),
         ],
       ),
@@ -366,7 +367,7 @@ class _ShopWishlistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shop = item.shop;
-    final name = shop?.displayName ?? 'Shop';
+    final name = shop?.displayName ?? context.tr('common.shop');
     final logoUrl = _absoluteImageUrl(shop?.logoUrl);
     final coverUrl = _absoluteImageUrl(shop?.coverUrl);
     final imageUrl = coverUrl.isNotEmpty ? coverUrl : logoUrl;
@@ -458,7 +459,7 @@ class _ShopWishlistTile extends StatelessWidget {
                 if (shop?.isOpen == false) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Closed',
+                    context.tr('common.closed'),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: Colors.red[400],
@@ -474,7 +475,7 @@ class _ShopWishlistTile extends StatelessWidget {
               Icons.favorite_rounded,
               color: AppColors.primary,
             ),
-            tooltip: 'Remove',
+            tooltip: context.tr('common.remove'),
           ),
         ],
       ),

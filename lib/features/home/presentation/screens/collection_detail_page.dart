@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -73,7 +74,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           if (items.isEmpty) {
             return Center(
               child: Text(
-                'No items in this collection yet.',
+                context.tr('collection.empty'),
                 style: GoogleFonts.poppins(color: Colors.grey[600]),
               ),
             );

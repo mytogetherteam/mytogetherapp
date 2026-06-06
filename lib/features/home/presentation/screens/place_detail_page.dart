@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -259,7 +260,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       horizontal: 20.0,
                                     ),
                                     child: Text(
-                                      'About Location',
+                                      context.tr('place.about_location'),
                                       style: GoogleFonts.poppins(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
@@ -288,7 +289,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       horizontal: 20.0,
                                     ),
                                     child: Text(
-                                      'Photo Gallery',
+                                      context.tr('place.photo_gallery'),
                                       style: GoogleFonts.poppins(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
@@ -516,7 +517,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                               ),
                               child: Center(
                                 child: Text(
-                                  'View on Map',
+                                  context.tr('place.view_on_map'),
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,

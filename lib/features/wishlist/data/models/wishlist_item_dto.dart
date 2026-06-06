@@ -5,6 +5,10 @@
 ///   DELETE /api/user/wishlist/:id
 ///
 /// Backend: myshop_demo_api/src/modules/wishlist/wishlist.repository.ts
+library;
+
+import '../../../../core/localization/locale_controller.dart';
+
 class WishlistItemDto {
   /// The wishlist row's primary key. Required when calling DELETE.
   final int id;
@@ -72,8 +76,11 @@ class WishlistMenuItemRef {
     this.isAvailable = true,
   });
 
-  String get displayName =>
-      nameEn ?? nameMm ?? nameTh ?? 'Item #$id';
+  String get displayName {
+    final name = LocaleController.instance
+        .localized(en: nameEn, mm: nameMm, th: nameTh);
+    return name.isNotEmpty ? name : 'Item #$id';
+  }
 
   /// Whether a fixed or percentage discount applies to this item.
   bool get hasDiscount {
@@ -144,7 +151,11 @@ class WishlistShopRef {
     this.isOpen = true,
   });
 
-  String get displayName => nameEn ?? nameMm ?? nameTh ?? 'Shop #$id';
+  String get displayName {
+    final name = LocaleController.instance
+        .localized(en: nameEn, mm: nameMm, th: nameTh);
+    return name.isNotEmpty ? name : 'Shop #$id';
+  }
 
   factory WishlistShopRef.fromJson(Map<String, dynamic> json) {
     return WishlistShopRef(

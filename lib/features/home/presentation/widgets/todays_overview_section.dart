@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'food_menu_item_card.dart';
 import 'image_skeleton_loader.dart';
@@ -104,7 +105,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -116,7 +117,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
   Widget build(BuildContext context) {
     if (widget.items != null) {
       if (widget.items!.isEmpty) return const SizedBox.shrink();
-      return _buildContent(context, widget.items!, widget.title ?? 'Trending Near By');
+      return _buildContent(context, widget.items!, widget.title ?? context.tr('home.trending_nearby'));
     }
 
     return FutureBuilder<List<MenuItemDto>>(

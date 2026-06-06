@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -511,7 +512,7 @@ class _VisaPageState extends State<VisaPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Thailand Visa',
+                            context.tr('visa.title'),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 22,
@@ -519,7 +520,7 @@ class _VisaPageState extends State<VisaPage>
                             ),
                           ),
                           Text(
-                            'Types & Immigration Services 2026',
+                            context.tr('visa.subtitle'),
                             style: GoogleFonts.poppins(
                               color: Colors.white70,
                               fontSize: 13,
@@ -557,9 +558,9 @@ class _VisaPageState extends State<VisaPage>
             unselectedLabelColor: Colors.black54,
             indicatorColor: _pink,
             indicatorWeight: 2.5,
-            tabs: const [
-              Tab(text: 'Visa Types'),
-              Tab(text: 'Immigration Services'),
+            tabs: [
+              Tab(text: context.tr('visa.visa_types')),
+              Tab(text: context.tr('visa.immigration_services')),
             ],
           ),
         ),

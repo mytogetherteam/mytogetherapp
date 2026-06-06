@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
@@ -84,7 +85,7 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
                   const Text('🔥', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
                   Text(
-                    'Trending Now',
+                    context.tr('food.trending_now'),
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w700,
                       fontSize: 18,

@@ -1,18 +1,25 @@
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 import 'trending_item_dto.dart';
 
 /// A single food item returned by any of the 5 shop feed endpoints
 /// (right-now, for-you, hot-deals, trending, popular-dishes).
 class ShopFeedItemDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
+  final String? nameMm;
+  final String? nameTh;
   final String? imageUrl;
   final double price;
   final double? originalPrice;
   final double rating;
   final int reviewCount;
   final int shopId;
-  final String shopName;
+  final String _shopName;
+  final String? shopNameEn;
+  final String? shopNameMm;
+  final String? shopNameTh;
   final bool isFavorite;
   final String currency;
   final String? displayPrice;
@@ -24,16 +31,30 @@ class ShopFeedItemDto {
   final bool isAvailable;
   final String publishStatus;
 
+  /// Resolved live against the active language so a language switch updates
+  /// already-loaded items without a refetch.
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
+  String get shopName => LocaleController.instance
+      .localizedOr(_shopName, en: shopNameEn, mm: shopNameMm, th: shopNameTh);
+
   ShopFeedItemDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
+    this.nameMm,
+    this.nameTh,
     this.imageUrl,
     required this.price,
     this.originalPrice,
     required this.rating,
     required this.reviewCount,
     required this.shopId,
-    required this.shopName,
+    required String shopName,
+    this.shopNameEn,
+    this.shopNameMm,
+    this.shopNameTh,
     required this.isFavorite,
     this.currency = '฿',
     this.displayPrice,
@@ -43,23 +64,26 @@ class ShopFeedItemDto {
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
-  });
+  })  : _name = name,
+        _shopName = shopName;
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
-    // Prioritize English name if available
-    final name = json['nameEn'] as String? ?? json['name'] as String? ?? json['nameMm'] as String? ?? '';
-    final shopName = json['shopNameEn'] as String? ?? json['shopName'] as String? ?? json['shopNameMm'] as String? ?? '';
-    
     return ShopFeedItemDto(
       id: int.tryParse(json['id'].toString()) ?? 0,
-      name: name,
+      name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
+      nameEn: json['nameEn'] as String? ?? json['name'] as String?,
+      nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       price: _parsePrice(json['price']),
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
       rating: _parsePrice(json['rating'] ?? json['ratingAvg']),
       reviewCount: (json['reviewCount'] ?? json['ratingCount']) as int? ?? 0,
       shopId: int.tryParse(json['shopId'].toString()) ?? 0,
-      shopName: shopName,
+      shopName: (json['shopNameEn'] as String? ?? json['shopName'] as String?) ?? '',
+      shopNameEn: json['shopNameEn'] as String? ?? json['shopName'] as String?,
+      shopNameMm: json['shopNameMm'] as String?,
+      shopNameTh: json['shopNameTh'] as String?,
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
       displayPrice: json['displayPrice'] as String?,
@@ -100,6 +124,9 @@ class ShopFeedItemDto {
     return ShopFeedItemDto(
       id: item.id,
       name: item.name,
+      nameEn: item.nameEn,
+      nameMm: item.nameMm,
+      nameTh: item.nameTh,
       imageUrl: item.imageUrl.isNotEmpty ? item.imageUrl : null,
       price: item.price,
       originalPrice: item.originalPrice,
@@ -107,6 +134,9 @@ class ShopFeedItemDto {
       reviewCount: item.reviewCount,
       shopId: item.shopId,
       shopName: item.shopName,
+      shopNameEn: item.shopNameEn,
+      shopNameMm: item.shopNameMm,
+      shopNameTh: item.shopNameTh,
       isFavorite: item.isFavorite,
       currency: item.currency,
       displayPrice: item.displayPrice,

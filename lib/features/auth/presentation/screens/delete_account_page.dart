@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
@@ -144,7 +145,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               ),
             ),
             Text(
-              'Delete Account',
+              context.tr('profile.delete_account'),
               style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
@@ -186,7 +187,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
           ),
           Text(
-            'Before you delete',
+            context.tr('delete.before_title'),
             style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
           ),
           const SizedBox(height: 28),
@@ -195,28 +196,28 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           _buildWarningCard(
             icon: PhosphorIcons.shoppingCartFill,
             title: 'အော်ဒါများ ပျောက်ကွယ်မည်',
-            subtitle: 'Your orders history will be permanently deleted',
+            subtitle: context.tr('delete.orders_lost'),
             color: Colors.orange,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.walletFill,
             title: 'ငွေလက်ကျန် ဆုံးရှုံးမည်',
-            subtitle: 'Any remaining balance or credits will be lost',
+            subtitle: context.tr('delete.balance_lost'),
             color: Colors.purple,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.userMinusFill,
             title: 'ပြန်ရယူ၍ မရနိုင်ပါ',
-            subtitle: 'This action is permanent and cannot be undone',
+            subtitle: context.tr('delete.permanent'),
             color: Colors.red,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.lockFill,
             title: 'ဝင်ရောက်မှု ပိတ်မည်',
-            subtitle: 'You will be immediately logged out and access revoked',
+            subtitle: context.tr('delete.logged_out'),
             color: Colors.blue,
           ),
           const SizedBox(height: 28),
@@ -269,7 +270,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'I understand and agree to permanently delete my account.',
+                          context.tr('delete.confirm_checkbox'),
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: Colors.grey[500],
@@ -366,7 +367,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               ),
             ),
             Text(
-              'Confirm your identity',
+              context.tr('delete.confirm_identity'),
               style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
             ),
             const SizedBox(height: 8),
@@ -437,7 +438,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               },
               style: GoogleFonts.poppins(fontSize: 15),
               decoration: InputDecoration(
-                labelText: 'Password • စကားဝှက်',
+                labelText: context.tr('common.password'),
                 labelStyle: GoogleFonts.poppins(
                   color: Colors.grey[600],
                   fontSize: 14,

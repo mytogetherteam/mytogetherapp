@@ -1,5 +1,6 @@
 import '../../../home/data/models/shop_dto.dart';
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 
 class SearchMenuItemPreviewDto {
   final int id;
@@ -21,10 +22,11 @@ class SearchMenuItemPreviewDto {
   factory SearchMenuItemPreviewDto.fromJson(Map<String, dynamic> json) {
     return SearchMenuItemPreviewDto(
       id: json['id'] ?? 0,
-      name: json['nameEn'] as String? ??
-          json['nameMm'] as String? ??
-          json['nameTh'] as String? ??
-          '',
+      name: LocaleController.instance.localized(
+        en: json['nameEn'] as String?,
+        mm: json['nameMm'] as String?,
+        th: json['nameTh'] as String?,
+      ),
       price: (json['price'] ?? 0).toDouble(),
       originalPrice: json['originalPrice'] != null
           ? (json['originalPrice'] as num).toDouble()
@@ -116,14 +118,19 @@ class MenuItemSearchResultDto {
     final shop = json['shop'] as Map<String, dynamic>?;
     return MenuItemSearchResultDto(
       id: json['id'] ?? 0,
-      name: json['nameEn'] as String? ??
-          json['nameMm'] as String? ??
-          json['nameTh'] as String? ??
-          '',
+      name: LocaleController.instance.localized(
+        en: json['nameEn'] as String?,
+        mm: json['nameMm'] as String?,
+        th: json['nameTh'] as String?,
+      ),
       price: (json['price'] ?? 0).toDouble(),
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       shopId: shop?['id'] as int?,
-      shopName: shop?['nameEn'] as String? ?? shop?['nameMm'] as String?,
+      shopName: LocaleController.instance.localized(
+        en: shop?['nameEn'] as String?,
+        mm: shop?['nameMm'] as String?,
+        th: shop?['nameTh'] as String?,
+      ),
     );
   }
 }

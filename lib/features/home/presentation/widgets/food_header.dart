@@ -9,6 +9,7 @@ import '../../../../core/location/location_search_service.dart';
 import 'location_selection_modal.dart';
 import 'location_skeleton_loader.dart';
 import '../../../food/presentation/screens/food_search_page.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodHeader extends StatefulWidget {
   final VoidCallback? onLocationChanged;
@@ -191,8 +192,8 @@ class _FoodHeaderState extends State<FoodHeader> {
                                 Flexible(
                                   child: Text(
                                     _primaryLocation != null
-                                        ? (_primaryLocation!.locationName ?? _primaryLocation!.address ?? 'My Location')
-                                        : 'Set your location',
+                                        ? (_primaryLocation!.locationName ?? _primaryLocation!.address ?? context.tr('food.my_location'))
+                                        : context.tr('food.set_location'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
@@ -247,7 +248,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'What shall we deliver?',
+                    context.tr('food.deliver_prompt'),
                     style: GoogleFonts.poppins(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -187,7 +188,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not determine your location.')),
+          SnackBar(content: Text(context.tr('nearby.location_failed'))),
         );
       }
       return;
@@ -694,7 +695,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -827,7 +828,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'What shall we deliver?',
+                            context.tr('food.deliver_prompt'),
                             style: GoogleFonts.poppins(
                               color: Colors.grey[500],
                               fontSize: 14,
@@ -894,10 +895,10 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                             const SizedBox(width: 8),
                             Text(
                               _isRouting
-                                  ? 'Finding route…'
+                                  ? context.tr('nearby.finding_route')
                                   : (_polylines.isNotEmpty
-                                        ? 'See full route'
-                                        : 'Show me the way'),
+                                        ? context.tr('nearby.see_full_route')
+                                        : context.tr('nearby.show_me_the_way')),
                               style: GoogleFonts.poppins(
                                 color: _isRouting
                                     ? AppColors.primary
@@ -950,7 +951,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                       bottom: 12,
                     ),
                     child: Text(
-                      'Restaurants Nearby',
+                      context.tr('home.restaurants_nearby'),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -987,7 +988,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Connection Error',
+                                    context.tr('nearby.connection_error'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -995,7 +996,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Couldn\'t load restaurants.',
+                                    context.tr('nearby.load_failed'),
                                     style: GoogleFonts.poppins(
                                       color: Colors.grey[600],
                                       fontSize: 13,
@@ -1009,7 +1010,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                     width: 100,
                                     borderRadius: BorderRadius.circular(12),
                                     child: Text(
-                                      'Retry',
+                                      context.tr('common.retry'),
                                       style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,
@@ -1025,7 +1026,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return Center(
                             child: Text(
-                              'No restaurants found nearby.',
+                              context.tr('nearby.no_nearby'),
                               style: GoogleFonts.poppins(
                                 color: Colors.grey,
                                 fontSize: 14,

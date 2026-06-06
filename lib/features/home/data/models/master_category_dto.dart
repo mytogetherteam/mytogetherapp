@@ -1,4 +1,5 @@
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 
 /// A popular master menu category returned by
 /// `GET /api/user/master-menu-categories/popular`.
@@ -21,7 +22,11 @@ class MasterCategoryDto {
     this.orderCount = 0,
   });
 
-  String get displayName => nameEn.isNotEmpty ? nameEn : (nameMm ?? nameTh ?? 'Category');
+  String get displayName {
+    final name = LocaleController.instance
+        .localized(en: nameEn, mm: nameMm, th: nameTh);
+    return name.isNotEmpty ? name : 'Category';
+  }
 
   factory MasterCategoryDto.fromJson(Map<String, dynamic> json) {
     return MasterCategoryDto(

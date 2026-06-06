@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -76,7 +77,7 @@ class _PopularCategoriesSectionState extends State<PopularCategoriesSection> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Popular Categories',
+                context.tr('food.popular_categories'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w700,
                   fontSize: 18,

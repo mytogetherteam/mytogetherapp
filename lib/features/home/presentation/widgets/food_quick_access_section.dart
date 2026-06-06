@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodQuickAccessSection extends StatelessWidget {
   final VoidCallback onNearbyTap;
@@ -26,8 +27,8 @@ class FoodQuickAccessSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildQuickCard(
-                  title: 'Nearby Shops',
-                  subtitle: 'Get it quick',
+                  title: context.tr('food.nearby_shops'),
+                  subtitle: context.tr('food.nearby_shops_sub'),
                   color: const Color(0xFFFDE6ED), // Soft pink
                   emoji: '📍',
                   onTap: onNearbyTap,
@@ -36,8 +37,8 @@ class FoodQuickAccessSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickCard(
-                  title: 'For You',
-                  subtitle: 'Handpicked for you',
+                  title: context.tr('food.for_you'),
+                  subtitle: context.tr('food.for_you_sub'),
                   color: const Color(0xFFFEF3C7), // Peach / Warm Yellow
                   emoji: '✨',
                   onTap: onForYouTap,
@@ -50,8 +51,8 @@ class FoodQuickAccessSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildQuickCard(
-                  title: 'Trending',
-                  subtitle: 'Hot right now',
+                  title: context.tr('food.trending'),
+                  subtitle: context.tr('food.trending_sub'),
                   color: const Color(0xFFD1FAE5), // Mint green
                   emoji: '🔥',
                   onTap: onTrendingTap,
@@ -60,8 +61,8 @@ class FoodQuickAccessSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickCard(
-                  title: 'Popular',
-                  subtitle: 'Fan favorites',
+                  title: context.tr('food.popular'),
+                  subtitle: context.tr('food.popular_sub'),
                   color: const Color(0xFFDBEAFE), // Light blue
                   emoji: '👑',
                   onTap: onPopularTap,

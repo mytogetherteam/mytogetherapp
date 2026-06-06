@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -56,7 +57,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
         debugPrint('Could not launch $launchUri');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch phone dialer')),
+            SnackBar(content: Text(context.tr('news.dialer_failed'))),
           );
         }
       }
@@ -249,7 +250,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                               });
                                             },
                                             child: GradientText(
-                                              'See more',
+                                              context.tr('news.see_more'),
                                               style: GoogleFonts.poppins(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
@@ -441,7 +442,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Connect',
+                          context.tr('news.connect'),
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'news_card.dart';
 import 'view_all_icon_button.dart';
@@ -48,7 +49,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Trending News',
+                context.tr('home.trending_news'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,

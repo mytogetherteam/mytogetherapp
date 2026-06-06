@@ -5,6 +5,7 @@ import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart'
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
 import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -78,7 +79,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         elevation: 0,
         centerTitle: false,
         title: Text(
-          'Order History',
+          context.tr('orders.history'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 24,
@@ -108,9 +109,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 indicatorColor: AppColors.primary,
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                tabs: const [
-                  Tab(text: 'Completed'),
-                  Tab(text: 'Cancelled'),
+                tabs: [
+                  Tab(text: context.tr('orders.completed')),
+                  Tab(text: context.tr('orders.cancelled')),
                 ],
               ),
       ),
@@ -119,8 +120,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildOrdersList(_completedOrders, 'No Completed Orders'),
-                _buildOrdersList(_cancelledOrders, 'No Cancelled Orders'),
+                _buildOrdersList(_completedOrders, context.tr('orders.no_completed')),
+                _buildOrdersList(_cancelledOrders, context.tr('orders.no_cancelled')),
               ],
             ),
     );
@@ -174,7 +175,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           ),
           const SizedBox(height: 24),
           Text(
-            'No order yet!',
+            context.tr('orders.no_orders'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w500,

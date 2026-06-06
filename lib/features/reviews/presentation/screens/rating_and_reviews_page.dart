@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -53,7 +54,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          'Ratings and Reviews',
+          context.tr('review.title'),
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -82,7 +83,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Customer ratings & reviews',
+                          context.tr('review.customer_ratings'),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -104,7 +105,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'out of 5',
+                              context.tr('review.out_of_5'),
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -123,7 +124,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '9,615 ratings',
+                          context.trArgs('review.ratings_count', {'count': '9,615'}),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -178,7 +179,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                               Row(
                                 children: [
                                   Text(
-                                    'Authentic reviews from real customers',
+                                    context.tr('review.authentic'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: Colors.grey[600],
@@ -191,7 +192,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                               Row(
                                 children: [
                                   Text(
-                                    'Newest',
+                                    context.tr('review.newest'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       color: Colors.black87,
@@ -255,7 +256,7 @@ class _RatingAndReviewsPageState extends State<RatingAndReviewsPage> {
                     );
                   },
                   child: Text(
-                    'Write a Review',
+                    context.tr('review.write_title'),
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 16,

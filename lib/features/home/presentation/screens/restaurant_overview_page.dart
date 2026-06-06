@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
+
 class RestaurantOverviewPage extends StatelessWidget {
   final Restaurant restaurant;
 
   const RestaurantOverviewPage({super.key, required this.restaurant});
+
+  String _localizedAddress(BuildContext context) {
+    final localized = context.localized(
+      en: restaurant.addressEn,
+      mm: restaurant.addressMm,
+      th: restaurant.addressTh,
+    );
+    if (localized.isNotEmpty) return localized;
+    final fallback = restaurant.address?.trim();
+    if (fallback != null && fallback.isNotEmpty) return fallback;
+    return context.tr('restaurant.no_address');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +37,7 @@ class RestaurantOverviewPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Restaurant Overview',
+          context.tr('restaurant.overview_title'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 18,
@@ -36,7 +50,6 @@ class RestaurantOverviewPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero Image Section
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -50,16 +63,24 @@ class RestaurantOverviewPage extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: restaurant.imagePath,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => const ImageSkeletonLoader(),
+                          placeholder: (context, url) =>
+                              const ImageSkeletonLoader(),
                           errorWidget: (context, url, error) => const Center(
-                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
                           ),
                         )
                       : const Center(
-                          child: Icon(Icons.restaurant, size: 50, color: Colors.grey),
+                          child: Icon(
+                            Icons.restaurant,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                 ),
-                // Overlapping Logo
                 Positioned(
                   bottom: -40,
                   left: 0,
@@ -87,8 +108,10 @@ class RestaurantOverviewPage extends StatelessWidget {
                             ? CachedNetworkImage(
                                 imageUrl: restaurant.logoPath,
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => const ImageSkeletonLoader(),
-                                errorWidget: (context, url, error) => _buildLogoFallback(restaurant.name),
+                                placeholder: (context, url) =>
+                                    const ImageSkeletonLoader(),
+                                errorWidget: (context, url, error) =>
+                                    _buildLogoFallback(restaurant.name),
                               )
                             : _buildLogoFallback(restaurant.name),
                       ),
@@ -97,10 +120,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 50),
-
-            // Header Info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -142,7 +162,6 @@ class RestaurantOverviewPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Stats Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -151,7 +170,7 @@ class RestaurantOverviewPage extends StatelessWidget {
                       _buildInfoItem(PhosphorIcons.clock, restaurant.deliveryTime),
                       _buildDot(),
                       Text(
-                        restaurant.status,
+                        context.localizedStatus(restaurant.status),
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: const Color(0xFF10B981),
@@ -163,145 +182,22 @@ class RestaurantOverviewPage extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Info Cards
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
                   _buildSectionCard(
                     icon: 'assets/images/detail_direction.png',
-                    title: 'Restaurant Address',
-                    content: restaurant.addressEn ?? restaurant.addressMm ?? restaurant.address ?? 'No address available',
+                    title: context.tr('restaurant.address_title'),
+                    content: _localizedAddress(context),
                   ),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                     icon: 'assets/images/detail_overview.png',
-                    title: 'Opening - Closing hours',
+                    title: context.tr('restaurant.hours_title'),
                     customContent: Column(
-                      children: () {
-                        if (restaurant.operatingHours.isEmpty) {
-                          return [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 20.0),
-                              child: Text(
-                                'Service hours not available',
-                                style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
-                              ),
-                            )
-                          ];
-                        }
-
-                        // The backend stores dayOfWeek using the JavaScript
-                        // convention: 0 = Sunday, 1 = Monday … 6 = Saturday.
-                        // We normalize to a Monday-first index (Mon = 1 …
-                        // Sun = 7) so the list reads Monday → Sunday and lines
-                        // up with Dart's `DateTime.weekday` for "today".
-                        int mondayFirstIndex(String day) {
-                          final number = int.tryParse(day);
-                          if (number != null) {
-                            // JS Sunday (0) → 7 so it sorts last. Tolerate
-                            // legacy 1–7 data where 7 already means Sunday.
-                            if (number == 0) return 7;
-                            if (number >= 1 && number <= 7) return number;
-                            return 8;
-                          }
-
-                          switch (day.toUpperCase()) {
-                            case 'MONDAY': return 1;
-                            case 'TUESDAY': return 2;
-                            case 'WEDNESDAY': return 3;
-                            case 'THURSDAY': return 4;
-                            case 'FRIDAY': return 5;
-                            case 'SATURDAY': return 6;
-                            case 'SUNDAY': return 7;
-                            default: return 8;
-                          }
-                        }
-
-                        const dayNames = <int, String>{
-                          1: 'Monday',
-                          2: 'Tuesday',
-                          3: 'Wednesday',
-                          4: 'Thursday',
-                          5: 'Friday',
-                          6: 'Saturday',
-                          7: 'Sunday',
-                        };
-
-                        String formatDayName(String day) {
-                          final name = dayNames[mondayFirstIndex(day)];
-                          if (name != null) return name;
-                          if (day.isEmpty) return '';
-                          return day[0].toUpperCase() + day.substring(1).toLowerCase();
-                        }
-
-                        final sortedHours = List<OperatingHourDto>.from(restaurant.operatingHours)
-                          ..sort((a, b) => mondayFirstIndex(a.dayOfWeek).compareTo(mondayFirstIndex(b.dayOfWeek)));
-
-                        final currentDay = DateTime.now().weekday;
-
-                        return sortedHours.asMap().entries.map((entry) {
-                          final int index = entry.key;
-                          final h = entry.value;
-                          final bool isLast = index == sortedHours.length - 1;
-                          final bool isToday = mondayFirstIndex(h.dayOfWeek) == currentDay;
-
-                          return Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          formatDayName(h.dayOfWeek),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            color: isToday ? AppColors.primary : const Color(0xFF2D3748),
-                                            fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
-                                          ),
-                                        ),
-                                        if (isToday)
-                                          Text(
-                                            h.isClosed ? '(Closed Today)' : '(Open Today)',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: h.isClosed ? Colors.red : const Color(0xFF10B981),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        h.isClosed ? 'Closed' : h.displayTime24h.replaceAll('-', '–'),
-                                        textAlign: TextAlign.right,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: h.isClosed ? AppColors.primary : const Color(0xFF718096),
-                                          fontWeight: h.isClosed ? FontWeight.w500 : FontWeight.w400,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (!isLast)
-                                Divider(
-                                  color: Colors.grey[200],
-                                  height: 1,
-                                  thickness: 1,
-                                ),
-                            ],
-                          );
-                        }).toList();
-                      }(),
+                      children: _buildOperatingHours(context),
                     ),
                   ),
                 ],
@@ -312,6 +208,142 @@ class RestaurantOverviewPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildOperatingHours(BuildContext context) {
+    if (restaurant.operatingHours.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          child: Text(
+            context.tr('restaurant.hours_unavailable'),
+            style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
+          ),
+        ),
+      ];
+    }
+
+    int mondayFirstIndex(String day) {
+      final number = int.tryParse(day);
+      if (number != null) {
+        if (number == 0) return 7;
+        if (number >= 1 && number <= 7) return number;
+        return 8;
+      }
+
+      switch (day.toUpperCase()) {
+        case 'MONDAY':
+          return 1;
+        case 'TUESDAY':
+          return 2;
+        case 'WEDNESDAY':
+          return 3;
+        case 'THURSDAY':
+          return 4;
+        case 'FRIDAY':
+          return 5;
+        case 'SATURDAY':
+          return 6;
+        case 'SUNDAY':
+          return 7;
+        default:
+          return 8;
+      }
+    }
+
+    final dayNames = <int, String>{
+      1: context.tr('common.day_monday'),
+      2: context.tr('common.day_tuesday'),
+      3: context.tr('common.day_wednesday'),
+      4: context.tr('common.day_thursday'),
+      5: context.tr('common.day_friday'),
+      6: context.tr('common.day_saturday'),
+      7: context.tr('common.day_sunday'),
+    };
+
+    String formatDayName(String day) {
+      final name = dayNames[mondayFirstIndex(day)];
+      if (name != null) return name;
+      if (day.isEmpty) return '';
+      return day[0].toUpperCase() + day.substring(1).toLowerCase();
+    }
+
+    final sortedHours = List<OperatingHourDto>.from(restaurant.operatingHours)
+      ..sort(
+        (a, b) => mondayFirstIndex(a.dayOfWeek)
+            .compareTo(mondayFirstIndex(b.dayOfWeek)),
+      );
+
+    final currentDay = DateTime.now().weekday;
+
+    return sortedHours.asMap().entries.map((entry) {
+      final int index = entry.key;
+      final h = entry.value;
+      final bool isLast = index == sortedHours.length - 1;
+      final bool isToday = mondayFirstIndex(h.dayOfWeek) == currentDay;
+
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formatDayName(h.dayOfWeek),
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: isToday
+                            ? AppColors.primary
+                            : const Color(0xFF2D3748),
+                        fontWeight:
+                            isToday ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                    if (isToday)
+                      Text(
+                        h.isClosed
+                            ? context.tr('restaurant.closed_today')
+                            : context.tr('restaurant.open_today'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: h.isClosed ? Colors.red : const Color(0xFF10B981),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+                Expanded(
+                  child: Text(
+                    h.isClosed
+                        ? context.tr('common.closed')
+                        : h.displayTime24h.replaceAll('-', '–'),
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: h.isClosed
+                          ? AppColors.primary
+                          : const Color(0xFF718096),
+                      fontWeight:
+                          h.isClosed ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isLast)
+            Divider(
+              color: Colors.grey[200],
+              height: 1,
+              thickness: 1,
+            ),
+        ],
+      );
+    }).toList();
   }
 
   Widget _buildInfoItem(IconData icon, String text) {

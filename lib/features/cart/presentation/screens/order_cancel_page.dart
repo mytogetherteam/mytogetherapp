@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -75,7 +76,7 @@ class OrderCancelPage extends StatelessWidget {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  Widget _buildNoImagePlaceholder({bool isLogo = false}) {
+  Widget _buildNoImagePlaceholder(BuildContext context, {bool isLogo = false}) {
     return Container(
       color: Colors.grey[100],
       child: Center(
@@ -90,7 +91,7 @@ class OrderCancelPage extends StatelessWidget {
             if (!isLogo) ...[
               const SizedBox(height: 8),
               Text(
-                "No Image",
+                context.tr('common.no_image'),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey[400],
@@ -149,7 +150,7 @@ class OrderCancelPage extends StatelessWidget {
                       const SizedBox(height: 24),
                       
                       Text(
-                        "We're sorry!",
+                        context.tr('order_cancel.sorry'),
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -159,7 +160,7 @@ class OrderCancelPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        "Your order has been cancelled by the shop. We apologize for the inconvenience.",
+                        context.tr('order_cancel.message'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           color: Colors.grey[600],
@@ -205,16 +206,16 @@ class OrderCancelPage extends StatelessWidget {
                                           imageUrl: _getFullUrl(shopImageUrl),
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                          errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
+                                          errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
                                         )
                                       : (shopLogo != null && shopLogo!.isNotEmpty)
                                           ? CachedNetworkImage(
                                               imageUrl: _getFullUrl(shopLogo),
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                              errorWidget: (context, url, error) => _buildNoImagePlaceholder(),
+                                              errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
                                             )
-                                          : _buildNoImagePlaceholder(),
+                                          : _buildNoImagePlaceholder(context),
                                 ),
                               ),
                               
@@ -272,7 +273,7 @@ class OrderCancelPage extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "Cancellation Reason",
+                                    context.tr('order_cancel.reason_title'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -307,7 +308,7 @@ class OrderCancelPage extends StatelessWidget {
                 child: PrimaryGradientButton(
                   onPressed: () => _onViewRestaurant(context),
                   child: Text(
-                    "View Restaurant",
+                    context.tr('order_cancel.view_restaurant'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

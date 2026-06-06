@@ -1,6 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
@@ -59,7 +60,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load announcements')),
+          SnackBar(content: Text(context.tr('announcement.load_failed'))),
         );
       }
     }
@@ -114,7 +115,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     if (!ok && mounted) {
       setState(() => _items.insert(index, removed));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to dismiss announcement')),
+        SnackBar(content: Text(context.tr('announcement.dismiss_failed'))),
       );
     } else {
       _repository.getUnreadCount();
@@ -132,7 +133,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
-          'Announcements',
+          context.tr('announcement.title'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
@@ -143,7 +144,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           if (_items.any((a) => !a.isRead))
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text('Mark all as read'),
+              child: Text(context.tr('announcement.mark_all_read')),
             ),
         ],
       ),
@@ -183,78 +184,148 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   }
 
   Widget _buildItem(AnnouncementModel item) {
+    final hasImage = item.imageUrl != null && item.imageUrl!.isNotEmpty;
     return Dismissible(
       key: ValueKey(item.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
+        margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         padding: const EdgeInsets.only(right: 24),
-        color: Colors.red.shade400,
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       onDismissed: (_) => _dismiss(item),
-      child: InkWell(
-        onTap: () => _openDetail(item),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: item.isRead ? Colors.transparent : AppColors.primary.withAlpha(15),
-            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _openDetail(item),
+            child: Opacity(
+              opacity: item.isRead ? 0.75 : 1.0,
+              child: Container(
+                height: 150,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withAlpha(30),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  PhosphorIcons.megaphone,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
+                    _buildItemBackground(hasImage, item),
+                    DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black87,
+                          ],
+                          stops: [0.25, 1.0],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (!item.isRead)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  _formatDate(item.createdAt),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Text(
                             item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
-                              fontWeight: item.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.w700,
-                              fontSize: 14,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
                             ),
                           ),
-                        ),
-                        Text(
-                          _formatDate(item.createdAt),
-                          style: GoogleFonts.poppins(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
+                          const SizedBox(height: 4),
+                          Text(
+                            item.message,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontSize: 13,
+                              height: 1.35,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.message,
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey.shade800,
-                        fontSize: 13,
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemBackground(bool hasImage, AnnouncementModel item) {
+    if (hasImage) {
+      return CachedNetworkImage(
+        imageUrl: item.imageUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) =>
+            const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.primaryGradient)),
+        errorWidget: (context, url, error) => _buildFallbackBackground(),
+      );
+    }
+    return _buildFallbackBackground();
+  }
+
+  Widget _buildFallbackBackground() {
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+      child: Align(
+        alignment: Alignment.topRight,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            PhosphorIcons.megaphone,
+            size: 56,
+            color: Colors.white.withValues(alpha: 0.25),
           ),
         ),
       ),
@@ -280,7 +351,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'No announcements',
+            context.tr('announcement.empty_title'),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -289,7 +360,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Important updates will show up here',
+            context.tr('announcement.empty_sub'),
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.grey.shade600,
@@ -301,11 +372,6 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   }
 
   String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d').format(date);
+    return context.relativeTime(date);
   }
 }

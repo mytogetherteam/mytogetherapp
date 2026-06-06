@@ -28,6 +28,7 @@ import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart'
 import 'places_list_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -257,7 +258,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  'Search food, restaurants & more ...',
+                                  context.tr('home.search_hint'),
                                   style: GoogleFonts.poppins(
                                     color: Colors.grey.shade500,
                                     fontSize: 14,
@@ -383,14 +384,14 @@ class _HomePageState extends State<HomePage> {
                                 childAspectRatio: 0.85,
                                 children: [
                                   CategoryCard(
-                                    title: 'Food &\nRestaurant',
+                                    title: context.tr('home.category_food'),
                                     assetPath:
                                         'assets/images/services/food_3d.png',
                                     onTap: () => NavigationController.instance
                                         .goToFoodTab(),
                                   ),
                                   CategoryCard(
-                                    title: 'Lost &\nFound',
+                                    title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
                                     badgeText: '4',
@@ -403,7 +404,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: 'Currency\nExchange',
+                                    title: context.tr('home.category_currency'),
                                     assetPath:
                                         'assets/images/services/exchange_3d.png',
                                     onTap: () => Navigator.push(
@@ -415,7 +416,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: 'Visa',
+                                    title: context.tr('home.category_visa'),
                                     assetPath:
                                         'assets/images/services/visa_3d.png',
                                     onTap: () => Navigator.push(
@@ -426,7 +427,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: 'Places',
+                                    title: context.tr('home.category_places'),
                                     assetPath:
                                         'assets/images/services/places_3d.png',
                                     onTap: () => Navigator.push(
@@ -438,7 +439,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: 'Store',
+                                    title: context.tr('home.category_store'),
                                     assetPath:
                                         'assets/images/services/store_3d.png',
                                     isComingSoon: true,

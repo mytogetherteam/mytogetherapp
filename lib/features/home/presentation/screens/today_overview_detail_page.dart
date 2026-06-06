@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
@@ -127,7 +128,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );

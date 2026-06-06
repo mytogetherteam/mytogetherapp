@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -87,7 +88,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.isEdit ? 'Edit Location' : 'Create Location',
+                    widget.isEdit ? context.tr('location.edit') : context.tr('location.create'),
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -109,7 +110,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    widget.location.address ?? 'Unspecified Address',
+                    widget.location.address ?? context.tr('location.unspecified_address'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -119,23 +120,23 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               ],
             ),
             const SizedBox(height: 24),
-            _buildLabel('Nickname'),
+            _buildLabel(context.tr('location.nickname')),
             _buildTextField(
               controller: _nameController,
-              hint: 'e.g. Grandma\'s House, Office',
+              hint: context.tr('location.nickname_hint'),
               icon: PhosphorIcons.tag,
             ),
             const SizedBox(height: 16),
-            _buildLabel('Location Type'),
+            _buildLabel(context.tr('location.type')),
             const SizedBox(height: 8),
             Row(
               children: _types.map((type) => _buildTypeChip(type)).toList(),
             ),
             const SizedBox(height: 20),
-            _buildLabel('Building Details'),
+            _buildLabel(context.tr('location.building_details')),
             _buildTextField(
               controller: _buildingController,
-              hint: 'Building name, Apartment complex',
+              hint: context.tr('location.building_hint'),
               icon: PhosphorIcons.buildings,
             ),
             const SizedBox(height: 12),
@@ -144,7 +145,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 Expanded(
                   child: _buildTextField(
                     controller: _floorController,
-                    hint: 'Floor / Unit',
+                    hint: context.tr('location.floor_unit'),
                     icon: PhosphorIcons.stairs,
                   ),
                 ),
@@ -152,7 +153,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 Expanded(
                   child: _buildTextField(
                     controller: _postalController,
-                    hint: 'Postal Code',
+                    hint: context.tr('location.postal_code'),
                     icon: PhosphorIcons.envelope,
                     keyboardType: TextInputType.number,
                   ),
@@ -160,10 +161,10 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildLabel('Extra Note (optional)'),
+            _buildLabel(context.tr('location.extra_note')),
             _buildTextField(
               controller: _noteController,
-              hint: 'Door code, delivery instructions...',
+              hint: context.tr('location.note_hint'),
               icon: PhosphorIcons.note,
               maxLines: 2,
             ),
@@ -182,7 +183,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 widget.onSave(updated);
               },
               child: Text(
-                widget.isEdit ? 'Update Location' : 'Create Location',
+                widget.isEdit ? context.tr('location.update') : context.tr('location.create'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:flutter/services.dart';
 import '../../../cart/data/cart_manager.dart';
 import '../../../../core/utils/price_formatter.dart';
@@ -117,7 +119,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     _isFavorite = widget.isFavorite ?? false;
     _currentRestaurant = Restaurant(
       id: widget.id,
-      name: widget.name ?? 'Loading...',
+      name: widget.name ?? LocaleController.instance.tr('restaurant.loading'),
       category: widget.category ?? '',
       rating: widget.rating ?? 0.0,
       distance: widget.distance ?? '',
@@ -402,7 +404,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   _buildActionButton(
                                     imageAsset:
                                         'assets/images/detail_overview.png',
-                                    label: 'Overview',
+                                    label: context.tr('restaurant.overview'),
                                     onTap: () {
                                       if (_currentRestaurant != null) {
                                         Navigator.push(
@@ -421,7 +423,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   _buildActionButton(
                                     imageAsset:
                                         'assets/images/detail_direction.png',
-                                    label: 'Direction',
+                                    label: context.tr('home.direction'),
                                     isActive: true,
                                     onTap: () =>
                                         AppDialog.showUnavailable(context),
@@ -429,7 +431,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   _buildActionButton(
                                     imageAsset:
                                         'assets/images/detail_reviews.png',
-                                    label: 'Reviews',
+                                    label: context.tr('restaurant.reviews'),
                                     onTap: () {
                                       if (_currentRestaurant != null) {
                                         Navigator.push(
@@ -450,7 +452,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   ),
                                   _buildActionButton(
                                     imageAsset: 'assets/images/detail_chat.png',
-                                    label: 'Chat',
+                                    label: context.tr('restaurant.chat'),
                                     onTap: () =>
                                         AppDialog.showUnavailable(context),
                                   ),
@@ -786,7 +788,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                             ),
                                           ),
                                           Text(
-                                            _currentRestaurant?.status ?? '',
+                                            context.localizedStatus(
+                                              _currentRestaurant?.status ?? '',
+                                            ),
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
                                               color: const Color(0xFF10B981),
@@ -875,7 +879,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   shaderCallback: (bounds) =>
                       AppColors.primaryGradient.createShader(bounds),
                   child: Text(
-                    'Add More Items — No Extra Delivery Fee.',
+                    context.tr('restaurant.add_more_no_fee'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -924,7 +928,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Basket • $itemCount ${itemCount == 1 ? 'Item' : 'Items'}',
+                                context.trArgs('restaurant.basket', {
+                                  'count': '$itemCount',
+                                  'items': itemCount == 1
+                                      ? context.tr('restaurant.item')
+                                      : context.tr('restaurant.items'),
+                                }),
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -1053,7 +1062,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     if (!AuthService().isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to save restaurants.')),
+        SnackBar(content: Text(context.tr('restaurant.sign_in_save'))),
       );
       return;
     }
@@ -1072,8 +1081,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       if (mounted) {
         setState(() => _isFavorite = !newStatus);
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update favorite. Please try again.'),
+          SnackBar(
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1103,7 +1112,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         });
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Failed to update favorite. Please try again.'),
+            content: Text(context.tr('common.favorite_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1126,7 +1135,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'No food menu item available',
+              context.tr('restaurant.no_menu'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1136,7 +1145,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             ),
             const SizedBox(height: 4),
             Text(
-              'This restaurant has no menu items right now.',
+              context.tr('restaurant.no_menu_sub'),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400]),
             ),

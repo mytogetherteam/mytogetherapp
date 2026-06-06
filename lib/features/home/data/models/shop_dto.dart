@@ -1,5 +1,6 @@
 import 'menu_item_dto.dart';
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/localization/locale_controller.dart';
 
 class ShopRequestDto {
   final double lat;
@@ -96,9 +97,14 @@ class SliceShopListDto {
 
 class ShopListItemDto {
   final int id;
-  final String name;
+  final String _name;
   final String? nameEn;
-  final String? category;
+  final String? nameMm;
+  final String? nameTh;
+  final String? _category;
+  final String? categoryEn;
+  final String? categoryMm;
+  final String? categoryTh;
   final double rating;
   final int reviewCount;
   final String? primaryPhotoUrl;
@@ -115,11 +121,28 @@ class ShopListItemDto {
   final String? displayDeliveryFee;
   final String? originalDeliveryFee;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
+  String? get category {
+    if (categoryEn != null || categoryMm != null || categoryTh != null) {
+      final v = LocaleController.instance
+          .localized(en: categoryEn, mm: categoryMm, th: categoryTh);
+      if (v.isNotEmpty) return v;
+    }
+    return _category;
+  }
+
   ShopListItemDto({
     required this.id,
-    required this.name,
+    required String name,
     this.nameEn,
-    this.category,
+    this.nameMm,
+    this.nameTh,
+    String? category,
+    this.categoryEn,
+    this.categoryMm,
+    this.categoryTh,
     required this.rating,
     required this.reviewCount,
     this.primaryPhotoUrl,
@@ -135,7 +158,8 @@ class ShopListItemDto {
     this.imageUrls = const <String>[],
     this.displayDeliveryFee,
     this.originalDeliveryFee,
-  });
+  })  : _name = name,
+        _category = category;
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
     final ratingRaw = json['rating'];
@@ -170,14 +194,19 @@ class ShopListItemDto {
     final primaryPhotoUrl = ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
         (imageUrls.isNotEmpty ? imageUrls.first : null);
 
+    final shopCategory =
+        json['shopCategory'] is Map ? json['shopCategory'] as Map : null;
+
     return ShopListItemDto(
       id: json['id'] ?? 0,
-      name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
-      nameEn: json['nameEn'],
-      category: json['category'] ??
-          (json['shopCategory'] is Map
-              ? (json['shopCategory'] as Map)['nameEn'] as String?
-              : null),
+      name: (json['name'] as String? ?? json['nameEn'] as String?) ?? '',
+      nameEn: json['nameEn'] as String?,
+      nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
+      category: json['category'] as String?,
+      categoryEn: shopCategory?['nameEn'] as String?,
+      categoryMm: shopCategory?['nameMm'] as String?,
+      categoryTh: shopCategory?['nameTh'] as String?,
       rating: rating,
       reviewCount: reviewCount,
       primaryPhotoUrl: primaryPhotoUrl,
@@ -269,7 +298,10 @@ class ApiResponseShopDetailDto {
 
 class ShopDetailDto {
   final int id;
-  final String name;
+  final String _name;
+  final String? nameEn;
+  final String? nameMm;
+  final String? nameTh;
   final String? category;
   final CuisineTypeDto? cuisineType;
   final double rating;
@@ -301,9 +333,15 @@ class ShopDetailDto {
   final int? maxEta;
   final List<DeliveryTierDto> deliveryTiers;
 
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
   ShopDetailDto({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
+    this.nameMm,
+    this.nameTh,
     this.category,
     required this.rating,
     required this.reviewCount,
@@ -334,12 +372,15 @@ class ShopDetailDto {
     this.minEta,
     this.maxEta,
     this.deliveryTiers = const [],
-  });
+  }) : _name = name;
 
   factory ShopDetailDto.fromJson(Map<String, dynamic> json) {
     return ShopDetailDto(
       id: json['id'] ?? 0,
-      name: json['name'] as String? ?? json['nameEn'] as String? ?? json['nameMm'] as String? ?? '',
+      name: (json['name'] as String? ?? json['nameEn'] as String?) ?? '',
+      nameEn: json['nameEn'] as String?,
+      nameMm: json['nameMm'] as String?,
+      nameTh: json['nameTh'] as String?,
       category: json['category'],
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
       rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
@@ -620,6 +661,7 @@ class CuisineTypeDto {
   }
 
   String get displayName {
-    return nameEn ?? nameMm ?? nameTh ?? '';
+    return LocaleController.instance
+        .localized(en: nameEn, mm: nameMm, th: nameTh);
   }
 }

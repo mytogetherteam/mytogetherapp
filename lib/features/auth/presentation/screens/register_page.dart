@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -112,7 +113,7 @@ class _RegisterPageState extends State<RegisterPage>
                   children: [
                     const SizedBox(height: 8),
                     Text(
-                      'Create Account',
+                      context.tr('auth.create_account'),
                       style: GoogleFonts.poppins(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
@@ -121,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Join myTogether and explore great food',
+                      context.tr('auth.join_subtitle'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -135,19 +136,19 @@ class _RegisterPageState extends State<RegisterPage>
                       const SizedBox(height: 20),
                     ],
 
-                    _buildLabel('Full Name'),
+                    _buildLabel(context.tr('auth.full_name')),
                     const SizedBox(height: 8),
                     _buildTextField(
                       controller: _fullNameController,
                       hint: 'John Doe',
                       icon: Icons.badge_outlined,
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Full name is required'
+                          ? context.tr('auth.full_name_required')
                           : null,
                     ),
                     const SizedBox(height: 18),
 
-                    _buildLabel('Username'),
+                    _buildLabel(context.tr('auth.username')),
                     const SizedBox(height: 8),
                     _buildTextField(
                       controller: _usernameController,
@@ -155,15 +156,15 @@ class _RegisterPageState extends State<RegisterPage>
                       icon: Icons.alternate_email_rounded,
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Username is required';
+                          return context.tr('auth.username_required');
                         }
-                        if (v.trim().length < 3) return 'At least 3 characters';
+                        if (v.trim().length < 3) return context.tr('auth.at_least_3_chars');
                         return null;
                       },
                     ),
                     const SizedBox(height: 18),
 
-                    _buildLabel('Email'),
+                    _buildLabel(context.tr('auth.email')),
                     const SizedBox(height: 8),
                     _buildTextField(
                       controller: _emailController,
@@ -172,19 +173,19 @@ class _RegisterPageState extends State<RegisterPage>
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Email is required';
+                          return context.tr('auth.email_required');
                         }
-                        if (!v.contains('@')) return 'Enter a valid email';
+                        if (!v.contains('@')) return context.tr('auth.valid_email');
                         return null;
                       },
                     ),
                     const SizedBox(height: 18),
 
-                    _buildLabel('Password'),
+                    _buildLabel(context.tr('common.password')),
                     const SizedBox(height: 8),
                     _buildTextField(
                       controller: _passwordController,
-                      hint: 'At least 8 characters',
+                      hint: context.tr('auth.password_min_8'),
                       icon: Icons.lock_outline_rounded,
                       obscure: _obscurePassword,
                       suffixWidget: IconButton(
@@ -201,19 +202,19 @@ class _RegisterPageState extends State<RegisterPage>
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) {
-                          return 'Password is required';
+                          return context.tr('auth.password_required');
                         }
-                        if (v.length < 8) return 'At least 8 characters';
+                        if (v.length < 8) return context.tr('auth.password_min_8');
                         return null;
                       },
                     ),
                     const SizedBox(height: 18),
 
-                    _buildLabel('Confirm Password'),
+                    _buildLabel(context.tr('auth.confirm_password')),
                     const SizedBox(height: 8),
                     _buildTextField(
                       controller: _confirmPasswordController,
-                      hint: 'Re-enter password',
+                      hint: context.tr('auth.reenter_password'),
                       icon: Icons.lock_outline_rounded,
                       obscure: _obscureConfirm,
                       suffixWidget: IconButton(
@@ -229,7 +230,7 @@ class _RegisterPageState extends State<RegisterPage>
                       ),
                       validator: (v) {
                         if (v != _passwordController.text) {
-                          return 'Passwords do not match';
+                          return context.tr('auth.passwords_no_match');
                         }
                         return null;
                       },
@@ -242,7 +243,7 @@ class _RegisterPageState extends State<RegisterPage>
                       onPressed: _isLoading ? null : _handleRegister,
                       isLoading: _isLoading,
                       child: Text(
-                        'Create Account',
+                        context.tr('auth.create_account'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -257,7 +258,7 @@ class _RegisterPageState extends State<RegisterPage>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Already have an account? ',
+                            context.tr('auth.already_have_account'),
                             style: GoogleFonts.poppins(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -266,7 +267,7 @@ class _RegisterPageState extends State<RegisterPage>
                           GestureDetector(
                             onTap: () => Navigator.of(context).pop(),
                             child: GradientText(
-                              'Login',
+                              context.tr('common.login'),
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

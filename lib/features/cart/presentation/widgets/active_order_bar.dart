@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/active_order_state.dart';
@@ -237,7 +238,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                         Text(
                           order.restaurantName ??
                               order.storeName ??
-                              'Restaurant',
+                              context.tr('common.restaurant'),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -247,7 +248,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          _getStatusText(order),
+                          _getStatusText(context, order),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -405,7 +406,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       child: Row(
         children: [
           Text(
-            'Track order',
+            context.tr('active_order.track'),
             style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -419,25 +420,25 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     );
   }
 
-  String _getStatusText(ActiveOrderItem order) {
+  String _getStatusText(BuildContext context, ActiveOrderItem order) {
     switch (order.orderStatus) {
       case 0:
-        return 'Awaiting Confirmation';
+        return context.tr('active_order.awaiting_confirmation');
       case 1:
         return order.showUploadSection
-            ? 'Awaiting Payment'
-            : 'Verifying Payment...';
+            ? context.tr('active_order.awaiting_payment')
+            : context.tr('active_order.verifying_payment');
       case 2:
-        return 'Restaurant Preparing...';
+        return context.tr('active_order.preparing');
       case 3:
         final eta = order.estimatedTime;
         return eta != null && eta.isNotEmpty
-            ? 'Est. arrival: $eta'
-            : 'Order Is On The Way...';
+            ? context.trArgs('active_order.est_arrival', {'time': eta})
+            : context.tr('active_order.on_the_way');
       case 4:
-        return 'Order Delivered!';
+        return context.tr('active_order.delivered');
       default:
-        return 'Processing Order...';
+        return context.tr('active_order.processing');
     }
   }
 

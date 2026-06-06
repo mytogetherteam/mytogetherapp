@@ -1,3 +1,5 @@
+import '../../../../core/localization/locale_controller.dart';
+
 /// Request body for POST /api/mobile/cart/items
 class AddToCartRequest {
   final int menuItemId;
@@ -132,9 +134,11 @@ class CartItemDto {
                 final id = int.tryParse(opt['id']?.toString() ?? '');
                 if (id != null) groupOptionIds.add(id);
                 
-                final enName = opt['nameEn']?.toString() ?? opt['name']?.toString();
-                final mmName = opt['nameMm']?.toString();
-                final displayName = (enName != null && enName.trim().isNotEmpty) ? enName : (mmName ?? '');
+                final displayName = LocaleController.instance.localized(
+                  en: opt['nameEn']?.toString() ?? opt['name']?.toString(),
+                  mm: opt['nameMm']?.toString(),
+                  th: opt['nameTh']?.toString(),
+                );
                 if (displayName.isNotEmpty) groupOptionNames.add(displayName);
               }
             }
@@ -143,13 +147,16 @@ class CartItemDto {
       }
     }
 
-    final enName = (json['name'] as String? ?? json['nameEn'] as String? ?? '').trim();
-    final mmName = (json['nameMm'] as String? ?? '').trim();
+    final localizedName = LocaleController.instance.localized(
+      en: json['name'] as String? ?? json['nameEn'] as String?,
+      mm: json['nameMm'] as String?,
+      th: json['nameTh'] as String?,
+    );
 
     return CartItemDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       menuItemId: int.tryParse(json['menuItemId']?.toString() ?? '') ?? 0,
-      name: enName.isNotEmpty ? enName : mmName,
+      name: localizedName,
       nameMm: json['nameMm'] as String?,
       quantity: json['quantity'] as int? ?? 1,
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
@@ -157,7 +164,14 @@ class CartItemDto {
       displayPrice: json['displayPrice'] as String?,
       displayTotal: json['displayTotal'] as String?,
       imageUrl: json['imageUrl'] as String?,
-      variantName: json['variantName'] as String?,
+      variantName: () {
+        final v = LocaleController.instance.localized(
+          en: json['variantName'] as String? ?? json['variantNameEn'] as String?,
+          mm: json['variantNameMm'] as String?,
+          th: json['variantNameTh'] as String?,
+        );
+        return v.isEmpty ? null : v;
+      }(),
       variantNameMm: json['variantNameMm'] as String?,
       optionNames: (json['optionNames'] as List<dynamic>?)
           ?.map((e) => e.toString())
@@ -212,11 +226,13 @@ class SelectedOptionDto {
   });
 
   factory SelectedOptionDto.fromJson(Map<String, dynamic> json) {
-    final enName = json['nameEn'] as String? ?? json['name'] as String?;
-    final mmName = json['nameMm'] as String?;
     return SelectedOptionDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: (enName != null && enName.trim().isNotEmpty) ? enName : (mmName ?? ''),
+      name: LocaleController.instance.localized(
+        en: json['nameEn'] as String? ?? json['name'] as String?,
+        mm: json['nameMm'] as String?,
+        th: json['nameTh'] as String?,
+      ),
       nameEn: json['nameEn'],
       nameMm: json['nameMm'],
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
@@ -265,11 +281,15 @@ class CartDto {
   factory CartDto.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? json;
     final itemsJson = data['items'] as List<dynamic>? ?? [];
-    final shopName = data['shopNameEn'] as String? ?? 
-                     data['shopName'] as String? ?? 
-                     data['shopNameMm'] as String? ?? 
-                     data['name'] as String? ?? 
-                     data['restaurantName'] as String?;
+    final localizedShopName = LocaleController.instance.localized(
+      en: data['shopNameEn'] as String? ??
+          data['shopName'] as String? ??
+          data['name'] as String? ??
+          data['restaurantName'] as String?,
+      mm: data['shopNameMm'] as String?,
+      th: data['shopNameTh'] as String?,
+    );
+    final shopName = localizedShopName.isEmpty ? null : localizedShopName;
 
     return CartDto(
       shopId: data['shopId'] as int?,

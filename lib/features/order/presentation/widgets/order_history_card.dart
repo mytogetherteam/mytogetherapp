@@ -10,6 +10,7 @@ import 'package:mytogetherapp/features/reviews/presentation/screens/write_review
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -80,7 +81,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildTopRow(),
+                _buildTopRow(context),
                 const SizedBox(height: 16),
                 _buildMiddleRow(),
                 const SizedBox(height: 16),
@@ -88,13 +89,13 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ],
             ),
           ),
-          if (widget.order.status == 'DELIVERED') _buildRatingStrip(),
+          if (widget.order.status == 'DELIVERED') _buildRatingStrip(context),
         ],
       ),
     );
   }
 
-  Widget _buildTopRow() {
+  Widget _buildTopRow(BuildContext context) {
     Color labelColor = Colors.grey;
     if (widget.order.ongoing) labelColor = primaryColor;
     if (widget.order.status == 'DELIVERED') labelColor = primaryColor;
@@ -130,7 +131,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            widget.order.shopName ?? 'Shop',
+            widget.order.shopName ?? context.tr('common.shop'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -272,7 +273,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                 borderRadius: BorderRadius.circular(12),
                ),
                child: Text(
-                 'In Progress',
+                 context.tr('orders.in_progress'),
                  style: GoogleFonts.poppins(
                    fontWeight: FontWeight.w600,
                    fontSize: 12,
@@ -285,7 +286,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     }
 
     // For completed and cancelled
-    String btnLabel = widget.order.status == 'DELIVERED' ? 'Re-order' : 'Buy Again';
+    final btnLabel = widget.order.status == 'DELIVERED'
+        ? context.tr('orders.reorder')
+        : context.tr('orders.buy_again');
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -315,7 +318,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 
-  Widget _buildRatingStrip() {
+  Widget _buildRatingStrip(BuildContext context) {
     return Container(
        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
        decoration: const BoxDecoration(
@@ -325,14 +328,16 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
              bottomRight: Radius.circular(16),
           ),
        ),
-       child: _review != null ? _buildRatedContent(_review!) : _buildPromptContent(),
+       child: _review != null
+           ? _buildRatedContent(context, _review!)
+           : _buildPromptContent(context),
     );
   }
 
   Future<void> _openReviewFlow({int initialRating = 0}) async {
     final orderIdInt = int.tryParse(widget.order.id);
     if (orderIdInt == null) {
-      AppDialog.showToast(context, 'Invalid order reference.', isError: true);
+      AppDialog.showToast(context, context.tr('orders.invalid_reference'), isError: true);
       return;
     }
 
@@ -363,12 +368,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     }
   }
 
-  Widget _buildPromptContent() {
+  Widget _buildPromptContent(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'How was your order?',
+          context.tr('orders.how_was_order'),
           style: GoogleFonts.poppins(
              fontSize: 13,
              color: Colors.grey[600],
@@ -389,7 +394,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 
-  Widget _buildRatedContent(OrderReviewDto review) {
+  Widget _buildRatedContent(BuildContext context, OrderReviewDto review) {
     final score = review.rating;
     final scoreLabel = score == score.roundToDouble()
         ? score.toInt().toString()
@@ -398,7 +403,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'My rating $scoreLabel/5',
+          context.trArgs('orders.my_rating', {'score': scoreLabel}),
            style: GoogleFonts.poppins(
              fontSize: 13,
              color: Colors.grey[600],

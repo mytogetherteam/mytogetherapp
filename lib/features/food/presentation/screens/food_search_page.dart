@@ -7,6 +7,7 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
@@ -229,7 +230,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     if (!AuthService().isLoggedIn) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Please sign in to search restaurants and menus.';
+        _errorMessage = context.tr('food.search_sign_in');
         _shopResults = [];
         _menuItemResults = [];
       });
@@ -272,7 +273,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Search failed. Please try again.';
+          _errorMessage = context.tr('food.search_failed');
           _shopResults = [];
           _menuItemResults = [];
         });
@@ -294,7 +295,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           imagePath: _imageUrl(s.coverUrl ?? s.primaryPhotoUrl ?? s.logoUrl),
           logoPath: _imageUrl(s.logoUrl),
           deliveryTime: s.estimatedTime ?? '20-30 mins',
-          status: s.isOpen ? 'Open' : 'Closed',
+          status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
           isFavorite: s.isFavorite,
         ),
       ),
@@ -394,7 +395,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Search menus & restaurants',
+                        hintText: context.tr('food.search_hint'),
                         hintStyle: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[400],
@@ -435,7 +436,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       return _buildMessageState(
         icon: PhosphorIcons.signIn,
         title: _errorMessage!,
-        actionLabel: AuthService().isLoggedIn ? null : 'Sign in',
+        actionLabel: AuthService().isLoggedIn ? null : context.tr('common.sign_in'),
         onAction: AuthService().isLoggedIn
             ? null
             : () => Navigator.push(
@@ -506,7 +507,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           children: [
             if (recent.isNotEmpty) ...[
               Text(
-                'Recent Searches',
+                context.tr('food.recent_searches'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -563,7 +564,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               )
             else if (_popularCategories.isNotEmpty) ...[
               Text(
-                'Popular Categories',
+                context.tr('food.popular_categories'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -652,7 +653,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         _searchController.text.trim().isNotEmpty) {
       return _buildMessageState(
         icon: PhosphorIcons.magnifyingGlass,
-        title: 'No results for "${_searchController.text.trim()}"',
+        title: context.trArgs('food.no_results', {'query': _searchController.text.trim()}),
       );
     }
 
@@ -664,7 +665,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Text(
-                'Menu items',
+                context.tr('food.menu_items'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -678,7 +679,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Text(
-                'Restaurants',
+                context.tr('food.restaurants'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -811,7 +812,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     if (!_isLoading && _shopResults.isEmpty) {
       return _buildMessageState(
         icon: PhosphorIcons.magnifyingGlass,
-        title: 'No restaurants found for "${_searchController.text.trim()}"',
+        title: context.trArgs('food.no_restaurants', {'query': _searchController.text.trim()}),
       );
     }
 
@@ -826,26 +827,26 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               _buildFilterIconButton(),
               const SizedBox(width: 8),
               _buildToggleChip(
-                'Top Rated',
+                context.tr('food.top_rated'),
                 _filters.topRated,
                 () => _updateFilters(_filters.copyWith(topRated: !_filters.topRated)),
               ),
               const SizedBox(width: 8),
               _buildToggleChip(
-                'Vegetarian',
+                context.tr('food.vegetarian'),
                 _filters.isVegetarian,
                 () => _updateFilters(
                     _filters.copyWith(isVegetarian: !_filters.isVegetarian)),
               ),
               const SizedBox(width: 8),
               _buildToggleChip(
-                'Halal',
+                context.tr('food.halal'),
                 _filters.isHalal,
                 () => _updateFilters(_filters.copyWith(isHalal: !_filters.isHalal)),
               ),
               const SizedBox(width: 8),
               _buildToggleChip(
-                'Spicy',
+                context.tr('food.spicy'),
                 _filters.isSpicy,
                 () => _updateFilters(_filters.copyWith(isSpicy: !_filters.isSpicy)),
               ),
@@ -988,7 +989,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Filters',
+                    context.tr('food.filters'),
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -996,14 +997,14 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  switchTile('Top Rated only', draft.topRated,
+                  switchTile(context.tr('food.top_rated_only'), draft.topRated,
                       (v) => draft = draft.copyWith(topRated: v)),
                   const Divider(height: 1),
-                  switchTile('Vegetarian', draft.isVegetarian,
+                  switchTile(context.tr('food.vegetarian'), draft.isVegetarian,
                       (v) => draft = draft.copyWith(isVegetarian: v)),
-                  switchTile('Halal', draft.isHalal,
+                  switchTile(context.tr('food.halal'), draft.isHalal,
                       (v) => draft = draft.copyWith(isHalal: v)),
-                  switchTile('Spicy', draft.isSpicy,
+                  switchTile(context.tr('food.spicy'), draft.isSpicy,
                       (v) => draft = draft.copyWith(isSpicy: v)),
                   const SizedBox(height: 16),
                   Row(
@@ -1020,7 +1021,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                             ),
                           ),
                           child: Text(
-                            'Clear all',
+                            context.tr('common.clear_all'),
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
@@ -1040,7 +1041,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                             ),
                           ),
                           child: Text(
-                            'Apply',
+                            context.tr('common.apply'),
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               color: Colors.white,

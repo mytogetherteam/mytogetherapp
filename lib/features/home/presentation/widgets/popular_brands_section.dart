@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'view_all_icon_button.dart';
@@ -110,7 +111,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Popular Restaurants',
+                            context.tr('home.popular_restaurants'),
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               fontSize: 18,
@@ -302,7 +303,7 @@ class _MoreCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'More',
+                context.tr('common.more'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

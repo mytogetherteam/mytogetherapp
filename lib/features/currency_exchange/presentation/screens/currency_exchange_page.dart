@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -101,7 +102,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         return;
       }
       setState(() {
-        _error = 'Failed to load exchange rates. Please check your connection.';
+        _error = context.tr('currency.load_failed');
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -213,9 +214,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                         width: 120,
                         height: 45,
                         onPressed: () => _fetchRates(forceRefresh: true),
-                        child: const Text(
-                          'Retry',
-                          style: TextStyle(
+                        child: Text(
+                          context.tr('common.retry'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -259,7 +260,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Welcome',
+                context.tr('currency.welcome'),
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 28,
@@ -368,7 +369,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             const SizedBox(height: 8),
             Center(
               child: Text(
-                'As of $_timestamp',
+                context.trArgs('currency.as_of', {'time': _timestamp}),
                 style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
               ),
             ),
@@ -404,7 +405,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Buy',
+                context.tr('currency.buy'),
                 style: GoogleFonts.poppins(
                   color: _isBuy ? Colors.white : Colors.black87,
                   fontWeight: _isBuy ? FontWeight.bold : FontWeight.w500,
@@ -429,7 +430,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Sell',
+                context.tr('currency.sell'),
                 style: GoogleFonts.poppins(
                   color: !_isBuy ? Colors.white : Colors.black87,
                   fontWeight: !_isBuy ? FontWeight.bold : FontWeight.w500,
@@ -503,7 +504,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Latest Rate',
+            context.tr('currency.latest_rate'),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -521,7 +522,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'These rates are approximate street prices for informational purposes only.',
+                  context.tr('currency.rates_disclaimer'),
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -597,7 +598,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Buy',
+                        context.tr('currency.buy'),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           color: Colors.grey.shade500,
@@ -649,7 +650,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Sell',
+                        context.tr('currency.sell'),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           color: Colors.grey.shade500,

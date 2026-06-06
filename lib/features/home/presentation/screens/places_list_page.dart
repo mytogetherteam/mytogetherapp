@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/place_card.dart';
 import '../../data/fallback_data.dart';
@@ -21,7 +22,7 @@ class PlacesListPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Nearby Places',
+          context.tr('place.nearby_places'),
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -18,52 +19,70 @@ class _HelpSupportPageState extends State<HelpSupportPage>
 
   final List<_FaqItem> _faqs = const [
     _FaqItem(
-      question: 'အကောင့် ဖွင့်ရန် ဘယ်လိုလုပ်ရမလဲ?',
       questionEn: 'How do I create an account?',
-      answer:
-          'MyTogether app ကိုဖွင့်ပြီး "Register" ကိုနှိပ်ကာ သင့်နာမည်၊ Email နှင့် Password ဖြင့် အကောင့်ဖွင့်နိုင်ပါသည်။',
+      questionMm: 'အကောင့် ဖွင့်ရန် ဘယ်လိုလုပ်ရမလဲ?',
+      questionTh: 'จะสร้างบัญชีได้อย่างไร?',
       answerEn:
           'Open the MyTogether app, tap "Register", then fill in your name, email and password to create your account.',
+      answerMm:
+          'MyTogether app ကိုဖွင့်ပြီး "Register" ကိုနှိပ်ကာ သင့်နာမည်၊ Email နှင့် Password ဖြင့် အကောင့်ဖွင့်နိုင်ပါသည်။',
+      answerTh:
+          'เปิดแอป MyTogether แตะ "Register" จากนั้นกรอกชื่อ อีเมล และรหัสผ่านเพื่อสร้างบัญชีของคุณ',
     ),
     _FaqItem(
-      question: 'Order လုပ်ပြီးနောက် မည်မျှကြာမည်?',
       questionEn: 'How long does delivery take?',
-      answer:
-          'ပုံမှန်အားဖြင့် မိနစ် ၃၀ မှ ၆၀ ကြားတွင် ရောက်ရှိပါမည်။ အကွာအဝေးနှင့် ဝယ်သူအရေအတွက်ပေါ် မူတည်ပြောင်းလဲနိုင်သည်။',
+      questionMm: 'Order လုပ်ပြီးနောက် မည်မျှကြာမည်?',
+      questionTh: 'การจัดส่งใช้เวลานานแค่ไหน?',
       answerEn:
           'Delivery typically takes 30–60 minutes, depending on distance and order volume.',
+      answerMm:
+          'ပုံမှန်အားဖြင့် မိနစ် ၃၀ မှ ၆၀ ကြားတွင် ရောက်ရှိပါမည်။ အကွာအဝေးနှင့် ဝယ်သူအရေအတွက်ပေါ် မူတည်ပြောင်းလဲနိုင်သည်။',
+      answerTh:
+          'โดยทั่วไปใช้เวลา 30–60 นาที ขึ้นอยู่กับระยะทางและปริมาณคำสั่งซื้อ',
     ),
     _FaqItem(
-      question: 'Order ပယ်ဖျက်နိုင်ပါသလား?',
       questionEn: 'Can I cancel my order?',
-      answer:
-          'Order တင်ပြီး မိနစ် ၅ အတွင်း ပယ်ဖျက်နိုင်ပါသည်။ ရောင်းသူ လက်ခံပြီးနောက် ပယ်ဖျက်ရန် Support ကို ဆက်သွယ်ပါ။',
+      questionMm: 'Order ပယ်ဖျက်နိုင်ပါသလား?',
+      questionTh: 'ฉันสามารถยกเลิกคำสั่งซื้อได้ไหม?',
       answerEn:
           'You may cancel within 5 minutes of placing the order. After the seller accepts, please contact support for assistance.',
+      answerMm:
+          'Order တင်ပြီး မိနစ် ၅ အတွင်း ပယ်ဖျက်နိုင်ပါသည်။ ရောင်းသူ လက်ခံပြီးနောက် ပယ်ဖျက်ရန် Support ကို ဆက်သွယ်ပါ။',
+      answerTh:
+          'คุณสามารถยกเลิกได้ภายใน 5 นาทีหลังสั่งซื้อ หลังจากร้านรับออร์เดอร์แล้ว กรุณาติดต่อฝ่ายสนับสนุน',
     ),
     _FaqItem(
-      question: 'ငွေပြန်အမ်းမည်လား?',
       questionEn: 'What is your refund policy?',
-      answer:
-          'Order ကို ပြဿနာတစ်ခုကြောင့် မပြည့်မီဆောင်ရွက်ပေးနိုင်ပါက ငွေပြန်အမ်းပါမည်။ Support team ကို ဆက်သွယ်ပါ။',
+      questionMm: 'ငွေပြန်အမ်းမည်လား?',
+      questionTh: 'นโยบายการคืนเงินเป็นอย่างไร?',
       answerEn:
           'If your order is not fulfilled due to an issue on our end, a full refund will be issued. Please contact our support team.',
+      answerMm:
+          'Order ကို ပြဿနာတစ်ခုကြောင့် မပြည့်မီဆောင်ရွက်ပေးနိုင်ပါက ငွေပြန်အမ်းပါမည်။ Support team ကို ဆက်သွယ်ပါ။',
+      answerTh:
+          'หากคำสั่งซื้อไม่สำเร็จเนื่องจากปัญหาจากเรา จะคืนเงินเต็มจำนวน กรุณาติดต่อทีมสนับสนุน',
     ),
     _FaqItem(
-      question: 'Password မေ့သွားလျှင် ဘာလုပ်ရမလဲ?',
       questionEn: 'What if I forget my password?',
-      answer:
-          'Login page တွင် "Forgot Password" ကိုနှိပ်ပြီး သင့် Email သို့ Reset link ရယူပါ။',
+      questionMm: 'Password မေ့သွားလျှင် ဘာလုပ်ရမလဲ?',
+      questionTh: 'หากลืมรหัสผ่านต้องทำอย่างไร?',
       answerEn:
           'On the login page, tap "Forgot Password" and a reset link will be sent to your email.',
+      answerMm:
+          'Login page တွင် "Forgot Password" ကိုနှိပ်ပြီး သင့် Email သို့ Reset link ရယူပါ။',
+      answerTh:
+          'ที่หน้าเข้าสู่ระบบ แตะ "Forgot Password" แล้วลิงก์รีเซ็ตจะถูกส่งไปยังอีเมลของคุณ',
     ),
     _FaqItem(
-      question: 'Currency Exchange rate ကို မည်ကဲ့သို့ ကြည့်ရမလဲ?',
       questionEn: 'How do I check currency exchange rates?',
-      answer:
-          'Home screen တွင် "Currency Exchange" ကဏ္ဍကို နှိပ်ပါ။ Live rates များကို ကြည့်ရှုနိုင်သည်။',
+      questionMm: 'Currency Exchange rate ကို မည်ကဲ့သို့ ကြည့်ရမလဲ?',
+      questionTh: 'จะดูอัตราแลกเปลี่ยนเงินตราได้อย่างไร?',
       answerEn:
           'From the Home screen, tap the "Currency Exchange" section to view live rates.',
+      answerMm:
+          'Home screen တွင် "Currency Exchange" ကဏ္ဍကို နှိပ်ပါ။ Live rates များကို ကြည့်ရှုနိုင်သည်။',
+      answerTh:
+          'จากหน้าแรก แตะส่วน "Currency Exchange" เพื่อดูอัตราแบบเรียลไทม์',
     ),
   ];
 
@@ -80,24 +99,13 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          children: [
-            Text(
-              'အကူအညီနှင့် ဆက်သွယ်ရန်',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-            Text(
-              'Help & Support',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
+        title: Text(
+          context.tr('help.title'),
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -113,7 +121,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'ဆက်သွယ်ရန် • Contact Us',
+                context.tr('help.contact_us'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -129,8 +137,8 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   Expanded(
                     child: _buildContactCard(
                       icon: PhosphorIcons.phoneFill,
-                      label: 'ဖုန်းဆက်ရန်',
-                      sublabel: 'Call Us',
+                      label: context.tr('help.call'),
+                      sublabel: context.tr('help.call_us'),
                       color: Colors.green,
                       onTap: () => _launch('tel:+959123456789'),
                     ),
@@ -139,8 +147,8 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   Expanded(
                     child: _buildContactCard(
                       icon: PhosphorIcons.envelopeFill,
-                      label: 'Email ပို့ရန်',
-                      sublabel: 'Email Us',
+                      label: context.tr('help.email'),
+                      sublabel: context.tr('help.email_us'),
                       color: AppColors.primary,
                       onTap: () => _launch(
                           'mailto:support@mytogetherapp.com?subject=Support%20Request'),
@@ -158,7 +166,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                     child: _buildContactCard(
                       icon: PhosphorIcons.telegramLogoFill,
                       label: 'Telegram',
-                      sublabel: 'Chat Now',
+                      sublabel: context.tr('help.chat_now'),
                       color: const Color(0xFF229ED9),
                       onTap: () => _launch('https://t.me/mytogetherapp'),
                     ),
@@ -168,7 +176,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                     child: _buildContactCard(
                       icon: PhosphorIcons.facebookLogoFill,
                       label: 'Facebook',
-                      sublabel: 'Message Us',
+                      sublabel: context.tr('help.message_us'),
                       color: const Color(0xFF1877F2),
                       onTap: () =>
                           _launch('https://facebook.com/mytogetherapp'),
@@ -192,7 +200,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'မေးလေ့ရှိသော မေးခွန်းများ • FAQ',
+                context.tr('help.faq'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -245,7 +253,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           ),
           const SizedBox(height: 16),
           Text(
-            'ကျွန်ုပ်တို့ ကူညီပါမည်',
+            context.tr('help.banner_title'),
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -254,7 +262,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           ),
           const SizedBox(height: 4),
           Text(
-            'We\'re here to help you anytime',
+            context.tr('help.subtitle'),
             style: GoogleFonts.poppins(
               fontSize: 13,
               color: Colors.white.withValues(alpha: 0.85),
@@ -274,7 +282,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 Icon(Icons.circle, color: Colors.greenAccent, size: 10),
                 const SizedBox(width: 8),
                 Text(
-                  'တနင်္လာ – သောကြာ • Mon – Fri  9:00 AM – 6:00 PM',
+                  context.tr('help.hours_badge'),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.white,
@@ -363,7 +371,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         children: [
           _buildInfoRow(
             icon: PhosphorIcons.envelopeFill,
-            label: 'Email',
+            label: context.tr('common.email'),
             value: 'support@mytogetherapp.com',
             color: AppColors.primary,
             onCopy: () => _copyToClipboard('support@mytogetherapp.com'),
@@ -371,7 +379,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
             icon: PhosphorIcons.phoneFill,
-            label: 'ဖုန်းနံပါတ် • Phone',
+            label: context.tr('help.phone'),
             value: '+95 9 123 456 789',
             color: Colors.green,
             onCopy: () => _copyToClipboard('+959123456789'),
@@ -379,15 +387,15 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
             icon: PhosphorIcons.mapPinFill,
-            label: 'လိပ်စာ • Address',
-            value: 'Yangon, Myanmar',
+            label: context.tr('help.address'),
+            value: context.tr('help.address_value'),
             color: Colors.orange,
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
             icon: PhosphorIcons.clockFill,
-            label: 'ရုံးချိန် • Office Hours',
-            value: 'Mon–Fri: 9 AM – 6 PM',
+            label: context.tr('help.office_hours'),
+            value: context.tr('help.office_hours_value'),
             color: Colors.blue,
           ),
         ],
@@ -504,25 +512,17 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            faq.question,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            faq.questionEn,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        context.localized(
+                          en: faq.questionEn,
+                          mm: faq.questionMm,
+                          th: faq.questionTh,
+                        ),
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -549,21 +549,15 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                         margin: const EdgeInsets.only(bottom: 12),
                       ),
                       Text(
-                        faq.answer,
+                        context.localized(
+                          en: faq.answerEn,
+                          mm: faq.answerMm,
+                          th: faq.answerTh,
+                        ),
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: Colors.black87,
                           height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        faq.answerEn,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                          height: 1.5,
-                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
@@ -600,7 +594,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           ),
           const SizedBox(height: 12),
           Text(
-            'အကူအညီ ထပ်မံလိုအပ်သလား?',
+            context.tr('help.need_more_help'),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -608,12 +602,12 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             ),
           ),
           Text(
-            'Still need help?',
+            context.tr('help.still_need_help'),
             style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
           ),
           const SizedBox(height: 8),
           Text(
-            'ကျွန်ုပ်တို့ Support team သို့ တိုက်ရိုက် Email ပို့ပြီး ကူညီမှုရယူပါ။',
+            context.tr('help.email_support_desc'),
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 13,
@@ -642,7 +636,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   Icon(PhosphorIcons.envelopeFill, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Email ပို့ရန် • Send Email',
+                    context.tr('help.send_email'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -666,7 +660,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text('ဖွင့်၍ မရပါ', style: GoogleFonts.poppins(color: Colors.white)),
+                Text(context.tr('help.could_not_open'), style: GoogleFonts.poppins(color: Colors.white)),
             backgroundColor: Colors.red.shade500,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
@@ -686,7 +680,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             children: [
               const Icon(Icons.check_circle, color: Colors.white, size: 18),
               const SizedBox(width: 8),
-              Text('Copied!', style: GoogleFonts.poppins(color: Colors.white)),
+              Text(context.tr('common.copied'), style: GoogleFonts.poppins(color: Colors.white)),
             ],
           ),
           backgroundColor: Colors.green.shade600,
@@ -701,15 +695,19 @@ class _HelpSupportPageState extends State<HelpSupportPage>
 }
 
 class _FaqItem {
-  final String question;
   final String questionEn;
-  final String answer;
+  final String questionMm;
+  final String questionTh;
   final String answerEn;
+  final String answerMm;
+  final String answerTh;
 
   const _FaqItem({
-    required this.question,
     required this.questionEn,
-    required this.answer,
+    required this.questionMm,
+    required this.questionTh,
     required this.answerEn,
+    required this.answerMm,
+    required this.answerTh,
   });
 }

@@ -15,6 +15,7 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurant
 import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/popular_categories_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -132,12 +133,12 @@ class _FoodPageState extends State<FoodPage> {
     final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
     final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
-    const sections = [
-      ('trending',       'Trending Near You', 1),
-      ('right-now',      'Right Now', 1),
-      ('popular-dishes', 'Popular Dishes', 1),
-      ('hot-deals',      'Hot Deals', 1),
-      ('for-you',        'For You Now', 2),
+    final sections = [
+      ('trending', context.tr('food.trending_near_you'), 1),
+      ('right-now', context.tr('food.right_now'), 1),
+      ('popular-dishes', context.tr('food.popular_dishes'), 1),
+      ('hot-deals', context.tr('food.hot_deals'), 1),
+      ('for-you', context.tr('food.for_you_now'), 2),
     ];
 
     return [
@@ -159,7 +160,7 @@ class _FoodPageState extends State<FoodPage> {
       padding: const EdgeInsets.only(top: 0, bottom: 20),
       child: Center(
         child: Text(
-          "That's all for now!",
+          context.tr('food.end_of_list'),
           style: GoogleFonts.poppins(
             fontSize: 12,
             color: Colors.grey[400],
