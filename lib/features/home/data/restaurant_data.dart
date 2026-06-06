@@ -1,9 +1,13 @@
 import 'models/menu_item_dto.dart';
 import 'models/shop_dto.dart' show OperatingHourDto, ShopPaymentTypeDto;
+import '../../../core/localization/locale_controller.dart';
 
 class Restaurant {
   final String id;
-  final String name;
+  final String _name;
+  final String? nameEn;
+  final String? nameMm;
+  final String? nameTh;
   final String category;
   final double rating;
   final int reviewCount;
@@ -34,9 +38,18 @@ class Restaurant {
   final String? googleMapsLink;
   final List<OperatingHourDto> operatingHours;
 
+  /// Resolved live against the active language so a language switch updates
+  /// already-loaded rails without a refetch. Falls back to the flat [name]
+  /// passed in (e.g. mock/static data) when no localized variant is present.
+  String get name => LocaleController.instance
+      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
   const Restaurant({
     required this.id,
-    required this.name,
+    required String name,
+    this.nameEn,
+    this.nameMm,
+    this.nameTh,
     required this.category,
     required this.rating,
     this.reviewCount = 0,
@@ -64,5 +77,5 @@ class Restaurant {
     this.paymentQrUrl,
     this.deliveryFee,
     this.originalDeliveryFee,
-  });
+  }) : _name = name;
 }

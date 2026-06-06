@@ -421,6 +421,9 @@ class RestaurantRepository {
     return Restaurant(
       id: dto.id.toString(),
       name: dto.name,
+      nameEn: dto.nameEn,
+      nameMm: dto.nameMm,
+      nameTh: dto.nameTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
@@ -453,6 +456,9 @@ class RestaurantRepository {
     return Restaurant(
       id: dto.id.toString(),
       name: dto.name,
+      nameEn: dto.nameEn,
+      nameMm: dto.nameMm,
+      nameTh: dto.nameTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,

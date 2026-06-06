@@ -71,8 +71,21 @@ class MenuItemDto {
     return MenuItemDto(
       id: json['id']?.toString() ?? '',
       restaurantId: json['restaurantId']?.toString() ?? '',
-      restaurantName: json['restaurantName'] ?? '',
-      title: json['title'] ?? '',
+      restaurantName: (json['restaurantName'] as String? ??
+              json['restaurantNameEn'] as String? ??
+              json['shopNameEn'] as String? ??
+              json['shopName'] as String?) ??
+          '',
+      restaurantNameEn: json['restaurantNameEn'] as String? ??
+          json['shopNameEn'] as String?,
+      restaurantNameMm: json['restaurantNameMm'] as String? ??
+          json['shopNameMm'] as String?,
+      restaurantNameTh: json['restaurantNameTh'] as String? ??
+          json['shopNameTh'] as String?,
+      title: (json['title'] as String? ?? json['nameEn'] as String?) ?? '',
+      titleEn: json['titleEn'] as String? ?? json['nameEn'] as String?,
+      titleMm: json['titleMm'] as String? ?? json['nameMm'] as String?,
+      titleTh: json['titleTh'] as String? ?? json['nameTh'] as String?,
       price: _parsePrice(json['price']),
       currency: json['currency'] as String? ?? '฿',
       imagePath: ImageUtils.cleanImageUrl(json['imagePath']) ?? '',
