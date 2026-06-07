@@ -14,12 +14,21 @@ class ShopReviewDto {
   });
 
   factory ShopReviewDto.fromJson(Map<String, dynamic> json) {
+    // Public endpoint returns a flat `userName`; the authed user endpoint
+    // (GET /api/user/shop/:id/reviews) nests it under `user.name`/`user.username`.
+    final user = json['user'];
+    final nestedName = user is Map
+        ? (user['name'] as String? ?? user['username'] as String?)
+        : null;
+    final createdAtRaw = json['createdAt'];
     return ShopReviewDto(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num? ?? 0.0).toDouble(),
       comment: json['comment'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      userName: json['userName'] as String? ?? 'Customer',
+      createdAt: createdAtRaw is String
+          ? (DateTime.tryParse(createdAtRaw) ?? DateTime.now())
+          : DateTime.now(),
+      userName: json['userName'] as String? ?? nestedName ?? 'Customer',
     );
   }
 }

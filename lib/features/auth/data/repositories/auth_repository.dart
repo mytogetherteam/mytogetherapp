@@ -74,11 +74,14 @@ class AuthRepository {
   }
 
   /// Updates the current user's profile and refreshes the cached session.
+  /// When [profilePhotoPath] is provided, the new photo is uploaded in the
+  /// same request (backend: PUT /api/user/profile multipart `profilePhoto`).
   Future<UserModel> updateProfile({
     String? name,
     String? username,
     String? phone,
     String? address,
+    String? profilePhotoPath,
   }) async {
     try {
       final updated = await _dataSource.updateUserProfile(
@@ -86,6 +89,7 @@ class AuthRepository {
         username: username,
         phone: phone,
         address: address,
+        profilePhotoPath: profilePhotoPath,
       );
       await AuthService().updateCurrentUser(updated);
       return updated;

@@ -30,6 +30,10 @@ class ShopFeedItemDto {
   // Real-time status fields (from API, updated by WebSocket)
   final bool isAvailable;
   final String publishStatus;
+  // Menu category this item belongs to (used to group a shop's menu into
+  // sections on the restaurant detail page). Null for feeds that don't carry it.
+  final int? categoryId;
+  final String? categoryName;
 
   /// Resolved live against the active language so a language switch updates
   /// already-loaded items without a refetch.
@@ -64,6 +68,8 @@ class ShopFeedItemDto {
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
+    this.categoryId,
+    this.categoryName,
   })  : _name = name,
         _shopName = shopName;
 
@@ -95,12 +101,19 @@ class ShopFeedItemDto {
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       isAvailable: json['isAvailable'] as bool? ?? true,
       publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
+      categoryId: (json['menuCategoryId'] ?? json['categoryId']) != null
+          ? int.tryParse((json['menuCategoryId'] ?? json['categoryId']).toString())
+          : null,
+      categoryName: (json['menuCategoryName'] ?? json['categoryName']) as String?,
     );
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
     if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'].toString();
     if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'].toString();
+    // Discount carousel (`GET /api/user/menu-items/discount`) returns a numeric
+    // `deliveryFee` rather than a pre-formatted display string.
+    if (json['deliveryFee'] != null) return json['deliveryFee'].toString();
     return null;
   }
 
@@ -169,6 +182,52 @@ class ShopFeedSectionDto {
           .whereType<Map<String, dynamic>>()
           .map((e) => ShopFeedItemDto.fromJson(e))
           .toList(),
+    );
+  }
+}
+
+/// Response of the home discount carousel
+/// (`GET /api/user/menu-items/discount`). Backs the
+/// "Together — Up to X% Off" strip on the home page.
+///
+/// Shape: `{ data: { sectionTitle, maxDiscountPercentage, items: [...] } }`.
+/// Items are already flattened (shopId/shopName at the top level), so they
+/// parse directly via [ShopFeedItemDto.fromJson].
+class DiscountDealsDto {
+  /// Server-built title, e.g. "MyTogether 50% Off" (uses the requested
+  /// percentage). The UI usually renders its own styled header instead.
+  final String sectionTitle;
+
+  /// The largest discount percentage among the returned items. Use this for a
+  /// dynamic "Up to X% Off" headline.
+  final int maxDiscountPercentage;
+
+  final List<ShopFeedItemDto> items;
+
+  DiscountDealsDto({
+    required this.sectionTitle,
+    required this.maxDiscountPercentage,
+    required this.items,
+  });
+
+  bool get isEmpty => items.isEmpty;
+
+  factory DiscountDealsDto.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] is Map<String, dynamic>
+        ? json['data'] as Map<String, dynamic>
+        : json;
+    final rawItems = data['items'];
+    final items = rawItems is List
+        ? rawItems
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ShopFeedItemDto.fromJson(e))
+            .toList()
+        : <ShopFeedItemDto>[];
+    return DiscountDealsDto(
+      sectionTitle: data['sectionTitle']?.toString() ?? '',
+      maxDiscountPercentage:
+          (data['maxDiscountPercentage'] as num?)?.toInt() ?? 0,
+      items: items,
     );
   }
 }

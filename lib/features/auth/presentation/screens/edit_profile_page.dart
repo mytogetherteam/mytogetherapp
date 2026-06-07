@@ -87,16 +87,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     setState(() => _isSaving = true);
     try {
-      // Upload the new photo first (if changed) so the subsequent profile
-      // update response carries the fresh avatar URL.
-      if (_pickedImage != null) {
-        await AuthRepository.instance.updateAvatar(_pickedImage!.path);
-      }
+      // Profile fields and the optional new photo are sent in a single
+      // multipart request (backend: PUT /api/user/profile, field `profilePhoto`).
       await AuthRepository.instance.updateProfile(
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
         phone: _phoneController.text.trim(),
         address: _addressController.text.trim(),
+        profilePhotoPath: _pickedImage?.path,
       );
       if (mounted) {
         AppDialog.showToast(context, context.tr('auth.profile_updated'));

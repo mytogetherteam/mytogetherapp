@@ -182,8 +182,10 @@ class _LoginPageState extends State<LoginPage>
                           const SizedBox(height: 24),
                           // Register link
                           Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 4,
                               children: [
                                 Text(
                                   context.tr('auth.no_account'),

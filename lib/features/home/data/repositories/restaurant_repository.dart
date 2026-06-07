@@ -9,6 +9,7 @@ import '../models/shop_dto.dart';
 import '../models/food_detail_dto.dart';
 import '../models/shop_review_dto.dart';
 import '../models/master_category_dto.dart';
+import '../models/menu_category_dto.dart';
 import '../models/collection_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -39,6 +40,10 @@ class RestaurantRepository {
   // Cache for shop feed sections: key = "shopId-feedType"
   final Map<String, ShopFeedSectionDto> _feedCache = {};
   final Map<String, DateTime> _feedCacheTime = {};
+
+  // Cache for the home discount carousel
+  DiscountDealsDto? _cachedDiscountDeals;
+  DateTime? _discountDealsLastFetch;
 
   RestaurantRepository(this._remoteDataSource);
 
@@ -507,6 +512,15 @@ class RestaurantRepository {
     }
   }
 
+  /// A shop's menu categories (`GET /api/user/menu-categories?shopId=`), used
+  /// to group the restaurant detail menu into sections.
+  Future<List<MenuCategoryDto>> getMenuCategories({
+    required int shopId,
+    String? search,
+  }) {
+    return _remoteDataSource.getMenuCategories(shopId: shopId, search: search);
+  }
+
   Future<SliceShopFeedItemDto> getShopMenu({
     required int shopId,
     int page = 0,
@@ -579,6 +593,36 @@ class RestaurantRepository {
     return result;
   }
 
+  /// Discounted menu items for the home "Together — Up to X% Off" carousel
+  /// (`GET /api/user/menu-items/discount`). Cached for 5 minutes.
+  Future<DiscountDealsDto> getDiscountDeals({
+    required double lat,
+    required double lon,
+    int percentage = 50,
+    double radiusKm = 30.0,
+    int size = 10,
+    bool forceRefresh = false,
+  }) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedDiscountDeals != null &&
+        _discountDealsLastFetch != null &&
+        now.difference(_discountDealsLastFetch!).inMinutes < 5) {
+      return _cachedDiscountDeals!;
+    }
+
+    final result = await _remoteDataSource.getDiscountDeals(
+      lat: lat,
+      lon: lon,
+      percentage: percentage,
+      radiusKm: radiusKm,
+      size: size,
+    );
+    _cachedDiscountDeals = result;
+    _discountDealsLastFetch = now;
+    return result;
+  }
+
   Future<FoodDetailDto?> getFoodById(int id) async {
     return _remoteDataSource.getFoodById(id);
   }
@@ -625,6 +669,8 @@ class RestaurantRepository {
       _cachedTrending = null;
       _cachedBanners.clear();
       _bannersLastFetch = null;
+      _cachedDiscountDeals = null;
+      _discountDealsLastFetch = null;
     }
   }
 

@@ -10,6 +10,7 @@ import 'models/shop_feed_item_dto.dart';
 import 'models/food_detail_dto.dart';
 import 'models/shop_review_dto.dart';
 import 'models/master_category_dto.dart';
+import 'models/menu_category_dto.dart';
 import 'models/collection_dto.dart';
 
 import 'shop_storage.dart';
@@ -302,6 +303,92 @@ class RemoteRestaurantDataSource {
     return ShopFeedSectionDto(items: items);
   }
 
+  /// Nearby discounted menu items for the home "Together — Up to X% Off" strip.
+  /// Backend (auth): GET /api/user/menu-items/discount
+  /// (UserMenuItemsController.getDiscountMenuItems). Returns items whose
+  /// discount is `<= percentage`, plus the section title and the actual max
+  /// discount among results. Requires login and a location.
+  Future<DiscountDealsDto> getDiscountDeals({
+    required double lat,
+    required double lon,
+    int percentage = 50,
+    double? radiusKm,
+    int page = 1,
+    int size = 10,
+    String? sectionTitle,
+  }) async {
+    if (!AuthService().isLoggedIn) {
+      return DiscountDealsDto(
+        sectionTitle: '',
+        maxDiscountPercentage: 0,
+        items: const [],
+      );
+    }
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/menu-items/discount',
+        queryParameters: {
+          'percentage': percentage,
+          'latitude': lat,
+          'longitude': lon,
+          'radiusKm': ?radiusKm,
+          'page': page,
+          'size': size,
+          'sectionTitle': ?sectionTitle,
+        },
+      );
+      return DiscountDealsDto.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        return DiscountDealsDto(
+          sectionTitle: '',
+          maxDiscountPercentage: 0,
+          items: const [],
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// A shop's published menu categories, ordered by displayOrder.
+  /// Backend (auth): GET /api/user/menu-categories?shopId=...
+  /// (UserMenuCategoriesController.findAll). Used to group the menu on the
+  /// restaurant detail page. Returns an empty list for guests.
+  Future<List<MenuCategoryDto>> getMenuCategories({
+    required int shopId,
+    int page = 1,
+    int size = 100,
+    String? search,
+  }) async {
+    if (!AuthService().isLoggedIn) return [];
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/menu-categories',
+        queryParameters: {
+          'shopId': shopId,
+          'page': page,
+          'size': size,
+          'search': ?search,
+        },
+      );
+      final raw = response.data;
+      final data = raw is Map ? raw['data'] : null;
+      final content = data is Map ? data['content'] : null;
+      if (content is List) {
+        return content
+            .whereType<Map<String, dynamic>>()
+            .map(MenuCategoryDto.fromJson)
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) return [];
+      rethrow;
+    }
+  }
+
   /// Popular master menu categories ranked by completed orders.
   /// Backend (auth): GET /api/user/master-menu-categories/popular.
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
@@ -460,38 +547,83 @@ class RemoteRestaurantDataSource {
   // ── Reviews ───────────────────────────────────────────────────────────────
 
   Future<List<ShopReviewDto>> getShopReviews(int shopId) async {
-    try {
-      // Backend (public): GET /api/shops/:id/reviews
-      // (PublicController.getShopReviews). Envelope: { success, data: [...] }.
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/reviews',
-      );
-      if (response.statusCode == 200) {
-        final raw = response.data;
-        final List<dynamic> data = raw is Map
-            ? (raw['data'] as List<dynamic>? ?? const [])
-            : (raw is List ? raw : const []);
-        return data.map((json) => ShopReviewDto.fromJson(json)).toList();
+    // Preferred (auth): GET /api/user/shop/:id/reviews
+    // (UserReviewsController.findAllForShop) — visible shops only, paginated
+    // envelope: { success, data: { content: [...], totalElements, ... } }.
+    if (AuthService().isLoggedIn) {
+      try {
+        final response = await _apiClient.dio.get(
+          '${ApiClient.apiPrefix}/user/shop/$shopId/reviews',
+        );
+        if (response.statusCode == 200) {
+          return _parseReviewList(response.data);
+        }
+      } on DioException catch (e) {
+        final code = e.response?.statusCode;
+        // Fall back to the public endpoint for auth issues; rethrow otherwise.
+        if (code != 401 && code != 403) rethrow;
       }
-      return [];
-    } catch (e) {
-      rethrow;
     }
+
+    // Fallback (public): GET /api/shops/:id/reviews. Envelope: { success, data: [...] }.
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/shops/$shopId/reviews',
+    );
+    if (response.statusCode == 200) {
+      return _parseReviewList(response.data);
+    }
+    return [];
+  }
+
+  /// Extracts a review list from either the public (flat `data` list) or the
+  /// authed user (`data.content`) response envelope.
+  List<ShopReviewDto> _parseReviewList(dynamic raw) {
+    dynamic list;
+    if (raw is Map) {
+      final data = raw['data'];
+      if (data is List) {
+        list = data;
+      } else if (data is Map && data['content'] is List) {
+        list = data['content'];
+      } else if (raw['content'] is List) {
+        list = raw['content'];
+      }
+    } else if (raw is List) {
+      list = raw;
+    }
+    if (list is List) {
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map(ShopReviewDto.fromJson)
+          .toList();
+    }
+    return const [];
   }
 
   Future<ShopReviewSummaryDto> getShopReviewSummary(int shopId) async {
-    try {
-      // Backend (public): GET /api/shops/:id/reviews/summary
-      // (PublicController.getShopReviewSummary).
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/reviews/summary',
-      );
-      if (response.statusCode == 200) {
-        return ShopReviewSummaryDto.fromJson(response.data);
+    // Preferred (auth): GET /api/user/shop/:id/reviews/summary
+    // (UserReviewsController.getShopSummary). Envelope: { success, data: {...} }.
+    if (AuthService().isLoggedIn) {
+      try {
+        final response = await _apiClient.dio.get(
+          '${ApiClient.apiPrefix}/user/shop/$shopId/reviews/summary',
+        );
+        if (response.statusCode == 200) {
+          return ShopReviewSummaryDto.fromJson(response.data);
+        }
+      } on DioException catch (e) {
+        final code = e.response?.statusCode;
+        if (code != 401 && code != 403) rethrow;
       }
-      throw Exception('Failed to load review summary');
-    } catch (e) {
-      rethrow;
     }
+
+    // Fallback (public): GET /api/shops/:id/reviews/summary.
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/shops/$shopId/reviews/summary',
+    );
+    if (response.statusCode == 200) {
+      return ShopReviewSummaryDto.fromJson(response.data);
+    }
+    throw Exception('Failed to load review summary');
   }
 }

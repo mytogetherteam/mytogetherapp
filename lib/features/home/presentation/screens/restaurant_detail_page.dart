@@ -13,6 +13,7 @@ import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
+import '../../data/models/menu_category_dto.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
@@ -84,6 +85,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
   // ── Pagination State ───────────────────────────────────────────────────
   final List<ShopFeedItemDto> _menuItems = [];
+  // Shop menu categories (GET /api/user/menu-categories) used to group the menu
+  // into ordered sections. Empty until loaded / for guests.
+  List<MenuCategoryDto> _categories = [];
   int _menuPage = 0;
   bool _hasMoreMenu = true;
   bool _isMenuLoading = false;
@@ -136,6 +140,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     if (shopId > 0) {
       ActiveOrderState.instance.setCurrentShopId(shopId);
+      _fetchCategories(shopId);
       _fetchMenu(isInitial: true);
     }
 
@@ -198,6 +203,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         _menuPage = 0;
         _hasMoreMenu = true;
       });
+      _fetchCategories(shopId);
       _fetchMenu(isInitial: true);
 
       // Also re-fetch the shop detail itself
@@ -209,6 +215,19 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           _currentRestaurant = updatedRestaurant;
         });
       }
+    }
+  }
+
+  Future<void> _fetchCategories(int shopId) async {
+    try {
+      final cats = await RestaurantRepository.instance.getMenuCategories(
+        shopId: shopId,
+      );
+      if (mounted && cats.isNotEmpty) {
+        setState(() => _categories = cats);
+      }
+    } catch (e) {
+      debugPrint(' [RestaurantDetailPage] Error fetching categories: $e');
     }
   }
 
@@ -464,60 +483,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         ),
                       ),
                     ),
-                    SliverPadding(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        top: 12,
-                      ),
-                      sliver: _menuItems.isEmpty && !_isMenuLoading
-                          ? SliverToBoxAdapter(child: _buildAllEmptyCard())
-                          : SliverGrid(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount:
-                                        MediaQuery.of(context).size.width > 600
-                                        ? 4
-                                        : 2,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 24,
-                                    childAspectRatio: 0.85,
-                                  ),
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                i,
-                              ) {
-                                final item = _menuItems[i];
-                                return FoodMenuItemCard(
-                                  id: item.id.toString(),
-                                  restaurantId: item.shopId.toString(),
-                                  title: item.name,
-                                  price: item.price,
-                                  currency: item.currency,
-                                  imagePath: item.imageUrl ?? '',
-                                  restaurantName: item.shopName,
-                                  isFavorite:
-                                      _localFavorites[item.id] ??
-                                      item.isFavorite,
-                                  originalPrice: item.originalPrice,
-                                  displayPrice: item.displayPrice,
-                                  showRestaurantName: false,
-                                  rating: item.rating,
-                                  reviewCount: item.reviewCount,
-                                  distanceKm: item.distanceKm,
-                                  estimatedTime: item.estimatedTime,
-                                  deliveryFee: item.deliveryFee,
-                                  originalDeliveryFee: item.originalDeliveryFee,
-                                  onFavoriteToggle: () => _toggleFavorite(item),
-                                  isAvailable: item.isAvailable,
-                                  publishStatus: item.publishStatus,
-                                  isHighlighted:
-                                      item.id.toString() ==
-                                      widget.targetMenuItemId,
-                                );
-                              }, childCount: _menuItems.length),
-                            ),
-                    ),
+                    ..._buildMenuSlivers(context),
                     if (_isMenuLoading)
                       SliverToBoxAdapter(
                         child: Padding(
@@ -1120,6 +1086,164 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     }
   }
 
+  /// Builds the menu region as a list of slivers, one labelled section per
+  /// menu category (ordered by the categories endpoint), with the items of
+  /// each category in a grid beneath its header.
+  List<Widget> _buildMenuSlivers(BuildContext context) {
+    if (_menuItems.isEmpty) {
+      if (_isMenuLoading) return const [];
+      return [
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+          sliver: SliverToBoxAdapter(child: _buildAllEmptyCard()),
+        ),
+      ];
+    }
+
+    final groups = _buildCategoryGroups();
+    final slivers = <Widget>[];
+    for (final group in groups) {
+      if (group.title != null && group.title!.isNotEmpty) {
+        slivers.add(
+          SliverToBoxAdapter(child: _buildCategoryHeader(group.title!)),
+        );
+      }
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+          sliver: _buildMenuGrid(group.items),
+        ),
+      );
+    }
+    return slivers;
+  }
+
+  /// Groups the loaded menu items into ordered category sections. Prefers the
+  /// order from the categories endpoint; falls back to the category embedded on
+  /// each item (e.g. for guests), and finally to a single unlabelled section.
+  List<_MenuGroup> _buildCategoryGroups() {
+    final byCategory = <int, List<ShopFeedItemDto>>{};
+    final uncategorized = <ShopFeedItemDto>[];
+    for (final item in _menuItems) {
+      final cid = item.categoryId;
+      if (cid != null) {
+        byCategory.putIfAbsent(cid, () => []).add(item);
+      } else {
+        uncategorized.add(item);
+      }
+    }
+
+    if (byCategory.isEmpty) {
+      return [_MenuGroup(title: null, items: List.of(_menuItems))];
+    }
+
+    final groups = <_MenuGroup>[];
+
+    if (_categories.isNotEmpty) {
+      final sorted = [..._categories]..sort((a, b) {
+        final ao = a.displayOrder ?? 1 << 30;
+        final bo = b.displayOrder ?? 1 << 30;
+        if (ao != bo) return ao.compareTo(bo);
+        return a.id.compareTo(b.id);
+      });
+      final used = <int>{};
+      for (final cat in sorted) {
+        final items = byCategory[cat.id];
+        if (items == null || items.isEmpty) continue;
+        used.add(cat.id);
+        groups.add(_MenuGroup(title: cat.displayName, items: items));
+      }
+      // Items whose category isn't in the categories list (edge case).
+      for (final entry in byCategory.entries) {
+        if (used.contains(entry.key)) continue;
+        groups.add(
+          _MenuGroup(title: entry.value.first.categoryName, items: entry.value),
+        );
+      }
+    } else {
+      // Fallback: order by first appearance of each category.
+      for (final entry in byCategory.entries) {
+        groups.add(
+          _MenuGroup(title: entry.value.first.categoryName, items: entry.value),
+        );
+      }
+    }
+
+    if (uncategorized.isNotEmpty) {
+      groups.add(_MenuGroup(title: null, items: uncategorized));
+    }
+    return groups;
+  }
+
+  SliverGrid _buildMenuGrid(List<ShopFeedItemDto> items) {
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 24,
+        childAspectRatio: 0.85,
+      ),
+      delegate: SliverChildBuilderDelegate((context, i) {
+        final item = items[i];
+        return FoodMenuItemCard(
+          id: item.id.toString(),
+          restaurantId: item.shopId.toString(),
+          title: item.name,
+          price: item.price,
+          currency: item.currency,
+          imagePath: item.imageUrl ?? '',
+          restaurantName: item.shopName,
+          isFavorite: _localFavorites[item.id] ?? item.isFavorite,
+          originalPrice: item.originalPrice,
+          displayPrice: item.displayPrice,
+          showRestaurantName: false,
+          rating: item.rating,
+          reviewCount: item.reviewCount,
+          distanceKm: item.distanceKm,
+          estimatedTime: item.estimatedTime,
+          deliveryFee: item.deliveryFee,
+          originalDeliveryFee: item.originalDeliveryFee,
+          onFavoriteToggle: () => _toggleFavorite(item),
+          isAvailable: item.isAvailable,
+          publishStatus: item.publishStatus,
+          isHighlighted: item.id.toString() == widget.targetMenuItemId,
+        );
+      }, childCount: items.length),
+    );
+  }
+
+  Widget _buildCategoryHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAllEmptyCard() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -1154,4 +1278,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       ),
     );
   }
+}
+
+/// A single menu category section: a [title] header (null = no header) and the
+/// items that belong to it.
+class _MenuGroup {
+  final String? title;
+  final List<ShopFeedItemDto> items;
+
+  _MenuGroup({required this.title, required this.items});
 }

@@ -8,6 +8,7 @@ import 'image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_feed_item_dto.dart';
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -23,7 +24,10 @@ class TogetherDealsSection extends StatefulWidget {
 }
 
 class _TogetherDealsSectionState extends State<TogetherDealsSection> {
-  Future<ShopFeedSectionDto>? _dealsFuture;
+  // Fallback headline percentage when the API doesn't report a max discount.
+  static const int _fallbackMaxPercent = 40;
+
+  Future<DiscountDealsDto>? _dealsFuture;
 
   @override
   void initState() {
@@ -31,28 +35,49 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
     _dealsFuture = _loadDeals();
   }
 
-  Future<ShopFeedSectionDto> _loadDeals() async {
+  Future<DiscountDealsDto> _loadDeals() async {
     try {
       final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = await LocationService().getCurrentPosition();
+      final lat = activeLoc?.latitude ?? pos.latitude;
+      final lon = activeLoc?.longitude ?? pos.longitude;
 
-      return await RestaurantRepository.instance
+      // Preferred: the dedicated discount carousel endpoint (auth + location).
+      if (AuthService().isLoggedIn) {
+        final deals = await RestaurantRepository.instance
+            .getDiscountDeals(lat: lat, lon: lon, size: 10)
+            .timeout(const Duration(seconds: 5));
+        if (deals.items.isNotEmpty) return deals;
+      }
+
+      // Fallback for guests or when no discounted items are nearby: reuse the
+      // generic hot-deals feed so the strip still shows something.
+      final fallback = await RestaurantRepository.instance
           .getFoodTabFeed(
             feedType: 'hot-deals',
-            lat: activeLoc?.latitude ?? pos.latitude,
-            lon: activeLoc?.longitude ?? pos.longitude,
+            lat: lat,
+            lon: lon,
             size: 10,
           )
           .timeout(const Duration(seconds: 5));
+      return DiscountDealsDto(
+        sectionTitle: '',
+        maxDiscountPercentage: 0,
+        items: fallback.items,
+      );
     } catch (e) {
       debugPrint('TogetherDealsSection: API error: $e');
-      return ShopFeedSectionDto(items: []);
+      return DiscountDealsDto(
+        sectionTitle: '',
+        maxDiscountPercentage: 0,
+        items: const [],
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ShopFeedSectionDto>(
+    return FutureBuilder<DiscountDealsDto>(
       future: _dealsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -61,6 +86,10 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
 
         final deals = (snapshot.data?.items ?? []).take(10).toList();
         if (deals.isEmpty) return const SizedBox.shrink();
+
+        final maxPercent = (snapshot.data?.maxDiscountPercentage ?? 0) > 0
+            ? snapshot.data!.maxDiscountPercentage
+            : _fallbackMaxPercent;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +115,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                           alignment: PlaceholderAlignment.baseline,
                           baseline: TextBaseline.alphabetic,
                           child: GradientText(
-                            'Up to 40% Off ',
+                            'Up to $maxPercent% Off ',
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
