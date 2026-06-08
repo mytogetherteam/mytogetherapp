@@ -96,6 +96,7 @@ class _LoginPinPageState extends State<LoginPinPage>
       // Play shake animation
       await _shakeController.forward(from: 0);
       
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _pin = ''; // Clear PIN on error
@@ -132,7 +133,7 @@ class _LoginPinPageState extends State<LoginPinPage>
             const SizedBox(height: 20),
             // Title
             GradientText(
-              context.tr('auth.enter_passcode') ?? 'Enter PIN',
+              context.tr('auth.enter_passcode'),
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,

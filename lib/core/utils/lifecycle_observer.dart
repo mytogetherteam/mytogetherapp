@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
+import '../../features/announcements/data/repositories/announcement_repository.dart';
+import '../../features/notifications/data/repositories/notification_repository.dart';
 
 class LifecycleObserver extends StatefulWidget {
   final Widget child;
@@ -46,7 +48,12 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
       // This is the "unbreakable" part — FCM might have been missed,
       // so we catch up here before resuming live stream.
       await ActiveOrderState.instance.syncActiveOrder();
-      
+
+      // Catch up on counts that may have changed while backgrounded (a push
+      // could have been missed), so the badges are accurate on resume.
+      NotificationRepository().getUnreadCount();
+      AnnouncementRepository().getUnreadCount();
+
       // 2. RECONNECT: After sync, safe to listen for new events
       WebSocketService().connect();
     } catch (_) {

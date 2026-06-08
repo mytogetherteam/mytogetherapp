@@ -44,6 +44,16 @@ class AnnouncementRepository {
         .toList();
   }
 
+  /// Optimistic bump for the badge when a new broadcast arrives in real time,
+  /// before the server `unread-count` round-trip completes.
+  void increment() {
+    unreadCount.value++;
+  }
+
+  void setUnreadCount(int count) {
+    unreadCount.value = count < 0 ? 0 : count;
+  }
+
   Future<int> getUnreadCount() async {
     try {
       final response = await _dio.get(

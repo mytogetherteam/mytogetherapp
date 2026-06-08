@@ -202,6 +202,20 @@ class RemoteRestaurantDataSource {
       return ShopFeedSectionDto(items: []);
     }
 
+    // "Explore menu" uses the authenticated paginated catalog endpoint
+    // (GET /api/user/menu-items) instead of the public right-now feed.
+    if (feedType == 'explore') {
+      try {
+        final explore = await getExploreMenuItems(
+          page: page + 1, // user endpoint is 1-based
+          size: size,
+        );
+        if (explore.items.isNotEmpty) return explore;
+      } catch (_) {
+        // Fall through to the public feed below.
+      }
+    }
+
     // Trending nearby uses the authenticated meal-type-aware user search endpoint.
     // Fall back to the public feed when empty or on error.
     if (feedType == 'trending') {
@@ -240,12 +254,15 @@ class RemoteRestaurantDataSource {
       }
     }
 
+    // The public feed has no "explore" type; fall back to the latest items.
+    final publicFeedType = feedType == 'explore' ? 'right-now' : feedType;
+
     try {
       // Backend (public): GET /api/menu/feed/:feedType
       // (PublicController.getMenuFeed). Latitude/longitude are not used by
       // the backend yet but are forwarded for future compatibility.
       final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/menu/feed/$feedType',
+        '${ApiClient.apiPrefix}/menu/feed/$publicFeedType',
         queryParameters: {
           'latitude': lat,
           'longitude': lon,
@@ -287,6 +304,35 @@ class RemoteRestaurantDataSource {
         'latitude': lat,
         'longitude': lon,
         'radiusKm': ?radiusKm,
+        'page': page,
+        'size': size,
+      },
+    );
+    final raw = response.data;
+    final data = raw is Map ? raw['data'] : null;
+    final content = data is Map ? data['content'] : null;
+    final items = content is List
+        ? content
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .toList()
+        : <ShopFeedItemDto>[];
+    return ShopFeedSectionDto(items: items);
+  }
+
+  /// "Explore menu" — paginated catalog of published menu items visible to the
+  /// user. Backend (auth): GET /api/user/menu-items (UserMenuItemsController.findAll).
+  /// Returns `{ data: { content: [...menu items...] } }`.
+  Future<ShopFeedSectionDto> getExploreMenuItems({
+    int page = 1,
+    int size = 20,
+  }) async {
+    if (!AuthService().isLoggedIn) {
+      return ShopFeedSectionDto(items: []);
+    }
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/menu-items',
+      queryParameters: {
         'page': page,
         'size': size,
       },
@@ -389,6 +435,34 @@ class RemoteRestaurantDataSource {
     }
   }
 
+  /// Full master menu category catalog for search filters.
+  /// Backend (public): GET /api/menu/master/categories (MasterController).
+  Future<List<MasterCategoryDto>> getMasterCategories() async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/menu/master/categories',
+      );
+      final raw = response.data;
+      final list = raw is Map ? (raw['data'] ?? raw['content']) : raw;
+      if (list is List) {
+        final categories = list
+            .whereType<Map<String, dynamic>>()
+            .map(MasterCategoryDto.fromJson)
+            .where((c) => c.id > 0 && c.isActive)
+            .toList();
+        categories.sort(
+          (a, b) => (a.displayOrder ?? 999).compareTo(b.displayOrder ?? 999),
+        );
+        return categories;
+      }
+      return [];
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403 || code == 404) return [];
+      rethrow;
+    }
+  }
+
   /// Popular master menu categories ranked by completed orders.
   /// Backend (auth): GET /api/user/master-menu-categories/popular.
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
@@ -413,6 +487,31 @@ class RemoteRestaurantDataSource {
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) return [];
+      rethrow;
+    }
+  }
+
+  /// Cuisine types available for filtering search results.
+  /// Backend (public): GET /api/master/cuisine-types (MasterController).
+  /// The response is wrapped by the global TransformInterceptor as
+  /// `{ data: [...] }`. Returns an empty list when the endpoint is unavailable.
+  Future<List<CuisineTypeDto>> getCuisineTypes() async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/master/cuisine-types',
+      );
+      final raw = response.data;
+      final list = raw is Map ? (raw['data'] ?? raw['content']) : raw;
+      if (list is List) {
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(CuisineTypeDto.fromJson)
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403 || code == 404) return [];
       rethrow;
     }
   }

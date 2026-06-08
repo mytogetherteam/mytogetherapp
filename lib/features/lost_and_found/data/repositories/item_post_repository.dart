@@ -35,7 +35,7 @@ class ItemPostRepository {
       queryParameters: {
         'page': page,
         'size': size,
-        if (type != null) 'type': type,
+        'type': ?type,
       },
     );
     final body = response.data;
@@ -62,8 +62,8 @@ class ItemPostRepository {
         'size': size,
         'latitude': latitude,
         'longitude': longitude,
-        if (radiusKm != null) 'radiusKm': radiusKm,
-        if (type != null) 'type': type,
+        'radiusKm': ?radiusKm,
+        'type': ?type,
       },
     );
     final body = response.data;
@@ -112,12 +112,12 @@ class ItemPostRepository {
     List<int> removePhotoIds = const [],
   }) async {
     final formData = FormData.fromMap({
-      if (description != null) 'description': description,
-      if (type != null) 'type': type,
-      if (latitude != null) 'latitude': latitude,
-      if (longitude != null) 'longitude': longitude,
-      if (locationName != null) 'locationName': locationName,
-      if (phoneNumber != null) 'phoneNumber': phoneNumber,
+      'description': ?description,
+      'type': ?type,
+      'latitude': ?latitude,
+      'longitude': ?longitude,
+      'locationName': ?locationName,
+      'phoneNumber': ?phoneNumber,
       if (removePhotoIds.isNotEmpty)
         'removePhotoIds': removePhotoIds.map((e) => e.toString()).toList(),
     });
@@ -163,8 +163,8 @@ class ItemPostRepository {
     final formData = FormData.fromMap({
       'description': description,
       'type': type,
-      if (latitude != null) 'latitude': latitude,
-      if (longitude != null) 'longitude': longitude,
+      'latitude': ?latitude,
+      'longitude': ?longitude,
       if (locationName != null && locationName.isNotEmpty)
         'locationName': locationName,
       if (phoneNumber != null && phoneNumber.isNotEmpty)

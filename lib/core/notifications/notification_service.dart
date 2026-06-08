@@ -9,6 +9,8 @@ import '../auth/auth_service.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
+import '../../features/announcements/data/models/announcement_model.dart';
+import '../../features/announcements/presentation/announcement_presenter.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/cart/data/cart_manager.dart';
 import '../../features/cart/presentation/screens/order_tracking_page.dart';
@@ -72,7 +74,17 @@ class NotificationService {
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];
-      
+
+      // 0. Admin broadcast/announcement: pop the modal globally (any screen)
+      // and bump the badge. Handled here so we don't also show a banner.
+      if (type == 'BROADCAST') {
+        final announcement = _announcementFromMessage(message);
+        if (announcement != null) {
+          AnnouncementPresenter.present(announcement);
+        }
+        return;
+      }
+
       // 1. Process Order Data regardless of notification display
       if (type == 'ORDER_STATUS') {
         final String? refId = message.data['referenceId']?.toString();
@@ -233,9 +245,43 @@ class NotificationService {
     );
   }
 
+  /// Builds an [AnnouncementModel] from a BROADCAST push. FCM data values are
+  /// strings; title/body live on the notification payload. `createdAt` isn't in
+  /// the push, so we fall back to now (the list still shows the server value).
+  AnnouncementModel? _announcementFromMessage(RemoteMessage message) {
+    final id = int.tryParse(message.data['broadcastId']?.toString() ?? '');
+    if (id == null) return null;
+    final String title =
+        message.notification?.title ?? message.data['title']?.toString() ?? '';
+    final String body = message.notification?.body ??
+        message.data['message']?.toString() ??
+        message.data['body']?.toString() ??
+        '';
+    final String? imageUrl = message.data['imageUrl']?.toString();
+    return AnnouncementModel(
+      id: id,
+      title: title,
+      message: body,
+      imageUrl: (imageUrl != null && imageUrl.isNotEmpty) ? imageUrl : null,
+      audience: message.data['audience']?.toString(),
+      createdAt: DateTime.now(),
+      isRead: false,
+    );
+  }
+
   void _handleNotificationClick(RemoteMessage? message) {
     final String? type = message?.data['type'] ?? message?.data['notificationType'];
-    
+
+    // Tapping a broadcast push (from background/terminated) opens the modal.
+    if (message != null && type == 'BROADCAST') {
+      final announcement = _announcementFromMessage(message);
+      if (announcement != null) {
+        // Not a fresh foreground arrival — reconcile count, don't double-bump.
+        AnnouncementPresenter.present(announcement, isNewArrival: false);
+      }
+      return;
+    }
+
     if (message != null && type == 'ORDER_STATUS') {
       try {
         final String? refId = message.data['referenceId']?.toString();

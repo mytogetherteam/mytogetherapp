@@ -328,7 +328,7 @@ class _LoginPageState extends State<LoginPage>
       onPressed: _handleContinue,
       isLoading: _isLoading,
       child: Text(
-        context.tr('auth.login') ?? 'Login',
+        context.tr('auth.login'),
         style: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,

@@ -5,6 +5,8 @@ import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/home/data/repositories/restaurant_repository.dart';
+import '../../features/announcements/data/models/announcement_model.dart';
+import '../../features/announcements/presentation/announcement_presenter.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -147,6 +149,38 @@ class WebSocketService {
       headers: {...headers, 'receipt': 'rcpt-shop-menu-updates'},
       callback: _handleShopMenuFrame,
     );
+
+    // Admin broadcasts/announcements: public USERS topic + private per-user
+    // queue (SINGLE_USER). Pops the announcement modal globally on arrival.
+    _stompClient?.subscribe(
+      destination: '/topic/broadcasts/users',
+      headers: {...headers, 'receipt': 'rcpt-broadcasts-users'},
+      callback: _handleBroadcastFrame,
+    );
+
+    _stompClient?.subscribe(
+      destination: '/user/queue/broadcasts',
+      headers: {...headers, 'receipt': 'rcpt-broadcasts-user'},
+      callback: _handleBroadcastFrame,
+    );
+  }
+
+  /// Handles `/topic/broadcasts/users` and `/user/queue/broadcasts`
+  /// (type: BROADCAST). Builds an [AnnouncementModel] from the live payload and
+  /// shows the detail modal regardless of the current screen.
+  void _handleBroadcastFrame(StompFrame frame) {
+    if (frame.body == null) return;
+    try {
+      final decoded = json.decode(frame.body!);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      if (raw['id'] == null) return;
+      debugPrint(' 📡 [WS] BROADCAST received: ${raw['title']}');
+      final announcement = AnnouncementModel.fromJson(raw);
+      AnnouncementPresenter.present(announcement);
+    } catch (_) {
+      // Ignore malformed frames.
+    }
   }
 
   /// Handles `/topic/shop-profile-updates` (SHOP_PROFILE_UPDATE).

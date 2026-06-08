@@ -1,8 +1,9 @@
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
 
-/// A popular master menu category returned by
-/// `GET /api/user/master-menu-categories/popular`.
+/// Master menu category from either:
+/// - `GET /api/menu/master/categories` (full catalog, for filters)
+/// - `GET /api/user/master-menu-categories/popular` (ranked by orders)
 class MasterCategoryDto {
   final int id;
   final String nameEn;
@@ -11,6 +12,7 @@ class MasterCategoryDto {
   final String? imageUrl;
   final int? displayOrder;
   final int orderCount;
+  final bool isActive;
 
   MasterCategoryDto({
     required this.id,
@@ -20,6 +22,7 @@ class MasterCategoryDto {
     this.imageUrl,
     this.displayOrder,
     this.orderCount = 0,
+    this.isActive = true,
   });
 
   String get displayName {
@@ -37,6 +40,7 @@ class MasterCategoryDto {
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       displayOrder: (json['displayOrder'] as num?)?.toInt(),
       orderCount: (json['orderCount'] as num?)?.toInt() ?? 0,
+      isActive: json['isActive'] != false,
     );
   }
 }

@@ -29,7 +29,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                 child: _buildQuickCard(
                   title: context.tr('food.nearby_shops'),
                   subtitle: context.tr('food.nearby_shops_sub'),
-                  color: const Color(0xFFFDE6ED), // Soft pink
+                  color: const Color(0xFFFDE6ED),
                   emoji: '📍',
                   onTap: onNearbyTap,
                 ),
@@ -39,7 +39,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                 child: _buildQuickCard(
                   title: context.tr('food.for_you'),
                   subtitle: context.tr('food.for_you_sub'),
-                  color: const Color(0xFFFEF3C7), // Peach / Warm Yellow
+                  color: const Color(0xFFFEF3C7),
                   emoji: '✨',
                   onTap: onForYouTap,
                 ),
@@ -53,7 +53,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                 child: _buildQuickCard(
                   title: context.tr('food.trending'),
                   subtitle: context.tr('food.trending_sub'),
-                  color: const Color(0xFFD1FAE5), // Mint green
+                  color: const Color(0xFFD1FAE5),
                   emoji: '🔥',
                   onTap: onTrendingTap,
                 ),
@@ -63,7 +63,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                 child: _buildQuickCard(
                   title: context.tr('food.popular'),
                   subtitle: context.tr('food.popular_sub'),
-                  color: const Color(0xFFDBEAFE), // Light blue
+                  color: const Color(0xFFDBEAFE),
                   emoji: '👑',
                   onTap: onPopularTap,
                 ),
@@ -108,6 +108,8 @@ class FoodQuickAccessSection extends StatelessWidget {
                       color: Colors.black87,
                       height: 1.2,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(

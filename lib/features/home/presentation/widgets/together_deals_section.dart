@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import 'image_skeleton_loader.dart';
@@ -17,7 +16,18 @@ import '../screens/today_overview_detail_page.dart';
 import '../../../../core/utils/price_formatter.dart';
 
 class TogetherDealsSection extends StatefulWidget {
-  const TogetherDealsSection({super.key});
+  /// When true, the section header uses [DiscountDealsDto.sectionTitle] from
+  /// `GET /api/user/menu-items/discount` (e.g. "Summer 30% Off").
+  final bool useApiSectionTitle;
+
+  /// Called when the discount API returns a non-empty [sectionTitle].
+  final ValueChanged<String>? onSectionTitleLoaded;
+
+  const TogetherDealsSection({
+    super.key,
+    this.useApiSectionTitle = false,
+    this.onSectionTitleLoaded,
+  });
 
   @override
   State<TogetherDealsSection> createState() => _TogetherDealsSectionState();
@@ -47,6 +57,10 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
         final deals = await RestaurantRepository.instance
             .getDiscountDeals(lat: lat, lon: lon, size: 10)
             .timeout(const Duration(seconds: 5));
+        final title = deals.sectionTitle.trim();
+        if (title.isNotEmpty) {
+          widget.onSectionTitleLoaded?.call(title);
+        }
         if (deals.items.isNotEmpty) return deals;
       }
 
@@ -90,6 +104,12 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
         final maxPercent = (snapshot.data?.maxDiscountPercentage ?? 0) > 0
             ? snapshot.data!.maxDiscountPercentage
             : _fallbackMaxPercent;
+        final apiSectionTitle = snapshot.data?.sectionTitle.trim() ?? '';
+        final headerTitle = widget.useApiSectionTitle
+            ? (apiSectionTitle.isNotEmpty
+                ? apiSectionTitle
+                : context.tr('food.discount'))
+            : context.tr('home.together_deals');
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,40 +120,53 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Together ',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                          ),
-                        ),
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.baseline,
-                          baseline: TextBaseline.alphabetic,
-                          child: GradientText(
-                            'Up to $maxPercent% Off ',
+                  Expanded(
+                    child: widget.useApiSectionTitle
+                        ? Text(
+                            headerTitle,
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Together ',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.baseline,
+                                  baseline: TextBaseline.alphabetic,
+                                  child: GradientText(
+                                    'Up to $maxPercent% Off ',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: Text(
+                                    '✦',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Text(
-                            '✦',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                   ViewAllIconButton(
                     onPressed: () {
@@ -142,7 +175,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                         MaterialPageRoute(
                           builder: (context) => TodayOverviewDetailPage(
                             feedType: 'hot-deals',
-                            title: context.tr('home.together_deals'),
+                            title: headerTitle,
                           ),
                         ),
                       );
@@ -179,7 +212,9 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                context.tr('home.together_deals'),
+                widget.useApiSectionTitle
+                    ? context.tr('food.discount')
+                    : context.tr('home.together_deals'),
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -361,27 +396,15 @@ class _DealCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 3),
-            // Delivery info
-            Row(
-              children: [
-                Icon(
-                  PhosphorIcons.bicycle,
-                  size: 12,
-                  color: Colors.grey.shade500,
-                ),
-                const SizedBox(width: 3),
-                Expanded(
-                  child: Text(
-                    '${deal.deliveryFee?.toFormattedPrice(currency: deal.currency) ?? 'Free'} · ${deal.estimatedTime ?? '20-30 min'}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      color: Colors.grey.shade500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            // Estimated time (delivery icon and fee intentionally omitted).
+            Text(
+              deal.estimatedTime ?? '20-30 min',
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                color: Colors.grey.shade500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

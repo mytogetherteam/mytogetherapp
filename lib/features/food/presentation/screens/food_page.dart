@@ -7,16 +7,17 @@ import 'package:mytogetherapp/features/auth/data/repositories/user_location_repo
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
-// import 'package:mytogetherapp/features/home/presentation/widgets/special_promotion_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
-import 'package:mytogetherapp/features/home/presentation/screens/all_restaurants_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurants_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/popular_categories_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/popular_brands_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
-import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/together_deals_section.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/food_collection_list_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/food_for_you_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodPage extends StatefulWidget {
@@ -29,11 +30,6 @@ class FoodPage extends StatefulWidget {
 class _FoodPageState extends State<FoodPage> {
   Key _refreshKey = UniqueKey();
   final ScrollController _scrollController = ScrollController();
-  final Map<String, GlobalKey> _sectionKeys = {
-    'for-you': GlobalKey(),
-    'trending': GlobalKey(),
-    'popular-dishes': GlobalKey(),
-  };
 
   @override
   void dispose() {
@@ -41,23 +37,12 @@ class _FoodPageState extends State<FoodPage> {
     super.dispose();
   }
 
-  void _scrollToSection(String sectionKey) {
-    final key = _sectionKeys[sectionKey];
-    if (key != null && key.currentContext != null) {
-      Scrollable.ensureVisible(
-        key.currentContext!,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOut,
-        alignment: 0.1, // Near the top
-      );
-    }
+  void _openPage(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   Future<void> _onRefresh() async {
-    // Drop cached feeds/shops so the rebuilt sections refetch from the API
-    // instead of serving stale (up to ~5 min TTL) cache.
     RestaurantRepository.instance.clearCache();
-    // Small delay for better UX and to allow skeletons to show
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       setState(() {
@@ -68,6 +53,13 @@ class _FoodPageState extends State<FoodPage> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLoc = UserLocationRepository.instance.activeLocation;
+    final pos = LocationService().cachedPosition;
+    final lat =
+        activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+    final lon =
+        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -85,34 +77,53 @@ class _FoodPageState extends State<FoodPage> {
                     child: SingleChildScrollView(
                       key: _refreshKey,
                       controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator to work on short lists
+                      physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
                         children: [
                           const SizedBox(height: 16),
                           FoodQuickAccessSection(
-                            onNearbyTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const AllRestaurantsPage()),
-                              );
-                            },
-                            onForYouTap: () => _scrollToSection('for-you'),
-                            onTrendingTap: () => _scrollToSection('trending'),
-                            onPopularTap: () => _scrollToSection('popular-dishes'),
+                            onNearbyTap: () => _openPage(
+                              const RestaurantNearbyListPage(),
+                            ),
+                            onForYouTap: () =>
+                                _openPage(const FoodForYouPage()),
+                            onTrendingTap: () => _openPage(
+                              const FoodCollectionListPage(
+                                kind: FoodCollectionKind.trending,
+                              ),
+                            ),
+                            onPopularTap: () => _openPage(
+                              const FoodCollectionListPage(
+                                kind: FoodCollectionKind.popular,
+                              ),
+                            ),
                           ),
-                          // Hiding special promotion for now
-                          // const SpecialPromotionSection(),
                           const SizedBox(height: 20),
-                          // ── New backend-powered rails ──────────────────────
-                          const PopularCategoriesSection(),
-                          const CollectionsSection(),
-                          const FoodPromotionsCarousel(),
-                          const TrendingShopsSection(),
-                          // ── 5 live feed sections ───────────────────────────
                           const FoodRestaurantsSection(),
-                          ..._buildFeedSections(),
+                          const TrendingShopsSection(),
+                          PopularBrandsSection(
+                            title: context.tr('food.popular'),
+                          ),
+                          const CollectionsSection(),
+                          const SizedBox(height: 24),
+                          FoodFeedSection(
+                            feedType: 'for-you',
+                            title: context.tr('food.for_you'),
+                            latitude: lat,
+                            longitude: lon,
+                            layoutType: 2,
+                          ),
+                          const TogetherDealsSection(
+                            useApiSectionTitle: true,
+                          ),
+                          FoodFeedSection(
+                            feedType: 'explore',
+                            title: context.tr('food.explore_menu'),
+                            latitude: lat,
+                            longitude: lon,
+                          ),
                           _buildEndOfListMessage(),
-                          const SizedBox(height: 80), // Space for ActiveOrderBar
+                          const SizedBox(height: 80),
                         ],
                       ),
                     ),
@@ -123,42 +134,13 @@ class _FoodPageState extends State<FoodPage> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 4 + MediaQuery.of(context).padding.bottom, 
+              bottom: 4 + MediaQuery.of(context).padding.bottom,
               child: const ActiveOrderBar(),
             ),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _buildFeedSections() {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = LocationService().cachedPosition;
-    
-    final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-    final lon = activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
-
-    final sections = [
-      ('trending', context.tr('food.trending_near_you'), 1),
-      ('right-now', context.tr('food.right_now'), 1),
-      ('popular-dishes', context.tr('food.popular_dishes'), 1),
-      ('hot-deals', context.tr('food.hot_deals'), 1),
-      ('for-you', context.tr('food.for_you_now'), 2),
-    ];
-
-    return [
-      for (final s in sections) ...[
-        FoodFeedSection(
-          key: _sectionKeys[s.$1],
-          feedType: s.$1,
-          title: s.$2,
-          latitude: lat,
-          longitude: lon,
-          layoutType: s.$3,
-        ),
-      ],
-    ];
   }
 
   Widget _buildEndOfListMessage() {

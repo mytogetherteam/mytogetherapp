@@ -784,17 +784,16 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               );
                         } catch (e) {
                           // Rollback on error
-                          if (mounted) {
-                            setState(() => _isFavorite = !_isFavorite);
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  context.tr('common.favorite_failed'),
-                                ),
-                                backgroundColor: Colors.red,
+                          if (!context.mounted) return;
+                          setState(() => _isFavorite = !_isFavorite);
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                context.tr('common.favorite_failed'),
                               ),
-                            );
-                          }
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                         } finally {
                           _isTogglingFavorite = false;
                         }

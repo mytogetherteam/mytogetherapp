@@ -179,6 +179,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 );
               }
             } catch (e) {
+              if (!mounted) return;
               _showLocationErrorSnack(
                 e,
                 context.tr('location.save_failed'),
@@ -236,6 +237,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               );
             }
           } catch (e) {
+            if (!mounted) return;
             _showLocationErrorSnack(
               e,
               context.tr('location.create_failed'),
@@ -262,6 +264,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       _showLocationErrorSnack(
         e,
         context.tr('location.update_failed'),

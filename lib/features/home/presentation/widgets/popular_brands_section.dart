@@ -12,7 +12,10 @@ import '../../../../core/location/location_service.dart';
 import 'image_skeleton_loader.dart';
 
 class PopularBrandsSection extends StatefulWidget {
-  const PopularBrandsSection({super.key});
+  /// Optional header override. Defaults to `home.popular_restaurants`.
+  final String? title;
+
+  const PopularBrandsSection({super.key, this.title});
 
   @override
   State<PopularBrandsSection> createState() => _PopularBrandsSectionState();
@@ -111,7 +114,8 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            context.tr('home.popular_restaurants'),
+                            widget.title ??
+                                context.tr('home.popular_restaurants'),
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               fontSize: 18,

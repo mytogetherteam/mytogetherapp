@@ -6,7 +6,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
-import '../../../../features/news/presentation/screens/news_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';

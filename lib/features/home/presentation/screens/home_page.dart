@@ -22,12 +22,13 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
+import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
+import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
-import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
@@ -81,6 +82,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     NotificationRepository().getUnreadCount();
+    AnnouncementRepository().getUnreadCount();
     _fetchBanners();
     _fetchLostFoundCount();
   }
@@ -249,7 +251,12 @@ class _HomePageState extends State<HomePage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: GestureDetector(
-                          onTap: () => AppDialog.showUnavailable(context),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FoodSearchPage(),
+                            ),
+                          ),
                           child: Container(
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 16),

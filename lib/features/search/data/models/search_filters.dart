@@ -8,6 +8,15 @@ class SearchFilters {
   final bool isHalal;
   final bool isSpicy;
   final bool topRated;
+
+  /// Minimum average rating (e.g. 4.0 means "4.0 & up"). When set, the
+  /// Rating filter chip is considered active.
+  ///
+  /// NOTE: The backend `GET /api/user/search` only supports a `topRated`
+  /// boolean (ratingAvg >= 4.5), not an arbitrary threshold, so this value is
+  /// applied client-side to the returned results rather than sent as a query
+  /// parameter.
+  final double? minRating;
   final int? categoryId;
   final int? subCategoryId;
   final int? masterCategoryId;
@@ -20,6 +29,7 @@ class SearchFilters {
     this.isHalal = false,
     this.isSpicy = false,
     this.topRated = false,
+    this.minRating,
     this.categoryId,
     this.subCategoryId,
     this.masterCategoryId,
@@ -36,12 +46,22 @@ class SearchFilters {
       isHalal ||
       isSpicy ||
       topRated ||
+      minRating != null ||
       categoryId != null ||
       subCategoryId != null ||
       masterCategoryId != null ||
       cuisineTypeIds.isNotEmpty ||
       mealTypes.isNotEmpty ||
       tagIds.isNotEmpty;
+
+  /// Number of active dietary flags (Vegetarian / Halal / Spicy).
+  int get dietaryCount {
+    var count = 0;
+    if (isVegetarian) count++;
+    if (isHalal) count++;
+    if (isSpicy) count++;
+    return count;
+  }
 
   /// Number of active filters, for a count badge.
   int get activeCount {
@@ -50,6 +70,7 @@ class SearchFilters {
     if (isHalal) count++;
     if (isSpicy) count++;
     if (topRated) count++;
+    if (minRating != null) count++;
     if (categoryId != null) count++;
     if (subCategoryId != null) count++;
     if (masterCategoryId != null) count++;
@@ -67,6 +88,8 @@ class SearchFilters {
     if (isHalal) params['isHalal'] = 'true';
     if (isSpicy) params['isSpicy'] = 'true';
     if (topRated) params['topRated'] = 'true';
+    // `minRating` is intentionally NOT sent: the backend has no such param.
+    // It is applied client-side (see FoodSearchPage._filteredShopResults).
     if (categoryId != null) params['categoryId'] = categoryId;
     if (subCategoryId != null) params['subCategoryId'] = subCategoryId;
     if (masterCategoryId != null) params['masterCategoryId'] = masterCategoryId;
@@ -83,24 +106,31 @@ class SearchFilters {
     bool? isHalal,
     bool? isSpicy,
     bool? topRated,
+    double? minRating,
+    bool clearMinRating = false,
     int? categoryId,
     bool clearCategoryId = false,
+    int? subCategoryId,
     int? masterCategoryId,
     bool clearMasterCategoryId = false,
+    List<int>? cuisineTypeIds,
+    List<String>? mealTypes,
+    List<int>? tagIds,
   }) {
     return SearchFilters(
       isVegetarian: isVegetarian ?? this.isVegetarian,
       isHalal: isHalal ?? this.isHalal,
       isSpicy: isSpicy ?? this.isSpicy,
       topRated: topRated ?? this.topRated,
+      minRating: clearMinRating ? null : (minRating ?? this.minRating),
       categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
-      subCategoryId: subCategoryId,
+      subCategoryId: subCategoryId ?? this.subCategoryId,
       masterCategoryId: clearMasterCategoryId
           ? null
           : (masterCategoryId ?? this.masterCategoryId),
-      cuisineTypeIds: cuisineTypeIds,
-      mealTypes: mealTypes,
-      tagIds: tagIds,
+      cuisineTypeIds: cuisineTypeIds ?? this.cuisineTypeIds,
+      mealTypes: mealTypes ?? this.mealTypes,
+      tagIds: tagIds ?? this.tagIds,
     );
   }
 }

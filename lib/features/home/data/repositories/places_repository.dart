@@ -35,9 +35,9 @@ class PlacesRepository {
         'page': page,
         'size': size,
         if (search != null && search.isNotEmpty) 'search': search,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
-        if (radiusKm != null) 'radiusKm': radiusKm,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+        'radiusKm': ?radiusKm,
       },
     );
     final items = ApiResponseUtils.parseDataList(
@@ -59,8 +59,8 @@ class PlacesRepository {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/places/$id',
       queryParameters: {
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
       },
     );
     return ApiResponseUtils.parseDataObject(

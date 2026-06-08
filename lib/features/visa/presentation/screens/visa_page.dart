@@ -366,7 +366,7 @@ class _VisaListTile extends StatelessWidget {
           width: 42,
           height: 42,
           fit: BoxFit.cover,
-          errorWidget: (_, __, ___) => _defaultLeading(),
+          errorWidget: (_, _, _) => _defaultLeading(),
         ),
       );
     }

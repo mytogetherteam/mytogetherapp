@@ -8,7 +8,6 @@ import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/localization/app_language.dart';
 import 'login_page.dart';
 import 'register_page.dart';
-import 'language_page.dart';
 
 class AuthEntryPage extends StatefulWidget {
   const AuthEntryPage({super.key});

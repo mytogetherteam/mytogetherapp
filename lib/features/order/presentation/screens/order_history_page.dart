@@ -4,7 +4,6 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
-import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class OrderHistoryPage extends StatefulWidget {
@@ -86,20 +85,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          // TEMP (testing): opens the review screen directly so the
-          // image-upload UI is reachable without a delivered order.
-          IconButton(
-            tooltip: 'Write a Review (test)',
-            icon: const Icon(Icons.rate_review_outlined, color: AppColors.primary),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const WriteReviewPage()),
-              );
-            },
-          ),
-        ],
         bottom: _isLoading
             ? null
             : TabBar(

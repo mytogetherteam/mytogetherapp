@@ -6,6 +6,8 @@ import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
+import '../../../announcements/data/repositories/announcement_repository.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -28,6 +30,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void initState() {
     super.initState();
     _loadNotifications();
+    // Keep the announcement (megaphone) badge in sync when this screen opens.
+    AnnouncementRepository().getUnreadCount();
   }
 
   Future<void> _loadNotifications({bool refresh = false}) async {
@@ -166,13 +170,49 @@ class _NotificationsPageState extends State<NotificationsPage> {
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
-          IconButton(
-            tooltip: context.tr('notification.announcements_tooltip'),
-            icon: Icon(PhosphorIcons.megaphone, color: Colors.black),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AnnouncementsPage()),
-            ),
+          ValueListenableBuilder<int>(
+            valueListenable: AnnouncementRepository().unreadCount,
+            builder: (context, count, _) {
+              return IconButton(
+                tooltip: context.tr('notification.announcements_tooltip'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AnnouncementsPage()),
+                ),
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(PhosphorIcons.megaphone, color: Colors.black),
+                    if (count > 0)
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : count.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
           if (_notifications.any((n) => !n.read))
             TextButton(

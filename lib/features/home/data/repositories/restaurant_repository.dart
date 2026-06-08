@@ -236,12 +236,22 @@ class RestaurantRepository {
     );
   }
 
+  /// Full master menu category catalog (`GET /api/menu/master/categories`).
+  Future<List<MasterCategoryDto>> getMasterCategories() {
+    return _remoteDataSource.getMasterCategories();
+  }
+
   /// Popular master menu categories (`GET /api/user/master-menu-categories/popular`).
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
     int limit = 10,
     int? days,
   }) {
     return _remoteDataSource.getPopularMasterCategories(limit: limit, days: days);
+  }
+
+  /// Cuisine types for search filtering (`GET /api/user/cuisine-types`).
+  Future<List<CuisineTypeDto>> getCuisineTypes() {
+    return _remoteDataSource.getCuisineTypes();
   }
 
   /// Curated collections (`GET /api/user/collections`).

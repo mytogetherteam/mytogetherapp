@@ -909,7 +909,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           _paymentTypes,
                                           _selectedPaymentMethodId,
                                         );
-
+                                    if (!context.mounted) return;
                                     ActiveOrderState.instance.setOrderDetails(
                                       totalAmount: foodTotal.toDouble(),
                                       paymentMethod:
