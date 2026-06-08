@@ -16,6 +16,7 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurant
 import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/popular_categories_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
+import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodPage extends StatefulWidget {
@@ -105,6 +106,7 @@ class _FoodPageState extends State<FoodPage> {
                           // ── New backend-powered rails ──────────────────────
                           const PopularCategoriesSection(),
                           const CollectionsSection(),
+                          const FoodPromotionsCarousel(),
                           const TrendingShopsSection(),
                           // ── 5 live feed sections ───────────────────────────
                           const FoodRestaurantsSection(),

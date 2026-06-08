@@ -31,7 +31,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     HomePage(),
     FoodPage(),
     OrderHistoryPage(),
-    NewsPage(),
+    // NewsPage(),
     ProfilePage(),
   ];
 
@@ -174,14 +174,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               PhosphorIcons.receiptFill,
               context.tr('nav.orders'),
             ),
+            // _buildNavItem(
+            //   3,
+            //   PhosphorIcons.newspaper,
+            //   PhosphorIcons.newspaperFill,
+            //   context.tr('nav.news'),
+            // ),
             _buildNavItem(
               3,
-              PhosphorIcons.newspaper,
-              PhosphorIcons.newspaperFill,
-              context.tr('nav.news'),
-            ),
-            _buildNavItem(
-              4,
               PhosphorIcons.user,
               PhosphorIcons.userFill,
               context.tr('nav.profile'),
@@ -203,7 +203,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       onTap: () => _onTabTapped(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width / 5,
+        width: MediaQuery.of(context).size.width / 4,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -229,7 +229,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       label,
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -245,7 +245,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     label,
                     style: GoogleFonts.poppins(
                       color: Colors.grey.shade400,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

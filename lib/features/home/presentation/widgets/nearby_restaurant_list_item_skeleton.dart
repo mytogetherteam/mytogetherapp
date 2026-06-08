@@ -66,7 +66,7 @@ class _NearbyRestaurantListItemSkeletonState extends State<NearbyRestaurantListI
                   child: Opacity(
                     opacity: 0.1,
                     child: Image.asset(
-                      'assets/images/icon.png',
+                      'assets/images/app_icon_small.png',
                       width: 48,
                       height: 48,
                       fit: BoxFit.contain,

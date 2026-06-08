@@ -666,22 +666,15 @@ class _HomePageState extends State<HomePage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Gift Icon (Top Left)
+                              // App Icon (Top Left)
                               Image.asset(
-                                'assets/images/gift.gif',
+                                'assets/images/app_icon_small.png',
                                 width: 34,
                                 height: 34,
-                                fit: BoxFit.contain,
                               ),
                               // Logo (Center)
                               Row(
                                 children: [
-                                  Image.asset(
-                                    'assets/images/icon.png',
-                                    height: 32,
-                                    width: 32,
-                                  ),
-                                  const SizedBox(width: 8),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4),
                                     child: ShaderMask(

@@ -145,7 +145,7 @@ class AppDialog {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Image.asset(
-                  'assets/images/icon.png',
+                  'assets/images/app_icon_small.png',
                   fit: BoxFit.cover,
                 ),
               ),

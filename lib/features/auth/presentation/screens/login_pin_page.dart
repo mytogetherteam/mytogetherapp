@@ -115,7 +115,7 @@ class _LoginPinPageState extends State<LoginPinPage>
         title: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Image.asset(
-            'assets/images/icon.png',
+            'assets/images/app_icon_small.png',
             height: 40,
             width: 40,
             fit: BoxFit.cover,

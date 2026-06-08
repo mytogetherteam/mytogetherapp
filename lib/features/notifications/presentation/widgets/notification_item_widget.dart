@@ -117,7 +117,7 @@ class NotificationItemWidget extends StatelessWidget {
       ),
       child: isLogo
           ? Image.asset(
-              'assets/images/icon.png',
+              'assets/images/app_icon_small.png',
               width: 20,
               height: 20,
               fit: BoxFit.contain,

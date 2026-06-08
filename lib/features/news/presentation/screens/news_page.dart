@@ -107,7 +107,7 @@ class _NewsPageState extends State<NewsPage> {
               snap: true,
               pinned: false,
               toolbarHeight: 48,
-              title: Image.asset('assets/images/icon.png', height: 28),
+              title: Image.asset('assets/images/app_icon_small.png', height: 28),
               centerTitle: true,
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
