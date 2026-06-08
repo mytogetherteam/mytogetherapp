@@ -5,7 +5,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>myTogether</string>
+		<string>MyTogether</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -24,8 +24,10 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We need your location to show routes to restaurants.</string>
-		<key>NSLocationAlwaysUsageDescription</key>
-		<string>We need your location to show routes to restaurants.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>We need access to your camera so you can take a profile picture, capture images for lost &amp; found items, and take photos of payment receipts.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>We need access to your photo library so you can select a profile picture, choose images for lost &amp; found items, and upload payment receipts.</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>

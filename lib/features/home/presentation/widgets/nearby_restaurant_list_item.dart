@@ -5,8 +5,9 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'image_skeleton_loader.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
+import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
 
 class NearbyRestaurantListItem extends StatelessWidget {
@@ -55,6 +56,14 @@ class NearbyRestaurantListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAsset = imagePath.startsWith('assets/');
+    final bool isNetworkImage = !isAsset && imagePath.trim().isNotEmpty;
+    
+    String networkUrl = imagePath;
+    if (isNetworkImage && !networkUrl.startsWith('http')) {
+      networkUrl = '${ApiClient.baseUrl}/${networkUrl.startsWith('/') ? networkUrl.substring(1) : networkUrl}';
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -70,25 +79,45 @@ class NearbyRestaurantListItem extends StatelessWidget {
         child: Column(
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Left: Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: imagePath,
-                    height: 80,
-                    width: 80,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const ImageSkeletonLoader(height: 80, width: 80),
-                    errorWidget: (context, url, error) => Container(
-                      height: 80,
-                      width: 80,
-                      color: Colors.grey[200],
-                      child: Icon(PhosphorIcons.image, color: Colors.grey),
-                    ),
-                    fadeInDuration: const Duration(milliseconds: 300),
-                  ),
+                  child: (!isNetworkImage && !isAsset)
+                      ? Container(
+                          height: 80,
+                          width: 80,
+                          color: Colors.grey[200],
+                          child: Icon(PhosphorIcons.image, color: Colors.grey),
+                        )
+                      : (isAsset
+                          ? Image.asset(
+                              imagePath,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 80,
+                                width: 80,
+                                color: Colors.grey[200],
+                                child: Icon(PhosphorIcons.image, color: Colors.grey),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: networkUrl,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const ImageSkeletonLoader(height: 80, width: 80),
+                              errorWidget: (context, url, error) => Container(
+                                height: 80,
+                                width: 80,
+                                color: Colors.grey[200],
+                                child: Icon(PhosphorIcons.image, color: Colors.grey),
+                              ),
+                              fadeInDuration: const Duration(milliseconds: 300),
+                            )),
                 ),
 
                 const SizedBox(width: 16),

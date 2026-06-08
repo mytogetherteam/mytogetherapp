@@ -13,10 +13,10 @@ class AuthRepository {
 
   final AuthRemoteDataSource _dataSource = AuthRemoteDataSource();
 
-  Future<void> login({required String usernameOrEmail, required String password}) async {
+  Future<void> login({required String phone, required String pin}) async {
     try {
       final response = await _dataSource.login(
-        LoginRequest(usernameOrEmail: usernameOrEmail, password: password),
+        LoginRequest(phone: phone, pin: pin),
       );
       
       if (response.role != 'CUSTOMER') {
@@ -37,14 +37,14 @@ class AuthRepository {
   }
 
   Future<void> register({
-    required String username,
-    required String email,
-    required String password,
-    required String fullName,
+    required String idToken,
+    required String pin,
+    String? name,
+    String? email,
   }) async {
     try {
       final response = await _dataSource.register(
-        RegisterRequest(username: username, email: email, password: password, fullName: fullName),
+        RegisterRequest(idToken: idToken, pin: pin, name: name, email: email),
       );
       
       AuthService().updateAccessToken(response.token);
@@ -53,6 +53,14 @@ class AuthRepository {
       final locations = await _dataSource.getUserLocations();
 
       await _saveSession(response, profile: profile, locations: locations);
+    } on DioException catch (e) {
+      throw _parseError(e);
+    }
+  }
+
+  Future<bool> checkPhoneExists(String phone) async {
+    try {
+      return await _dataSource.checkPhoneExists(phone);
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -141,10 +149,14 @@ class AuthRepository {
   String _parseError(DioException e) {
     final statusCode = e.response?.statusCode;
     final body = e.response?.data;
-    // API returns: { message, details, code, ... }
-    // 'details' holds the most descriptive human-readable text
-    final details = body is Map ? body['details'] as String? : null;
-    final message = body is Map ? body['message'] as String? : null;
+    String? details;
+    String? message;
+    if (body is Map) {
+      final rawDetails = body['details'];
+      details = rawDetails is List ? rawDetails.join(', ') : rawDetails?.toString();
+      final rawMessage = body['message'];
+      message = rawMessage is List ? rawMessage.join(', ') : rawMessage?.toString();
+    }
     final text = details?.isNotEmpty == true ? details : message;
 
     if (statusCode == 401 || statusCode == 400) {

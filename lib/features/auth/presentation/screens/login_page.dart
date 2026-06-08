@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -8,6 +9,7 @@ import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'register_page.dart';
+import 'login_pin_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,10 +21,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  bool _obscurePassword = true;
+  final _phoneController = TextEditingController();
   bool _isLoading = false;
 
   late final AnimationController _animController;
@@ -48,33 +47,39 @@ class _LoginPageState extends State<LoginPage>
   @override
   void dispose() {
     _animController.dispose();
-    _identifierController.dispose();
-    _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleContinue() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() {
-      _isLoading = true;
-    });
-
+    
+    setState(() => _isLoading = true);
+    
+    final phoneStr = '+66${_phoneController.text.trim().replaceAll(' ', '')}';
+    
     try {
-      await AuthRepository.instance.login(
-        usernameOrEmail: _identifierController.text.trim(),
-        password: _passwordController.text,
-      );
+      final exists = await AuthRepository.instance.checkPhoneExists(phoneStr);
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
+      
+      if (exists) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => LoginPinPage(phone: phoneStr),
+          ),
+        );
+      } else {
+        AppDialog.showToast(
+          context,
+          'Phone number is not registered. Please register first.',
+          isError: true,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       AppDialog.showToast(context, e.toString(), isError: true);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -82,22 +87,35 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: Form(
-                      key: _formKey,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 64),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                          const SizedBox(height: 16),
                           // Logo — centered myTogether icon
                           Center(
                             child: Container(
@@ -134,51 +152,49 @@ class _LoginPageState extends State<LoginPage>
                             ),
                           ),
                           const SizedBox(height: 40),
-                          // Username / Email field
-                          _buildLabel(context.tr('auth.username_or_email')),
+                          // Phone field
+                          _buildLabel(context.tr('auth.phone')),
                           const SizedBox(height: 8),
                           _buildTextField(
-                            controller: _identifierController,
-                            hint: 'mytogether@example.com',
-                            icon: Icons.person_outline_rounded,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return context.tr('auth.enter_username');
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          // Password field
-                          _buildLabel(context.tr('common.password')),
-                          const SizedBox(height: 8),
-                          _buildTextField(
-                            controller: _passwordController,
-                            hint: context.tr('auth.password_hint'),
-                            icon: Icons.lock_outline_rounded,
-                            obscure: _obscurePassword,
-                            suffixWidget: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: Colors.grey[500],
-                                size: 20,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
+                            controller: _phoneController,
+                            hint: 'xxxxxxxxx',
+                            prefixWidget: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 8),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.phone_outlined, color: Colors.grey[500], size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '+66',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(width: 1, height: 20, color: Colors.grey[300]),
+                                  const SizedBox(width: 8),
+                                ],
                               ),
                             ),
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                             validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return context.tr('auth.enter_password');
+                              if (v == null || v.trim().isEmpty) {
+                                return context.tr('auth.enter_phone');
+                              }
+                              final cleanPhone = v.replaceAll(' ', '');
+                              if (!RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
+                                return 'Invalid Thai phone number';
                               }
                               return null;
                             },
                           ),
                           const SizedBox(height: 32),
                           // Login Button
-                          _buildLoginButton(),
+                          _buildContinueButton(),
                           const SizedBox(height: 24),
                           // Register link
                           Center(
@@ -213,24 +229,29 @@ class _LoginPageState extends State<LoginPage>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 40),
+                                  const SizedBox(height: 40),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Text(
+                              'demo 0.0.1',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey.withValues(alpha: 0.5),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    'demo 0.0.1',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey.withValues(alpha: 0.5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -252,20 +273,25 @@ class _LoginPageState extends State<LoginPage>
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required IconData icon,
+    IconData? icon,
+    Widget? prefixWidget,
     bool obscure = false,
     Widget? suffixWidget,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       validator: validator,
       style: GoogleFonts.poppins(fontSize: 15, color: Colors.black),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
-        prefixIcon: Icon(icon, color: Colors.grey[500], size: 20),
+        prefixIcon: prefixWidget ?? (icon != null ? Icon(icon, color: Colors.grey[500], size: 20) : null),
         suffixIcon: suffixWidget,
         filled: true,
         fillColor: Colors.grey[50],
@@ -297,12 +323,12 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildContinueButton() {
     return PrimaryGradientButton(
-      onPressed: _handleLogin,
+      onPressed: _handleContinue,
       isLoading: _isLoading,
       child: Text(
-        context.tr('common.login'),
+        context.tr('auth.login') ?? 'Login',
         style: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,

@@ -59,6 +59,15 @@ class AuthRemoteDataSource {
     return data['token'] as String? ?? data['accessToken'] as String? ?? '';
   }
 
+  Future<bool> checkPhoneExists(String phone) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/auth/check-phone',
+      data: {'phone': phone},
+    );
+    final data = response.data['data'];
+    return data['exists'] == true;
+  }
+
   Future<void> logout() async {
     try {
       final token = AuthService().refreshToken;

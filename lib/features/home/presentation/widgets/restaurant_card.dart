@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -43,6 +44,14 @@ class RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAsset = imagePath.startsWith('assets/');
+    final bool isNetworkImage = !isAsset && imagePath.trim().isNotEmpty;
+    
+    String networkUrl = imagePath;
+    if (isNetworkImage && !networkUrl.startsWith('http')) {
+      networkUrl = '${ApiClient.baseUrl}/${networkUrl.startsWith('/') ? networkUrl.substring(1) : networkUrl}';
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -56,19 +65,27 @@ class RestaurantCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                child: imagePath.trim().isEmpty
+                child: (!isNetworkImage && !isAsset)
                     ? _buildFallbackImage()
-                    : CachedNetworkImage(
-                        imageUrl: imagePath,
-                        height: 160,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const ImageSkeletonLoader(
-                          height: 160,
-                        ),
-                        errorWidget: (context, url, error) => _buildFallbackImage(),
-                        fadeInDuration: const Duration(milliseconds: 300),
-                      ),
+                    : (isAsset
+                        ? Image.asset(
+                            imagePath,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: networkUrl,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const ImageSkeletonLoader(
+                              height: 160,
+                            ),
+                            errorWidget: (context, url, error) => _buildFallbackImage(),
+                            fadeInDuration: const Duration(milliseconds: 300),
+                          )),
               ),
 
               Positioned(

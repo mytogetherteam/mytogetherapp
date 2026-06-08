@@ -3,6 +3,8 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
@@ -57,6 +59,14 @@ class FoodListItemCard extends StatelessWidget {
 
     if (effectiveIsHidden) return const SizedBox.shrink();
 
+    final bool isAsset = imagePath.startsWith('assets/');
+    final bool isNetworkImage = !isAsset && imagePath.trim().isNotEmpty;
+    
+    String networkUrl = imagePath;
+    if (isNetworkImage && !networkUrl.startsWith('http')) {
+      networkUrl = '${ApiClient.baseUrl}/${networkUrl.startsWith('/') ? networkUrl.substring(1) : networkUrl}';
+    }
+
     return _OutOfStockListWrapper(
       isDisabled: effectiveIsDisabled,
       child: GestureDetector(
@@ -74,27 +84,54 @@ class FoodListItemCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 clipBehavior: Clip.antiAlias,
-                child: Image.network(
-                  imagePath,
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.cover,
-                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                    if (wasSynchronouslyLoaded) return child;
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: frame != null
-                          ? SizedBox(width: 100, height: 100, child: child)
-                          : const ImageSkeletonLoader(width: 100, height: 100),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 100,
-                    height: 100,
-                    color: Colors.grey[100],
-                    child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                  ),
-                ),
+                child: (!isNetworkImage && !isAsset)
+                    ? Container(
+                        width: 100,
+                        height: 100,
+                        color: Colors.grey[100],
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                            const SizedBox(height: 4),
+                            Text(
+                              context.tr('common.no_image'),
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[500],
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : (isAsset
+                        ? Image.asset(
+                            imagePath,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: 100,
+                              height: 100,
+                              color: Colors.grey[100],
+                              child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: networkUrl,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const ImageSkeletonLoader(width: 100, height: 100),
+                            errorWidget: (context, url, error) => Container(
+                              width: 100,
+                              height: 100,
+                              color: Colors.grey[100],
+                              child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                            ),
+                            fadeInDuration: const Duration(milliseconds: 300),
+                          )),
               ),
               const SizedBox(width: 16),
               // Details Section

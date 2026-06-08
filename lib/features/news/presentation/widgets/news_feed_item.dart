@@ -25,6 +25,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
   late bool _isLiked;
   late int _likesCount;
   bool _isExpanded = false;
+  bool _isBlocked = false;
 
   @override
   void initState() {
@@ -88,6 +89,121 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     }
   }
 
+  void _showMoreOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(PhosphorIcons.warningCircle, color: Colors.orange),
+                title: Text(
+                  'Report Post',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleReport();
+                },
+              ),
+              ListTile(
+                leading: const Icon(PhosphorIcons.prohibit, color: Colors.red),
+                title: Text(
+                  'Block User',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleBlock();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleReport() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Text('Are you sure you want to report this post? Our team will review it within 24 hours.', style: GoogleFonts.poppins(fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Post reported successfully.', style: GoogleFonts.poppins(color: Colors.white)),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Text('Report', style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleBlock() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Block User', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+        content: Text('Are you sure you want to block this user? You will no longer see their posts.', style: GoogleFonts.poppins(fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _isBlocked = true;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('User blocked.', style: GoogleFonts.poppins(color: Colors.white)),
+                  backgroundColor: Colors.grey[800],
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Text('Block', style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatCount(int count) {
     if (count >= 1000) {
       return '${(count / 1000).toStringAsFixed(1)}K';
@@ -97,6 +213,9 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isBlocked) {
+      return const SizedBox.shrink();
+    }
     const double avatarRadius = 20.0;
     const double avatarGap = 14.0;
     const double outerPadding = 16.0;
@@ -178,6 +297,14 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                   // Placeholder for Connect button to maintain layout height
                                   if (widget.item.phoneNumber != null)
                                     const SizedBox(width: 80, height: 30),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: _showMoreOptions,
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                                      child: Icon(PhosphorIcons.dotsThreeVerticalBold, size: 20, color: Colors.grey),
+                                    ),
+                                  ),
                                 ],
                               ),
                               Row(
@@ -419,7 +546,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
             if (widget.item.phoneNumber != null)
               Positioned(
                 top: 25, // Aligned with the author row
-                right: outerPadding,
+                right: outerPadding + 28, // Moved left to make room for ellipsis menu
                 child: GestureDetector(
                   onTap: () => _makeCall(widget.item.phoneNumber!),
                   child: Container(

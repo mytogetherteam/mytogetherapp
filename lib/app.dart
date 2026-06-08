@@ -3,6 +3,7 @@ import 'core/theme/app_theme.dart';
 import 'core/auth/auth_service.dart';
 import 'core/localization/locale_controller.dart';
 import 'features/auth/presentation/screens/login_page.dart';
+import 'features/auth/presentation/screens/auth_entry_page.dart';
 import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 
@@ -37,10 +38,11 @@ class App extends StatelessWidget {
             // Auth-aware initial route
             home: AuthService().isLoggedIn
                 ? const MainNavigationScreen()
-                : const LoginPage(),
+                : const AuthEntryPage(),
             routes: {
               '/home': (context) => const MainNavigationScreen(),
               '/login': (context) => const LoginPage(),
+              '/auth_entry': (context) => const AuthEntryPage(),
             },
           ),
         );

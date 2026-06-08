@@ -1,36 +1,34 @@
 class LoginRequest {
-  final String usernameOrEmail;
-  final String password;
+  final String phone;
+  final String pin;
 
-  LoginRequest({required this.usernameOrEmail, required this.password});
+  LoginRequest({required this.phone, required this.pin});
 
-  // Shop API expects: { emailOrUsername, password }
+  // Shop API expects: { phone, pin }
   Map<String, dynamic> toJson() => {
-        'emailOrUsername': usernameOrEmail,
-        'password': password,
+        'phone': phone,
+        'pin': pin,
       };
 }
 
 class RegisterRequest {
-  final String username;
-  final String email;
-  final String password;
-  final String fullName;
+  final String idToken;
+  final String pin;
+  final String? name;
+  final String? email;
 
   RegisterRequest({
-    required this.username,
-    required this.email,
-    required this.password,
-    required this.fullName,
+    required this.idToken,
+    required this.pin,
+    this.name,
+    this.email,
   });
 
-  // Shop API expects: { email, password, name, username, role }
   Map<String, dynamic> toJson() => {
-        'username': username,
-        'email': email,
-        'password': password,
-        'name': fullName,      // shop API uses 'name' not 'fullName'
-        'role': 'CUSTOMER',    // always register as customer
+        'idToken': idToken,
+        'pin': pin,
+        if (name != null && name!.isNotEmpty) 'name': name,
+        if (email != null && email!.isNotEmpty) 'email': email,
       };
 }
 

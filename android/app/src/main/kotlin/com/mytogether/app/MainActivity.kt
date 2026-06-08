@@ -1,4 +1,4 @@
-package com.mytogether.app
+package com.mytogetherorg.mytogether
 
 import android.os.Bundle
 import android.view.WindowManager

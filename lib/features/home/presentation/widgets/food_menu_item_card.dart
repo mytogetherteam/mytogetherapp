@@ -9,6 +9,7 @@ import 'shop_item_metadata_row.dart';
 
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -118,7 +119,14 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final bool isNetworkImage = widget.imagePath.startsWith('http');
+    final bool isAsset = widget.imagePath.startsWith('assets/');
+    final bool isNetworkImage = !isAsset && widget.imagePath.trim().isNotEmpty;
+    
+    String networkUrl = widget.imagePath;
+    if (isNetworkImage && !networkUrl.startsWith('http')) {
+      networkUrl = '${ApiClient.baseUrl}/${networkUrl.startsWith('/') ? networkUrl.substring(1) : networkUrl}';
+    }
+
     final double effectivePrice = (widget.price == 0 && widget.originalPrice != null && widget.originalPrice! > 0)
         ? widget.originalPrice!
         : widget.price;
@@ -236,7 +244,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                           ? _buildFallbackImage()
                                           : (isNetworkImage
                                               ? CachedNetworkImage(
-                                                  imageUrl: widget.imagePath,
+                                                  imageUrl: networkUrl,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),

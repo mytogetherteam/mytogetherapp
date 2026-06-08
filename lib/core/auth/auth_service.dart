@@ -130,7 +130,8 @@ class AuthService {
       await prefs.remove(_keyUserLocations);
     }
 
-    // Register FCM token for the new session
+    // Request permission and register FCM token for the new session
+    await NotificationService().requestPermission();
     await NotificationService().registerDevice();
   }
 

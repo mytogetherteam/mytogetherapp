@@ -64,19 +64,9 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // Request permissions
-    try {
-      await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
-    } catch (e) {
-      debugPrint('FCM permission request failed: $e');
+    // Request permissions only if already logged in
+    if (AuthService().isLoggedIn) {
+      await requestPermission();
     }
 
     // Handle foreground messages
@@ -145,6 +135,22 @@ class NotificationService {
     }
 
     _isInitialized = true;
+  }
+
+  Future<void> requestPermission() async {
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('FCM permission request failed: $e');
+    }
   }
 
   Future<void> registerDevice() async {
