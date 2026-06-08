@@ -80,7 +80,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
       future: _restaurantsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildSkeleton();
+          return _buildSkeleton(context);
         }
 
         final List<Restaurant> restaurants = (snapshot.data ?? []).take(10).toList();
@@ -172,7 +172,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
   }
 
   // --- Skeleton: horizontal row of shimmer restaurant cards ---
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -182,7 +182,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Restaurants Nearby',
+                context.tr('home.restaurants_nearby'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,

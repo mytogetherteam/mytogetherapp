@@ -165,7 +165,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   Expanded(
                     child: _buildContactCard(
                       icon: PhosphorIcons.telegramLogoFill,
-                      label: 'Telegram',
+                      label: context.tr('help.telegram'),
                       sublabel: context.tr('help.chat_now'),
                       color: const Color(0xFF229ED9),
                       onTap: () => _launch('https://t.me/mytogetherapp'),
@@ -175,7 +175,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                   Expanded(
                     child: _buildContactCard(
                       icon: PhosphorIcons.facebookLogoFill,
-                      label: 'Facebook',
+                      label: context.tr('help.facebook'),
                       sublabel: context.tr('help.message_us'),
                       color: const Color(0xFF1877F2),
                       onTap: () =>

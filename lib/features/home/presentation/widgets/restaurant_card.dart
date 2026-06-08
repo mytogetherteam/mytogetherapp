@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
@@ -66,14 +67,14 @@ class RestaurantCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: (!isNetworkImage && !isAsset)
-                    ? _buildFallbackImage()
+                    ? _buildFallbackImage(context)
                     : (isAsset
                         ? Image.asset(
                             imagePath,
                             height: 160,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(context),
                           )
                         : CachedNetworkImage(
                             imageUrl: networkUrl,
@@ -83,7 +84,7 @@ class RestaurantCard extends StatelessWidget {
                             placeholder: (context, url) => const ImageSkeletonLoader(
                               height: 160,
                             ),
-                            errorWidget: (context, url, error) => _buildFallbackImage(),
+                            errorWidget: (context, url, error) => _buildFallbackImage(context),
                             fadeInDuration: const Duration(milliseconds: 300),
                           )),
               ),
@@ -151,7 +152,7 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFallbackImage() {
+  Widget _buildFallbackImage(BuildContext context) {
     return Container(
       height: 160,
       width: double.infinity,
@@ -166,7 +167,7 @@ class RestaurantCard extends StatelessWidget {
             Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 32),
             const SizedBox(height: 4),
             Text(
-              'No Image',
+              context.tr('common.no_image'),
               style: GoogleFonts.poppins(
                 color: Colors.grey[500],
                 fontSize: 10,

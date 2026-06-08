@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'primary_gradient_button.dart';
 
@@ -152,7 +153,7 @@ class AppDialog {
             ),
             const SizedBox(height: 20),
             Text(
-              'Feature Unavailable',
+              context.tr('demo.feature_unavailable'),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
@@ -162,7 +163,7 @@ class AppDialog {
           ],
         ),
         content: Text(
-          'This feature is currently unavailable in the demo application.',
+          context.tr('demo.feature_unavailable_body'),
           textAlign: TextAlign.center,
           style: GoogleFonts.poppins(
             color: Colors.grey[600],
@@ -175,7 +176,7 @@ class AppDialog {
             child: ShaderMask(
               shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
               child: Text(
-                'Got it',
+                context.tr('common.got_it'),
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

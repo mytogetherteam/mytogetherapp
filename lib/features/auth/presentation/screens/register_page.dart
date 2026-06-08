@@ -78,7 +78,8 @@ class _RegisterPageState extends State<RegisterPage>
         },
         verificationFailed: (FirebaseAuthException e) {
           setState(() {
-            _errorMessage = e.message ?? "Verification failed";
+            _errorMessage =
+                e.message ?? context.tr('auth.verification_failed');
             _isLoading = false;
           });
         },
@@ -103,7 +104,7 @@ class _RegisterPageState extends State<RegisterPage>
 
   Future<void> _handleVerifyOtp() async {
     if (_verificationId == null || _otpController.text.isEmpty) {
-      setState(() => _errorMessage = "Please enter the OTP.");
+      setState(() => _errorMessage = context.tr('auth.enter_otp'));
       return;
     }
 
@@ -120,7 +121,7 @@ class _RegisterPageState extends State<RegisterPage>
       await _verifyWithCredential(credential);
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = e.message ?? "Invalid OTP code";
+        _errorMessage = e.message ?? context.tr('auth.invalid_otp');
         _isLoading = false;
       });
     } catch (e) {
@@ -202,7 +203,9 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _showOtpView ? 'Please enter the SMS code sent to your phone' : context.tr('auth.join_subtitle'),
+                      _showOtpView
+                          ? context.tr('auth.otp_subtitle')
+                          : context.tr('auth.join_subtitle'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -224,7 +227,9 @@ class _RegisterPageState extends State<RegisterPage>
                       onPressed: _isLoading ? null : (_showOtpView ? _handleVerifyOtp : _handleSendOtp),
                       isLoading: _isLoading,
                       child: Text(
-                        _showOtpView ? 'Verify OTP & Register' : 'Send OTP',
+                        _showOtpView
+                            ? context.tr('auth.verify_otp_register')
+                            : context.tr('auth.send_otp'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -283,7 +288,7 @@ class _RegisterPageState extends State<RegisterPage>
         const SizedBox(height: 8),
         _buildTextField(
           controller: _phoneController,
-          hint: 'xxxxxxxxx',
+          hint: context.tr('auth.phone_hint'),
           prefixWidget: Padding(
             padding: const EdgeInsets.only(left: 16, right: 8),
             child: Row(
@@ -311,7 +316,7 @@ class _RegisterPageState extends State<RegisterPage>
             if (v == null || v.trim().isEmpty) return context.tr('auth.enter_phone');
             final cleanPhone = v.replaceAll(' ', '');
             if (!RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
-              return 'Invalid Thai phone number';
+              return context.tr('auth.invalid_thai_phone');
             }
             return null;
           },
@@ -336,26 +341,28 @@ class _RegisterPageState extends State<RegisterPage>
           ),
           validator: (v) {
             if (v == null || v.trim().isEmpty) return context.tr('auth.enter_pin');
-            if (v.trim().length != 6) return 'PIN must be 6 digits';
+            if (v.trim().length != 6) return context.tr('auth.pin_six_digits');
             return null;
           },
         ),
         const SizedBox(height: 18),
 
-        _buildLabel('${context.tr('auth.full_name')} (Optional)'),
+        _buildLabel(
+            '${context.tr('auth.full_name')} ${context.tr('auth.optional')}'),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _fullNameController,
-          hint: 'John Doe',
+          hint: context.tr('auth.name_hint'),
           icon: Icons.badge_outlined,
         ),
         const SizedBox(height: 18),
 
-        _buildLabel('${context.tr('auth.email')} (Optional)'),
+        _buildLabel(
+            '${context.tr('auth.email')} ${context.tr('auth.optional')}'),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _emailController,
-          hint: 'john@example.com',
+          hint: context.tr('auth.email_hint'),
           icon: Icons.mail_outline_rounded,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -367,11 +374,11 @@ class _RegisterPageState extends State<RegisterPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('SMS OTP Code'),
+        _buildLabel(context.tr('auth.otp_code')),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _otpController,
-          hint: '123456',
+          hint: context.tr('auth.otp_hint'),
           icon: Icons.message_outlined,
           keyboardType: TextInputType.number,
         ),

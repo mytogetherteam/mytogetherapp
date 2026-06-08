@@ -125,19 +125,6 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    context.tr('review.recent'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-              ),
               _buildReviewsList(),
             ],
           ),
@@ -200,7 +187,8 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
               ],
             ),
             Text(
-              '${summary.totalCount} ratings',
+              context.trArgs('review.ratings_count',
+                  {'count': '${summary.totalCount}'}),
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: const Color(0xFF64748B),
@@ -232,7 +220,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
           SizedBox(
             width: 50,
             child: Text(
-              '$stars stars',
+              context.trArgs('review.stars_count', {'count': '$stars'}),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -279,19 +267,82 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
         }
 
         final reviews = snapshot.data ?? [];
-        if (reviews.isEmpty) return const SizedBox.shrink();
+        if (reviews.isEmpty) return _buildEmptyState();
 
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: reviews.length,
-          itemBuilder: (context, index) {
-            final review = reviews[index];
-            return _buildReviewItem(review);
-          },
+        return Column(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  context.tr('review.recent'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+            ),
+            ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: reviews.length,
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+                return _buildReviewItem(review);
+              },
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 60),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.rate_review_outlined,
+                size: 44,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              context.tr('review.empty_title'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr('review.empty_sub'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: const Color(0xFF94A3B8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

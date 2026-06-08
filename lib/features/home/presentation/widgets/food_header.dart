@@ -132,7 +132,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                 content: Text(
                   UserLocationRepository.errorMessage(
                     e,
-                    fallback: 'Could not save your location.',
+                    fallback: context.tr('location.save_failed'),
                   ),
                 ),
                 backgroundColor: Colors.red,

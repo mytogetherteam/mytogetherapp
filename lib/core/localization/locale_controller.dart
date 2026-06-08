@@ -105,6 +105,43 @@ class LocaleController extends ChangeNotifier {
     return DateFormat(olderFormat).format(date);
   }
 
+  /// Localize an order status that the backend only sends in English.
+  ///
+  /// The backend exposes a stable status enum (e.g. `PENDING`, `DELIVERED`)
+  /// plus an English-only `statusLabel`. We map the enum to a localized label
+  /// here so order status follows the active language. Unknown values fall back
+  /// to [fallback] (typically the English `statusLabel`) or the raw value.
+  String localizedOrderStatus(String? statusEnum, {String? fallback}) {
+    final key = statusEnum?.trim().toUpperCase();
+    if (key == null || key.isEmpty) return fallback ?? '';
+    const enumKeys = <String, String>{
+      'PENDING': 'order.status.pending',
+      'AWAITING_APPROVAL': 'order.status.awaiting_approval',
+      'PAYMENT_SLIP_REQUESTED': 'order.status.waiting_payment',
+      'PAYMENT_UPLOADED': 'order.status.awaiting_approval',
+      'PAYMENT_CHECKING': 'order.status.awaiting_approval',
+      'PAYMENT_VERIFIED': 'order.status.payment_verified',
+      'PAID': 'order.status.payment_verified',
+      'CONFIRMED': 'order.status.confirmed',
+      'COOKING': 'order.status.cooking',
+      'PREPARING': 'order.status.cooking',
+      'REVISED': 'order.status.revised',
+      'ON_THE_WAY': 'order.status.on_the_way',
+      'DELIVERING': 'order.status.on_the_way',
+      'SHIPPED': 'order.status.on_the_way',
+      'DELIVERED': 'order.status.delivered',
+      'COMPLETED': 'order.status.delivered',
+      'CANCELED': 'order.status.canceled',
+      'CANCELLED': 'order.status.canceled',
+    };
+    final translationKey = enumKeys[key];
+    if (translationKey == null) return fallback ?? statusEnum!;
+    final translated = tr(translationKey);
+    // If the key is missing from the table, `tr` returns the key itself.
+    if (translated == translationKey) return fallback ?? statusEnum!;
+    return translated;
+  }
+
   /// Localize an open/closed shop status string coming from the data layer.
   ///
   /// Recognized English values map to the active language; anything else is

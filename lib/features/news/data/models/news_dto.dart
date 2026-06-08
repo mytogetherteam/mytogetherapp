@@ -1,3 +1,4 @@
+import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/utils/relative_time.dart';
 
@@ -19,7 +20,7 @@ class NewsAuthorDto {
     if (username != null && username!.trim().isNotEmpty) {
       return username!.trim();
     }
-    return 'Together';
+    return LocaleController.instance.tr('news.author_fallback');
   }
 
   factory NewsAuthorDto.fromJson(Map<String, dynamic> json) {

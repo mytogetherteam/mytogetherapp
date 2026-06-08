@@ -330,11 +330,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         const SizedBox(height: 0),
                         // Title
                         Text(
-                          (() {
-                            final enName = _currentFood?.name ?? widget.title;
-                            final mmName = _currentFood?.nameMm ?? '';
-                            return enName.trim().isNotEmpty ? enName : mmName;
-                          })(),
+                          _currentFood?.name ?? widget.title,
                           style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -482,11 +478,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                           const SizedBox(height: 16),
                           ..._currentFood!.variants.map((variant) {
-                            final variantName = variant.name.trim().isNotEmpty
-                                ? variant.name
-                                : (variant.nameMm ?? '');
                             return _buildSelectionItem(
-                              title: variantName,
+                              title: variant.name,
                               price: variant.price
                                   .toStringAsFixed(0)
                                   .toFormattedPrice(
@@ -528,9 +521,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               children: [
                                 if (group.isRequired) ...[
                                   Text(
-                                    group.name.trim().isNotEmpty
-                                        ? group.name
-                                        : (group.nameMm ?? ''),
+                                    group.name,
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -548,13 +539,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   final isRadio =
                                       group.groupType == 'SINGLE_SELECT' ||
                                       group.groupType == 'RADIO';
-                                  final optionName =
-                                      option.name.trim().isNotEmpty
-                                      ? option.name
-                                      : (option.nameMm ?? '');
-
                                   return _buildSelectionItem(
-                                    title: optionName,
+                                    title: option.name,
                                     price:
                                         '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
                                     isSelected: isSelected,
@@ -743,11 +729,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         duration: const Duration(milliseconds: 300),
                         opacity: _isScrolled ? 1.0 : 0.0,
                         child: Text(
-                          (() {
-                            final enName = _currentFood?.name ?? widget.title;
-                            final mmName = _currentFood?.nameMm ?? '';
-                            return enName.trim().isEmpty ? mmName : enName;
-                          })(),
+                          _currentFood?.name ?? widget.title,
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: 18,
@@ -906,7 +888,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         SnackBar(
                                           content: Text(
                                             context.trArgs('menu.select_option_for', {
-                                              'name': group.nameMm ?? group.name,
+                                              'name': group.name,
                                             }),
                                           ),
                                           backgroundColor: Colors.red,
@@ -1149,7 +1131,10 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                               ).showSnackBar(
                                                 SnackBar(
                                                   content: Text(
-                                                    'Failed: $retryErr',
+                                                    context.trArgs(
+                                                      'menu.failed_retry',
+                                                      {'error': '$retryErr'},
+                                                    ),
                                                   ),
                                                   backgroundColor: Colors.red,
                                                 ),

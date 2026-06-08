@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class RatingProgressBar extends StatelessWidget {
   final int starCount;
@@ -25,7 +26,7 @@ class RatingProgressBar extends StatelessWidget {
           SizedBox(
             width: 50,
             child: Text(
-              '$starCount stars',
+              context.trArgs('review.stars_count', {'count': '$starCount'}),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[800],

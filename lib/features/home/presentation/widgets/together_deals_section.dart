@@ -136,7 +136,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: 'Together ',
+                                  text: context.tr('home.together_prefix'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
@@ -147,7 +147,8 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                                   alignment: PlaceholderAlignment.baseline,
                                   baseline: TextBaseline.alphabetic,
                                   child: GradientText(
-                                    'Up to $maxPercent% Off ',
+                                    context.trArgs('home.up_to_off_pct',
+                                        {'percent': '$maxPercent'}),
                                     style: GoogleFonts.poppins(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
@@ -342,7 +343,7 @@ class _DealCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'No Image',
+                        context.tr('common.no_image'),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           color: Colors.grey.shade400,

@@ -1,3 +1,4 @@
+import '../../../../core/localization/locale_controller.dart';
 import 'news_dto.dart';
 import '../../../lost_and_found/data/models/item_post_dto.dart';
 
@@ -44,7 +45,8 @@ class NewsItem {
       id: dto.id.toString(),
       entityId: dto.id,
       source: FeedSource.news,
-      authorName: dto.createdByAdmin?.displayName ?? 'Together',
+      authorName: dto.createdByAdmin?.displayName ??
+          LocaleController.instance.tr('news.author_fallback'),
       authorAvatar: dto.createdByAdmin?.profileUrl ?? '',
       content: dto.feedContent,
       imageUrls: dto.imageUrls,

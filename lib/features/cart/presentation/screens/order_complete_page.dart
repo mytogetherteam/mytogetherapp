@@ -69,7 +69,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   @override
   Widget build(BuildContext context) {
     final state = ActiveOrderState.instance;
-    final storeName = state.restaurantName ?? state.storeName ?? context.tr('common.restaurant');
+    final storeName = state.displayShopName.isNotEmpty
+        ? state.displayShopName
+        : context.tr('common.restaurant');
     final total = state.totalAmount ?? 0.0;
     
     // In a real app we'd format actual Arrival time, mocked for now

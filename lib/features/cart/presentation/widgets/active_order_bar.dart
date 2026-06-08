@@ -236,9 +236,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.restaurantName ??
-                              order.storeName ??
-                              context.tr('common.restaurant'),
+                          order.displayShopName.isNotEmpty
+                              ? order.displayShopName
+                              : context.tr('common.restaurant'),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -297,7 +297,10 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         MaterialPageRoute(
           builder: (_) => OrderTrackingPage(
             store: CartStore(
-              name: order.storeName ?? '',
+              nameKey: order.shopNameEn ?? order.storeName ?? '',
+              nameEn: order.shopNameEn ?? order.storeName,
+              nameMm: order.shopNameMm,
+              nameTh: order.shopNameTh,
               items: order.orderItems,
             ),
             foodTotal: (order.totalAmount ?? 0).toInt(),

@@ -111,7 +111,7 @@ class _CartPageState extends State<CartPage> {
 
   Widget _buildStoreItem(CartStore store) {
     return Slidable(
-      key: Key(store.name),
+      key: Key(store.nameKey),
       endActionPane: ActionPane(
         motion: const ScrollMotion(),
         extentRatio: 0.25,
@@ -124,7 +124,7 @@ class _CartPageState extends State<CartPage> {
                   title: context.tr('cart.remove_shop'),
                   message: context.tr('cart.remove_shop_confirm'),
                   onConfirm: () async {
-                    await CartManager.instance.removeStore(store.name);
+                    await CartManager.instance.removeStore(store.nameKey);
                   },
                 ),
               );

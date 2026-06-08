@@ -69,7 +69,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
       future: _restaurantsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildSkeleton();
+          return _buildSkeleton(context);
         }
 
         final List<Restaurant> allRestaurants = snapshot.data ?? [];
@@ -168,14 +168,14 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
-            'MyTogether Restaurants',
+            context.tr('food.restaurants'),
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w700,
               fontSize: 18,

@@ -25,6 +25,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../chat/presentation/screens/chat_page.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -111,8 +112,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 orderId: order.orderId,
                 reason: order.cancelReason,
                 shopId: order.shopId,
-                shopName: order.shopName,
+                shopName: order.shopNameEn ?? order.shopName,
                 shopNameMm: order.shopNameMm,
+                shopNameTh: order.shopNameTh,
                 shopLogo: order.shopLogo,
                 shopImageUrl: order.shopImageUrl,
               ),
@@ -1485,6 +1487,34 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               ),
             ),
           ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatPage(
+                    peerName: order?.riderName ??
+                        context.tr('order_status.delivery_rider'),
+                    peerSubtitle: context.tr('order_status.delivery_rider'),
+                    fallbackIcon: Icons.delivery_dining_rounded,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const GradientIcon(
+                icon: PhosphorIconsFill.chatCircleText,
+                size: 22,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1528,7 +1558,7 @@ class _UploadText extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'or take a photo of your receipt',
+          context.tr('payment.or_take_photo'),
           style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
         ),
       ],

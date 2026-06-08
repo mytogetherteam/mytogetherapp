@@ -92,7 +92,7 @@ class _CollectionsSectionState extends State<CollectionsSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: collections.length,
                 itemBuilder: (context, index) =>
-                    _buildCollectionCard(collections[index]),
+                    _buildCollectionCard(context, collections[index]),
               ),
             ),
             const SizedBox(height: 24),
@@ -102,7 +102,7 @@ class _CollectionsSectionState extends State<CollectionsSection> {
     );
   }
 
-  Widget _buildCollectionCard(CollectionDto collection) {
+  Widget _buildCollectionCard(BuildContext context, CollectionDto collection) {
     final cover =
         collection.items.isNotEmpty ? _imageUrl(collection.items.first.imageUrl) : '';
 
@@ -162,7 +162,8 @@ class _CollectionsSectionState extends State<CollectionsSection> {
                           size: 13, color: Colors.white.withValues(alpha: 0.85)),
                       const SizedBox(width: 4),
                       Text(
-                        '${collection.itemCount} items',
+                        context.trArgs('collection.items_count',
+                            {'count': '${collection.itemCount}'}),
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.white.withValues(alpha: 0.85),

@@ -54,7 +54,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
       future: _restaurantsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildSkeleton();
+          return _buildSkeleton(context);
         }
 
         final List<Restaurant> brands = (snapshot.data ?? []).take(10).toList();
@@ -178,7 +178,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Container(
       width: double.infinity,
       color: const Color(0xFFFEF0F5),
@@ -192,7 +192,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Popular Restaurants',
+                  widget.title ?? context.tr('home.popular_restaurants'),
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 18,

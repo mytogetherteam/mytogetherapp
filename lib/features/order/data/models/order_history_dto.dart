@@ -34,13 +34,15 @@ class OrderHistoryDto {
   final String? lastOrderNo;
   final String status;
   final String? statusLabel;
-  final String? statusLabelMm;
   final bool ongoing;
   final String createdAt;
   final String? updatedAt;
   final double totalAmount;
   final String? displayTotalAmount;
-  final String? shopName;
+  final String? _shopName;
+  final String? shopNameEn;
+  final String? shopNameMm;
+  final String? shopNameTh;
   final String? shopImageUrl;
   final int? shopId;
   final List<OrderHistoryItemDto> items;
@@ -53,20 +55,40 @@ class OrderHistoryDto {
     this.lastOrderNo,
     required this.status,
     this.statusLabel,
-    this.statusLabelMm,
     required this.ongoing,
     required this.createdAt,
     this.updatedAt,
     required this.totalAmount,
     this.displayTotalAmount,
-    this.shopName,
+    String? shopName,
+    this.shopNameEn,
+    this.shopNameMm,
+    this.shopNameTh,
     this.shopImageUrl,
     this.shopId,
     required this.items,
     this.deliveryFee,
     this.displayDeliveryFee,
     this.orderReview,
-  });
+  }) : _shopName = shopName;
+
+  String? get shopName {
+    final value = LocaleController.instance.localizedOr(
+      _shopName ?? '',
+      en: shopNameEn ?? _shopName,
+      mm: shopNameMm,
+      th: shopNameTh,
+    );
+    return value.isEmpty ? null : value;
+  }
+
+  /// The backend only sends an English `statusLabel`, so localize from the
+  /// stable `status` enum and fall back to the English label.
+  String get displayStatusLabel =>
+      LocaleController.instance.localizedOrderStatus(
+        status,
+        fallback: statusLabel ?? status,
+      );
 
   String get dateDisplay {
     try {
@@ -79,14 +101,9 @@ class OrderHistoryDto {
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
     final shop = json['shop'] as Map<String, dynamic>?;
-    final localizedShopName = LocaleController.instance.localized(
-      en: json['shopName'] as String? ??
-          shop?['name'] as String? ??
-          shop?['nameEn'] as String?,
-      mm: json['shopNameMm'] as String? ?? shop?['nameMm'] as String?,
-      th: json['shopNameTh'] as String? ?? shop?['nameTh'] as String?,
-    );
-    final shopName = localizedShopName.isEmpty ? null : localizedShopName;
+    final shopNameEn = json['shopName'] as String? ??
+        shop?['name'] as String? ??
+        shop?['nameEn'] as String?;
     final shopImageUrl =
         json['shopImageUrl'] as String? ??
         json['imageUrl'] as String? ??
@@ -106,13 +123,15 @@ class OrderHistoryDto {
       lastOrderNo: json['lastOrderNo']?.toString(),
       status: status,
       statusLabel: json['statusLabel'] as String?,
-      statusLabelMm: json['statusLabelMm'] as String?,
       ongoing: ongoing,
       createdAt: json['createdAt'] as String? ?? '',
       updatedAt: json['updatedAt'] as String?,
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       displayTotalAmount: json['displayTotalAmount'] as String?,
-      shopName: shopName,
+      shopName: shopNameEn,
+      shopNameEn: shopNameEn,
+      shopNameMm: json['shopNameMm'] as String? ?? shop?['nameMm'] as String?,
+      shopNameTh: json['shopNameTh'] as String? ?? shop?['nameTh'] as String?,
       shopImageUrl: shopImageUrl,
       shopId: (json['shopId'] as int?) ?? (shop?['id'] as int?),
       items:
@@ -133,38 +152,50 @@ class OrderHistoryDto {
 
 class OrderHistoryItemDto {
   final int? menuItemId;
-  final String menuItemName;
+  final String _menuItemName;
+  final String? menuItemNameEn;
   final String? menuItemNameMm;
+  final String? menuItemNameTh;
   final String? menuItemImageUrl;
   final double price;
   final int quantity;
   final String? displayPrice;
 
+  String get menuItemName {
+    final value = LocaleController.instance.localizedOr(
+      _menuItemName,
+      en: menuItemNameEn ?? _menuItemName,
+      mm: menuItemNameMm,
+      th: menuItemNameTh,
+    );
+    return value.isEmpty ? 'Item' : value;
+  }
+
   OrderHistoryItemDto({
     this.menuItemId,
-    required this.menuItemName,
+    required String menuItemName,
+    this.menuItemNameEn,
     this.menuItemNameMm,
+    this.menuItemNameTh,
     this.menuItemImageUrl,
     required this.price,
     required this.quantity,
     this.displayPrice,
-  });
+  }) : _menuItemName = menuItemName;
 
   factory OrderHistoryItemDto.fromJson(Map<String, dynamic> json) {
     // New backend (mapUserOrderListItem) uses: nameEn / nameMm / imageUrl.
     // Legacy shape used: menuItemName / menuItemNameMm / menuItemImageUrl.
+    final menuItemNameEn = (json['menuItemName'] as String?) ??
+        (json['nameEn'] as String?);
     return OrderHistoryItemDto(
       menuItemId: json['menuItemId'] as int?,
-      menuItemName: () {
-        final name = LocaleController.instance.localized(
-          en: (json['menuItemName'] as String?) ?? (json['nameEn'] as String?),
-          mm: (json['menuItemNameMm'] as String?) ?? (json['nameMm'] as String?),
-          th: (json['menuItemNameTh'] as String?) ?? (json['nameTh'] as String?),
-        );
-        return name.isEmpty ? 'Item' : name;
-      }(),
+      menuItemName: menuItemNameEn ?? 'Item',
+      menuItemNameEn: menuItemNameEn,
       menuItemNameMm: (json['menuItemNameMm'] as String?) ??
           (json['nameMm'] as String?),
+      menuItemNameTh: (json['menuItemNameTh'] as String?) ??
+          (json['nameTh'] as String?),
       menuItemImageUrl: (json['menuItemImageUrl'] as String?) ??
           (json['imageUrl'] as String?),
       price: (json['price'] as num?)?.toDouble() ?? 0.0,

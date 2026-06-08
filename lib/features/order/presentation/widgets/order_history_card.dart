@@ -142,7 +142,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
         ),
         Text(
-          widget.order.statusLabel ?? widget.order.status,
+          widget.order.displayStatusLabel,
           style: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -177,7 +177,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             Row(
               children: [
                 Text(
-                  '${widget.order.items.length} Items ',
+                  '${context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'})} ',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[600],

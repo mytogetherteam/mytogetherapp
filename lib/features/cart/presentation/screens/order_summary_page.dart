@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -222,7 +223,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       builder: (context, _) {
         // Find store in current state to ensure reactivity
         final currentStoreIdx = CartManager.instance.stores.indexWhere(
-          (s) => s.name == widget.store.name,
+          (s) => s.nameKey == widget.store.nameKey,
         );
 
         // Show empty state if store not found or items empty (unless we are performing an action)
@@ -254,7 +255,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             : widget.store;
 
         final totalStorePrice = (currentStoreIdx != -1)
-            ? CartManager.instance.getStoreTotal(currentStore.name)
+            ? CartManager.instance.getStoreTotal(currentStore.nameKey)
             : widget.store.items
                   .fold<double>(
                     0,
@@ -736,10 +737,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   final nav = Navigator.of(context);
 
                                   final foodTotal = CartManager.instance
-                                      .getStoreTotal(widget.store.name);
+                                      .getStoreTotal(widget.store.nameKey);
                                   final storeItems = CartManager.instance.stores
                                       .firstWhere(
-                                        (s) => s.name == widget.store.name,
+                                        (s) => s.nameKey == widget.store.nameKey,
                                         orElse: () => widget.store,
                                       )
                                       .items;
@@ -924,7 +925,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
                                     // 4. Clear cart for this store (via API sync)
                                     await CartManager.instance.removeStore(
-                                      widget.store.name,
+                                      widget.store.nameKey,
                                     );
 
                                     // Start WebSocket tracking immediately upon successful order creation
@@ -951,7 +952,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         errorMsg =
                                             e.response?.data?.toString() ??
                                             e.message ??
-                                            'Unknown DioError';
+                                            LocaleController.instance
+                                                .tr('cart.unknown_error');
                                       }
                                       if (!context.mounted) return;
                                       ScaffoldMessenger.of(
@@ -959,7 +961,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Failed to place order: $errorMsg',
+                                            LocaleController.instance.trArgs(
+                                              'cart.place_order_failed',
+                                              {'error': errorMsg},
+                                            ),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -1444,9 +1449,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           top: 0,
                         ), // Align text baseline/top with image
                         child: Text(
-                          item.title.trim().isNotEmpty
-                              ? item.title
-                              : (item.nameMm ?? ''),
+                          item.title,
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -1461,8 +1464,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           context: context,
                           child: ConfirmRemoveModal(
                             title: context.tr('cart.remove_item'),
-                            message:
-                                'Are you sure you want to remove ${item.title} from your order?',
+                            message: context.trArgs('cart.remove_item_confirm',
+                                {'name': item.title}),
                             onConfirm: () async {
                               await CartManager.instance.updateItemQuantity(
                                 storeName,
@@ -1624,8 +1627,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     context: context,
                                     child: ConfirmRemoveModal(
                                       title: context.tr('cart.remove_item'),
-                                      message:
-                                          'Are you sure you want to remove ${item.title} from your order?',
+                                      message: context.trArgs(
+                                          'cart.remove_item_confirm',
+                                          {'name': item.title}),
                                       onConfirm: () async {
                                         await CartManager.instance
                                             .updateItemQuantity(

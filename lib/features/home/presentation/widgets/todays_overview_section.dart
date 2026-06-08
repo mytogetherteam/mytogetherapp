@@ -123,7 +123,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
       future: _menuItemsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { // Modified condition
-          return _buildSkeleton();
+          return _buildSkeleton(context);
         }
 
         // No bundled mock data: hide the section when the API errors or
@@ -136,13 +136,14 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
 
         final displayItems = snapshot.data!.take(10).toList();
 
-        return _buildContent(context, displayItems, widget.title ?? 'Trending Near By');
+        return _buildContent(
+            context, displayItems, widget.title ?? context.tr('home.trending_nearby'));
       },
     );
   }
 
   // --- Skeleton ---
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -152,7 +153,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Trending Near By',
+                context.tr('home.trending_nearby'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,

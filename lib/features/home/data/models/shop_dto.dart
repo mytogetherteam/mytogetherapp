@@ -231,7 +231,7 @@ class ShopListItemDto {
     if (raw == null) return null;
     final num? fee = num.tryParse(raw.toString());
     if (fee == null) return raw.toString();
-    if (fee == 0) return 'Free';
+    if (fee == 0) return LocaleController.instance.tr('common.free');
     return '฿${fee.toStringAsFixed(0)}';
   }
 
@@ -512,14 +512,18 @@ class OperatingHourDto {
   }
 
   String get displayTime {
-    if (isClosed) return 'Closed';
-    if (openingTime == null || closingTime == null) return 'N/A';
+    if (isClosed) return LocaleController.instance.tr('common.closed');
+    if (openingTime == null || closingTime == null) {
+      return LocaleController.instance.tr('common.na');
+    }
     return '${openingTime!.format} - ${closingTime!.format}';
   }
 
   String get displayTime24h {
-    if (isClosed) return 'Closed';
-    if (openingTime == null || closingTime == null) return 'N/A';
+    if (isClosed) return LocaleController.instance.tr('common.closed');
+    if (openingTime == null || closingTime == null) {
+      return LocaleController.instance.tr('common.na');
+    }
     return '${openingTime!.format24h} - ${closingTime!.format24h}';
   }
 }

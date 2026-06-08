@@ -367,12 +367,14 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         builder: (context) => RestaurantDetailPage(
           id: s.id.toString(),
           name: s.name,
-          category: s.category ?? 'Restaurant',
+          category: s.category ?? context.tr('common.restaurant'),
           rating: s.rating,
-          distance: '${s.distance.toStringAsFixed(1)} km',
+          distance: context.trArgs('food.distance_km',
+              {'distance': s.distance.toStringAsFixed(1)}),
           imagePath: _imageUrl(s.coverUrl ?? s.primaryPhotoUrl ?? s.logoUrl),
           logoPath: _imageUrl(s.logoUrl),
-          deliveryTime: s.estimatedTime ?? '20-30 mins',
+          deliveryTime:
+              s.estimatedTime ?? context.tr('food.default_delivery_time'),
           status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
           isFavorite: s.isFavorite,
         ),
@@ -1309,7 +1311,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${shop.rating.toStringAsFixed(1)} · ${shop.distance.toStringAsFixed(1)} km',
+                              '${shop.rating.toStringAsFixed(1)} · ${context.trArgs('food.distance_km', {'distance': shop.distance.toStringAsFixed(1)})}',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.grey[600],

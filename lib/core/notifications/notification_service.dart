@@ -307,7 +307,13 @@ class NotificationService {
         if (s == 0) {
           App.navigatorKey.currentState?.push(MaterialPageRoute(
             builder: (_) => OrderTrackingPage(
-              store: CartStore(name: state.storeName ?? '', items: state.orderItems),
+              store: CartStore(
+                nameKey: state.shopNameEn ?? state.storeName ?? '',
+                nameEn: state.shopNameEn ?? state.storeName,
+                nameMm: state.shopNameMm,
+                nameTh: state.shopNameTh,
+                items: state.orderItems,
+              ),
               foodTotal: (state.totalAmount ?? 0).toInt(),
             ),
           ));

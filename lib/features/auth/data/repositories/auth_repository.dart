@@ -3,6 +3,7 @@ import '../auth_remote_data_source.dart';
 import '../models/auth_models.dart';
 import '../models/user_location_model.dart';
 import '../../../../core/auth/auth_service.dart';
+import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
@@ -160,14 +161,14 @@ class AuthRepository {
     final text = details?.isNotEmpty == true ? details : message;
 
     if (statusCode == 401 || statusCode == 400) {
-      return text ?? 'Invalid username or password.';
+      return text ?? LocaleController.instance.tr('auth.invalid_credentials');
     }
     if (statusCode == 409) {
-      return text ?? 'Username or email already exists.';
+      return text ?? LocaleController.instance.tr('auth.username_exists');
     }
     if (statusCode == 429) {
-      return 'Too many attempts. Please try again later.';
+      return LocaleController.instance.tr('auth.too_many_attempts');
     }
-    return text ?? 'Unable to connect to server. Please check your connection.';
+    return text ?? LocaleController.instance.tr('auth.connection_failed');
   }
 }

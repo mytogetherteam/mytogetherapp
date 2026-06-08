@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -33,7 +34,9 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          _isConfirmed ? 'Order Confirmed' : 'Waiting for Order Confirmation',
+          _isConfirmed
+              ? context.tr('order_confirm.title_confirmed')
+              : context.tr('order_confirm.title_waiting'),
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -43,7 +46,6 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
         ),
         const SizedBox(height: 32),
         const SizedBox(height: 24),
-        // Loading indicator
         if (!_isConfirmed) ...[
           const CustomLoadingIndicator(size: 24),
           const SizedBox(height: 24),
@@ -52,8 +54,8 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
           duration: const Duration(milliseconds: 300),
           child: Text(
             _isConfirmed
-                ? 'Your order is confirmed, and the restaurant\n will prepare your food.'
-                : 'Your order is awaiting confirmation from the restaurant. You\'ll be notified once your order is confirmed',
+                ? context.tr('order_confirm.body_confirmed')
+                : context.tr('order_confirm.body_waiting'),
             key: ValueKey<bool>(_isConfirmed),
             style: GoogleFonts.poppins(
               fontSize: 13,
@@ -64,7 +66,6 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
           ),
         ),
         const SizedBox(height: 32),
-        // Primary Button
         PrimaryGradientButton(
           onPressed: () {
             if (_isConfirmed) {
@@ -77,10 +78,11 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                    const Icon(Icons.chat_bubble_outline,
+                        color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Chat with Restaurant',
+                      context.tr('order_confirm.chat'),
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -90,7 +92,7 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
                   ],
                 )
               : Text(
-                  'Continue Order',
+                  context.tr('order_confirm.continue'),
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -99,21 +101,20 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
                 ),
         ),
         const SizedBox(height: 16),
-        // Check Order Status Button
         SizedBox(
           width: double.infinity,
           height: 52,
           child: OutlinedButton(
             onPressed: () {},
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.grey[600], // Changes text & ripple overlay color to gray
+              foregroundColor: Colors.grey[600],
               side: const BorderSide(color: Colors.black87, width: 1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: Text(
-              'Check Order Status',
+              context.tr('order_confirm.check_status'),
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -122,8 +123,6 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
             ),
           ),
         ),
-        
-        // Footer Text
         AnimatedSize(
           duration: const Duration(milliseconds: 300),
           child: _isConfirmed
@@ -132,16 +131,16 @@ class _OrderConfirmedModalState extends State<OrderConfirmedModal> {
                   child: RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      text: 'You can continue next order ',
+                      text: context.tr('order_confirm.footer_prefix'),
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: Colors.grey[500],
                       ),
                       children: [
                         TextSpan(
-                          text: 'here.',
+                          text: context.tr('order_confirm.footer_link'),
                           style: GoogleFonts.poppins(
-                            color: AppColors.primary, // Primary color as requested
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
                           ),

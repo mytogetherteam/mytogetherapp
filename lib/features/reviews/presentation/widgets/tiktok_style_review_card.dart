@@ -4,6 +4,7 @@ import '../../data/models/review_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 
 class TiktokStyleReviewCard extends StatefulWidget {
@@ -126,7 +127,7 @@ class _TiktokStyleReviewCardState extends State<TiktokStyleReviewCard> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: GradientText(
-                            'Show more',
+                            context.tr('review.show_more'),
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

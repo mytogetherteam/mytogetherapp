@@ -506,7 +506,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                         ),
                       )
                     : Text(
-                        'အကောင့်ဖျက်မည် • Delete My Account',
+                        context.tr('delete.confirm_button'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -527,7 +527,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                   ),
                 ),
                 child: Text(
-                  'မဖျက်ပါ • Cancel',
+                  context.tr('common.cancel'),
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,

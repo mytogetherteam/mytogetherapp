@@ -114,7 +114,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               ListTile(
                 leading: const Icon(PhosphorIcons.warningCircle, color: Colors.orange),
                 title: Text(
-                  'Report Post',
+                  context.tr('news.report_post'),
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
                 ),
                 onTap: () {
@@ -125,7 +125,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               ListTile(
                 leading: const Icon(PhosphorIcons.prohibit, color: Colors.red),
                 title: Text(
-                  'Block User',
+                  context.tr('news.block_user'),
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
                 ),
                 onTap: () {
@@ -145,26 +145,26 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Report Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
-        content: Text('Are you sure you want to report this post? Our team will review it within 24 hours.', style: GoogleFonts.poppins(fontSize: 14)),
+        title: Text(context.tr('news.report_post'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Text(context.tr('news.report_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Post reported successfully.', style: GoogleFonts.poppins(color: Colors.white)),
+                  content: Text(context.tr('news.reported_success'), style: GoogleFonts.poppins(color: Colors.white)),
                   backgroundColor: AppColors.primary,
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            child: Text('Report', style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.report_action'), style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -175,13 +175,13 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Block User', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
-        content: Text('Are you sure you want to block this user? You will no longer see their posts.', style: GoogleFonts.poppins(fontSize: 14)),
+        title: Text(context.tr('news.block_user'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+        content: Text(context.tr('news.block_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () {
@@ -191,13 +191,13 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('User blocked.', style: GoogleFonts.poppins(color: Colors.white)),
+                  content: Text(context.tr('news.blocked_success'), style: GoogleFonts.poppins(color: Colors.white)),
                   backgroundColor: Colors.grey[800],
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            child: Text('Block', style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.block_action'), style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

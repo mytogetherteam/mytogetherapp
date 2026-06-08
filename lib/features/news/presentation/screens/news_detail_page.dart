@@ -245,10 +245,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       _comments.insert(
         0,
         NewsComment(
-          authorName: 'You',
+          authorName: context.tr('news.you'),
           authorAvatar: 'https://i.pravatar.cc/150?u=you',
           content: text,
-          timeAgo: 'Just now',
+          timeAgo: context.tr('common.just_now'),
         ),
       );
     });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 class ReviewSuccessBottomSheet {
@@ -27,7 +28,7 @@ class ReviewSuccessBottomSheet {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Review Submitted',
+                    context.tr('review.submitted_title'),
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -50,7 +51,7 @@ class ReviewSuccessBottomSheet {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Thanks for your feedback!\nYour feedback helps us do better',
+                    context.tr('review.thanks_feedback'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
@@ -67,7 +68,7 @@ class ReviewSuccessBottomSheet {
                       Navigator.of(context).pop(true);
                     },
                     child: Text(
-                      'Back',
+                      context.tr('common.back'),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 16,

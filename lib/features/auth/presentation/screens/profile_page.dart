@@ -6,8 +6,7 @@ import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.da
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/delete_account_page.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/account_settings_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
@@ -102,12 +101,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
             // Profile Options
             _buildOptionTile(
-              icon: PhosphorIcons.userCircle,
-              title: context.tr('profile.edit_profile'),
+              icon: PhosphorIcons.gearSix,
+              title: context.tr('profile.account_settings'),
+              subtitle: context.tr('profile.account_settings_sub'),
               onTap: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  MaterialPageRoute(builder: (_) => const AccountSettingsPage()),
                 );
                 if (mounted) setState(() {});
               },
@@ -127,11 +127,6 @@ class _ProfilePageState extends State<ProfilePage> {
               onTap: () => AppDialog.showUnavailable(context),
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.bell,
-              title: context.tr('profile.notifications'),
-              onTap: () => AppDialog.showUnavailable(context),
-            ),
-            _buildOptionTile(
               icon: PhosphorIcons.translate,
               title: context.tr('profile.language'),
               subtitle: LocaleController.instance.language.nativeName,
@@ -144,11 +139,6 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             _buildOptionTile(
-              icon: PhosphorIcons.shieldCheck,
-              title: context.tr('profile.security'),
-              onTap: () => AppDialog.showUnavailable(context),
-            ),
-            _buildOptionTile(
               icon: PhosphorIcons.question,
               title: context.tr('profile.help_center'),
               subtitle: context.tr('profile.help_center_sub'),
@@ -158,52 +148,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             
-            const SizedBox(height: 8),
-            // Delete Account tile (danger)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DeleteAccountPage()),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade100),
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                      PhosphorIcons.trashFill,
-                      color: Colors.red.shade500,
-                      size: 22,
-                    ),
-                    title: Text(
-                      context.tr('profile.delete_account'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red.shade600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      context.tr('profile.delete_account_sub'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.red.shade400,
-                      ),
-                    ),
-                    trailing: Icon(
-                      PhosphorIcons.caretRight,
-                      size: 18,
-                      color: Colors.red.shade400,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
             const SizedBox(height: 20),
 
             // Logout Button

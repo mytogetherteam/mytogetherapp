@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/localization/locale_controller.dart';
 import 'cart_repository.dart';
 import 'models/cart_dto.dart';
 
@@ -8,8 +9,10 @@ class CartItem {
   final String id;
   final int menuItemId;
   final String restaurantId;
-  final String title;
-  final String? nameMm;
+  final String titleKey;
+  final String? titleEn;
+  final String? titleMm;
+  final String? titleTh;
   final double price; // Using double for precision
   final double total; // Total for this item (price * quantity + options)
   final String imagePath;
@@ -19,47 +22,91 @@ class CartItem {
   final List<int>? optionIds;
   final String? specialInstructions;
   final int? variantId;
-  final String? variantName;
+  final String? variantNameKey;
+  final String? variantNameEn;
   final String? variantNameMm;
+  final String? variantNameTh;
+
+  String get title => LocaleController.instance.localizedOr(
+        titleKey,
+        en: titleEn ?? titleKey,
+        mm: titleMm,
+        th: titleTh,
+      );
+
+  String? get variantName {
+    if (variantNameKey == null &&
+        variantNameEn == null &&
+        variantNameMm == null &&
+        variantNameTh == null) {
+      return null;
+    }
+    final value = LocaleController.instance.localizedOr(
+      variantNameKey ?? '',
+      en: variantNameEn ?? variantNameKey,
+      mm: variantNameMm,
+      th: variantNameTh,
+    );
+    return value.isEmpty ? null : value;
+  }
 
   CartItem({
     required this.id,
     required this.menuItemId,
     required this.restaurantId,
-    required this.title,
+    required this.titleKey,
+    this.titleEn,
+    this.titleMm,
+    this.titleTh,
     required this.price,
     required this.total,
     required this.imagePath,
-    this.nameMm,
     this.imageUrl,
     this.quantity = 1,
     this.options,
     this.optionIds,
     this.specialInstructions,
     this.variantId,
-    this.variantName,
+    this.variantNameKey,
+    this.variantNameEn,
     this.variantNameMm,
+    this.variantNameTh,
   });
 
   int get priceValue => price.round();
 }
 
 class CartStore {
-  final String name;
+  final int? shopId;
+  final String nameKey;
+  final String? nameEn;
+  final String? nameMm;
+  final String? nameTh;
   final List<CartItem> items;
   final double total;
   final String distance;
   final String time;
 
+  String get name => LocaleController.instance.localizedOr(
+        nameKey,
+        en: nameEn ?? nameKey,
+        mm: nameMm,
+        th: nameTh,
+      );
+
   CartStore({
-    required this.name,
+    this.shopId,
+    required this.nameKey,
+    this.nameEn,
+    this.nameMm,
+    this.nameTh,
     required this.items,
     this.total = 0,
     this.distance = '2 km',
     this.time = '20 Mins',
   });
 
-  bool get isClosed => name == 'Lotteria' || name == 'Ice Berry'; // Mock data
+  bool get isClosed => nameKey == 'Lotteria' || nameKey == 'Ice Berry'; // Mock data
 }
 
 class CartManager extends ChangeNotifier {
@@ -133,16 +180,32 @@ class CartManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  int _indexForStore(String storeKey, {int? shopId}) {
+    if (shopId != null) {
+      final byId = _stores.indexWhere((s) => s.shopId == shopId);
+      if (byId != -1) return byId;
+    }
+    return _stores.indexWhere(
+      (s) => s.nameKey == storeKey || s.name == storeKey,
+    );
+  }
+
   CartStore _mapDtoToStore(CartDto cart) {
     return CartStore(
-      name: cart.shopName ?? 'Unknown Store',
+      shopId: cart.shopId,
+      nameKey: cart.shopNameKey.isNotEmpty ? cart.shopNameKey : 'Unknown Store',
+      nameEn: cart.shopNameEn,
+      nameMm: cart.shopNameMm,
+      nameTh: cart.shopNameTh,
       total: cart.total,
       items: cart.items.map((item) => CartItem(
         id: item.id.toString(),
         menuItemId: item.menuItemId,
         restaurantId: cart.shopId?.toString() ?? '0',
-        title: item.name,
-        nameMm: item.nameMm,
+        titleKey: item.nameKey,
+        titleEn: item.nameEn,
+        titleMm: item.nameMm,
+        titleTh: item.nameTh,
         price: item.price,
         total: item.total,
         imagePath: item.imageUrl ?? '',
@@ -152,15 +215,17 @@ class CartManager extends ChangeNotifier {
         optionIds: item.optionIds,
         specialInstructions: item.specialInstructions,
         variantId: item.variantId,
-        variantName: item.variantName,
+        variantNameKey: item.variantNameKey,
+        variantNameEn: item.variantNameEn,
         variantNameMm: item.variantNameMm,
+        variantNameTh: item.variantNameTh,
       )).toList(),
     );
   }
 
   /// Updates the local state from a single shop's CartDto
   void updateCartFromDto(CartDto dto) {
-    final existingIndex = _stores.indexWhere((s) => s.name == dto.shopName);
+    final existingIndex = _indexForStore(dto.shopNameKey, shopId: dto.shopId);
     if (existingIndex != -1) {
       _stores[existingIndex] = _mapDtoToStore(dto);
     } else {
@@ -181,7 +246,7 @@ class CartManager extends ChangeNotifier {
 
   int getStoreItemCount(String storeName) {
     int count = 0;
-    int index = _stores.indexWhere((s) => s.name == storeName);
+    int index = _indexForStore(storeName);
     if (index != -1) {
       for (var item in _stores[index].items) {
         count += item.quantity;
@@ -227,7 +292,7 @@ class CartManager extends ChangeNotifier {
     if (cartItemId == null) return null;
 
     // --- Optimistic UI Update ---
-    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    final storeIndex = _indexForStore(storeName);
     if (storeIndex != -1) {
       final store = _stores[storeIndex];
       final itemIndex = store.items.indexWhere((i) => i.id == itemId);
@@ -238,7 +303,11 @@ class CartManager extends ChangeNotifier {
             _stores.removeAt(storeIndex);
           } else {
             _stores[storeIndex] = CartStore(
-               name: store.name,
+               shopId: store.shopId,
+               nameKey: store.nameKey,
+               nameEn: store.nameEn,
+               nameMm: store.nameMm,
+               nameTh: store.nameTh,
                distance: store.distance,
                time: store.time,
                items: updatedItems,
@@ -252,22 +321,30 @@ class CartManager extends ChangeNotifier {
             id: oldItem.id,
             menuItemId: oldItem.menuItemId,
             restaurantId: oldItem.restaurantId,
-            title: oldItem.title,
+            titleKey: oldItem.titleKey,
+            titleEn: oldItem.titleEn,
+            titleMm: oldItem.titleMm,
+            titleTh: oldItem.titleTh,
             price: oldItem.price, 
             total: (oldItem.total / oldItem.quantity) * newQuantity, // Scale total with quantity
             imagePath: oldItem.imagePath,
-            nameMm: oldItem.nameMm,
             imageUrl: oldItem.imageUrl,
             quantity: newQuantity,
             options: options ?? oldItem.options, 
             optionIds: optionIds ?? oldItem.optionIds, 
             specialInstructions: specialInstructions ?? oldItem.specialInstructions, 
             variantId: variantId ?? oldItem.variantId, 
-            variantName: variantName ?? oldItem.variantName, 
-            variantNameMm: variantNameMm ?? oldItem.variantNameMm, 
+            variantNameKey: variantName ?? oldItem.variantNameKey,
+            variantNameEn: variantName ?? oldItem.variantNameEn,
+            variantNameMm: variantNameMm ?? oldItem.variantNameMm,
+            variantNameTh: oldItem.variantNameTh,
           );
           _stores[storeIndex] = CartStore(
-            name: store.name,
+            shopId: store.shopId,
+            nameKey: store.nameKey,
+            nameEn: store.nameEn,
+            nameMm: store.nameMm,
+            nameTh: store.nameTh,
             distance: store.distance,
             time: store.time,
             items: updatedItems,
@@ -300,7 +377,8 @@ class CartManager extends ChangeNotifier {
         await invalidateCache();
       } else if (wasDeleted) {
         // API returned null on delete = success, cart is perfectly empty!
-        _stores.removeWhere((s) => s.name == storeName);
+        final deletedIndex = _indexForStore(storeName);
+        if (deletedIndex != -1) _stores.removeAt(deletedIndex);
         notifyListeners();
         await invalidateCache();
       }
@@ -315,7 +393,7 @@ class CartManager extends ChangeNotifier {
 
   int getStoreTotal(String storeName) {
     int total = 0;
-    int storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    int storeIndex = _indexForStore(storeName);
     if (storeIndex != -1) {
       for (var item in _stores[storeIndex].items) {
         total += item.total.round();
@@ -325,7 +403,7 @@ class CartManager extends ChangeNotifier {
   }
 
   Future<void> removeStore(String storeName) async {
-    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    final storeIndex = _indexForStore(storeName);
     if (storeIndex == -1) return;
 
     final itemsToRemove = List<CartItem>.from(_stores[storeIndex].items);
@@ -382,7 +460,7 @@ class CartManager extends ChangeNotifier {
 
   /// Helper to check if a specific menu item is in a specific store's cart
   CartItem? findItem(String storeName, int menuItemId) {
-    final storeIndex = _stores.indexWhere((s) => s.name == storeName);
+    final storeIndex = _indexForStore(storeName);
     if (storeIndex != -1) {
       for (var item in _stores[storeIndex].items) {
         if (item.menuItemId == menuItemId) return item;

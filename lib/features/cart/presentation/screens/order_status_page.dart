@@ -23,6 +23,7 @@ import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../chat/presentation/screens/chat_page.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -120,8 +121,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     orderId: state.orderId ?? "",
                     reason: state.cancelReason,
                     shopId: state.shopId,
-                    shopName: state.shopName,
+                    shopName: state.shopNameEn ?? state.shopName,
                     shopNameMm: state.shopNameMm,
+                    shopNameTh: state.shopNameTh,
                     shopLogo: state.shopLogo,
                     shopImageUrl: state.shopImageUrl,
                   ),
@@ -410,7 +412,9 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     final state = ActiveOrderState.instance;
-    final storeName = state.restaurantName ?? state.storeName ?? context.tr('common.restaurant');
+    final storeName = state.displayShopName.isNotEmpty
+        ? state.displayShopName
+        : context.tr('common.restaurant');
     final total = widget.foodTotal + widget.deliveryFee;
 
     return Scaffold(
@@ -639,7 +643,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           )
                         else
                           Text(
-                            '$storeName is ${_currentStatus == 1 ? "checking your payment" : _currentStatus == 2 ? "preparing your order" : _currentStatus == 3 ? "delivering your order" : "completing your order"}',
+                            _statusDescription(context, storeName),
                             style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
                           ),
                         const SizedBox(height: 16),
@@ -677,7 +681,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                             ),
                             _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
                             const SizedBox(width: 6),
-                            _buildSmallCircleButton(PhosphorIcons.chatCircleTextFill),
+                            _buildSmallCircleButton(
+                              PhosphorIcons.chatCircleTextFill,
+                              onTap: () => _openChat(
+                                name: storeName,
+                                subtitle: context.tr('common.restaurant'),
+                                avatarUrl: state.logoPath,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -1061,8 +1072,18 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                             ],
                           ),
                         ),
-                        if (state.riderPhone != null)
+                        if (state.riderPhone != null) ...[
                           _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
+                          const SizedBox(width: 6),
+                        ],
+                        _buildSmallCircleButton(
+                          PhosphorIcons.chatCircleTextFill,
+                          onTap: () => _openChat(
+                            name: state.riderName,
+                            subtitle: context.tr('order_status.delivery_rider'),
+                            fallbackIcon: Icons.delivery_dining_rounded,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1239,14 +1260,39 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
 
-  Widget _buildSmallCircleButton(IconData icon) {
-    return Container(
+  Widget _buildSmallCircleButton(IconData icon, {VoidCallback? onTap}) {
+    final button = Container(
       padding: const EdgeInsets.all(8),
        decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: GradientIcon(icon: icon, size: 18),
+    );
+
+    if (onTap == null) return button;
+    return GestureDetector(onTap: onTap, child: button);
+  }
+
+  void _openChat({
+    required String? name,
+    required String subtitle,
+    String? avatarUrl,
+    IconData fallbackIcon = Icons.storefront_rounded,
+  }) {
+    final peerName = (name == null || name.trim().isEmpty)
+        ? subtitle
+        : name;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          peerName: peerName,
+          peerSubtitle: subtitle,
+          avatarUrl: avatarUrl,
+          fallbackIcon: fallbackIcon,
+        ),
+      ),
     );
   }
 
@@ -1284,6 +1330,16 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         ),
       ],
     );
+  }
+
+  String _statusDescription(BuildContext context, String storeName) {
+    final key = switch (_currentStatus) {
+      1 => 'order_status.checking_payment_shop',
+      2 => 'order_status.preparing_shop',
+      3 => 'order_status.delivering_shop',
+      _ => 'order_status.completing_shop',
+    };
+    return context.trArgs(key, {'shop': storeName});
   }
 }
 

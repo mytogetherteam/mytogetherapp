@@ -71,7 +71,7 @@ class _LoginPageState extends State<LoginPage>
       } else {
         AppDialog.showToast(
           context,
-          'Phone number is not registered. Please register first.',
+          context.tr('auth.phone_not_registered'),
           isError: true,
         );
       }
@@ -157,7 +157,7 @@ class _LoginPageState extends State<LoginPage>
                           const SizedBox(height: 8),
                           _buildTextField(
                             controller: _phoneController,
-                            hint: 'xxxxxxxxx',
+                            hint: context.tr('auth.phone_hint'),
                             prefixWidget: Padding(
                               padding: const EdgeInsets.only(left: 16, right: 8),
                               child: Row(
@@ -187,7 +187,7 @@ class _LoginPageState extends State<LoginPage>
                               }
                               final cleanPhone = v.replaceAll(' ', '');
                               if (!RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
-                                return 'Invalid Thai phone number';
+                                return context.tr('auth.invalid_thai_phone');
                               }
                               return null;
                             },

@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/websocket_service.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:convert';
+import '../../../core/localization/locale_controller.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -17,6 +18,7 @@ class ActiveOrderItem {
   String? restaurantId;
   String? statusLabel;
   String? statusLabelMm;
+  String? statusLabelTh;
   int orderStatus; // 0: Awaiting Confirmation, etc.
   double? totalAmount;
   String? paymentMethod;
@@ -31,7 +33,9 @@ class ActiveOrderItem {
   // Refined shop details from WS
   String? shopId;
   String? shopName;
+  String? shopNameEn;
   String? shopNameMm;
+  String? shopNameTh;
   String? shopLogo;
   String? shopImageUrl;
   
@@ -71,6 +75,7 @@ class ActiveOrderItem {
     this.restaurantId,
     this.statusLabel,
     this.statusLabelMm,
+    this.statusLabelTh,
     this.orderStatus = 0,
     this.totalAmount,
     this.paymentMethod,
@@ -103,12 +108,25 @@ class ActiveOrderItem {
     this.riderVehicleNumber,
     this.shopId,
     this.shopName,
+    this.shopNameEn,
     this.shopNameMm,
+    this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
   });
+
+  String get displayShopName {
+    final value = LocaleController.instance.localized(
+      en: shopNameEn ?? shopName ?? storeName ?? restaurantName,
+      mm: shopNameMm,
+      th: shopNameTh,
+    );
+    return value.isEmpty
+        ? (storeName ?? restaurantName ?? shopName ?? '')
+        : value;
+  }
 
   Map<String, dynamic> toJson() => {
     'orderId': orderId,
@@ -119,6 +137,7 @@ class ActiveOrderItem {
     'restaurantId': restaurantId,
     'statusLabel': statusLabel,
     'statusLabelMm': statusLabelMm,
+    'statusLabelTh': statusLabelTh,
     'orderStatus': orderStatus,
     'totalAmount': totalAmount,
     'paymentMethod': paymentMethod,
@@ -147,7 +166,9 @@ class ActiveOrderItem {
     'idleSolidProgress': idleSolidProgress,
     'shopId': shopId,
     'shopName': shopName,
+    'shopNameEn': shopNameEn,
     'shopNameMm': shopNameMm,
+    'shopNameTh': shopNameTh,
     'shopLogo': shopLogo,
     'shopImageUrl': shopImageUrl,
     'paymentMethodId': paymentMethodId,
@@ -163,6 +184,7 @@ class ActiveOrderItem {
     restaurantId: json['restaurantId'],
     statusLabel: json['statusLabel'],
     statusLabelMm: json['statusLabelMm'],
+    statusLabelTh: json['statusLabelTh'],
     orderStatus: json['orderStatus'] ?? 0,
     totalAmount: json['totalAmount'],
     paymentMethod: json['paymentMethod'],
@@ -193,7 +215,9 @@ class ActiveOrderItem {
     idleSolidProgress: json['idleSolidProgress'],
     shopId: json['shopId'],
     shopName: json['shopName'],
+    shopNameEn: json['shopNameEn'],
     shopNameMm: json['shopNameMm'],
+    shopNameTh: json['shopNameTh'],
     shopLogo: json['shopLogo'],
     shopImageUrl: json['shopImageUrl'],
     paymentMethodId: json['paymentMethodId'],
@@ -302,7 +326,10 @@ class ActiveOrderState extends ChangeNotifier {
   // Refined shop details getters
   String? get shopId => _primary?.shopId;
   String? get shopName => _primary?.shopName;
+  String? get shopNameEn => _primary?.shopNameEn;
   String? get shopNameMm => _primary?.shopNameMm;
+  String? get shopNameTh => _primary?.shopNameTh;
+  String get displayShopName => _primary?.displayShopName ?? '';
   String? get shopLogo => _primary?.shopLogo;
   String? get shopImageUrl => _primary?.shopImageUrl;
 
@@ -469,9 +496,14 @@ class ActiveOrderState extends ChangeNotifier {
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
 
-    if (data['shopName'] != null) {
-      item.restaurantName = _parseSafeString(data['shopName']);
-      item.storeName = _parseSafeString(data['shopName']);
+    final parsedShopNameEn = _parseSafeString(
+      data['shopNameEn'] ?? data['shopName'],
+    );
+    if (parsedShopNameEn != null) {
+      item.shopNameEn = parsedShopNameEn;
+      item.shopName = parsedShopNameEn;
+      item.restaurantName = parsedShopNameEn;
+      item.storeName = parsedShopNameEn;
     }
     
     if (data['deliveryType'] != null) {
@@ -480,6 +512,7 @@ class ActiveOrderState extends ChangeNotifier {
 
     if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);
     if (data['statusLabelMm'] != null) item.statusLabelMm = _parseSafeString(data['statusLabelMm']);
+    if (data['statusLabelTh'] != null) item.statusLabelTh = _parseSafeString(data['statusLabelTh']);
     
     if (data['paymentMethod'] != null) {
       if (data['paymentMethod'] is String) {
@@ -516,9 +549,17 @@ class ActiveOrderState extends ChangeNotifier {
 
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
+    if (data['shopNameEn'] != null) {
+      item.shopNameEn = _parseSafeString(data['shopNameEn']);
+    } else if (data['shopName'] != null) {
+      item.shopNameEn = _parseSafeString(data['shopName']);
+    }
     if (data['shopName'] != null) item.shopName = _parseSafeString(data['shopName']);
     if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
       item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
+    }
+    if (data['shopNameTh'] != null || data['shopNameTH'] != null) {
+      item.shopNameTh = _parseSafeString(data['shopNameTh'] ?? data['shopNameTH']);
     }
     
     // Improved image mapping with fallbacks

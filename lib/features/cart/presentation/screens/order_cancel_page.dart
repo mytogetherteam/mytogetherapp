@@ -16,6 +16,7 @@ class OrderCancelPage extends StatelessWidget {
   final String? shopId;
   final String? shopName;
   final String? shopNameMm;
+  final String? shopNameTh;
   final String? shopLogo;
   final String? shopImageUrl;
 
@@ -26,6 +27,7 @@ class OrderCancelPage extends StatelessWidget {
     this.shopId,
     this.shopName,
     this.shopNameMm,
+    this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
   });
@@ -109,7 +111,12 @@ class OrderCancelPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasLogo = shopLogo != null && shopLogo!.isNotEmpty;
     final hasImage = shopImageUrl != null && shopImageUrl!.isNotEmpty;
-    final hasShopInfo = (shopName != null && shopName!.isNotEmpty) || (shopNameMm != null && shopNameMm!.isNotEmpty);
+    final localizedShopName = context.localized(
+      en: shopName,
+      mm: shopNameMm,
+      th: shopNameTh,
+    );
+    final hasShopInfo = localizedShopName.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -219,30 +226,16 @@ class OrderCancelPage extends StatelessWidget {
                                 ),
                               ),
                               
-                              if (hasShopInfo) ...[
-                                if (shopName != null && shopName!.isNotEmpty)
-                                  Text(
-                                    shopName!,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                    textAlign: TextAlign.center,
+                              if (hasShopInfo)
+                                Text(
+                                  localizedShopName,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
                                   ),
-                                if (shopNameMm != null && shopNameMm!.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      shopNameMm!,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 17,
-                                        color: Colors.grey[700],
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                              ],
+                                  textAlign: TextAlign.center,
+                                ),
 
 
                             ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -470,7 +471,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     // Text details
     final TextPainter feePainter = TextPainter(
       text: TextSpan(
-        text: 'Est. Delivery Fee ',
+        text: LocaleController.instance.tr('order_tracking.est_delivery_fee_label'),
         style: GoogleFonts.poppins(
           fontSize: 14,
           fontWeight: FontWeight.w400,
@@ -1201,7 +1202,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           builder: (context, _) {
             final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
             return Text(
-              'Calculating$dots',
+              '${context.tr('order_tracking.calculating')}$dots',
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1305,7 +1306,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                                 // 2. Clear local store
                                 CartManager.instance.removeStore(
-                                  widget.store.name,
+                                  widget.store.nameKey,
                                 );
 
                                 // 3. Navigation

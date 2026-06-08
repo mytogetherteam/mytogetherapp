@@ -211,7 +211,8 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final String displayTitle = widget.title ?? 'Trending Near By';
+    final String displayTitle =
+        widget.title ?? context.tr('home.trending_nearby');
     final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
 
     return Scaffold(

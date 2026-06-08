@@ -144,7 +144,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
             content: Text(
               UserLocationRepository.errorMessage(
                 e,
-                fallback: 'Could not update your location. Please try again.',
+                fallback: context.tr('location.update_failed'),
               ),
             ),
             backgroundColor: Colors.red,
