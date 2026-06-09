@@ -27,6 +27,7 @@ import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -444,8 +445,22 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         'assets/images/detail_direction.png',
                                     label: context.tr('home.direction'),
                                     isActive: true,
-                                    onTap: () =>
-                                        AppDialog.showUnavailable(context),
+                                    onTap: () async {
+                                      if (_currentRestaurant != null) {
+                                        final lat = _currentRestaurant!.latitude;
+                                        final lon = _currentRestaurant!.longitude;
+                                        if (lat != null && lon != null) {
+                                          final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            if (context.mounted) AppDialog.showUnavailable(context);
+                                          }
+                                        } else {
+                                          if (context.mounted) AppDialog.showUnavailable(context);
+                                        }
+                                      }
+                                    },
                                   ),
                                   _buildActionButton(
                                     imageAsset:

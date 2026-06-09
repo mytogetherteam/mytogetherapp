@@ -115,7 +115,7 @@ class LocationSearchService {
   static final LocationSearchService instance = LocationSearchService._internal();
   LocationSearchService._internal();
 
-  static const String _apiKey = 'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
+  static const String _apiKey = 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://maps.googleapis.com/maps/api',

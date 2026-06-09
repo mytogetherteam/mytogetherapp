@@ -42,7 +42,7 @@
             android:value="2" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM" />
+            android:value="AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU" />
 
         <!-- FCM default notification channel -->
         <meta-data
