@@ -416,34 +416,36 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                 maxLines: 1,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.circle,
-                              size: 4,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${widget.rating}',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                            if (widget.rating > 0) ...[
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.circle,
+                                size: 4,
+                                color: Colors.grey,
                               ),
-                            ),
-                            const Icon(
-                              Icons.star_rounded,
-                              color: Colors.amber,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '(${widget.reviewCount} Reviews)',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.grey[600],
+                              const SizedBox(width: 8),
+                              Text(
+                                '${widget.rating}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
+                              const Icon(
+                                Icons.star_rounded,
+                                color: Colors.amber,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${widget.reviewCount} Reviews)',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 24),

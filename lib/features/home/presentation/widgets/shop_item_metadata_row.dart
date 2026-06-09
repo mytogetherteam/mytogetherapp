@@ -30,7 +30,7 @@ class ShopItemMetadataRow extends StatelessWidget {
     final elements = <Widget>[];
 
     // 1. Rating & Review Count
-    if (rating != null) {
+    if (rating != null && rating! > 0 && reviewCount != null && reviewCount! > 0) {
       elements.add(
         Row(
           mainAxisSize: MainAxisSize.min,

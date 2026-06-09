@@ -130,12 +130,12 @@ class _PromoBannerSectionState extends State<PromoBannerSection> {
                 (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentIndex == index ? 24 : 8,
+                  width: _currentIndex == index ? 20 : 8,
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentIndex == index
                         ? AppColors.primary
-                        : const Color(0xFFD1D1D1),
+                        : AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

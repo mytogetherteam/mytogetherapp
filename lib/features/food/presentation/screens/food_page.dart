@@ -127,7 +127,10 @@ class _FoodPageState extends State<FoodPage> {
                                 ),
                               ),
                           const SizedBox(height: 20),
-                          const PromoBannerSection(position: 'Promotions'),
+                          const PromoBannerSection(
+                            position: 'Top Banners',
+                            height: 120,
+                          ),
                           const SizedBox(height: 20),
                           const FoodRestaurantsSection(),
                               const TrendingShopsSection(),

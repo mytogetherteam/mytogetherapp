@@ -147,6 +147,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
                             name: data.name,
                             category: data.category,
                             rating: data.rating,
+                            reviewCount: data.reviewCount,
                             distance: data.distance,
                             imagePath: data.imagePath,
                             logoPath: data.logoPath,

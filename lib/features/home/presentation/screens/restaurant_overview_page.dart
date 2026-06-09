@@ -148,16 +148,18 @@ class RestaurantOverviewPage extends StatelessWidget {
                             color: Colors.grey[600],
                           ),
                         ),
-                        Text('  •  ', style: TextStyle(color: Colors.grey[400])),
-                        Text(
-                          '${restaurant.rating}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                        if (restaurant.rating > 0) ...[
+                          Text('  •  ', style: TextStyle(color: Colors.grey[400])),
+                          Text(
+                            '${restaurant.rating}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
                           ),
-                        ),
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                          const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                        ],
                       ],
                     ),
                   ),

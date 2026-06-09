@@ -34,6 +34,7 @@ class RestaurantDetailPage extends StatefulWidget {
   final String? name;
   final String? category;
   final double? rating;
+  final int? reviewCount;
   final String? distance;
   final String? imagePath;
   final String? logoPath;
@@ -53,6 +54,7 @@ class RestaurantDetailPage extends StatefulWidget {
     this.name,
     this.category,
     this.rating,
+    this.reviewCount,
     this.distance,
     this.imagePath,
     this.logoPath,
@@ -127,6 +129,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       name: widget.name ?? LocaleController.instance.tr('restaurant.loading'),
       category: widget.category ?? '',
       rating: widget.rating ?? 0.0,
+      reviewCount: widget.reviewCount ?? 0,
       distance: widget.distance ?? '',
       imagePath: widget.imagePath ?? '',
       logoPath: widget.logoPath ?? '',
@@ -704,25 +707,27 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
-                                          Text(
-                                            '  •  ',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
+                                          if (_currentRestaurant != null && _currentRestaurant!.rating > 0 && _currentRestaurant!.reviewCount > 0) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                            '${_currentRestaurant?.rating ?? 0.0}',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black,
+                                            Text(
+                                              '${_currentRestaurant?.rating ?? 0.0}',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.black,
+                                              ),
                                             ),
-                                          ),
-                                          const Icon(
-                                            Icons.star_rounded,
-                                            color: Colors.amber,
-                                            size: 16,
-                                          ),
+                                            const Icon(
+                                              Icons.star_rounded,
+                                              color: Colors.amber,
+                                              size: 16,
+                                            ),
+                                          ],
                                         ],
                                       ),
                                       const SizedBox(height: 4),

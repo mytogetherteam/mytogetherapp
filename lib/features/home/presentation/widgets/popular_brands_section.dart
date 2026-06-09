@@ -405,20 +405,22 @@ class _BrandCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Colors.amber,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        brand.rating.toString(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
+                      if (brand.rating > 0) ...[
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber,
+                          size: 14,
                         ),
-                      ),
+                        const SizedBox(width: 2),
+                        Text(
+                          brand.rating.toString(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                       Expanded(
                         child: Text(
                           ' · ${brand.deliveryTime} · ${brand.distance}',

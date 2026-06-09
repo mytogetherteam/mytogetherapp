@@ -1546,14 +1546,23 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Icon(
-                              PhosphorIcons.starFill,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
+                            if (shop.rating > 0) ...[
+                              Icon(
+                                PhosphorIcons.starFill,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${shop.rating.toStringAsFixed(1)} · ',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                             Text(
-                              '${shop.rating.toStringAsFixed(1)} · ${context.trArgs('food.distance_km', {'distance': shop.distance.toStringAsFixed(1)})}',
+                              context.trArgs('food.distance_km', {'distance': shop.distance.toStringAsFixed(1)}),
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.grey[600],
