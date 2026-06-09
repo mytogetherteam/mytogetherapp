@@ -54,12 +54,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
       );
 
       if (mounted) {
+        final successMessage = context.tr('delete.success');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
           (_) => false,
         );
-        _showSuccessSnackbar();
+        _showSuccessSnackbar(successMessage);
       }
     } catch (e) {
       if (mounted) {
@@ -82,11 +83,11 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
     );
   }
 
-  void _showSuccessSnackbar() {
+  void _showSuccessSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'သင့်အကောင့်ကို ဖျက်သိမ်းလိုက်ပါပြီ။',
+          message,
           style: GoogleFonts.poppins(color: Colors.white),
         ),
         backgroundColor: Colors.green.shade600,
@@ -99,7 +100,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
 
   void _goToStep2() {
     if (!_agreed) {
-      _showErrorSnackbar('ကျေးဇူးပြု၍ သဘောတူညီချက်ကို အမှန်ခြစ်ပေးပါ။');
+      _showErrorSnackbar(context.tr('delete.agree_required'));
       return;
     }
     setState(() {
@@ -137,7 +138,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
         title: Column(
           children: [
             Text(
-              'အကောင့်ဖျက်ရန်',
+              context.tr('profile.delete_account'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -145,7 +146,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               ),
             ),
             Text(
-              context.tr('profile.delete_account'),
+              context.tr('profile.delete_account_sub'),
               style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
@@ -179,7 +180,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           ),
           const SizedBox(height: 20),
           Text(
-            'သတိပြုရန်',
+            context.tr('delete.warning_heading'),
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -195,28 +196,28 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           // Warning cards
           _buildWarningCard(
             icon: PhosphorIcons.shoppingCartFill,
-            title: 'အော်ဒါများ ပျောက်ကွယ်မည်',
+            title: context.tr('delete.orders_title'),
             subtitle: context.tr('delete.orders_lost'),
             color: Colors.orange,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.walletFill,
-            title: 'ငွေလက်ကျန် ဆုံးရှုံးမည်',
+            title: context.tr('delete.balance_title'),
             subtitle: context.tr('delete.balance_lost'),
             color: Colors.purple,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.userMinusFill,
-            title: 'ပြန်ရယူ၍ မရနိုင်ပါ',
+            title: context.tr('delete.cannot_undo_title'),
             subtitle: context.tr('delete.permanent'),
             color: Colors.red,
           ),
           const SizedBox(height: 12),
           _buildWarningCard(
             icon: PhosphorIcons.lockFill,
-            title: 'ဝင်ရောက်မှု ပိတ်မည်',
+            title: context.tr('delete.access_revoked_title'),
             subtitle: context.tr('delete.logged_out'),
             color: Colors.blue,
           ),
@@ -261,7 +262,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'အထက်ပါ သတိပြုချက်များကို နားလည်ပြီး ကျွန်ုပ်၏အကောင့်ကို အပြီးအပိုင် ဖျက်သိမ်းရန် သဘောတူပါသည်။',
+                          context.tr('delete.agreement_primary'),
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: Colors.black87,
@@ -300,7 +301,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 elevation: 0,
               ),
               child: Text(
-                'ဆက်လက်လုပ်ဆောင်မည် • Continue',
+                context.tr('delete.continue_button'),
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -321,7 +322,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 ),
               ),
               child: Text(
-                'မဖျက်ပါ • Cancel',
+                context.tr('common.cancel'),
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -359,7 +360,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
             const SizedBox(height: 20),
             Text(
-              'အတည်ပြုပါ',
+              context.tr('delete.verify_heading'),
               style: GoogleFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -372,7 +373,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'အကောင့်ဖျက်ရန် သင့်စကားဝှက်ကို ထည့်သွင်းပါ။\nPlease enter your password to confirm deletion.',
+              context.tr('delete.password_prompt'),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 13,
@@ -407,7 +408,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                       Text(
                         AuthService().currentUser?.fullName ??
                             AuthService().currentUser?.username ??
-                            'User',
+                            context.tr('common.user'),
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -432,8 +433,12 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               controller: _passwordController,
               obscureText: _obscurePassword,
               validator: (v) {
-                if (v == null || v.isEmpty) return 'စကားဝှက် ထည့်သွင်းပါ';
-                if (v.length < 6) return 'စကားဝှက် အနည်းဆုံး ၆ လုံး ရှိရမည်';
+                if (v == null || v.isEmpty) {
+                  return context.tr('delete.password_required');
+                }
+                if (v.length < 6) {
+                  return context.tr('delete.password_min_length');
+                }
                 return null;
               },
               style: GoogleFonts.poppins(fontSize: 15),

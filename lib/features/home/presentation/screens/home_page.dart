@@ -698,7 +698,7 @@ class _HomePageState extends State<HomePage> {
                                             ],
                                           ).createShader(bounds),
                                       child: Text(
-                                        'MyTogether',
+                                        context.tr('home.brand_name'),
                                         style: GoogleFonts.poppins(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 22,

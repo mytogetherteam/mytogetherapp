@@ -211,6 +211,15 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     }
   }
 
+  Future<void> _removeRecentSearch(String term) async {
+    final updated = _recentSearches.where((s) => s != term).toList();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_recentSearchesKey, updated);
+    if (mounted) {
+      setState(() => _recentSearches = updated);
+    }
+  }
+
   Future<({double lat, double lon})> _resolveLocation() async {
     final activeLoc = UserLocationRepository.instance.activeLocation;
     if (activeLoc?.latitude != null && activeLoc?.longitude != null) {
@@ -609,6 +618,16 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => _removeRecentSearch(term),
+                            behavior: HitTestBehavior.opaque,
+                            child: Icon(
+                              PhosphorIcons.x,
+                              size: 14,
+                              color: Colors.black38,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -774,12 +793,16 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         : context.tr('food.rating');
     final distanceActive = _filters.radiusKm != null;
     final distanceLabel = distanceActive
-        ? 'Around ${_filters.radiusKm!.toStringAsFixed(0)} km'
-        : 'Distance';
+        ? context.trArgs('food.around_km', {
+            'km': _filters.radiusKm!.toStringAsFixed(0),
+          })
+        : context.tr('food.distance');
     final mealActive = _filters.mealTypes.isNotEmpty;
     final mealLabel = mealActive
-        ? 'Meals (${_filters.mealTypes.length})'
-        : 'Meal Time';
+        ? context.trArgs('food.meals_count', {
+            'count': '${_filters.mealTypes.length}',
+          })
+        : context.tr('food.meal_time');
     final cuisineLabel = cuisineActive
         ? '${context.tr('food.cuisines')} (${_filters.cuisineTypeIds.length})'
         : context.tr('food.cuisines');
@@ -886,40 +909,89 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     required String title,
     required Widget child,
     Widget? footer,
+    Widget? searchField,
   }) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        16 + MediaQuery.of(ctx).viewInsets.bottom,
+    // Cap the sheet at half the screen so large option lists scroll inside
+    // instead of taking over the entire screen. Short lists stay compact
+    // because the Column uses MainAxisSize.min.
+    final maxHeight = MediaQuery.of(ctx).size.height * 0.5;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          16 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (searchField != null) ...[searchField, const SizedBox(height: 8)],
+            Flexible(child: child),
+            if (footer != null) ...[const SizedBox(height: 12), footer],
+          ],
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  /// Compact search field used inside filter sheets that have many options.
+  Widget _buildSheetSearchField({
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+          Icon(
+            PhosphorIcons.magnifyingGlass,
+            size: 18,
+            color: Colors.grey[500],
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              onChanged: onChanged,
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: context.tr('food.filter_search_hint'),
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[400],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Flexible(child: child),
-          if (footer != null) ...[const SizedBox(height: 12), footer],
         ],
       ),
     );
@@ -1065,55 +1137,80 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
 
   Future<void> _openCategorySheet() async {
     await _ensureMasterCategoriesLoaded();
+    if (!mounted) return;
+    String query = '';
     await _showFilterSheet(
       builder: (sheetContext) {
-        return _sheetScaffold(
-          sheetContext,
-          title: context.tr('food.master_category'),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              _buildSelectableTile(
-                label: context.tr('food.all_categories'),
-                selected: _filters.masterCategoryId == null,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _selectedCategoryName = null;
-                  _updateFilters(_filters.copyWith(clearMasterCategoryId: true));
-                },
-              ),
-              if (_isLoadingMasterCategories)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CustomLoadingIndicator(size: 28)),
-                )
-              else if (_masterCategories.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      context.tr('food.no_filter_results'),
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final showSearch = _masterCategories.length > 10;
+            final q = query.trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? _masterCategories
+                : _masterCategories
+                    .where((c) => c.displayName.toLowerCase().contains(q))
+                    .toList();
+
+            return _sheetScaffold(
+              sheetContext,
+              title: this.context.tr('food.master_category'),
+              searchField: showSearch
+                  ? _buildSheetSearchField(
+                      value: query,
+                      onChanged: (v) => setSheetState(() => query = v),
+                    )
+                  : null,
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  if (q.isEmpty)
+                    _buildSelectableTile(
+                      label: this.context.tr('food.all_categories'),
+                      selected: _filters.masterCategoryId == null,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _selectedCategoryName = null;
+                        _updateFilters(
+                          _filters.copyWith(clearMasterCategoryId: true),
+                        );
+                      },
+                    ),
+                  if (_isLoadingMasterCategories)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CustomLoadingIndicator(size: 28)),
+                    )
+                  else if (filtered.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          this.context.tr('food.no_filter_results'),
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ...filtered.map(
+                      (c) => _buildSelectableTile(
+                        label: c.displayName,
+                        selected: _filters.masterCategoryId == c.id,
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          _selectedCategoryName = c.displayName;
+                          _updateFilters(
+                            _filters.copyWith(masterCategoryId: c.id),
+                          );
+                        },
                       ),
                     ),
-                  ),
-                )
-              else
-                ..._masterCategories.map(
-                  (c) => _buildSelectableTile(
-                    label: c.displayName,
-                    selected: _filters.masterCategoryId == c.id,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _selectedCategoryName = c.displayName;
-                      _updateFilters(_filters.copyWith(masterCategoryId: c.id));
-                    },
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -1159,17 +1256,30 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
 
   static const _distanceOptions = [2.0, 5.0, 10.0, 20.0, 50.0];
 
+  String _mealTypeLabel(String mealType) {
+    switch (mealType) {
+      case 'Breakfast':
+        return context.tr('food.breakfast');
+      case 'Lunch':
+        return context.tr('food.lunch');
+      case 'Dinner':
+        return context.tr('food.dinner');
+      default:
+        return mealType;
+    }
+  }
+
   Future<void> _openDistanceSheet() async {
     await _showFilterSheet(
       builder: (sheetContext) {
         return _sheetScaffold(
           sheetContext,
-          title: 'Distance',
+          title: context.tr('food.distance'),
           child: ListView(
             shrinkWrap: true,
             children: [
               _buildSelectableTile(
-                label: 'Any Distance',
+                label: context.tr('food.any_distance'),
                 selected: _filters.radiusKm == null,
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -1179,7 +1289,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               ..._distanceOptions.map(
                 (d) => _buildSelectableTile(
                   leadingIcon: PhosphorIcons.mapPin,
-                  label: 'Around ${d.toStringAsFixed(0)} km',
+                  label: context.trArgs('food.around_km', {
+                    'km': d.toStringAsFixed(0),
+                  }),
                   selected: _filters.radiusKm == d,
                   onTap: () {
                     Navigator.pop(sheetContext);
@@ -1204,7 +1316,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           builder: (context, setSheetState) {
             return _sheetScaffold(
               sheetContext,
-              title: 'Meal Time',
+              title: context.tr('food.meal_time'),
               footer: _buildSheetFooter(
                 onReset: () {
                   Navigator.pop(sheetContext);
@@ -1220,7 +1332,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 children: _mealOptions.map((m) {
                   final on = draft.contains(m);
                   return _buildCheckTile(
-                    label: m,
+                    label: _mealTypeLabel(m),
                     checked: on,
                     onTap: () => setSheetState(() {
                       if (on) {
@@ -1243,10 +1355,19 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     await _ensureCuisineTypesLoaded();
     if (!mounted) return;
     final draft = Set<int>.from(_filters.cuisineTypeIds);
+    String query = '';
     await _showFilterSheet(
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final showSearch = _cuisineTypes.length > 10;
+            final q = query.trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? _cuisineTypes
+                : _cuisineTypes
+                    .where((c) => c.displayName.toLowerCase().contains(q))
+                    .toList();
+
             Widget content;
             if (_isLoadingCuisines) {
               content = const Padding(
@@ -1264,10 +1385,21 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                   ),
                 ),
               );
+            } else if (filtered.isEmpty) {
+              content = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  this.context.tr('food.no_filter_results'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              );
             } else {
               content = ListView(
                 shrinkWrap: true,
-                children: _cuisineTypes.map((c) {
+                children: filtered.map((c) {
                   final on = draft.contains(c.id);
                   return _buildCheckTile(
                     label: c.displayName,
@@ -1287,6 +1419,12 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             return _sheetScaffold(
               sheetContext,
               title: this.context.tr('food.cuisines'),
+              searchField: showSearch
+                  ? _buildSheetSearchField(
+                      value: query,
+                      onChanged: (v) => setSheetState(() => query = v),
+                    )
+                  : null,
               footer: _cuisineTypes.isEmpty
                   ? null
                   : _buildSheetFooter(

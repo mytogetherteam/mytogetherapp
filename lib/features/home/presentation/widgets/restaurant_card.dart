@@ -19,6 +19,7 @@ class RestaurantCard extends StatelessWidget {
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final String imagePath;
+  final String? logoPath;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onTap;
@@ -36,12 +37,23 @@ class RestaurantCard extends StatelessWidget {
     this.deliveryFee,
     this.originalDeliveryFee,
     required this.imagePath,
+    this.logoPath,
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.onTap,
     this.width,
     this.margin,
   });
+
+  /// Resolves an image path (asset path, absolute URL, or server-relative
+  /// path) to a usable URL, or returns null when there is nothing to show.
+  String? _resolveNetworkUrl(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('assets/')) return null;
+    if (trimmed.startsWith('http')) return trimmed;
+    return '${ApiClient.baseUrl}/${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +121,11 @@ class RestaurantCard extends StatelessWidget {
                   ),
                 ),
               ),
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: _buildLogoBadge(context),
+              ),
             ],
           ),
           // Text Info Section with Padding
@@ -149,6 +166,59 @@ class RestaurantCard extends StatelessWidget {
         ],
       ),
     ),
+    );
+  }
+
+  /// Circular brand/profile badge shown over the cover image so the user can
+  /// recognise the restaurant even when the cover photo is generic.
+  Widget _buildLogoBadge(BuildContext context) {
+    const double size = 48;
+    final logoUrl = _resolveNetworkUrl(logoPath);
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: logoUrl == null
+            ? _buildLogoFallback()
+            : CachedNetworkImage(
+                imageUrl: logoUrl,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => _buildLogoFallback(),
+                errorWidget: (context, url, error) => _buildLogoFallback(),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildLogoFallback() {
+    final String initial =
+        name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    return Container(
+      color: AppColors.primary.withValues(alpha: 0.12),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
+        ),
+      ),
     );
   }
 

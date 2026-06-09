@@ -9,7 +9,9 @@ import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart
 import 'package:mytogetherapp/features/auth/presentation/screens/account_settings_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
+import 'package:mytogetherapp/features/settings/presentation/screens/app_permissions_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/location_search_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -125,7 +127,19 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildOptionTile(
               icon: PhosphorIcons.mapPin,
               title: context.tr('profile.my_addresses'),
-              onTap: () => AppDialog.showUnavailable(context),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LocationSearchPage()),
+              ),
+            ),
+            _buildOptionTile(
+              icon: PhosphorIcons.bellRinging,
+              title: context.tr('profile.app_permissions'),
+              subtitle: context.tr('profile.app_permissions_sub'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AppPermissionsPage()),
+              ),
             ),
             _buildOptionTile(
               icon: PhosphorIcons.translate,
@@ -150,7 +164,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             _buildOptionTile(
               icon: PhosphorIcons.shieldCheck,
-              title: 'Privacy Policy',
+              title: context.tr('profile.privacy_policy'),
               onTap: () => _launchUrl('https://www.mytogether.org/privacy-policy/user'),
             ),
             
@@ -272,7 +286,10 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open link', style: GoogleFonts.poppins(color: Colors.white)),
+            content: Text(
+              context.tr('common.link_open_failed'),
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
             backgroundColor: Colors.red.shade500,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),

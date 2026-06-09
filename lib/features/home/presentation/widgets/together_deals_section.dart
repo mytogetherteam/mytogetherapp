@@ -110,6 +110,14 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                 ? apiSectionTitle
                 : context.tr('food.discount'))
             : context.tr('home.together_deals');
+        // Title shown on the detail page. When the header is the composed
+        // "Together Up to X% Off" headline, mirror that exact wording instead
+        // of the generic "Together Deals" label.
+        final detailTitle = widget.useApiSectionTitle
+            ? headerTitle
+            : '${context.tr('home.together_prefix')}'
+                    '${context.trArgs('home.up_to_off_pct', {'percent': '$maxPercent'})}'
+                .trim();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +184,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
                         MaterialPageRoute(
                           builder: (context) => TodayOverviewDetailPage(
                             feedType: 'hot-deals',
-                            title: headerTitle,
+                            title: detailTitle,
                           ),
                         ),
                       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 import 'special_promotion_card.dart';
@@ -55,7 +56,7 @@ class _SpecialPromotionSectionState extends State<SpecialPromotionSection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Special Promotion',
+                context.tr('home.special_promotion'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
@@ -79,24 +80,24 @@ class _SpecialPromotionSectionState extends State<SpecialPromotionSection> {
             itemBuilder: (context, index) {
               // Creating dummy data for variation
               if (index == 0) {
-                 return const SpecialPromotionCard(
-                    title: 'Discount for',
-                    highlightText: 'Monday',
-                    subtitle: 'Save On Your Order',
-                    imagePath: 'assets/images/services/food.png', // Fallback to existing asset
-                  );
+                return SpecialPromotionCard(
+                  title: context.tr('promotion.discount_for'),
+                  highlightText: context.tr('promotion.monday'),
+                  subtitle: context.tr('promotion.save_on_order'),
+                  imagePath: 'assets/images/services/food.png',
+                );
               } else if (index == 1) {
-                return const SpecialPromotionCard(
-                  title: 'Discount for',
-                  highlightText: 'Weekend',
-                  subtitle: 'Get 20% Off Pizza',
+                return SpecialPromotionCard(
+                  title: context.tr('promotion.discount_for'),
+                  highlightText: context.tr('promotion.weekend'),
+                  subtitle: context.tr('promotion.get_off_pizza'),
                   imagePath: 'assets/images/services/places.png',
                 );
               } else {
-                 return const SpecialPromotionCard(
-                  title: 'Special',
-                  highlightText: 'Combo',
-                  subtitle: 'Burger + Coke for \$5',
+                return SpecialPromotionCard(
+                  title: context.tr('promotion.special'),
+                  highlightText: context.tr('promotion.combo'),
+                  subtitle: context.tr('promotion.burger_combo'),
                   imagePath: 'assets/images/services/store.png',
                 );
               }

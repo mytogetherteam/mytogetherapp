@@ -3,7 +3,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'view_all_icon_button.dart';
-import '../screens/restaurant_nearby_list_page.dart';
+import '../screens/food_collection_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
@@ -128,7 +128,9 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const RestaurantNearbyListPage(),
+                                      const FoodCollectionListPage(
+                                    kind: FoodCollectionKind.popular,
+                                  ),
                                 ),
                               );
                             },
@@ -286,7 +288,9 @@ class _MoreCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const RestaurantNearbyListPage(),
+              builder: (context) => const FoodCollectionListPage(
+                kind: FoodCollectionKind.popular,
+              ),
             ),
           );
         },

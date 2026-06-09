@@ -136,6 +136,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                     reviewCount: data.reviewCount,
                     distance: data.distance,
                     imagePath: data.imagePath,
+                    logoPath: data.logoPath,
                     deliveryTime: data.deliveryTime,
                     deliveryFee: data.deliveryFee,
                     originalDeliveryFee: data.originalDeliveryFee,

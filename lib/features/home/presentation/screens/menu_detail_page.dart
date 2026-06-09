@@ -458,7 +458,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   _currentFood!.cuisineType!.displayName,
                                 ),
                               ] else ...[
-                                _buildTag('Myanmar Culture'),
+                                _buildTag(context.tr('menu.default_cuisine_tag')),
                               ],
                             ],
                           ),

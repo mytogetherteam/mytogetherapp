@@ -715,7 +715,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                                 if (_isDelivery)
                                   GradientText(
-                                    ' + Delivery Fee',
+                                    context.tr('cart.plus_delivery_fee'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
