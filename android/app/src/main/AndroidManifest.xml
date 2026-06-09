@@ -42,7 +42,7 @@
             android:value="2" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU" />
+            android:value="${googleMapsApiKey}" />
 
         <!-- FCM default notification channel -->
         <meta-data

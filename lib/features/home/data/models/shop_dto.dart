@@ -121,13 +121,20 @@ class ShopListItemDto {
   final String? displayDeliveryFee;
   final String? originalDeliveryFee;
 
-  String get name => LocaleController.instance
-      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+  String get name => LocaleController.instance.localizedOr(
+    _name,
+    en: nameEn,
+    mm: nameMm,
+    th: nameTh,
+  );
 
   String? get category {
     if (categoryEn != null || categoryMm != null || categoryTh != null) {
-      final v = LocaleController.instance
-          .localized(en: categoryEn, mm: categoryMm, th: categoryTh);
+      final v = LocaleController.instance.localized(
+        en: categoryEn,
+        mm: categoryMm,
+        th: categoryTh,
+      );
       if (v.isNotEmpty) return v;
     }
     return _category;
@@ -145,11 +152,11 @@ class ShopListItemDto {
 
   /// Best banner/cover image for cards and headers.
   String? get bannerImageUrl => ShopImageResolver.resolveBannerUrl(
-        coverUrl: coverUrl,
-        imageUrls: imageUrls,
-        logoUrl: logoUrl,
-        primaryPhotoUrl: primaryPhotoUrl,
-      );
+    coverUrl: coverUrl,
+    imageUrls: imageUrls,
+    logoUrl: logoUrl,
+    primaryPhotoUrl: primaryPhotoUrl,
+  );
 
   ShopListItemDto({
     required this.id,
@@ -176,18 +183,19 @@ class ShopListItemDto {
     this.imageUrls = const <String>[],
     this.displayDeliveryFee,
     this.originalDeliveryFee,
-  })  : _name = name,
-        _category = category,
-        _estimatedTime = estimatedTime;
+  }) : _name = name,
+       _category = category,
+       _estimatedTime = estimatedTime;
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
     final ratingRaw = json['rating'];
     final double rating = ratingRaw is Map
-        ? (ratingRaw['avg'] ?? ratingRaw['ratingAvg'] ?? 0.0).toDouble()
-        : (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble();
+        ? (ratingRaw['avg'] ?? 0.0).toDouble()
+        : (json['rating'] ?? 0.0).toDouble();
     final int reviewCount = ratingRaw is Map
         ? int.tryParse(
-                (ratingRaw['count'] ?? ratingRaw['ratingCount'] ?? 0).toString(),
+                (ratingRaw['count'] ?? ratingRaw['ratingCount'] ?? 0)
+                    .toString(),
               ) ??
               0
         : int.tryParse(
@@ -196,11 +204,13 @@ class ShopListItemDto {
               0;
 
     final imageUrls = ShopImageResolver.parseImageUrls(json);
-    final primaryPhotoUrl = ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
+    final primaryPhotoUrl =
+        ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
         (imageUrls.isNotEmpty ? imageUrls.first : null);
 
-    final shopCategory =
-        json['shopCategory'] is Map ? json['shopCategory'] as Map : null;
+    final shopCategory = json['shopCategory'] is Map
+        ? json['shopCategory'] as Map
+        : null;
 
     return ShopListItemDto(
       id: json['id'] ?? 0,
@@ -222,8 +232,12 @@ class ShopListItemDto {
       isOpen: json['isOpen'] ?? false,
       estimatedTime: json['estimatedTime']?.toString(),
       isFavorite: json['isFavorite'] ?? false,
-      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
-      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
+      latitude: json['latitude'] != null
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] != null
+          ? (json['longitude'] as num).toDouble()
+          : null,
       imageUrls: imageUrls,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
@@ -232,7 +246,10 @@ class ShopListItemDto {
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
     // API returns displayDeliveryFee as a number (e.g. 1000)
-    final raw = json['displayDeliveryFee'] ?? json['displayBaseDeliveryFee'] ?? json['baseDeliveryFee'];
+    final raw =
+        json['displayDeliveryFee'] ??
+        json['displayBaseDeliveryFee'] ??
+        json['baseDeliveryFee'];
     if (raw == null) return null;
     final num? fee = num.tryParse(raw.toString());
     if (fee == null) return raw.toString();
@@ -275,6 +292,7 @@ class PageableDto {
     );
   }
 }
+
 class ApiResponseShopDetailDto {
   final bool success;
   final String message;
@@ -345,12 +363,19 @@ class ShopDetailDto {
   final int? maxEta;
   final List<DeliveryTierDto> deliveryTiers;
 
-  String get name => LocaleController.instance
-      .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+  String get name => LocaleController.instance.localizedOr(
+    _name,
+    en: nameEn,
+    mm: nameMm,
+    th: nameTh,
+  );
 
   /// Localized shop description, empty when none is available.
-  String get description => LocaleController.instance
-      .localized(en: descriptionEn, mm: descriptionMm, th: descriptionTh);
+  String get description => LocaleController.instance.localized(
+    en: descriptionEn,
+    mm: descriptionMm,
+    th: descriptionTh,
+  );
 
   String? get estimatedTime {
     if (distance > 0) {
@@ -364,11 +389,11 @@ class ShopDetailDto {
 
   /// Best banner/cover image for the detail header.
   String? get bannerImageUrl => ShopImageResolver.resolveBannerUrl(
-        coverUrl: coverUrl,
-        imageUrls: photos,
-        logoUrl: logoUrl,
-        primaryPhotoUrl: primaryPhotoUrl,
-      );
+    coverUrl: coverUrl,
+    imageUrls: photos,
+    logoUrl: logoUrl,
+    primaryPhotoUrl: primaryPhotoUrl,
+  );
 
   ShopDetailDto({
     required this.id,
@@ -413,8 +438,8 @@ class ShopDetailDto {
     this.minEta,
     this.maxEta,
     this.deliveryTiers = const [],
-  })  : _name = name,
-        _estimatedTime = estimatedTime;
+  }) : _name = name,
+       _estimatedTime = estimatedTime;
 
   factory ShopDetailDto.fromJson(Map<String, dynamic> json) {
     return ShopDetailDto(
@@ -427,13 +452,11 @@ class ShopDetailDto {
       descriptionMm: json['descriptionMm'] as String?,
       descriptionTh: json['descriptionTh'] as String?,
       category: json['category'],
-      cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
+      cuisineType: json['cuisineType'] != null
+          ? CuisineTypeDto.fromJson(json['cuisineType'])
+          : null,
       rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
       reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
-      hasParking: json['hasParking'] as bool? ?? false,
-      hasWifi: json['hasWifi'] as bool? ?? false,
-      isHalal: json['isHalal'] as bool? ?? false,
-      isVegetarian: json['isVegetarian'] as bool? ?? false,
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
@@ -451,11 +474,21 @@ class ShopDetailDto {
           .map((e) => OperatingHourDto.fromJson(e))
           .toList(),
       photos: ShopImageResolver.parseImageUrls(json),
-      popularDishes: (json['popularDishes'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
-      recommendations: (json['recommendations'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
-      hotDeals: (json['hotDeals'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
-      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
-      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
+      popularDishes: (json['popularDishes'] as List? ?? [])
+          .map((e) => MenuItemDto.fromDishJson(e))
+          .toList(),
+      recommendations: (json['recommendations'] as List? ?? [])
+          .map((e) => MenuItemDto.fromDishJson(e))
+          .toList(),
+      hotDeals: (json['hotDeals'] as List? ?? [])
+          .map((e) => MenuItemDto.fromDishJson(e))
+          .toList(),
+      latitude: json['latitude'] != null
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] != null
+          ? (json['longitude'] as num).toDouble()
+          : null,
       isFavorite: json['isFavorite'] ?? false,
       paymentTypes: (json['paymentTypes'] as List? ?? [])
           .map((e) => ShopPaymentTypeDto.fromJson(e))
@@ -527,7 +560,7 @@ class OperatingHourDto {
     LocalTimeDto? openTime;
     final hOpen = parseSafe(json['openTimeHour']);
     final mOpen = parseSafe(json['openTimeMin']);
-    
+
     if (hOpen != null && mOpen != null) {
       openTime = LocalTimeDto(hour: hOpen, minute: mOpen);
     } else if (json['openingTime'] != null) {
@@ -576,10 +609,7 @@ class LocalTimeDto {
   LocalTimeDto({required this.hour, required this.minute});
 
   factory LocalTimeDto.fromJson(Map<String, dynamic> json) {
-    return LocalTimeDto(
-      hour: json['hour'] ?? 0,
-      minute: json['minute'] ?? 0,
-    );
+    return LocalTimeDto(hour: json['hour'] ?? 0, minute: json['minute'] ?? 0);
   }
 
   String get format {
@@ -642,7 +672,8 @@ class ShopPaymentTypeDto {
     // Support both so the name and icon always resolve.
     final name = json['paymentMethodName'] ?? json['name'];
     return ShopPaymentTypeDto(
-      paymentMethodId: (json['paymentMethodId'] as num?)?.toInt() ??
+      paymentMethodId:
+          (json['paymentMethodId'] as num?)?.toInt() ??
           (json['id'] as num?)?.toInt() ??
           0,
       paymentMethodCode: json['paymentMethodCode'] ?? '',
@@ -671,10 +702,10 @@ class ShopPaymentTypeDto {
       paymentMethodName: name,
       // Synthesize a stable code from the name for icon heuristics
       // (e.g. "PromptPay" -> "PROMPTPAY", "Cash on Delivery" -> "CASH_ON_DELIVERY").
-      paymentMethodCode: (name ?? '')
-          .trim()
-          .toUpperCase()
-          .replaceAll(RegExp(r'\s+'), '_'),
+      paymentMethodCode: (name ?? '').trim().toUpperCase().replaceAll(
+        RegExp(r'\s+'),
+        '_',
+      ),
       isActive: json['isActive'] as bool? ?? true,
       qrImageUrl: json['qr']?.toString(),
       accountNumber: json['accountNumber']?.toString(),
@@ -713,7 +744,10 @@ class CuisineTypeDto {
   }
 
   String get displayName {
-    return LocaleController.instance
-        .localized(en: nameEn, mm: nameMm, th: nameTh);
+    return LocaleController.instance.localized(
+      en: nameEn,
+      mm: nameMm,
+      th: nameTh,
+    );
   }
 }

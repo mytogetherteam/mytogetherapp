@@ -170,12 +170,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         if (mounted) {
           setState(() {
             _currentRestaurant = restaurant;
-            // Only trust the API's favorite flag until the wishlist has been
-            // primed; once primed, the wishlist is the source of truth and the
-            // listener below keeps `_isFavorite` correct.
-            if (!WishlistRepository.instance.isPrimed) {
-              _isFavorite = restaurant.isFavorite;
-            }
+            _isFavorite = restaurant.isFavorite;
           });
         }
       } catch (_) {}
@@ -193,9 +188,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     });
 
     // Listen for real-time shop-profile updates (open/closed, delivery state).
-    _shopProfileUpdateSubscription = WebSocketService()
-        .shopProfileUpdates
-        .listen((event) {
+    _shopProfileUpdateSubscription = WebSocketService().shopProfileUpdates.listen((
+      event,
+    ) {
       final updatedShopId = event['shopId']?.toString();
       if (updatedShopId == widget.id && mounted) {
         debugPrint(
@@ -232,7 +227,21 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       );
       if (mounted) {
         setState(() {
-          _currentRestaurant = updatedRestaurant;
+          final oldDistance = _currentRestaurant?.distance ?? '';
+          final oldDeliveryTime = _currentRestaurant?.deliveryTime ?? '';
+
+          _currentRestaurant = updatedRestaurant.copyWith(
+            distance:
+                (updatedRestaurant.distance == '0.0 km' ||
+                    updatedRestaurant.distance.isEmpty)
+                ? oldDistance
+                : updatedRestaurant.distance,
+            deliveryTime:
+                (updatedRestaurant.deliveryTime == '20-30 mins' ||
+                    updatedRestaurant.deliveryTime.isEmpty)
+                ? oldDeliveryTime
+                : updatedRestaurant.deliveryTime,
+          );
         });
       }
     }
@@ -269,9 +278,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
   void _scheduleScrollToTarget() {
     if (_hasScrolledToTarget || widget.targetMenuItemId == null) return;
-    if (!_menuItems.any(
-      (it) => it.id.toString() == widget.targetMenuItemId,
-    )) {
+    if (!_menuItems.any((it) => it.id.toString() == widget.targetMenuItemId)) {
       return;
     }
 
@@ -511,17 +518,29 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     isActive: true,
                                     onTap: () async {
                                       if (_currentRestaurant != null) {
-                                        final lat = _currentRestaurant!.latitude;
-                                        final lon = _currentRestaurant!.longitude;
+                                        final lat =
+                                            _currentRestaurant!.latitude;
+                                        final lon =
+                                            _currentRestaurant!.longitude;
                                         if (lat != null && lon != null) {
-                                          final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+                                          final uri = Uri.parse(
+                                            'https://www.google.com/maps/search/?api=1&query=$lat,$lon',
+                                          );
                                           if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            await launchUrl(
+                                              uri,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
                                           } else {
-                                            if (context.mounted) AppDialog.showUnavailable(context);
+                                            if (context.mounted)
+                                              AppDialog.showUnavailable(
+                                                context,
+                                              );
                                           }
                                         } else {
-                                          if (context.mounted) AppDialog.showUnavailable(context);
+                                          if (context.mounted)
+                                            AppDialog.showUnavailable(context);
                                         }
                                       }
                                     },
@@ -768,7 +787,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
-                                          if (_currentRestaurant != null && _currentRestaurant!.rating > 0 && _currentRestaurant!.reviewCount > 0) ...[
+                                          if (_currentRestaurant != null &&
+                                              _currentRestaurant!.rating > 0 &&
+                                              _currentRestaurant!.reviewCount >
+                                                  0) ...[
                                             Text(
                                               '  •  ',
                                               style: TextStyle(
@@ -834,22 +856,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[500],
                                             ),
                                           ),
-                                          Builder(
-                                            builder: (context) {
-                                              final s =
-                                                  RestaurantOpenStatus.of(
-                                                context,
-                                                _currentRestaurant!,
-                                              );
-                                              return Text(
-                                                s.text,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: s.color,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              );
-                                            },
+                                          Text(
+                                            context.localizedStatus(
+                                              _currentRestaurant?.status ?? '',
+                                            ),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: const Color(0xFF10B981),
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1152,10 +1167,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     setState(() => _isFavorite = newStatus);
 
     try {
-      await RestaurantRepository.instance.toggleShopFavorite(
-        shopId,
-        newStatus,
-      );
+      await RestaurantRepository.instance.toggleShopFavorite(shopId, newStatus);
       if (mounted) {
         AppDialog.showToast(
           context,
@@ -1259,12 +1271,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     final groups = <_MenuGroup>[];
 
     if (_categories.isNotEmpty) {
-      final sorted = [..._categories]..sort((a, b) {
-        final ao = a.displayOrder ?? 1 << 30;
-        final bo = b.displayOrder ?? 1 << 30;
-        if (ao != bo) return ao.compareTo(bo);
-        return a.id.compareTo(b.id);
-      });
+      final sorted = [..._categories]
+        ..sort((a, b) {
+          final ao = a.displayOrder ?? 1 << 30;
+          final bo = b.displayOrder ?? 1 << 30;
+          if (ao != bo) return ao.compareTo(bo);
+          return a.id.compareTo(b.id);
+        });
       final used = <int>{};
       for (final cat in sorted) {
         final items = byCategory[cat.id];

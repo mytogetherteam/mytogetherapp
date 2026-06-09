@@ -95,7 +95,7 @@ class TrendingItemDto {
         0;
 
     final rating = _parsePrice(
-      json['rating'] ?? ratingMap?['avg'] ?? shopMap?['ratingAvg'],
+      json['rating'] ?? ratingMap?['avg'],
     );
     final reviewCount = (json['reviewCount'] as num?)?.toInt() ??
         (ratingMap?['count'] as num?)?.toInt() ??
