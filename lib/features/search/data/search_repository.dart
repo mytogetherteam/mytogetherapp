@@ -38,8 +38,12 @@ class SearchRepository {
       queryParameters: {
         'latitude': latitude,
         'longitude': longitude,
-        'radiusKm': ?radiusKm,
-        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (radiusKm != null) 'radiusKm': radiusKm,
+        if (search != null && search.trim().isNotEmpty) ...{
+          'search': search.trim(),
+          'q': search.trim(),
+          'keyword': search.trim(),
+        },
         'page': page,
         'size': size,
         ...?filters?.toQueryParameters(),
@@ -85,7 +89,7 @@ class SearchRepository {
       queryParameters: {
         'latitude': latitude,
         'longitude': longitude,
-        'radiusKm': ?radiusKm,
+        if (radiusKm != null) 'radiusKm': radiusKm,
         'page': page,
         'size': size,
       },
@@ -112,7 +116,7 @@ class SearchRepository {
       queryParameters: {
         'latitude': latitude,
         'longitude': longitude,
-        'radiusKm': ?radiusKm,
+        if (radiusKm != null) 'radiusKm': radiusKm,
         'page': page,
         'size': size,
       },

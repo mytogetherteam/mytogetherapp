@@ -47,8 +47,11 @@ class SearchShopDto {
   });
 
   factory SearchShopDto.fromJson(Map<String, dynamic> json) {
+    final shopData = json['shop'] is Map<String, dynamic>
+        ? json['shop'] as Map<String, dynamic>
+        : json;
     return SearchShopDto(
-      shop: ShopListItemDto.fromJson(json),
+      shop: ShopListItemDto.fromJson(shopData),
       menuItems: (json['menuItems'] as List? ?? [])
           .map((e) => SearchMenuItemPreviewDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -73,25 +76,50 @@ class SearchPageResult {
 
   factory SearchPageResult.fromJson(Map<String, dynamic> json) {
     final raw = json;
-    final List<dynamic> dataList = raw['data'] is List
-        ? raw['data'] as List
-        : const [];
+    List<dynamic> dataList = const [];
+    
+    if (raw['data'] is List) {
+      dataList = raw['data'] as List;
+    } else if (raw['data'] is Map) {
+      final mapData = raw['data'] as Map<String, dynamic>;
+      if (mapData['content'] is List) {
+        dataList = mapData['content'] as List;
+      } else if (mapData['data'] is List) {
+        dataList = mapData['data'] as List;
+      } else if (mapData['shops'] is List) {
+        dataList = mapData['shops'] as List;
+      }
+    } else if (raw['content'] is List) {
+      dataList = raw['content'] as List;
+    } else if (raw['shops'] is List) {
+      dataList = raw['shops'] as List;
+    }
 
     final meta = raw['meta'] as Map<String, dynamic>? ?? {};
-    final currentPage = meta['current_page'] ?? meta['page'] ?? 1;
-    final lastPage = meta['last_page'] ?? 1;
-    final total = meta['total'] ?? dataList.length;
+    int currentPage = meta['current_page'] ?? meta['page'] ?? 1;
+    int lastPage = meta['last_page'] ?? 1;
+    int total = meta['total'] ?? dataList.length;
+
+    if (raw['data'] is Map<String, dynamic>) {
+      final mapData = raw['data'] as Map<String, dynamic>;
+      if (mapData.containsKey('number')) {
+        currentPage = (mapData['number'] as int? ?? 0) + 1;
+        lastPage = (mapData['totalPages'] as int? ?? 1);
+        total = mapData['totalElements'] as int? ?? dataList.length;
+      }
+    } else if (raw.containsKey('number')) {
+        currentPage = (raw['number'] as int? ?? 0) + 1;
+        lastPage = (raw['totalPages'] as int? ?? 1);
+        total = raw['totalElements'] as int? ?? dataList.length;
+    }
 
     return SearchPageResult(
       shops: dataList
           .map((e) => SearchShopDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      currentPage: currentPage is int
-          ? currentPage
-          : int.tryParse(currentPage.toString()) ?? 1,
-      lastPage:
-          lastPage is int ? lastPage : int.tryParse(lastPage.toString()) ?? 1,
-      total: total is int ? total : int.tryParse(total.toString()) ?? 0,
+      currentPage: currentPage,
+      lastPage: lastPage,
+      total: total,
     );
   }
 }

@@ -186,7 +186,7 @@ class RestaurantRepository {
     required double lat,
     required double lon,
     required String query,
-    double radiusKm = 10.0,
+    double radiusKm = 99999.0,
     int page = 1,
     int size = 20,
     SearchFilters? filters,

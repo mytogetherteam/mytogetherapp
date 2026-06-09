@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,8 +24,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeftBold,
-              color: Colors.black),
+          icon: Icon(PhosphorIcons.arrowLeftBold, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -64,16 +62,6 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _buildContactCard(
-                      icon: PhosphorIcons.phoneFill,
-                      label: context.tr('help.call'),
-                      sublabel: context.tr('help.call_us'),
-                      color: Colors.green,
-                      onTap: () => _launch('tel:+66963314802'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: _buildContactCard(
                       icon: PhosphorIcons.envelopeFill,
@@ -116,49 +104,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               ),
             ),
 
-            const SizedBox(height: 28),
 
-            // Contact info card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildInfoCard(),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Privacy Policy Link
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
-                onTap: () => _launch('https://www.mytogether.org/privacy-policy/user'),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIcons.shieldCheckFill, color: AppColors.primary, size: 28),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Privacy Policy',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      Icon(PhosphorIcons.arrowRight, color: Colors.grey, size: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -206,30 +152,6 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             style: GoogleFonts.poppins(
               fontSize: 13,
               color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, color: Colors.greenAccent, size: 10),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr('help.hours_badge'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -293,106 +215,6 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     );
   }
 
-  Widget _buildInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow(
-            icon: PhosphorIcons.envelopeFill,
-            label: context.tr('common.email'),
-            value: 'support@mytogether.org',
-            color: AppColors.primary,
-            onCopy: () => _copyToClipboard('support@mytogether.org'),
-          ),
-          const Divider(height: 24, thickness: 0.5),
-          _buildInfoRow(
-            icon: PhosphorIcons.phoneFill,
-            label: context.tr('help.phone'),
-            value: '+66 96 331 4802',
-            color: Colors.green,
-            onCopy: () => _copyToClipboard('+66963314802'),
-          ),
-          const Divider(height: 24, thickness: 0.5),
-          _buildInfoRow(
-            icon: PhosphorIcons.mapPinFill,
-            label: context.tr('help.address'),
-            value: context.tr('help.address_value'),
-            color: Colors.orange,
-          ),
-          const Divider(height: 24, thickness: 0.5),
-          _buildInfoRow(
-            icon: PhosphorIcons.clockFill,
-            label: context.tr('help.office_hours'),
-            value: context.tr('help.office_hours_value'),
-            color: Colors.blue,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    VoidCallback? onCopy,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                ),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (onCopy != null)
-          GestureDetector(
-            onTap: onCopy,
-            child: Icon(PhosphorIcons.copy, size: 18, color: Colors.grey[400]),
-          ),
-      ],
-    );
-  }
-
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
     try {
@@ -413,25 +235,4 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     }
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(context.tr('common.copied'), style: GoogleFonts.poppins(color: Colors.white)),
-            ],
-          ),
-          backgroundColor: Colors.green.shade600,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 }

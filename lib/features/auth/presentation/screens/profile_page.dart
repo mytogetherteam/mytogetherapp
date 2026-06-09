@@ -16,6 +16,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -147,6 +148,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 MaterialPageRoute(builder: (_) => const HelpSupportPage()),
               ),
             ),
+            _buildOptionTile(
+              icon: PhosphorIcons.shieldCheck,
+              title: 'Privacy Policy',
+              onTap: () => _launchUrl('https://www.mytogether.org/privacy-policy/user'),
+            ),
             
             const SizedBox(height: 20),
 
@@ -256,5 +262,24 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       },
     );
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open link', style: GoogleFonts.poppins(color: Colors.white)),
+            backgroundColor: Colors.red.shade500,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 }

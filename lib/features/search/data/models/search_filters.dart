@@ -23,6 +23,7 @@ class SearchFilters {
   final List<int> cuisineTypeIds;
   final List<String> mealTypes;
   final List<int> tagIds;
+  final double? radiusKm;
 
   const SearchFilters({
     this.isVegetarian = false,
@@ -36,6 +37,7 @@ class SearchFilters {
     this.cuisineTypeIds = const [],
     this.mealTypes = const [],
     this.tagIds = const [],
+    this.radiusKm,
   });
 
   static const empty = SearchFilters();
@@ -52,7 +54,8 @@ class SearchFilters {
       masterCategoryId != null ||
       cuisineTypeIds.isNotEmpty ||
       mealTypes.isNotEmpty ||
-      tagIds.isNotEmpty;
+      tagIds.isNotEmpty ||
+      radiusKm != null;
 
   /// Number of active dietary flags (Vegetarian / Halal / Spicy).
   int get dietaryCount {
@@ -77,6 +80,7 @@ class SearchFilters {
     if (cuisineTypeIds.isNotEmpty) count++;
     if (mealTypes.isNotEmpty) count++;
     if (tagIds.isNotEmpty) count++;
+    if (radiusKm != null) count++;
     return count;
   }
 
@@ -116,6 +120,8 @@ class SearchFilters {
     List<int>? cuisineTypeIds,
     List<String>? mealTypes,
     List<int>? tagIds,
+    double? radiusKm,
+    bool clearRadiusKm = false,
   }) {
     return SearchFilters(
       isVegetarian: isVegetarian ?? this.isVegetarian,
@@ -131,6 +137,7 @@ class SearchFilters {
       cuisineTypeIds: cuisineTypeIds ?? this.cuisineTypeIds,
       mealTypes: mealTypes ?? this.mealTypes,
       tagIds: tagIds ?? this.tagIds,
+      radiusKm: clearRadiusKm ? null : (radiusKm ?? this.radiusKm),
     );
   }
 }

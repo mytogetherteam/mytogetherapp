@@ -334,6 +334,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         lat: loc.lat,
         lon: loc.lon,
         query: query,
+        radiusKm: _filters.radiusKm ?? 99999.0,
         size: _currentState == SearchFlowState.searched ? 20 : 6,
         filters: _filters,
       );
@@ -771,6 +772,14 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             {'rating': _filters.minRating!.toStringAsFixed(1)},
           )
         : context.tr('food.rating');
+    final distanceActive = _filters.radiusKm != null;
+    final distanceLabel = distanceActive
+        ? 'Around ${_filters.radiusKm!.toStringAsFixed(0)} km'
+        : 'Distance';
+    final mealActive = _filters.mealTypes.isNotEmpty;
+    final mealLabel = mealActive
+        ? 'Meals (${_filters.mealTypes.length})'
+        : 'Meal Type';
     final cuisineLabel = cuisineActive
         ? '${context.tr('food.cuisines')} (${_filters.cuisineTypeIds.length})'
         : context.tr('food.cuisines');
@@ -795,6 +804,19 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             active: ratingActive,
             icon: PhosphorIcons.star,
             onTap: _openRatingSheet,
+          ),
+          const SizedBox(width: 8),
+          _buildDropdownChip(
+            label: distanceLabel,
+            active: distanceActive,
+            icon: PhosphorIcons.mapPin,
+            onTap: _openDistanceSheet,
+          ),
+          const SizedBox(width: 8),
+          _buildDropdownChip(
+            label: mealLabel,
+            active: mealActive,
+            onTap: _openMealTypeSheet,
           ),
           const SizedBox(width: 8),
           _buildDropdownChip(
@@ -1130,6 +1152,88 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  static const _distanceOptions = [2.0, 5.0, 10.0, 20.0, 50.0];
+
+  Future<void> _openDistanceSheet() async {
+    await _showFilterSheet(
+      builder: (sheetContext) {
+        return _sheetScaffold(
+          sheetContext,
+          title: 'Distance',
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              _buildSelectableTile(
+                label: 'Any Distance',
+                selected: _filters.radiusKm == null,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _updateFilters(_filters.copyWith(clearRadiusKm: true));
+                },
+              ),
+              ..._distanceOptions.map(
+                (d) => _buildSelectableTile(
+                  leadingIcon: PhosphorIcons.mapPin,
+                  label: 'Around ${d.toStringAsFixed(0)} km',
+                  selected: _filters.radiusKm == d,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _updateFilters(_filters.copyWith(radiusKm: d));
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static const _mealOptions = ['Breakfast', 'Lunch', 'Dinner'];
+
+  Future<void> _openMealTypeSheet() async {
+    final draft = Set<String>.from(_filters.mealTypes);
+    await _showFilterSheet(
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return _sheetScaffold(
+              sheetContext,
+              title: 'Meal Type',
+              footer: _buildSheetFooter(
+                onReset: () {
+                  Navigator.pop(sheetContext);
+                  _updateFilters(_filters.copyWith(mealTypes: const []));
+                },
+                onApply: () {
+                  Navigator.pop(sheetContext);
+                  _updateFilters(_filters.copyWith(mealTypes: draft.toList()));
+                },
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: _mealOptions.map((m) {
+                  final on = draft.contains(m);
+                  return _buildCheckTile(
+                    label: m,
+                    checked: on,
+                    onTap: () => setSheetState(() {
+                      if (on) {
+                        draft.remove(m);
+                      } else {
+                        draft.add(m);
+                      }
+                    }),
+                  );
+                }).toList(),
+              ),
+            );
+          },
         );
       },
     );
