@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/network/media_url.dart';
+import '../../../../core/presentation/widgets/empty_state_view.dart';
 import '../../data/models/visa_dto.dart';
 import '../../data/repositories/visa_repository.dart';
 import 'visa_detail_page.dart';
@@ -254,15 +255,25 @@ class _VisaSectionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (section.categories.isEmpty) {
-      return Center(child: Text(context.tr('visa.no_items')));
+    // Only render categories that actually have visas. If none do (either no
+    // categories at all, or categories with no visas mapped to them), show the
+    // empty state instead of a blank screen.
+    final visibleCategories = section.categories
+        .where((c) => (section.visasByCategory[c.id] ?? const []).isNotEmpty)
+        .toList();
+
+    if (visibleCategories.isEmpty) {
+      return EmptyStateView(
+        icon: PhosphorIconsRegular.identificationCard,
+        subtitle: context.tr('visa.no_items'),
+      );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: section.categories.length,
+      itemCount: visibleCategories.length,
       itemBuilder: (context, index) {
-        final category = section.categories[index];
+        final category = visibleCategories[index];
         final visas = section.visasByCategory[category.id] ?? const [];
         if (visas.isEmpty) return const SizedBox.shrink();
 

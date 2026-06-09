@@ -407,31 +407,7 @@ class RestaurantRepository {
     ShopListItemDto dto, {
     double? distanceKmOverride,
   }) {
-    String imagePath = '';
-
-    // 1. Prioritize coverUrl (Banner image) as requested
-    if (dto.coverUrl != null && dto.coverUrl!.isNotEmpty) {
-      imagePath = dto.coverUrl!;
-    }
-    // 2. Fallback to imageUrls list
-    else if (dto.imageUrls.isNotEmpty) {
-      imagePath = dto.imageUrls.first;
-    }
-    // 3. Fallback to logoUrl if available and NOT a Pinterest link
-    else if (dto.logoUrl != null &&
-        dto.logoUrl!.isNotEmpty &&
-        !dto.logoUrl!.contains('pinterest.com')) {
-      imagePath = dto.logoUrl!;
-    }
-    // 4. Last fallback to primaryPhotoUrl
-    else if (dto.primaryPhotoUrl != null && dto.primaryPhotoUrl!.isNotEmpty) {
-      imagePath = dto.primaryPhotoUrl!;
-    }
-
-    // If still empty, return empty string so UI can show "No Image" fallback
-    if (imagePath.isEmpty) {
-      imagePath = '';
-    }
+    final imagePath = dto.bannerImageUrl ?? '';
 
     return Restaurant(
       id: dto.id.toString(),
@@ -462,11 +438,7 @@ class RestaurantRepository {
   }
 
   Restaurant _mapShopDetailDtoToDomain(ShopDetailDto dto) {
-    final imagePath = (dto.coverUrl != null && dto.coverUrl!.isNotEmpty)
-        ? dto.coverUrl!
-        : (dto.primaryPhotoUrl != null && dto.primaryPhotoUrl!.isNotEmpty)
-        ? dto.primaryPhotoUrl!
-        : (dto.photos.isNotEmpty ? dto.photos.first : '');
+    final imagePath = dto.bannerImageUrl ?? '';
 
     return Restaurant(
       id: dto.id.toString(),
@@ -500,6 +472,10 @@ class RestaurantRepository {
       email: dto.email,
       googleMapsLink: dto.googleMapsLink,
       operatingHours: dto.operatingHours,
+      hasParking: dto.hasParking,
+      hasWifi: dto.hasWifi,
+      isHalal: dto.isHalal,
+      isVegetarian: dto.isVegetarian,
       isFavorite: dto.isFavorite,
       paymentTypes: dto.paymentTypes,
       paymentQrUrl: dto.paymentQrUrl,

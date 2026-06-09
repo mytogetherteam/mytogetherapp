@@ -1,5 +1,6 @@
 import 'models/menu_item_dto.dart';
-import 'models/shop_dto.dart' show OperatingHourDto, ShopPaymentTypeDto;
+import 'models/shop_dto.dart'
+    show OperatingHourDto, ShopPaymentTypeDto, LocalTimeDto;
 import '../../../core/localization/locale_controller.dart';
 
 class Restaurant {
@@ -8,6 +9,9 @@ class Restaurant {
   final String? nameEn;
   final String? nameMm;
   final String? nameTh;
+  final String? descriptionEn;
+  final String? descriptionMm;
+  final String? descriptionTh;
   final String category;
   final double rating;
   final int reviewCount;
@@ -38,11 +42,28 @@ class Restaurant {
   final String? googleMapsLink;
   final List<OperatingHourDto> operatingHours;
 
+  // Amenities / features
+  final bool hasParking;
+  final bool hasWifi;
+  final bool isHalal;
+  final bool isVegetarian;
+
   /// Resolved live against the active language so a language switch updates
   /// already-loaded rails without a refetch. Falls back to the flat [name]
   /// passed in (e.g. mock/static data) when no localized variant is present.
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+
+  /// Localized shop description, empty when none is available.
+  String get description => LocaleController.instance
+      .localized(en: descriptionEn, mm: descriptionMm, th: descriptionTh);
+
+  /// Whether at least one amenity is available (used to hide the section).
+  bool get hasAnyFeature => hasParking || hasWifi || isHalal || isVegetarian;
+
+  /// Live open/closed state computed from [operatingHours] against the device
+  /// clock. Falls back to the API [status] flag when no schedule is available.
+  OpeningStatus get openingStatus => OpeningStatus.fromHours(operatingHours);
 
   const Restaurant({
     required this.id,
@@ -50,6 +71,9 @@ class Restaurant {
     this.nameEn,
     this.nameMm,
     this.nameTh,
+    this.descriptionEn,
+    this.descriptionMm,
+    this.descriptionTh,
     required this.category,
     required this.rating,
     this.reviewCount = 0,
@@ -72,10 +96,143 @@ class Restaurant {
     this.email,
     this.googleMapsLink,
     this.operatingHours = const [],
+    this.hasParking = false,
+    this.hasWifi = false,
+    this.isHalal = false,
+    this.isVegetarian = false,
     this.isFavorite = false,
     this.paymentTypes = const [],
     this.paymentQrUrl,
     this.deliveryFee,
     this.originalDeliveryFee,
   }) : _name = name;
+}
+
+/// Result of computing a shop's open/closed state from its weekly schedule.
+class OpeningStatus {
+  /// Whether a usable weekly schedule was available. When false the caller
+  /// should fall back to the API-provided `isOpen` flag.
+  final bool hasSchedule;
+  final bool isOpen;
+
+  /// When closed, the next time the shop opens (ISO weekday 1=Mon..7=Sun).
+  final int? nextOpenDayIso;
+  final int? nextOpenHour;
+  final int? nextOpenMinute;
+
+  /// True when the next opening is later on the current day.
+  final bool nextOpenIsToday;
+
+  const OpeningStatus({
+    required this.hasSchedule,
+    required this.isOpen,
+    this.nextOpenDayIso,
+    this.nextOpenHour,
+    this.nextOpenMinute,
+    this.nextOpenIsToday = false,
+  });
+
+  /// Maps a backend `dayOfWeek` (int `0`=Sun..`6`=Sat, or a weekday name) to an
+  /// ISO weekday (1=Mon..7=Sun). Returns `8` for unrecognized values.
+  static int _isoDay(String day) {
+    final number = int.tryParse(day);
+    if (number != null) {
+      if (number == 0) return 7;
+      if (number >= 1 && number <= 7) return number;
+      return 8;
+    }
+    switch (day.toUpperCase()) {
+      case 'MONDAY':
+        return 1;
+      case 'TUESDAY':
+        return 2;
+      case 'WEDNESDAY':
+        return 3;
+      case 'THURSDAY':
+        return 4;
+      case 'FRIDAY':
+        return 5;
+      case 'SATURDAY':
+        return 6;
+      case 'SUNDAY':
+        return 7;
+      default:
+        return 8;
+    }
+  }
+
+  static int _minutesOf(LocalTimeDto t) => t.hour * 60 + t.minute;
+
+  /// Computes the live status from [hours]. [now] is injectable for testing.
+  static OpeningStatus fromHours(
+    List<OperatingHourDto> hours, {
+    DateTime? now,
+  }) {
+    final map = <int, OperatingHourDto>{};
+    for (final h in hours) {
+      final iso = _isoDay(h.dayOfWeek);
+      if (iso >= 1 && iso <= 7) map[iso] = h;
+    }
+    if (map.isEmpty) {
+      return const OpeningStatus(hasSchedule: false, isOpen: false);
+    }
+
+    final current = now ?? DateTime.now();
+    final int todayIso = current.weekday; // 1..7
+    final int nowMin = current.hour * 60 + current.minute;
+
+    // 1) Open right now? Handle same-day and overnight (close <= open) windows.
+    bool openNow = false;
+    final today = map[todayIso];
+    if (today != null &&
+        !today.isClosed &&
+        today.openingTime != null &&
+        today.closingTime != null) {
+      final open = _minutesOf(today.openingTime!);
+      final close = _minutesOf(today.closingTime!);
+      if (close > open) {
+        openNow = nowMin >= open && nowMin < close;
+      } else if (close < open) {
+        openNow = nowMin >= open || nowMin < close;
+      }
+    }
+    // Yesterday's overnight window spilling past midnight into today.
+    if (!openNow) {
+      final yIso = todayIso == 1 ? 7 : todayIso - 1;
+      final y = map[yIso];
+      if (y != null &&
+          !y.isClosed &&
+          y.openingTime != null &&
+          y.closingTime != null) {
+        final open = _minutesOf(y.openingTime!);
+        final close = _minutesOf(y.closingTime!);
+        if (close < open && nowMin < close) openNow = true;
+      }
+    }
+
+    if (openNow) {
+      return const OpeningStatus(hasSchedule: true, isOpen: true);
+    }
+
+    // 2) Closed — find the next opening within the coming week.
+    for (int offset = 0; offset < 8; offset++) {
+      final iso = ((todayIso - 1 + offset) % 7) + 1;
+      final entry = map[iso];
+      if (entry == null || entry.isClosed || entry.openingTime == null) {
+        continue;
+      }
+      final open = _minutesOf(entry.openingTime!);
+      if (offset == 0 && open <= nowMin) continue; // already passed today
+      return OpeningStatus(
+        hasSchedule: true,
+        isOpen: false,
+        nextOpenDayIso: iso,
+        nextOpenHour: entry.openingTime!.hour,
+        nextOpenMinute: entry.openingTime!.minute,
+        nextOpenIsToday: offset == 0,
+      );
+    }
+
+    return const OpeningStatus(hasSchedule: true, isOpen: false);
+  }
 }

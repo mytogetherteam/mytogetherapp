@@ -22,6 +22,9 @@ class RestaurantCard extends StatelessWidget {
   final String? logoPath;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
+  /// When true (default) a "saved/removed" toast is shown automatically on
+  /// favorite tap. Set false when the parent already shows its own toast.
+  final bool showFavoriteToast;
   final VoidCallback? onTap;
   final double? width;
   final EdgeInsetsGeometry? margin;
@@ -40,6 +43,7 @@ class RestaurantCard extends StatelessWidget {
     this.logoPath,
     this.isFavorite = false,
     this.onFavoriteToggle,
+    this.showFavoriteToast = true,
     this.onTap,
     this.width,
     this.margin,
@@ -105,8 +109,22 @@ class RestaurantCard extends StatelessWidget {
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: onFavoriteToggle ??
-                      () => AppDialog.showUnavailable(context),
+                  onTap: onFavoriteToggle != null
+                      ? () {
+                          final willBeSaved = !isFavorite;
+                          onFavoriteToggle!.call();
+                          if (showFavoriteToast) {
+                            AppDialog.showToast(
+                              context,
+                              context.tr(
+                                willBeSaved
+                                    ? 'wishlist.saved'
+                                    : 'wishlist.removed',
+                              ),
+                            );
+                          }
+                        }
+                      : () => AppDialog.showUnavailable(context),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(

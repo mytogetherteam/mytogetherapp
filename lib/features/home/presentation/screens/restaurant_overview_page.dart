@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
+import '../widgets/restaurant_open_status.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
+import '../../data/repositories/restaurant_repository.dart';
 
 class RestaurantOverviewPage extends StatelessWidget {
   final Restaurant restaurant;
@@ -27,6 +30,7 @@ class RestaurantOverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final openStatus = RestaurantOpenStatus.of(context, restaurant);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -172,15 +176,27 @@ class RestaurantOverviewPage extends StatelessWidget {
                       _buildInfoItem(PhosphorIcons.clock, restaurant.deliveryTime),
                       _buildDot(),
                       Text(
-                        context.localizedStatus(restaurant.status),
+                        openStatus.text,
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: const Color(0xFF10B981),
+                          color: openStatus.color,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
+                  if (openStatus.nextOpenText != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      openStatus.nextOpenText!,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -194,6 +210,14 @@ class RestaurantOverviewPage extends StatelessWidget {
                     title: context.tr('restaurant.address_title'),
                     content: _localizedAddress(context),
                   ),
+                  if (restaurant.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildSectionCard(
+                      iconData: PhosphorIcons.info,
+                      title: context.tr('restaurant.description_title'),
+                      content: restaurant.description.trim(),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   _buildSectionCard(
                     icon: 'assets/images/detail_overview.png',
@@ -202,6 +226,22 @@ class RestaurantOverviewPage extends StatelessWidget {
                       children: _buildOperatingHours(context),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  _buildSectionCard(
+                    iconData: PhosphorIcons.wallet,
+                    title: context.tr('restaurant.payment_title'),
+                    customContent: _PaymentMethodsSection(
+                      shopId: int.tryParse(restaurant.id),
+                    ),
+                  ),
+                  if (restaurant.hasAnyFeature) ...[
+                    const SizedBox(height: 16),
+                    _buildSectionCard(
+                      iconData: PhosphorIcons.sparkle,
+                      title: context.tr('restaurant.features_title'),
+                      customContent: _buildFeatures(context),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -369,7 +409,8 @@ class RestaurantOverviewPage extends StatelessWidget {
   }
 
   Widget _buildSectionCard({
-    required String icon,
+    String? icon,
+    IconData? iconData,
     required String title,
     String? content,
     Widget? customContent,
@@ -387,7 +428,14 @@ class RestaurantOverviewPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Image.asset(icon, width: 32, height: 32),
+              if (icon != null)
+                Image.asset(icon, width: 32, height: 32)
+              else if (iconData != null)
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Icon(iconData, size: 24, color: AppColors.primary),
+                ),
               const SizedBox(width: 12),
               Text(
                 title,
@@ -415,6 +463,53 @@ class RestaurantOverviewPage extends StatelessWidget {
     );
   }
 
+  Widget _buildFeatures(BuildContext context) {
+    final features = <_Feature>[
+      if (restaurant.hasParking)
+        _Feature(PhosphorIcons.car, context.tr('restaurant.feature_parking')),
+      if (restaurant.hasWifi)
+        _Feature(PhosphorIcons.wifiHigh, context.tr('restaurant.feature_wifi')),
+      if (restaurant.isHalal)
+        _Feature(
+            PhosphorIcons.forkKnife, context.tr('restaurant.feature_halal')),
+      if (restaurant.isVegetarian)
+        _Feature(
+            PhosphorIcons.leaf, context.tr('restaurant.feature_vegetarian')),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: features.map((f) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(f.icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                f.label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF2D3748),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildLogoFallback(String name) {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';
     return Container(
@@ -432,5 +527,155 @@ class RestaurantOverviewPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _Feature {
+  final IconData icon;
+  final String label;
+
+  const _Feature(this.icon, this.label);
+}
+
+/// Shows the payment methods configured for a specific shop.
+///
+/// Loads from the dedicated `GET /user/shops/:shopId/payment-methods`
+/// endpoint so only the restaurant's own (active) methods are shown, instead
+/// of the full catalogue that the shop-detail payload sometimes carries.
+class _PaymentMethodsSection extends StatefulWidget {
+  final int? shopId;
+
+  const _PaymentMethodsSection({required this.shopId});
+
+  @override
+  State<_PaymentMethodsSection> createState() => _PaymentMethodsSectionState();
+}
+
+class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
+  late final Future<List<ShopPaymentTypeDto>> _future = _load();
+
+  Future<List<ShopPaymentTypeDto>> _load() async {
+    final id = widget.shopId;
+    if (id == null) return const [];
+    final methods =
+        await RestaurantRepository.instance.getShopPaymentMethods(id);
+    return methods.where((m) => m.isActive).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ShopPaymentTypeDto>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
+        final methods = snapshot.data ?? const [];
+        if (methods.isEmpty) {
+          return Text(
+            context.tr('restaurant.payment_unavailable'),
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+          );
+        }
+
+        return Column(
+          children: methods.asMap().entries.map((entry) {
+            final bool isLast = entry.key == methods.length - 1;
+            final method = entry.value;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      _buildPaymentIcon(method),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          method.displayName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF2D3748),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isLast)
+                  Divider(color: Colors.grey[200], height: 1, thickness: 1),
+              ],
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentIcon(ShopPaymentTypeDto method) {
+    final iconUrl = _normalizeImageUrl(method.iconUrl);
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: iconUrl != null
+          ? Image.network(
+              iconUrl,
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stack) =>
+                  _fallbackPaymentIcon(method),
+            )
+          : _fallbackPaymentIcon(method),
+    );
+  }
+
+  Widget _fallbackPaymentIcon(ShopPaymentTypeDto method) {
+    return Center(
+      child: Icon(
+        method.isCashOnDelivery
+            ? PhosphorIcons.money
+            : (method.qrImageUrl != null && method.qrImageUrl!.isNotEmpty)
+                ? PhosphorIcons.qrCode
+                : PhosphorIcons.creditCard,
+        color: const Color(0xFF64748B),
+        size: 20,
+      ),
+    );
+  }
+
+  /// Rewrites a stored image path/URL to an absolute, reachable URL.
+  String? _normalizeImageUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    var imageUrl = raw.replaceAll('\\', '/');
+    if (imageUrl.startsWith('http://localhost') ||
+        imageUrl.startsWith('http://10.0.2.2')) {
+      imageUrl = imageUrl.replaceAll(
+        RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
+        ApiClient.baseUrl,
+      );
+    } else if (!imageUrl.startsWith('http')) {
+      imageUrl = imageUrl.startsWith('/')
+          ? '${ApiClient.baseUrl}$imageUrl'
+          : '${ApiClient.baseUrl}/$imageUrl';
+    }
+    return imageUrl;
   }
 }

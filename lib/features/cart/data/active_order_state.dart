@@ -4,10 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'cart_manager.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/network/websocket_service.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
+import '../../../core/utils/image_utils.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -420,15 +420,13 @@ class ActiveOrderState extends ChangeNotifier {
 
     final item = _orders[targetId]!;
     item.orderStatus = status;
-    
-    // Disconnect WebSocket only if ALL orders are terminal
-    if (status == 4 || status == -1) {
-      final allTerminal = _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
-      if (allTerminal) {
-        WebSocketService().disconnect();
-      }
-    }
-    
+
+    // NOTE: The WebSocket is a shared, app-wide channel — it also carries
+    // global admin broadcasts/announcements that must pop "wherever the user
+    // is". Its lifecycle is owned by app foreground/background (LifecycleObserver)
+    // and auth, NOT by order state. Do not disconnect it here, or broadcasts
+    // stop arriving once a user has no active order.
+
     saveToPrefs();
     notifyListeners();
   }
@@ -569,7 +567,13 @@ class ActiveOrderState extends ChangeNotifier {
       item.logoPath = item.shopLogo; // Sync legacy field
     }
     
-    final rawImage = data['shopImageUrl'] ?? data['coverUrl'] ?? data['imageUrl'];
+    final shopMap = data['shop'];
+    final rawImage = data['shopImageUrl'] ??
+        data['coverUrl'] ??
+        data['imageUrl'] ??
+        (shopMap is Map<String, dynamic>
+            ? ShopImageResolver.resolveBannerFromJson(shopMap)
+            : null);
     if (rawImage != null) {
       item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));
     }
@@ -655,11 +659,9 @@ class ActiveOrderState extends ChangeNotifier {
       item.orderStatus = data['orderStatus'] as int;
     }
 
-    // Disconnect if ALL orders are terminal
-    final allTerminal = _orders.values.every((o) => o.orderStatus == 4 || o.orderStatus == -1);
-    if (allTerminal) {
-       WebSocketService().disconnect();
-    }
+    // The shared WebSocket stays connected for the whole foreground session so
+    // global broadcasts/announcements keep arriving even after orders finish.
+    // (Connection lifecycle is managed by LifecycleObserver + auth.)
 
     saveToPrefs();
     notifyListeners();
@@ -788,10 +790,10 @@ class ActiveOrderState extends ChangeNotifier {
       _orders.clear();
     }
     
-    if (_orders.isEmpty) {
-      WebSocketService().disconnect();
-    }
-    
+    // Keep the shared WebSocket open even with no orders so global
+    // broadcasts/announcements still reach the user (lifecycle is owned by
+    // LifecycleObserver + auth, not by the order list).
+
     saveToPrefs();
     notifyListeners();
   }

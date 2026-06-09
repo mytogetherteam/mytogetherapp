@@ -34,6 +34,9 @@ class FoodMenuItemCard extends StatefulWidget {
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final VoidCallback? onFavoriteToggle;
+  /// When true (default) a "saved/removed" toast is shown automatically on
+  /// favorite tap. Set false when the parent already shows its own toast.
+  final bool showFavoriteToast;
   final bool isHighlighted;
   final bool forceRestaurantNavigation;
   final String? targetMenuItemId;
@@ -61,6 +64,7 @@ class FoodMenuItemCard extends StatefulWidget {
     this.deliveryFee,
     this.originalDeliveryFee,
     this.onFavoriteToggle,
+    this.showFavoriteToast = true,
     this.isHighlighted = false,
     this.forceRestaurantNavigation = false,
     this.targetMenuItemId,
@@ -265,8 +269,9 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                 top: 10,
                                 right: 10,
                                 child: GestureDetector(
-                                  onTap: widget.onFavoriteToggle ??
-                                      () => AppDialog.showUnavailable(context),
+                                  onTap: widget.onFavoriteToggle != null
+                                      ? _handleFavoriteTap
+                                      : () => AppDialog.showUnavailable(context),
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
@@ -385,6 +390,17 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
         );
       },
     );
+  }
+
+  void _handleFavoriteTap() {
+    final willBeSaved = !widget.isFavorite;
+    widget.onFavoriteToggle?.call();
+    if (widget.showFavoriteToast) {
+      AppDialog.showToast(
+        context,
+        context.tr(willBeSaved ? 'wishlist.saved' : 'wishlist.removed'),
+      );
+    }
   }
 
   Widget _buildFallbackImage() {

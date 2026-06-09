@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/delete_account_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
@@ -47,12 +46,6 @@ class AccountSettingsPage extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const EditProfilePage()),
             ),
-          ),
-          _buildOptionTile(
-            context,
-            icon: PhosphorIcons.shieldCheck,
-            title: context.tr('profile.security'),
-            onTap: () => AppDialog.showUnavailable(context),
           ),
           const SizedBox(height: 8),
           _buildDeleteAccountTile(context),

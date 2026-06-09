@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import '../models/wishlist_item_dto.dart';
 
@@ -12,7 +13,7 @@ import '../models/wishlist_item_dto.dart';
 /// Since DELETE expects the wishlist row id (not the menuItemId/shopId), we
 /// keep an in-memory lookup populated by `create` and `list` responses so
 /// the toggle-style favorite buttons in the UI can keep using domain ids.
-class WishlistRepository {
+class WishlistRepository extends ChangeNotifier {
   static final WishlistRepository instance = WishlistRepository._();
   WishlistRepository._();
 
@@ -59,6 +60,7 @@ class WishlistRepository {
         listPlaces(size: size),
       ]);
       _primed = true;
+      notifyListeners();
     } catch (_) {
       // Soft-fail: indexes stay empty, callers degrade gracefully.
     }
@@ -81,6 +83,7 @@ class WishlistRepository {
         _menuItemIndex[item.menuItem!.id] = item.id;
       }
     }
+    notifyListeners();
     return items;
   }
 
@@ -101,6 +104,7 @@ class WishlistRepository {
         _shopIndex[item.shop!.id] = item.id;
       }
     }
+    notifyListeners();
     return items;
   }
 
@@ -115,6 +119,7 @@ class WishlistRepository {
       final created = _parseSingle(response.data);
       if (created != null) {
         _menuItemIndex[menuItemId] = created.id;
+        notifyListeners();
       }
       return created;
     } on DioException catch (e) {
@@ -144,6 +149,7 @@ class WishlistRepository {
         _placeIndex[item.place!.id] = item.id;
       }
     }
+    notifyListeners();
     return items;
   }
 
@@ -156,6 +162,7 @@ class WishlistRepository {
       final created = _parseSingle(response.data);
       if (created != null) {
         _shopIndex[shopId] = created.id;
+        notifyListeners();
       }
       return created;
     } on DioException catch (e) {
@@ -176,6 +183,7 @@ class WishlistRepository {
       final created = _parseSingle(response.data);
       if (created != null) {
         _placeIndex[placeId] = created.id;
+        notifyListeners();
       }
       return created;
     } on DioException catch (e) {
@@ -195,6 +203,7 @@ class WishlistRepository {
     _menuItemIndex.removeWhere((_, value) => value == wishlistId);
     _shopIndex.removeWhere((_, value) => value == wishlistId);
     _placeIndex.removeWhere((_, value) => value == wishlistId);
+    notifyListeners();
   }
 
   /// Convenience helper: removes a menu item from the wishlist by its

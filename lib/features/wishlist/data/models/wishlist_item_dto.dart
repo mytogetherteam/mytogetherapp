@@ -8,6 +8,7 @@
 library;
 
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/utils/image_utils.dart';
 
 class WishlistItemDto {
   /// The wishlist row's primary key. Required when calling DELETE.
@@ -73,6 +74,10 @@ class WishlistMenuItemRef {
   final int? shopId;
   final bool isAvailable;
 
+  /// The owning shop (included by the backend via `menuItem.shop`). Used to
+  /// navigate to the restaurant detail page from a saved menu item.
+  final WishlistShopRef? shop;
+
   WishlistMenuItemRef({
     required this.id,
     this.nameEn,
@@ -84,6 +89,7 @@ class WishlistMenuItemRef {
     this.discountPercentage,
     this.shopId,
     this.isAvailable = true,
+    this.shop,
   });
 
   String get displayName {
@@ -118,6 +124,7 @@ class WishlistMenuItemRef {
   }
 
   factory WishlistMenuItemRef.fromJson(Map<String, dynamic> json) {
+    final shopMap = json['shop'];
     return WishlistMenuItemRef(
       id: (json['id'] as num).toInt(),
       nameEn: json['nameEn']?.toString(),
@@ -132,6 +139,9 @@ class WishlistMenuItemRef {
       discountPercentage: (json['discountPercentage'] as num?)?.toDouble(),
       shopId: (json['shopId'] as num?)?.toInt(),
       isAvailable: json['isAvailable'] as bool? ?? true,
+      shop: shopMap is Map<String, dynamic>
+          ? WishlistShopRef.fromJson(shopMap)
+          : null,
     );
   }
 }
@@ -143,6 +153,8 @@ class WishlistShopRef {
   final String? nameTh;
   final String? logoUrl;
   final String? coverUrl;
+  final String? primaryPhotoUrl;
+  final List<String> imageUrls;
   final String? slug;
   final double? ratingAvg;
   final int? ratingCount;
@@ -155,6 +167,8 @@ class WishlistShopRef {
     this.nameTh,
     this.logoUrl,
     this.coverUrl,
+    this.primaryPhotoUrl,
+    this.imageUrls = const [],
     this.slug,
     this.ratingAvg,
     this.ratingCount,
@@ -167,14 +181,28 @@ class WishlistShopRef {
     return name.isNotEmpty ? name : 'Shop #$id';
   }
 
+  /// Banner image for cards (cover → gallery → logo → primary photo).
+  String? get bannerImageUrl => ShopImageResolver.resolveBannerUrl(
+        coverUrl: coverUrl,
+        imageUrls: imageUrls,
+        logoUrl: logoUrl,
+        primaryPhotoUrl: primaryPhotoUrl,
+      );
+
   factory WishlistShopRef.fromJson(Map<String, dynamic> json) {
+    final imageUrls = ShopImageResolver.parseImageUrls(json);
+    final primaryPhotoUrl = ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
+        (imageUrls.isNotEmpty ? imageUrls.first : null);
+
     return WishlistShopRef(
       id: (json['id'] as num).toInt(),
       nameEn: json['nameEn']?.toString(),
       nameMm: json['nameMm']?.toString(),
       nameTh: json['nameTh']?.toString(),
-      logoUrl: json['logoUrl']?.toString(),
-      coverUrl: json['coverUrl']?.toString(),
+      logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
+      coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
+      primaryPhotoUrl: primaryPhotoUrl,
+      imageUrls: imageUrls,
       slug: json['slug']?.toString(),
       ratingAvg: (json['ratingAvg'] as num?)?.toDouble(),
       ratingCount: (json['ratingCount'] as num?)?.toInt(),

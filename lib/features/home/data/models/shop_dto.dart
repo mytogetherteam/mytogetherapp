@@ -143,6 +143,14 @@ class ShopListItemDto {
     return _estimatedTime;
   }
 
+  /// Best banner/cover image for cards and headers.
+  String? get bannerImageUrl => ShopImageResolver.resolveBannerUrl(
+        coverUrl: coverUrl,
+        imageUrls: imageUrls,
+        logoUrl: logoUrl,
+        primaryPhotoUrl: primaryPhotoUrl,
+      );
+
   ShopListItemDto({
     required this.id,
     required String name,
@@ -187,21 +195,7 @@ class ShopListItemDto {
               ) ??
               0;
 
-    // The public endpoints flatten photos to `imageUrls`/`primaryPhotoUrl`,
-    // but the authenticated user shop-profile endpoints
-    // (GET /api/user/shop-profile[/:id]) return the raw `galleries` relation
-    // ([{ imageUrl }]). Support both so gallery photos surface either way.
-    List<String> imageUrls = (json['imageUrls'] as List? ?? [])
-        .map((e) => ImageUtils.cleanImageUrl(e.toString()))
-        .whereType<String>()
-        .toList();
-    if (imageUrls.isEmpty && json['galleries'] is List) {
-      imageUrls = (json['galleries'] as List)
-          .map((e) => e is Map ? ImageUtils.cleanImageUrl(e['imageUrl']) : null)
-          .whereType<String>()
-          .toList();
-    }
-
+    final imageUrls = ShopImageResolver.parseImageUrls(json);
     final primaryPhotoUrl = ImageUtils.cleanImageUrl(json['primaryPhotoUrl']) ??
         (imageUrls.isNotEmpty ? imageUrls.first : null);
 
@@ -313,10 +307,17 @@ class ShopDetailDto {
   final String? nameEn;
   final String? nameMm;
   final String? nameTh;
+  final String? descriptionEn;
+  final String? descriptionMm;
+  final String? descriptionTh;
   final String? category;
   final CuisineTypeDto? cuisineType;
   final double rating;
   final int reviewCount;
+  final bool hasParking;
+  final bool hasWifi;
+  final bool isHalal;
+  final bool isVegetarian;
   final String? logoUrl;
   final String? coverUrl;
   final String? primaryPhotoUrl;
@@ -347,6 +348,10 @@ class ShopDetailDto {
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
 
+  /// Localized shop description, empty when none is available.
+  String get description => LocaleController.instance
+      .localized(en: descriptionEn, mm: descriptionMm, th: descriptionTh);
+
   String? get estimatedTime {
     if (distance > 0) {
       int minTime = (distance * 2.0).round();
@@ -357,15 +362,30 @@ class ShopDetailDto {
     return _estimatedTime;
   }
 
+  /// Best banner/cover image for the detail header.
+  String? get bannerImageUrl => ShopImageResolver.resolveBannerUrl(
+        coverUrl: coverUrl,
+        imageUrls: photos,
+        logoUrl: logoUrl,
+        primaryPhotoUrl: primaryPhotoUrl,
+      );
+
   ShopDetailDto({
     required this.id,
     required String name,
     this.nameEn,
     this.nameMm,
     this.nameTh,
+    this.descriptionEn,
+    this.descriptionMm,
+    this.descriptionTh,
     this.category,
     required this.rating,
     required this.reviewCount,
+    this.hasParking = false,
+    this.hasWifi = false,
+    this.isHalal = false,
+    this.isVegetarian = false,
     this.logoUrl,
     this.coverUrl,
     this.primaryPhotoUrl,
@@ -403,10 +423,17 @@ class ShopDetailDto {
       nameEn: json['nameEn'] as String?,
       nameMm: json['nameMm'] as String?,
       nameTh: json['nameTh'] as String?,
+      descriptionEn: json['descriptionEn'] as String?,
+      descriptionMm: json['descriptionMm'] as String?,
+      descriptionTh: json['descriptionTh'] as String?,
       category: json['category'],
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
       rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
       reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
+      hasParking: json['hasParking'] as bool? ?? false,
+      hasWifi: json['hasWifi'] as bool? ?? false,
+      isHalal: json['isHalal'] as bool? ?? false,
+      isVegetarian: json['isVegetarian'] as bool? ?? false,
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),
@@ -423,15 +450,7 @@ class ShopDetailDto {
       operatingHours: (json['operatingHours'] as List? ?? [])
           .map((e) => OperatingHourDto.fromJson(e))
           .toList(),
-      photos: (json['photos'] as List? ?? [])
-          .map((e) {
-            if (e is Map) {
-              return ImageUtils.cleanImageUrl(e['url']?.toString());
-            }
-            return ImageUtils.cleanImageUrl(e.toString());
-          })
-          .whereType<String>()
-          .toList(),
+      photos: ShopImageResolver.parseImageUrls(json),
       popularDishes: (json['popularDishes'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
       recommendations: (json['recommendations'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
       hotDeals: (json['hotDeals'] as List? ?? []).map((e) => MenuItemDto.fromDishJson(e)).toList(),
@@ -617,12 +636,19 @@ class ShopPaymentTypeDto {
   }
 
   factory ShopPaymentTypeDto.fromJson(Map<String, dynamic> json) {
+    // The public shop-detail endpoint flattens each method to the
+    // `paymentMethod` row shape (`{ id, name, iconUrl, isActive }`), while
+    // other endpoints use the `paymentMethodId`/`paymentMethodName` shape.
+    // Support both so the name and icon always resolve.
+    final name = json['paymentMethodName'] ?? json['name'];
     return ShopPaymentTypeDto(
-      paymentMethodId: json['paymentMethodId'] ?? 0,
+      paymentMethodId: (json['paymentMethodId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
       paymentMethodCode: json['paymentMethodCode'] ?? '',
-      paymentMethodName: json['paymentMethodName'],
+      paymentMethodName: name?.toString(),
       isActive: json['isActive'] ?? false,
-      qrImageUrl: json['qrImageUrl'],
+      qrImageUrl: json['qrImageUrl'] ?? json['qr'],
       accountNumber: json['accountNumber'],
       accountName: json['accountName'],
       iconUrl: json['iconUrl'],

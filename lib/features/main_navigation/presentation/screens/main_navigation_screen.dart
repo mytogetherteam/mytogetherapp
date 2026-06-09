@@ -114,7 +114,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final requested = NavigationController.instance.tabChangeRequest.value;
     if (requested != null && mounted) {
       setState(() => _currentIndex = requested);
-      NavigationController.instance.tabChangeRequest.value = null;
+      // Reset the request after the current notification dispatch completes,
+      // rather than re-entrantly mutating the notifier from inside its own
+      // listener (which can swallow subsequent identical requests).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (NavigationController.instance.tabChangeRequest.value == requested) {
+          NavigationController.instance.tabChangeRequest.value = null;
+        }
+      });
     }
   }
 

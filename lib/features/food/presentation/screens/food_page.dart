@@ -161,7 +161,7 @@ class _FoodPageState extends State<FoodPage> {
                         ),
                       ),
                       Positioned(
-                        top: 12,
+                        bottom: 20,
                         left: 0,
                         right: 0,
                         child: Center(child: _buildBackToTopButton()),
@@ -187,7 +187,7 @@ class _FoodPageState extends State<FoodPage> {
     return AnimatedSlide(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      offset: _showBackToTop ? Offset.zero : const Offset(0, -2),
+      offset: _showBackToTop ? Offset.zero : const Offset(0, 2),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 250),
         opacity: _showBackToTop ? 1 : 0,

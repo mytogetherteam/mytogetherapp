@@ -10,6 +10,7 @@ import '../../../../features/auth/data/repositories/user_location_repository.dar
 import '../../../../core/location/location_service.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../data/models/shop_feed_item_dto.dart';
+import '../../../../core/presentation/widgets/empty_state_view.dart';
 
 class TodayOverviewDetailPage extends StatefulWidget {
   /// When provided, the page paginates this shop-feed type (e.g. `hot-deals`)
@@ -256,6 +257,18 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                 ),
                 itemCount: crossAxisCount * 3,
                 itemBuilder: (context, index) => const FoodMenuItemSkeleton(),
+              )
+            : _items.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: const EmptyStateView(
+                      icon: Icons.restaurant_menu_rounded,
+                    ),
+                  ),
+                ],
               )
             : GridView.builder(
                 controller: _scrollController,

@@ -381,7 +381,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           rating: s.rating,
           distance: context.trArgs('food.distance_km',
               {'distance': s.distance.toStringAsFixed(1)}),
-          imagePath: _imageUrl(s.coverUrl ?? s.primaryPhotoUrl ?? s.logoUrl),
+          imagePath: _imageUrl(s.bannerImageUrl),
           logoPath: _imageUrl(s.logoUrl),
           deliveryTime:
               s.estimatedTime ?? context.tr('food.default_delivery_time'),
@@ -1512,7 +1512,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   Widget _buildSearchedRestaurantBlock(SearchShopDto shopDto) {
     final shop = shopDto.shop;
     final menuItems = shopDto.menuItems;
-    final logo = _imageUrl(shop.logoUrl);
+    final logo = _imageUrl(shop.bannerImageUrl ?? shop.logoUrl);
 
     return GestureDetector(
       onTap: () => _openRestaurant(shopDto),

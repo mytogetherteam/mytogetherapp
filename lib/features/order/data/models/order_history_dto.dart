@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 
 import '../../../reviews/data/models/order_review_dto.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/utils/image_utils.dart';
 
 class OrderHistoryGroupedDto {
   final List<OrderHistoryDto> currentOrders;
@@ -107,9 +108,10 @@ class OrderHistoryDto {
     final shopImageUrl =
         json['shopImageUrl'] as String? ??
         json['imageUrl'] as String? ??
+        (shop != null ? ShopImageResolver.resolveBannerFromJson(shop) : null) ??
         shop?['imageUrl'] as String? ??
-        shop?['logoUrl'] as String? ??
         shop?['coverUrl'] as String? ??
+        shop?['logoUrl'] as String? ??
         shop?['image'] as String?;
 
     // The new backend (mapUserOrderListItem) doesn't emit `ongoing`; derive

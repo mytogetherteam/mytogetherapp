@@ -1,11 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
-import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_menu_item_card.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/restaurant_card.dart';
 
 import '../../data/models/wishlist_item_dto.dart';
 import '../../data/repositories/wishlist_repository.dart';
@@ -128,18 +128,40 @@ class _WishlistPageState extends State<WishlistPage>
         subtitle: context.tr('wishlist.empty_sub'),
       );
     }
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: GridView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 24,
+          childAspectRatio: 0.85,
+        ),
         itemCount: _menuItems.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final item = _menuItems[index];
-          return _MenuWishlistTile(
-            item: item,
-            onRemove: () => _removeItem(item),
+          final menu = item.menuItem;
+          final shopId = menu?.shopId ?? menu?.shop?.id;
+          return FoodMenuItemCard(
+            id: (menu?.id ?? item.menuItemId ?? 0).toString(),
+            restaurantId: (shopId ?? 0).toString(),
+            title: menu?.displayName ?? context.tr('wishlist.menu_item'),
+            price: menu?.effectivePrice ?? 0,
+            currency: '฿',
+            imagePath: menu?.imageUrl ?? '',
+            restaurantName: menu?.shop?.displayName ?? '',
+            isFavorite: true,
+            originalPrice:
+                (menu?.hasDiscount ?? false) ? menu?.originalPrice : null,
+            isAvailable: menu?.isAvailable ?? true,
+            // Replicates the Food-tab flow: tapping opens the restaurant page
+            // and plays the highlight/float animation on this menu item.
+            forceRestaurantNavigation: true,
+            showFavoriteToast: false,
+            onFavoriteToggle: () => _removeItem(item),
           );
         },
       ),
@@ -156,15 +178,43 @@ class _WishlistPageState extends State<WishlistPage>
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
         itemCount: _shops.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final item = _shops[index];
-          return _ShopWishlistTile(
-            item: item,
-            onRemove: () => _removeItem(item),
+          final shop = item.shop;
+          return RestaurantCard(
+            name: shop?.displayName ?? context.tr('common.shop'),
+            category: '',
+            rating: shop?.ratingAvg ?? 0,
+            reviewCount: shop?.ratingCount ?? 0,
+            distance: '',
+            imagePath: shop?.bannerImageUrl ?? '',
+            logoPath: shop?.logoUrl,
+            isFavorite: true,
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+            showFavoriteToast: false,
+            onFavoriteToggle: () => _removeItem(item),
+            onTap: () {
+              final shopId = shop?.id;
+              if (shopId == null) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RestaurantDetailPage(
+                    id: shopId.toString(),
+                    name: shop?.displayName,
+                    logoPath: shop?.logoUrl,
+                    imagePath: shop?.bannerImageUrl,
+                    rating: shop?.ratingAvg,
+                    reviewCount: shop?.ratingCount,
+                    isFavorite: true,
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -218,266 +268,6 @@ class _WishlistPageState extends State<WishlistPage>
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-String _absoluteImageUrl(String? path) {
-  if (path == null || path.isEmpty) return '';
-  if (path.startsWith('http')) return path;
-  return '${ApiClient.baseUrl}/$path';
-}
-
-class _MenuWishlistTile extends StatelessWidget {
-  final WishlistItemDto item;
-  final VoidCallback onRemove;
-
-  const _MenuWishlistTile({required this.item, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    final menu = item.menuItem;
-    final name = menu?.displayName ?? context.tr('wishlist.menu_item');
-    final imageUrl = _absoluteImageUrl(menu?.imageUrl);
-    final effectivePrice = menu?.effectivePrice;
-    final priceText =
-        effectivePrice != null ? '฿${effectivePrice.toStringAsFixed(0)}' : null;
-    final originalText = (menu?.hasDiscount ?? false) && menu?.originalPrice != null
-        ? '฿${menu!.originalPrice!.toStringAsFixed(0)}'
-        : null;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(color: Colors.grey[100]),
-                      errorWidget: (_, _, _) => Container(
-                        color: Colors.grey[100],
-                        child: Icon(
-                          Icons.fastfood_rounded,
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey[100],
-                      child: Icon(
-                        Icons.fastfood_rounded,
-                        color: Colors.grey[400],
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                if (priceText != null) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      GradientText(
-                        priceText,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (originalText != null) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          originalText,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[400],
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-                if (menu?.isAvailable == false) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    context.tr('wishlist.currently_unavailable'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.red[400],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(
-              Icons.favorite_rounded,
-              color: AppColors.primary,
-            ),
-            tooltip: context.tr('common.remove'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShopWishlistTile extends StatelessWidget {
-  final WishlistItemDto item;
-  final VoidCallback onRemove;
-
-  const _ShopWishlistTile({required this.item, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    final shop = item.shop;
-    final name = shop?.displayName ?? context.tr('common.shop');
-    final logoUrl = _absoluteImageUrl(shop?.logoUrl);
-    final coverUrl = _absoluteImageUrl(shop?.coverUrl);
-    final imageUrl = coverUrl.isNotEmpty ? coverUrl : logoUrl;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(color: Colors.grey[100]),
-                      errorWidget: (_, _, _) => Container(
-                        color: Colors.grey[100],
-                        child: Icon(
-                          Icons.storefront_rounded,
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey[100],
-                      child: Icon(
-                        Icons.storefront_rounded,
-                        color: Colors.grey[400],
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.star_rounded,
-                      size: 16,
-                      color: Colors.amber[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      (shop?.ratingAvg ?? 0).toStringAsFixed(1),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '(${shop?.ratingCount ?? 0})',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-                if (shop?.isOpen == false) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    context.tr('common.closed'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.red[400],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(
-              Icons.favorite_rounded,
-              color: AppColors.primary,
-            ),
-            tooltip: context.tr('common.remove'),
-          ),
-        ],
       ),
     );
   }

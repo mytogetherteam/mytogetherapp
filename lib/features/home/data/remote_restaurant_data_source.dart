@@ -211,6 +211,11 @@ class RemoteRestaurantDataSource {
           size: size,
         );
         if (explore.items.isNotEmpty) return explore;
+        // On a "load more" page, an empty result means the catalog is
+        // exhausted. Return it so pagination terminates instead of falling
+        // through to the public feed, which would keep returning items and
+        // loop forever. The fall-through only makes sense for the first page.
+        if (page > 0) return explore;
       } catch (_) {
         // Fall through to the public feed below.
       }
@@ -232,6 +237,8 @@ class RemoteRestaurantDataSource {
             items: section.items.map(ShopFeedItemDto.fromTrendingItem).toList(),
           );
         }
+        // End of the paginated list: stop instead of looping the public feed.
+        if (page > 0) return ShopFeedSectionDto(items: const []);
       } catch (_) {
         // Fall through to the public feed below.
       }
@@ -249,6 +256,8 @@ class RemoteRestaurantDataSource {
           size: size,
         );
         if (personalized.items.isNotEmpty) return personalized;
+        // End of the paginated list: stop instead of looping the public feed.
+        if (page > 0) return personalized;
       } catch (_) {
         // Fall through to the public feed below.
       }

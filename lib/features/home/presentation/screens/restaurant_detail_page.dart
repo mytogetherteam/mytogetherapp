@@ -11,6 +11,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../../wishlist/data/repositories/wishlist_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
@@ -23,6 +24,7 @@ import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
+import '../widgets/restaurant_open_status.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../cart/data/active_order_state.dart';
@@ -96,6 +98,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   bool _isMenuLoading = false;
   static const int _pageSize = 20;
   final Map<int, bool> _localFavorites = {};
+  final GlobalKey _targetMenuKey = GlobalKey();
+  bool _hasScrolledToTarget = false;
 
   @override
   void initState() {
@@ -142,10 +146,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     final shopId = int.tryParse(widget.id) ?? 0;
 
+    // Keep the favorite heart in sync with the global wishlist source of truth
+    // so it always matches the cards/wishlist tab, regardless of where the
+    // user last toggled it.
+    WishlistRepository.instance.addListener(_onWishlistChanged);
+    _primeFavoriteFromWishlist(shopId);
+
     if (shopId > 0) {
       ActiveOrderState.instance.setCurrentShopId(shopId);
       _fetchCategories(shopId);
-      _fetchMenu(isInitial: true);
+      _loadInitialMenu();
     }
 
     // Also refresh the shop detail header (name, logo, rating etc.)
@@ -160,7 +170,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         if (mounted) {
           setState(() {
             _currentRestaurant = restaurant;
-            _isFavorite = restaurant.isFavorite;
+            // Only trust the API's favorite flag until the wishlist has been
+            // primed; once primed, the wishlist is the source of truth and the
+            // listener below keeps `_isFavorite` correct.
+            if (!WishlistRepository.instance.isPrimed) {
+              _isFavorite = restaurant.isFavorite;
+            }
           });
         }
       } catch (_) {}
@@ -206,9 +221,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         _menuItems.clear();
         _menuPage = 0;
         _hasMoreMenu = true;
+        _hasScrolledToTarget = false;
       });
       _fetchCategories(shopId);
-      _fetchMenu(isInitial: true);
+      _loadInitialMenu();
 
       // Also re-fetch the shop detail itself
       final updatedRestaurant = await RestaurantRepository.instance.getShopById(
@@ -233,6 +249,50 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     } catch (e) {
       debugPrint(' [RestaurantDetailPage] Error fetching categories: $e');
     }
+  }
+
+  /// Loads the first menu page, then keeps paging until [targetMenuItemId] is
+  /// present (when set) so scroll + highlight can reach off-screen items.
+  Future<void> _loadInitialMenu() async {
+    await _fetchMenu(isInitial: true);
+    final targetId = widget.targetMenuItemId;
+    if (targetId == null || targetId.isEmpty) return;
+
+    while (mounted &&
+        _hasMoreMenu &&
+        !_menuItems.any((it) => it.id.toString() == targetId)) {
+      await _fetchMenu();
+    }
+
+    if (mounted) _scheduleScrollToTarget();
+  }
+
+  void _scheduleScrollToTarget() {
+    if (_hasScrolledToTarget || widget.targetMenuItemId == null) return;
+    if (!_menuItems.any(
+      (it) => it.id.toString() == widget.targetMenuItemId,
+    )) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted || _hasScrolledToTarget) return;
+
+        final targetContext = _targetMenuKey.currentContext;
+        if (targetContext == null || !targetContext.mounted) return;
+
+        _hasScrolledToTarget = true;
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+          alignment: 0.3,
+        );
+      });
+    });
   }
 
   Future<void> _fetchMenu({bool isInitial = false}) async {
@@ -271,6 +331,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   @override
   void dispose() {
     App.routeObserver.unsubscribe(this);
+    WishlistRepository.instance.removeListener(_onWishlistChanged);
     _menuUpdateSubscription?.cancel();
     _shopProfileUpdateSubscription?.cancel();
     _scrollController.dispose();
@@ -773,15 +834,22 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[500],
                                             ),
                                           ),
-                                          Text(
-                                            context.localizedStatus(
-                                              _currentRestaurant?.status ?? '',
-                                            ),
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: const Color(0xFF10B981),
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                          Builder(
+                                            builder: (context) {
+                                              final s =
+                                                  RestaurantOpenStatus.of(
+                                                context,
+                                                _currentRestaurant!,
+                                              );
+                                              return Text(
+                                                s.text,
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12,
+                                                  color: s.color,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ],
                                       ),
@@ -1041,6 +1109,31 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     );
   }
 
+  /// Ensures the global wishlist index is loaded, then reflects the saved
+  /// state of this shop on the favorite heart.
+  Future<void> _primeFavoriteFromWishlist(int shopId) async {
+    if (shopId <= 0) return;
+    final repo = WishlistRepository.instance;
+    if (!repo.isPrimed) {
+      await repo.loadAll();
+    }
+    if (!mounted) return;
+    _onWishlistChanged();
+  }
+
+  /// Re-syncs `_isFavorite` from the wishlist whenever it changes anywhere in
+  /// the app (cards, wishlist tab, other detail pages).
+  void _onWishlistChanged() {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    if (shopId <= 0 || !mounted) return;
+    final repo = WishlistRepository.instance;
+    if (!repo.isPrimed) return;
+    final saved = repo.isShopSaved(shopId);
+    if (saved != _isFavorite) {
+      setState(() => _isFavorite = saved);
+    }
+  }
+
   /// Toggles the shop (restaurant) wishlist via `POST/DELETE /api/user/wishlist`.
   Future<void> _toggleShopFavorite() async {
     final shopId = int.tryParse(_currentRestaurant?.id ?? '');
@@ -1063,6 +1156,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         shopId,
         newStatus,
       );
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr(newStatus ? 'wishlist.saved' : 'wishlist.removed'),
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _isFavorite = !newStatus);
@@ -1205,7 +1304,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       ),
       delegate: SliverChildBuilderDelegate((context, i) {
         final item = items[i];
-        return FoodMenuItemCard(
+        final isTarget = item.id.toString() == widget.targetMenuItemId;
+        final card = FoodMenuItemCard(
           id: item.id.toString(),
           restaurantId: item.shopId.toString(),
           title: item.name,
@@ -1226,8 +1326,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           onFavoriteToggle: () => _toggleFavorite(item),
           isAvailable: item.isAvailable,
           publishStatus: item.publishStatus,
-          isHighlighted: item.id.toString() == widget.targetMenuItemId,
+          isHighlighted: isTarget,
         );
+        return isTarget ? Container(key: _targetMenuKey, child: card) : card;
       }, childCount: items.length),
     );
   }
