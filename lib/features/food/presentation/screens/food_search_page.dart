@@ -779,7 +779,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     final mealActive = _filters.mealTypes.isNotEmpty;
     final mealLabel = mealActive
         ? 'Meals (${_filters.mealTypes.length})'
-        : 'Meal Type';
+        : 'Meal Time';
     final cuisineLabel = cuisineActive
         ? '${context.tr('food.cuisines')} (${_filters.cuisineTypeIds.length})'
         : context.tr('food.cuisines');
@@ -1204,7 +1204,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           builder: (context, setSheetState) {
             return _sheetScaffold(
               sheetContext,
-              title: 'Meal Type',
+              title: 'Meal Time',
               footer: _buildSheetFooter(
                 onReset: () {
                   Navigator.pop(sheetContext);
