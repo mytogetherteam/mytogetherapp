@@ -22,7 +22,7 @@ class MenuItemDto {
   final double? originalPrice;
   final String? displayPrice;
   final double? distanceKm;
-  final String? estimatedTime;
+  final String? _estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final bool isAvailable;
@@ -37,6 +37,16 @@ class MenuItemDto {
 
   String get title => LocaleController.instance
       .localizedOr(_title, en: titleEn, mm: titleMm, th: titleTh);
+
+  String? get estimatedTime {
+    if (distanceKm != null && distanceKm! > 0) {
+      int minTime = (distanceKm! * 2.0).round();
+      if (minTime < 1) minTime = 1;
+      final int maxTime = minTime + 5;
+      return '$minTime-$maxTime min';
+    }
+    return _estimatedTime;
+  }
 
   MenuItemDto({
     required this.id,
@@ -59,13 +69,14 @@ class MenuItemDto {
     this.originalPrice,
     this.displayPrice,
     this.distanceKm,
-    this.estimatedTime,
+    String? estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
   })  : _restaurantName = restaurantName,
-        _title = title;
+        _title = title,
+        _estimatedTime = estimatedTime;
 
   factory MenuItemDto.fromJson(Map<String, dynamic> json) {
     return MenuItemDto(

@@ -20,7 +20,7 @@ class TrendingItemDto {
   final double? originalPrice;
   final String? displayPrice;
   final double? distanceKm;
-  final String? estimatedTime;
+  final String? _estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
   final bool isAvailable;
@@ -31,6 +31,16 @@ class TrendingItemDto {
 
   String get shopName => LocaleController.instance
       .localizedOr(_shopName, en: shopNameEn, mm: shopNameMm, th: shopNameTh);
+
+  String? get estimatedTime {
+    if (distanceKm != null && distanceKm! > 0) {
+      int minTime = (distanceKm! * 2.0).round();
+      if (minTime < 1) minTime = 1;
+      final int maxTime = minTime + 5;
+      return '$minTime-$maxTime min';
+    }
+    return _estimatedTime;
+  }
 
   TrendingItemDto({
     required this.id,
@@ -52,13 +62,14 @@ class TrendingItemDto {
     this.originalPrice,
     this.displayPrice,
     this.distanceKm,
-    this.estimatedTime,
+    String? estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
   })  : _name = name,
-        _shopName = shopName;
+        _shopName = shopName,
+        _estimatedTime = estimatedTime;
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
     // `GET /user/search/trending-nearby` nests shop + rating; public feed is flat.

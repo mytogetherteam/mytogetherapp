@@ -24,7 +24,7 @@ class ShopFeedItemDto {
   final String currency;
   final String? displayPrice;
   final double? distanceKm;
-  final String? estimatedTime;
+  final String? _estimatedTime;
   final String? deliveryFee;
   final String? originalDeliveryFee;
   // Real-time status fields (from API, updated by WebSocket)
@@ -42,6 +42,16 @@ class ShopFeedItemDto {
 
   String get shopName => LocaleController.instance
       .localizedOr(_shopName, en: shopNameEn, mm: shopNameMm, th: shopNameTh);
+
+  String? get estimatedTime {
+    if (distanceKm != null && distanceKm! > 0) {
+      int minTime = (distanceKm! * 2.0).round();
+      if (minTime < 1) minTime = 1;
+      final int maxTime = minTime + 5;
+      return '$minTime-$maxTime min';
+    }
+    return _estimatedTime;
+  }
 
   ShopFeedItemDto({
     required this.id,
@@ -63,7 +73,7 @@ class ShopFeedItemDto {
     this.currency = '฿',
     this.displayPrice,
     this.distanceKm,
-    this.estimatedTime,
+    String? estimatedTime,
     this.deliveryFee,
     this.originalDeliveryFee,
     this.isAvailable = true,
@@ -71,7 +81,8 @@ class ShopFeedItemDto {
     this.categoryId,
     this.categoryName,
   })  : _name = name,
-        _shopName = shopName;
+        _shopName = shopName,
+        _estimatedTime = estimatedTime;
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
     return ShopFeedItemDto(

@@ -113,7 +113,7 @@ class ShopListItemDto {
   final double distance;
   final String? address;
   final bool isOpen;
-  final String? estimatedTime;
+  final String? _estimatedTime;
   final bool isFavorite;
   final double? latitude;
   final double? longitude;
@@ -131,6 +131,16 @@ class ShopListItemDto {
       if (v.isNotEmpty) return v;
     }
     return _category;
+  }
+
+  String? get estimatedTime {
+    if (distance > 0) {
+      int minTime = (distance * 2.0).round();
+      if (minTime < 1) minTime = 1;
+      final int maxTime = minTime + 5;
+      return '$minTime-$maxTime min';
+    }
+    return _estimatedTime;
   }
 
   ShopListItemDto({
@@ -151,7 +161,7 @@ class ShopListItemDto {
     required this.distance,
     this.address,
     required this.isOpen,
-    this.estimatedTime,
+    String? estimatedTime,
     required this.isFavorite,
     this.latitude,
     this.longitude,
@@ -159,7 +169,8 @@ class ShopListItemDto {
     this.displayDeliveryFee,
     this.originalDeliveryFee,
   })  : _name = name,
-        _category = category;
+        _category = category,
+        _estimatedTime = estimatedTime;
 
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
     final ratingRaw = json['rating'];
@@ -310,7 +321,7 @@ class ShopDetailDto {
   final String? coverUrl;
   final String? primaryPhotoUrl;
   final double distance;
-  final String? estimatedTime;
+  final String? _estimatedTime;
   final bool isOpen;
   final String? address;
   final String? addressMm;
@@ -336,6 +347,16 @@ class ShopDetailDto {
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
 
+  String? get estimatedTime {
+    if (distance > 0) {
+      int minTime = (distance * 2.0).round();
+      if (minTime < 1) minTime = 1;
+      final int maxTime = minTime + 5;
+      return '$minTime-$maxTime min';
+    }
+    return _estimatedTime;
+  }
+
   ShopDetailDto({
     required this.id,
     required String name,
@@ -349,7 +370,7 @@ class ShopDetailDto {
     this.coverUrl,
     this.primaryPhotoUrl,
     required this.distance,
-    this.estimatedTime,
+    String? estimatedTime,
     required this.isOpen,
     this.address,
     this.addressMm,
@@ -372,7 +393,8 @@ class ShopDetailDto {
     this.minEta,
     this.maxEta,
     this.deliveryTiers = const [],
-  }) : _name = name;
+  })  : _name = name,
+        _estimatedTime = estimatedTime;
 
   factory ShopDetailDto.fromJson(Map<String, dynamic> json) {
     return ShopDetailDto(
