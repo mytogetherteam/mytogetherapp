@@ -15,76 +15,6 @@ class HelpSupportPage extends StatefulWidget {
 
 class _HelpSupportPageState extends State<HelpSupportPage>
     with TickerProviderStateMixin {
-  int? _expandedFaq;
-
-  final List<_FaqItem> _faqs = const [
-    _FaqItem(
-      questionEn: 'How do I create an account?',
-      questionMm: 'အကောင့် ဖွင့်ရန် ဘယ်လိုလုပ်ရမလဲ?',
-      questionTh: 'จะสร้างบัญชีได้อย่างไร?',
-      answerEn:
-          'Open the MyTogether app, tap "Register", then fill in your name, email and password to create your account.',
-      answerMm:
-          'MyTogether app ကိုဖွင့်ပြီး "Register" ကိုနှိပ်ကာ သင့်နာမည်၊ Email နှင့် Password ဖြင့် အကောင့်ဖွင့်နိုင်ပါသည်။',
-      answerTh:
-          'เปิดแอป MyTogether แตะ "Register" จากนั้นกรอกชื่อ อีเมล และรหัสผ่านเพื่อสร้างบัญชีของคุณ',
-    ),
-    _FaqItem(
-      questionEn: 'How long does delivery take?',
-      questionMm: 'Order လုပ်ပြီးနောက် မည်မျှကြာမည်?',
-      questionTh: 'การจัดส่งใช้เวลานานแค่ไหน?',
-      answerEn:
-          'Delivery typically takes 30–60 minutes, depending on distance and order volume.',
-      answerMm:
-          'ပုံမှန်အားဖြင့် မိနစ် ၃၀ မှ ၆၀ ကြားတွင် ရောက်ရှိပါမည်။ အကွာအဝေးနှင့် ဝယ်သူအရေအတွက်ပေါ် မူတည်ပြောင်းလဲနိုင်သည်။',
-      answerTh:
-          'โดยทั่วไปใช้เวลา 30–60 นาที ขึ้นอยู่กับระยะทางและปริมาณคำสั่งซื้อ',
-    ),
-    _FaqItem(
-      questionEn: 'Can I cancel my order?',
-      questionMm: 'Order ပယ်ဖျက်နိုင်ပါသလား?',
-      questionTh: 'ฉันสามารถยกเลิกคำสั่งซื้อได้ไหม?',
-      answerEn:
-          'You may cancel within 5 minutes of placing the order. After the seller accepts, please contact support for assistance.',
-      answerMm:
-          'Order တင်ပြီး မိနစ် ၅ အတွင်း ပယ်ဖျက်နိုင်ပါသည်။ ရောင်းသူ လက်ခံပြီးနောက် ပယ်ဖျက်ရန် Support ကို ဆက်သွယ်ပါ။',
-      answerTh:
-          'คุณสามารถยกเลิกได้ภายใน 5 นาทีหลังสั่งซื้อ หลังจากร้านรับออร์เดอร์แล้ว กรุณาติดต่อฝ่ายสนับสนุน',
-    ),
-    _FaqItem(
-      questionEn: 'What is your refund policy?',
-      questionMm: 'ငွေပြန်အမ်းမည်လား?',
-      questionTh: 'นโยบายการคืนเงินเป็นอย่างไร?',
-      answerEn:
-          'If your order is not fulfilled due to an issue on our end, a full refund will be issued. Please contact our support team.',
-      answerMm:
-          'Order ကို ပြဿနာတစ်ခုကြောင့် မပြည့်မီဆောင်ရွက်ပေးနိုင်ပါက ငွေပြန်အမ်းပါမည်။ Support team ကို ဆက်သွယ်ပါ။',
-      answerTh:
-          'หากคำสั่งซื้อไม่สำเร็จเนื่องจากปัญหาจากเรา จะคืนเงินเต็มจำนวน กรุณาติดต่อทีมสนับสนุน',
-    ),
-    _FaqItem(
-      questionEn: 'What if I forget my password?',
-      questionMm: 'Password မေ့သွားလျှင် ဘာလုပ်ရမလဲ?',
-      questionTh: 'หากลืมรหัสผ่านต้องทำอย่างไร?',
-      answerEn:
-          'On the login page, tap "Forgot Password" and a reset link will be sent to your email.',
-      answerMm:
-          'Login page တွင် "Forgot Password" ကိုနှိပ်ပြီး သင့် Email သို့ Reset link ရယူပါ။',
-      answerTh:
-          'ที่หน้าเข้าสู่ระบบ แตะ "Forgot Password" แล้วลิงก์รีเซ็ตจะถูกส่งไปยังอีเมลของคุณ',
-    ),
-    _FaqItem(
-      questionEn: 'How do I check currency exchange rates?',
-      questionMm: 'Currency Exchange rate ကို မည်ကဲ့သို့ ကြည့်ရမလဲ?',
-      questionTh: 'จะดูอัตราแลกเปลี่ยนเงินตราได้อย่างไร?',
-      answerEn:
-          'From the Home screen, tap the "Currency Exchange" section to view live rates.',
-      answerMm:
-          'Home screen တွင် "Currency Exchange" ကဏ္ဍကို နှိပ်ပါ။ Live rates များကို ကြည့်ရှုနိုင်သည်။',
-      answerTh:
-          'จากหน้าแรก แตะส่วน "Currency Exchange" เพื่อดูอัตราแบบเรียลไทม์',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +70,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                       label: context.tr('help.call'),
                       sublabel: context.tr('help.call_us'),
                       color: Colors.green,
-                      onTap: () => _launch('tel:+959123456789'),
+                      onTap: () => _launch('tel:+66963314802'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -151,7 +81,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                       sublabel: context.tr('help.email_us'),
                       color: AppColors.primary,
                       onTap: () => _launch(
-                          'mailto:support@mytogetherapp.com?subject=Support%20Request'),
+                          'mailto:support@mytogether.org?subject=Support%20Request'),
                     ),
                   ),
                 ],
@@ -164,11 +94,11 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 children: [
                   Expanded(
                     child: _buildContactCard(
-                      icon: PhosphorIcons.telegramLogoFill,
-                      label: context.tr('help.telegram'),
+                      icon: PhosphorIcons.tiktokLogo,
+                      label: 'TikTok',
                       sublabel: context.tr('help.chat_now'),
-                      color: const Color(0xFF229ED9),
-                      onTap: () => _launch('https://t.me/mytogetherapp'),
+                      color: const Color(0xFF000000),
+                      onTap: () => _launch('https://www.tiktok.com/music/original-sound-7646721075368184597?is_from_webapp=1&sender_device=pc'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -179,7 +109,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                       sublabel: context.tr('help.message_us'),
                       color: const Color(0xFF1877F2),
                       onTap: () =>
-                          _launch('https://facebook.com/mytogetherapp'),
+                          _launch('https://www.facebook.com/profile.php?id=61584651572179'),
                     ),
                   ),
                 ],
@@ -196,27 +126,37 @@ class _HelpSupportPageState extends State<HelpSupportPage>
 
             const SizedBox(height: 28),
 
-            // FAQ Section
+            // Privacy Policy Link
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                context.tr('help.faq'),
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
+              child: GestureDetector(
+                onTap: () => _launch('https://www.mytogether.org/privacy-policy/user'),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(PhosphorIcons.shieldCheckFill, color: AppColors.primary, size: 28),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Privacy Policy',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Icon(PhosphorIcons.arrowRight, color: Colors.grey, size: 20),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            ...List.generate(_faqs.length, (i) => _buildFaqTile(i)),
-
-            const SizedBox(height: 28),
-
-            // Still need help
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildStillNeedHelp(),
             ),
             const SizedBox(height: 32),
           ],
@@ -372,17 +312,17 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           _buildInfoRow(
             icon: PhosphorIcons.envelopeFill,
             label: context.tr('common.email'),
-            value: 'support@mytogetherapp.com',
+            value: 'support@mytogether.org',
             color: AppColors.primary,
-            onCopy: () => _copyToClipboard('support@mytogetherapp.com'),
+            onCopy: () => _copyToClipboard('support@mytogether.org'),
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
             icon: PhosphorIcons.phoneFill,
             label: context.tr('help.phone'),
-            value: '+95 9 123 456 789',
+            value: '+66 96 331 4802',
             color: Colors.green,
-            onCopy: () => _copyToClipboard('+959123456789'),
+            onCopy: () => _copyToClipboard('+66963314802'),
           ),
           const Divider(height: 24, thickness: 0.5),
           _buildInfoRow(
@@ -453,204 +393,6 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     );
   }
 
-  Widget _buildFaqTile(int index) {
-    final faq = _faqs[index];
-    final isExpanded = _expandedFaq == index;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      child: GestureDetector(
-        onTap: () => setState(
-            () => _expandedFaq = isExpanded ? null : index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isExpanded
-                  ? AppColors.primary.withValues(alpha: 0.4)
-                  : Colors.grey.shade100,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isExpanded
-                    ? AppColors.primary.withValues(alpha: 0.06)
-                    : Colors.black.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        gradient: isExpanded
-                            ? AppColors.primaryGradient
-                            : const LinearGradient(
-                                colors: [Color(0xFFF1F5F9), Color(0xFFF1F5F9)]),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Q',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: isExpanded ? Colors.white : Colors.grey[500],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        context.localized(
-                          en: faq.questionEn,
-                          mm: faq.questionMm,
-                          th: faq.questionTh,
-                        ),
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 250),
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: isExpanded ? AppColors.primary : Colors.grey[400],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isExpanded)
-                Container(
-                  padding: const EdgeInsets.fromLTRB(60, 0, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 1,
-                        color: Colors.grey.shade100,
-                        margin: const EdgeInsets.only(bottom: 12),
-                      ),
-                      Text(
-                        context.localized(
-                          en: faq.answerEn,
-                          mm: faq.answerMm,
-                          th: faq.answerTh,
-                        ),
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.black87,
-                          height: 1.6,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStillNeedHelp() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.08),
-            AppColors.secondary.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            PhosphorIcons.chatCircleDotsFill,
-            size: 40,
-            color: AppColors.primary,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            context.tr('help.need_more_help'),
-            style: GoogleFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-            ),
-          ),
-          Text(
-            context.tr('help.still_need_help'),
-            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr('help.email_support_desc'),
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () => _launch(
-                  'mailto:support@mytogetherapp.com?subject=Help%20Request&body=Hello%20MyTogether%20Support%20Team,%0A%0A'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(PhosphorIcons.envelopeFill, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.tr('help.send_email'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
     try {
@@ -692,22 +434,4 @@ class _HelpSupportPageState extends State<HelpSupportPage>
       );
     }
   }
-}
-
-class _FaqItem {
-  final String questionEn;
-  final String questionMm;
-  final String questionTh;
-  final String answerEn;
-  final String answerMm;
-  final String answerTh;
-
-  const _FaqItem({
-    required this.questionEn,
-    required this.questionMm,
-    required this.questionTh,
-    required this.answerEn,
-    required this.answerMm,
-    required this.answerTh,
-  });
 }

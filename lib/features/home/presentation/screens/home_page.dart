@@ -63,6 +63,11 @@ class _HomePageState extends State<HomePage> {
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
 
+    // Forcefully remove splash screen after 3 seconds to prevent getting stuck
+    Future.delayed(const Duration(seconds: 3), () {
+      FlutterNativeSplash.remove();
+    });
+
     _bannerTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
       if (_bannerController.hasClients) {
         _bannerController.nextPage(

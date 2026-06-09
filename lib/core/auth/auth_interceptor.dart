@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'auth_service.dart';
+import '../network/websocket_service.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final Dio dio;
@@ -18,6 +19,7 @@ class AuthInterceptor extends QueuedInterceptor {
         final newToken = await authService.performRefresh(dio);
         if (newToken != null) {
           options.headers['Authorization'] = 'Bearer $newToken';
+          WebSocketService().connect(force: true);
         }
       } catch (e) {
         // If proactive refresh fails (e.g. timeout), we don't log out yet.
@@ -55,6 +57,8 @@ class AuthInterceptor extends QueuedInterceptor {
         if (newToken != null && newToken.isNotEmpty) {
           final retryOptions = err.requestOptions;
           retryOptions.headers['Authorization'] = 'Bearer $newToken';
+          
+          WebSocketService().connect(force: true);
           
           final retryResponse = await dio.fetch(retryOptions);
           handler.resolve(retryResponse);

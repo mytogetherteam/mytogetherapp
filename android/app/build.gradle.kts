@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -17,6 +20,21 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("app/key.properties")
+            val keystoreProperties = Properties()
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+            }
+            keyAlias = keystoreProperties["keyAlias"] as? String ?: ""
+            keyPassword = keystoreProperties["keyPassword"] as? String ?: ""
+            val storeFilePath = keystoreProperties["storeFile"] as? String
+            storeFile = if (!storeFilePath.isNullOrEmpty()) file(storeFilePath) else null
+            storePassword = keystoreProperties["storePassword"] as? String ?: ""
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.mytogetherorg.mytogether"
@@ -34,7 +52,7 @@ android {
             isShrinkResources = true
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

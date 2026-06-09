@@ -108,6 +108,7 @@ class ApiClient {
   }
 
   bool _shouldRetry(DioException err) {
+    if (err.requestOptions.extra['isRetry'] == true) return false;
     return err.type != DioExceptionType.cancel &&
         err.type != DioExceptionType.badResponse &&
         (err.error is SocketException ||
@@ -120,6 +121,7 @@ class ApiClient {
     final options = Options(
       method: requestOptions.method,
       headers: requestOptions.headers,
+      extra: {...requestOptions.extra, 'isRetry': true},
     );
     return _dio.request(
       requestOptions.path,
