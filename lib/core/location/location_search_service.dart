@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:math';
 
 /// Result from a Google Maps Places/Geocoding query.
@@ -115,7 +117,7 @@ class LocationSearchService {
   static final LocationSearchService instance = LocationSearchService._internal();
   LocationSearchService._internal();
 
-  static const String _apiKey = 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
+  static String get _apiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://maps.googleapis.com/maps/api',

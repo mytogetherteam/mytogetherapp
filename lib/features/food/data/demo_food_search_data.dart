@@ -160,7 +160,7 @@ class DemoFoodSearchData {
       'id': 'ph',
       'name': 'Pizza Hut',
       'logo': 'https://upload.wikimedia.org/wikipedia/sco/thumb/d/d2/Pizza_Hut_logo.svg/1024px-Pizza_Hut_logo.svg.png',
-      'rating': 4.5,
+      'rating': 0.0,
       'time': '25min',
       'distance': '0.9km',
       'badges': [],

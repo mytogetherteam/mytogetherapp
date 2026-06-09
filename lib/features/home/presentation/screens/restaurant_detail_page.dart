@@ -159,7 +159,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         );
         if (mounted) {
           setState(() {
-            _currentRestaurant = restaurant;
+            final oldDistance = _currentRestaurant?.distance ?? '';
+            final oldDeliveryTime = _currentRestaurant?.deliveryTime ?? '';
+
+            // Use the updated restaurant but keep the distance/time from the previous screen
+            _currentRestaurant = restaurant.copyWith(
+              distance: (restaurant.distance == '0.0 km' || restaurant.distance.isEmpty)
+                  ? oldDistance
+                  : restaurant.distance,
+              deliveryTime: (restaurant.deliveryTime == '20-30 mins' || restaurant.deliveryTime.isEmpty)
+                  ? oldDeliveryTime
+                  : restaurant.deliveryTime,
+            );
             _isFavorite = restaurant.isFavorite;
           });
         }
@@ -216,7 +227,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       );
       if (mounted) {
         setState(() {
-          _currentRestaurant = updatedRestaurant;
+          final oldDistance = _currentRestaurant?.distance ?? '';
+          final oldDeliveryTime = _currentRestaurant?.deliveryTime ?? '';
+
+          _currentRestaurant = updatedRestaurant.copyWith(
+            distance: (updatedRestaurant.distance == '0.0 km' || updatedRestaurant.distance.isEmpty)
+                ? oldDistance
+                : updatedRestaurant.distance,
+            deliveryTime: (updatedRestaurant.deliveryTime == '20-30 mins' || updatedRestaurant.deliveryTime.isEmpty)
+                ? oldDeliveryTime
+                : updatedRestaurant.deliveryTime,
+          );
         });
       }
     }
@@ -736,43 +757,46 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                             WrapCrossAlignment.center,
                                         spacing: 4,
                                         children: [
-                                          Icon(
-                                            PhosphorIcons.car,
-                                            size: 16,
-                                            color: Colors.grey[700],
-                                          ),
-                                          Text(
-                                            _currentRestaurant?.distance ?? '',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
+                                          if (_currentRestaurant != null && (_currentRestaurant!.distance.isNotEmpty && _currentRestaurant!.distance != '0.0 km' && _currentRestaurant!.distance != '0.0km' && _currentRestaurant!.distance != '0')) ...[
+                                            Icon(
+                                              PhosphorIcons.car,
+                                              size: 16,
                                               color: Colors.grey[700],
                                             ),
-                                          ),
-                                          Text(
-                                            '  •  ',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
+                                            Text(
+                                              _currentRestaurant!.distance,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey[700],
+                                              ),
                                             ),
-                                          ),
-                                          Icon(
-                                            PhosphorIcons.clock,
-                                            size: 16,
-                                            color: Colors.grey[700],
-                                          ),
-                                          Text(
-                                            _currentRestaurant?.deliveryTime ??
-                                                '',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                          ],
+                                          if (_currentRestaurant != null && _currentRestaurant!.deliveryTime.isNotEmpty) ...[
+                                            Icon(
+                                              PhosphorIcons.clock,
+                                              size: 16,
                                               color: Colors.grey[700],
                                             ),
-                                          ),
-                                          Text(
-                                            '  •  ',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
+                                            Text(
+                                              _currentRestaurant!.deliveryTime,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey[700],
+                                              ),
                                             ),
-                                          ),
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                          ],
                                           Text(
                                             context.localizedStatus(
                                               _currentRestaurant?.status ?? '',

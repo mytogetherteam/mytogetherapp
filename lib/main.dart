@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/notifications/notification_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
 
 @pragma('vm:entry-point')
@@ -24,6 +25,14 @@ void main() async {
 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   debugPrint('[BOOT] Splash preserved.');
+
+  try {
+    debugPrint('[BOOT] Loading .env...');
+    await dotenv.load(fileName: ".env");
+    debugPrint('[BOOT] .env loaded successfully.');
+  } catch (e) {
+    debugPrint('[BOOT] Failed to load .env: $e');
+  }
 
   try {
     debugPrint('[BOOT] Initializing Firebase...');

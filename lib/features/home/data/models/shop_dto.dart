@@ -175,8 +175,8 @@ class ShopListItemDto {
   factory ShopListItemDto.fromJson(Map<String, dynamic> json) {
     final ratingRaw = json['rating'];
     final double rating = ratingRaw is Map
-        ? (ratingRaw['avg'] ?? ratingRaw['ratingAvg'] ?? 0.0).toDouble()
-        : (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble();
+        ? (ratingRaw['avg'] ?? 0.0).toDouble()
+        : (json['rating'] ?? 0.0).toDouble();
     final int reviewCount = ratingRaw is Map
         ? int.tryParse(
                 (ratingRaw['count'] ?? ratingRaw['ratingCount'] ?? 0).toString(),
@@ -405,8 +405,10 @@ class ShopDetailDto {
       nameTh: json['nameTh'] as String?,
       category: json['category'],
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
-      rating: (json['rating'] ?? json['ratingAvg'] ?? 0.0).toDouble(),
-      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? 0,
+      rating: json['rating'] is Map
+          ? ((json['rating'] as Map)['avg'] ?? 0.0).toDouble()
+          : (json['rating'] ?? 0.0).toDouble(),
+      reviewCount: json['reviewCount'] ?? json['ratingCount'] ?? (json['rating'] is Map ? (json['rating'] as Map)['count'] ?? 0 : 0),
       logoUrl: ImageUtils.cleanImageUrl(json['logoUrl']),
       coverUrl: ImageUtils.cleanImageUrl(json['coverUrl']),
       primaryPhotoUrl: ImageUtils.cleanImageUrl(json['primaryPhotoUrl']),

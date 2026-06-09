@@ -94,7 +94,7 @@ class ShopFeedItemDto {
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']),
       price: _parsePrice(json['price']),
       originalPrice: json['originalPrice'] != null ? _parsePrice(json['originalPrice']) : null,
-      rating: _parsePrice(json['rating'] ?? json['ratingAvg']),
+      rating: _parsePrice(json['rating']),
       reviewCount: (json['reviewCount'] ?? json['ratingCount']) as int? ?? 0,
       shopId: int.tryParse(json['shopId'].toString()) ?? 0,
       shopName: (json['shopNameEn'] as String? ?? json['shopName'] as String?) ?? '',
