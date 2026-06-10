@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -63,9 +64,9 @@ class RestaurantOverviewPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                   ),
-                  child: restaurant.imagePath.isNotEmpty
+                  child: resolveMediaUrl(restaurant.imagePath).isNotEmpty
                       ? CachedNetworkImage(
-                          imageUrl: restaurant.imagePath,
+                          imageUrl: resolveMediaUrl(restaurant.imagePath),
                           fit: BoxFit.cover,
                           placeholder: (context, url) =>
                               const ImageSkeletonLoader(),
@@ -108,9 +109,9 @@ class RestaurantOverviewPage extends StatelessWidget {
                       padding: const EdgeInsets.all(4),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: restaurant.logoPath.isNotEmpty
+                        child: resolveMediaUrl(restaurant.logoPath).isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: restaurant.logoPath,
+                                imageUrl: resolveMediaUrl(restaurant.logoPath),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) =>
                                     const ImageSkeletonLoader(),
