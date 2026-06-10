@@ -24,7 +24,6 @@ import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
-import '../widgets/restaurant_open_status.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../cart/data/active_order_state.dart';
@@ -533,14 +532,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                   .externalApplication,
                                             );
                                           } else {
-                                            if (context.mounted)
+                                            if (context.mounted) {
                                               AppDialog.showUnavailable(
                                                 context,
                                               );
+                                            }
                                           }
                                         } else {
-                                          if (context.mounted)
+                                          if (context.mounted) {
                                             AppDialog.showUnavailable(context);
+                                          }
                                         }
                                       }
                                     },
