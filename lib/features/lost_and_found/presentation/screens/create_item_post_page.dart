@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +5,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/presentation/widgets/local_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import '../../data/models/item_post_dto.dart';
 import '../../data/repositories/item_post_repository.dart';
@@ -31,7 +30,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
 
   String _type = 'LOST';
   bool _isSubmitting = false;
-  final List<File> _photos = [];
+  final List<XFile> _photos = [];
   // Existing (already-uploaded) photos when editing, and ids to remove.
   final List<ItemPostPhotoDto> _existingPhotos = [];
   final List<int> _removePhotoIds = [];
@@ -97,7 +96,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
         final picked = await _picker.pickMultiImage(imageQuality: 85);
         for (final file in picked) {
           if (_totalPhotoCount >= 10) break;
-          _photos.add(File(file.path));
+          _photos.add(file);
         }
       } else {
         final picked = await _picker.pickImage(
@@ -105,7 +104,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
           imageQuality: 85,
         );
         if (picked != null && _totalPhotoCount < 10) {
-          _photos.add(File(picked.path));
+          _photos.add(picked);
         }
       }
       setState(() {});
@@ -312,11 +311,10 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _photoThumb(
-                          child: Image.file(
-                            _photos[index],
+                          child: LocalImage(
+                            file: _photos[index],
                             width: 90,
                             height: 90,
-                            fit: BoxFit.cover,
                           ),
                           onRemove: () =>
                               setState(() => _photos.removeAt(index)),

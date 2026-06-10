@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'models/auth_models.dart';
 import 'models/user_location_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/auth/user_model.dart';
 import '../../../core/auth/auth_service.dart';
+import '../../../core/utils/multipart_helper.dart';
 
 class AuthRemoteDataSource {
   final Dio _dio;
@@ -92,24 +94,30 @@ class AuthRemoteDataSource {
 
   /// Backend: PUT /api/user/profile (UsersController.updateProfile).
   /// Accepts name, username, phone, address and an optional `profilePhoto`
-  /// file. When [profilePhotoPath] is provided the request is sent as
+  /// file. When [profilePhoto] is provided the request is sent as
   /// multipart/form-data (matching the backend's `FileInterceptor`), otherwise
   /// a plain JSON body is used.
+  ///
+  /// The photo is uploaded from in-memory bytes so it works on web/PWA where
+  /// there is no filesystem path.
   Future<UserModel> updateUserProfile({
     String? name,
     String? username,
     String? phone,
     String? address,
-    String? profilePhotoPath,
+    XFile? profilePhoto,
   }) async {
     final Response response;
-    if (profilePhotoPath != null && profilePhotoPath.isNotEmpty) {
+    if (profilePhoto != null) {
+      final filenamePrefix =
+          'profile_${DateTime.now().millisecondsSinceEpoch}';
       final formData = FormData.fromMap({
         'name': ?name,
         'username': ?username,
         'phone': ?phone,
         'address': ?address,
-        'profilePhoto': await _multipartFromPath(profilePhotoPath),
+        'profilePhoto':
+            await multipartFromXFile(profilePhoto, filenamePrefix: filenamePrefix),
       });
       response = await _dio.put(
         '${ApiClient.apiPrefix}/user/profile',
@@ -133,25 +141,8 @@ class AuthRemoteDataSource {
   /// Uploads only a new profile photo via `PUT /api/user/profile` (multipart
   /// `profilePhoto` field). Returns the updated profile with its fresh
   /// `avatarUrl`.
-  Future<UserModel> uploadAvatar(String filePath) {
-    return updateUserProfile(profilePhotoPath: filePath);
-  }
-
-  Future<MultipartFile> _multipartFromPath(String filePath) async {
-    final extension = filePath.split('.').last.toLowerCase();
-    final mimeType = switch (extension) {
-      'png' => 'image/png',
-      'webp' => 'image/webp',
-      'gif' => 'image/gif',
-      _ => 'image/jpeg',
-    };
-    final filename =
-        'profile_${DateTime.now().millisecondsSinceEpoch}.$extension';
-    return MultipartFile.fromFile(
-      filePath,
-      filename: filename,
-      contentType: DioMediaType.parse(mimeType),
-    );
+  Future<UserModel> uploadAvatar(XFile photo) {
+    return updateUserProfile(profilePhoto: photo);
   }
 
   Future<List<UserLocationModel>> getUserLocations() async {

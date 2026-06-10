@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -25,6 +26,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../../core/presentation/widgets/local_image.dart';
+import '../../../../core/utils/multipart_helper.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
@@ -49,7 +52,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
-  File? _receiptImage;
+  XFile? _receiptImage;
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
@@ -63,7 +66,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     )..repeat();
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
 
@@ -134,7 +137,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       const MethodChannel('secure_screen').invokeMethod('disable');
     }
     _orderSubscription?.cancel();
@@ -296,33 +299,37 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   }
 
   Future<void> _pickReceiptImage() async {
-    PermissionStatus status;
-    if (await Permission.photos.isGranted ||
-        await Permission.storage.isGranted) {
-      status = PermissionStatus.granted;
-    } else {
-      final photosResult = await Permission.photos.request();
-      if (photosResult.isGranted) {
+    // The browser handles gallery access for web/PWA, so the native
+    // permission_handler checks (which throw on web) are skipped there.
+    if (!kIsWeb) {
+      PermissionStatus status;
+      if (await Permission.photos.isGranted ||
+          await Permission.storage.isGranted) {
         status = PermissionStatus.granted;
       } else {
-        final storageResult = await Permission.storage.request();
-        status = storageResult;
+        final photosResult = await Permission.photos.request();
+        if (photosResult.isGranted) {
+          status = PermissionStatus.granted;
+        } else {
+          final storageResult = await Permission.storage.request();
+          status = storageResult;
+        }
       }
-    }
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (!status.isGranted) {
-      if (status.isPermanentlyDenied) {
-        _showPermissionDialog();
-      } else {
-        AppDialog.showToast(
-          context,
-          context.tr('payment.gallery_required'),
-          isError: true,
-        );
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) {
+          _showPermissionDialog();
+        } else {
+          AppDialog.showToast(
+            context,
+            context.tr('payment.gallery_required'),
+            isError: true,
+          );
+        }
+        return;
       }
-      return;
     }
 
     final picker = ImagePicker();
@@ -332,8 +339,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     );
 
     if (picked != null && mounted) {
-      final file = File(picked.path);
-      final sizeInBytes = await file.length();
+      final sizeInBytes = await picked.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
       if (sizeInMb > 5.0) {
@@ -366,7 +372,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         }
         return;
       }
-      setState(() => _receiptImage = file);
+      setState(() => _receiptImage = picked);
     }
   }
 
@@ -431,16 +437,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       // response moves the order to AWAITING_APPROVAL on success.
       final intId =
           int.tryParse(orderId.replaceAll('#', '')) ?? int.tryParse(orderId) ?? 0;
-      final extension = _receiptImage!.path.split('.').last.toLowerCase();
-      final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-      final filename =
-          'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final filenamePrefix =
+          'payment_${DateTime.now().millisecondsSinceEpoch}';
 
       final formData = FormData.fromMap({
-        'paymentImage': await MultipartFile.fromFile(
-          _receiptImage!.path,
-          filename: filename,
-          contentType: DioMediaType.parse(mimeType),
+        'paymentImage': await multipartFromXFile(
+          _receiptImage!,
+          filenamePrefix: filenamePrefix,
         ),
       });
 
@@ -716,10 +719,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: Image.file(
-            _receiptImage!,
+          child: LocalImage(
+            file: _receiptImage!,
             width: double.infinity,
-            fit: BoxFit.cover,
           ),
         ),
         // Remove / re-pick button

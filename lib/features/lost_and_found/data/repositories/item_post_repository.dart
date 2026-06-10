@@ -1,8 +1,8 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
+import '../../../../core/utils/multipart_helper.dart';
 import '../models/item_post_dto.dart';
 
 class ItemPostFeedPage {
@@ -108,7 +108,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<File> photos = const [],
+    List<XFile> photos = const [],
     List<int> removePhotoIds = const [],
   }) async {
     final formData = FormData.fromMap({
@@ -123,15 +123,10 @@ class ItemPostRepository {
     });
 
     for (var i = 0; i < photos.length; i++) {
-      final file = photos[i];
-      final extension = file.path.split('.').last.toLowerCase();
       formData.files.add(
         MapEntry(
           'photos',
-          await MultipartFile.fromFile(
-            file.path,
-            filename: 'photo_$i.$extension',
-          ),
+          await multipartFromXFile(photos[i], filenamePrefix: 'photo_$i'),
         ),
       );
     }
@@ -158,7 +153,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<File> photos = const [],
+    List<XFile> photos = const [],
   }) async {
     final formData = FormData.fromMap({
       'description': description,
@@ -172,15 +167,10 @@ class ItemPostRepository {
     });
 
     for (var i = 0; i < photos.length; i++) {
-      final file = photos[i];
-      final extension = file.path.split('.').last.toLowerCase();
       formData.files.add(
         MapEntry(
           'photos',
-          await MultipartFile.fromFile(
-            file.path,
-            filename: 'photo_$i.$extension',
-          ),
+          await multipartFromXFile(photos[i], filenamePrefix: 'photo_$i'),
         ),
       );
     }

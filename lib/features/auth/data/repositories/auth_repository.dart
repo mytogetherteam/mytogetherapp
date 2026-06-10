@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../auth_remote_data_source.dart';
 import '../models/auth_models.dart';
 import '../models/user_location_model.dart';
@@ -83,14 +84,14 @@ class AuthRepository {
   }
 
   /// Updates the current user's profile and refreshes the cached session.
-  /// When [profilePhotoPath] is provided, the new photo is uploaded in the
+  /// When [profilePhoto] is provided, the new photo is uploaded in the
   /// same request (backend: PUT /api/user/profile multipart `profilePhoto`).
   Future<UserModel> updateProfile({
     String? name,
     String? username,
     String? phone,
     String? address,
-    String? profilePhotoPath,
+    XFile? profilePhoto,
   }) async {
     try {
       final updated = await _dataSource.updateUserProfile(
@@ -98,7 +99,7 @@ class AuthRepository {
         username: username,
         phone: phone,
         address: address,
-        profilePhotoPath: profilePhotoPath,
+        profilePhoto: profilePhoto,
       );
       await AuthService().updateCurrentUser(updated);
       return updated;
@@ -109,9 +110,9 @@ class AuthRepository {
 
   /// Uploads a new profile photo, then refreshes the cached session so the
   /// avatar updates everywhere it's shown.
-  Future<UserModel> updateAvatar(String filePath) async {
+  Future<UserModel> updateAvatar(XFile photo) async {
     try {
-      final updated = await _dataSource.uploadAvatar(filePath);
+      final updated = await _dataSource.uploadAvatar(photo);
       await AuthService().updateCurrentUser(updated);
       return updated;
     } on DioException catch (e) {
