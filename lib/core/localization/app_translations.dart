@@ -712,7 +712,7 @@ class AppTranslations {
     'order_confirm.footer_link': 'here.',
     'demo.feature_unavailable': 'Feature Unavailable',
     'demo.feature_unavailable_body':
-        'This feature is currently unavailable in the demo application.',
+        'On its way in a future update!',
     'common.got_it': 'Got it',
     'news.report_post': 'Report Post',
     'news.block_user': 'Block User',
@@ -1441,7 +1441,7 @@ class AppTranslations {
     'order_confirm.footer_prefix': 'နောက်အော်ဒါကို ဆက်လုပ်နိုင်သည် ',
     'order_confirm.footer_link': 'ဤနေရာ။',
     'demo.feature_unavailable': 'လုပ်ဆောင်ချက် မရရှိနိုင်ပါ',
-    'demo.feature_unavailable_body': 'ဤလုပ်ဆောင်ချက်ကို ဒီမို app တွင် ယခု မရရှိနိုင်ပါ။',
+    'demo.feature_unavailable_body': 'မကြာခင် ရရှိတော့မှာပါ။ ခဏစောင့်ပေးနော်',
     'common.got_it': 'နားလည်ပါပြီ',
     'news.report_post': 'ပို့စ် တိုင်ကြားရန်',
     'news.block_user': 'အသုံးပြုသူကို ပိတ်ပင်ရန်',
