@@ -528,14 +528,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   Widget _buildApiLocationTile(UserLocationModel location) {
     return InkWell(
       onTap: () {
-        final place = PlaceResult(
-          placeId: location.id.toString(),
-          name: location.locationName ?? location.address ?? context.tr('location.saved'),
-          displayName: location.address ?? '',
-          lat: location.latitude ?? 0,
-          lon: location.longitude ?? 0,
-        );
-        Navigator.pop(context, place);
+        // Selecting a saved location marks it as the active/primary location
+        // in place. We intentionally don't pop here — only the back button
+        // returns to the previous screen.
+        UserLocationRepository.instance.setActiveLocation(location);
+        if (!location.isPrimary) {
+          _updateLocation(location, setPrimary: true);
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

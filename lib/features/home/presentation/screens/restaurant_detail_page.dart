@@ -16,6 +16,7 @@ import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
 import '../../../../core/location/location_service.dart';
+import '../../../../core/network/media_url.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import 'restaurant_overview_page.dart';
@@ -281,24 +282,55 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       return;
     }
 
+    _hasScrolledToTarget = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (mounted) _animateToTargetMenuItem();
+    });
+  }
 
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (!mounted || _hasScrolledToTarget) return;
+  /// Scrolls the menu until the highlighted target item is on screen.
+  ///
+  /// The menu is rendered with lazily-built slivers, so an off-screen item's
+  /// [GlobalKey] context doesn't exist yet — `Scrollable.ensureVisible` alone
+  /// silently does nothing for items below the fold. To handle that we step the
+  /// scroll position down (forcing those slivers to build) until the target's
+  /// context becomes available, then let `ensureVisible` settle it into place.
+  Future<void> _animateToTargetMenuItem() async {
+    if (!_scrollController.hasClients) return;
 
-        final targetContext = _targetMenuKey.currentContext;
-        if (targetContext == null || !targetContext.mounted) return;
+    // Let the first batch of slivers lay out before measuring.
+    await Future.delayed(const Duration(milliseconds: 250));
 
-        _hasScrolledToTarget = true;
-        Scrollable.ensureVisible(
+    const int maxSteps = 80;
+    for (int step = 0; step < maxSteps; step++) {
+      if (!mounted || !_scrollController.hasClients) return;
+
+      final targetContext = _targetMenuKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        await Scrollable.ensureVisible(
           targetContext,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 400),
           curve: Curves.easeOutCubic,
           alignment: 0.3,
         );
-      });
-    });
+        return;
+      }
+
+      final position = _scrollController.position;
+      final nextOffset = (position.pixels + position.viewportDimension * 0.85)
+          .clamp(0.0, position.maxScrollExtent);
+
+      // Reached the end without the target building — nothing more we can do.
+      if (nextOffset <= position.pixels) return;
+
+      await _scrollController.animateTo(
+        nextOffset,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+      // Give the newly revealed slivers a frame to build.
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
   }
 
   Future<void> _fetchMenu({bool isInitial = false}) async {
@@ -421,8 +453,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              (_currentRestaurant?.imagePath ?? '')
-                                      .trim()
+                              resolveMediaUrl(_currentRestaurant?.imagePath)
                                       .isEmpty
                                   ? Container(
                                       color: Colors.grey[200],
@@ -435,7 +466,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                       ),
                                     )
                                   : Image.network(
-                                      _currentRestaurant!.imagePath,
+                                      resolveMediaUrl(
+                                        _currentRestaurant!.imagePath,
+                                      ),
                                       fit: BoxFit.cover,
                                       loadingBuilder:
                                           (context, child, loadingProgress) {
@@ -738,11 +771,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
                                     child:
-                                        (_currentRestaurant?.logoPath ?? '')
-                                            .isNotEmpty
+                                        resolveMediaUrl(
+                                          _currentRestaurant?.logoPath,
+                                        ).isNotEmpty
                                         ? CachedNetworkImage(
-                                            imageUrl:
-                                                _currentRestaurant!.logoPath,
+                                            imageUrl: resolveMediaUrl(
+                                              _currentRestaurant!.logoPath,
+                                            ),
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) =>
                                                 const ImageSkeletonLoader(),
