@@ -476,13 +476,12 @@ class RemoteRestaurantDataSource {
   /// Backend (auth): GET /api/user/master-menu-categories/popular.
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
     int limit = 10,
-    int? days,
   }) async {
     if (!AuthService().isLoggedIn) return [];
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/master-menu-categories/popular',
-        queryParameters: {'limit': limit, 'days': ?days},
+        queryParameters: {'limit': limit},
       );
       final raw = response.data;
       final list = raw is Map ? raw['data'] : raw;
@@ -638,18 +637,6 @@ class RemoteRestaurantDataSource {
     try {
       await WishlistRepository.instance.removeMenuItem(menuItemId);
     } catch (_) {}
-  }
-
-  Future<void> trackConversion(int shopId, String action) async {
-    try {
-      // No backend route yet — kept for forward-compat. Soft-fails.
-      await _apiClient.dio.post(
-        '${ApiClient.apiPrefix}/shops/$shopId/track',
-        data: {'action': action},
-      );
-    } catch (_) {
-      // Ignore non-critical tracking errors
-    }
   }
 
   // ── Reviews ───────────────────────────────────────────────────────────────

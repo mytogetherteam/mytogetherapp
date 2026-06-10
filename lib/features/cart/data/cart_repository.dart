@@ -3,9 +3,9 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'models/cart_dto.dart';
 
 /// Repository for all Shopping Cart API operations.
-/// Endpoints: POST /api/mobile/cart/items, GET /api/mobile/cart,
-/// PUT /api/mobile/cart/items/{id}, DELETE /api/mobile/cart/items/{id},
-/// DELETE /api/mobile/cart, GET /api/mobile/cart/list
+/// Endpoints: POST /api/cart/items, GET /api/cart,
+/// PUT /api/cart/items/{id}, DELETE /api/cart/items/{id},
+/// DELETE /api/cart, GET /api/cart/list
 class CartRepository {
   static final CartRepository instance = CartRepository._internal();
   CartRepository._internal();

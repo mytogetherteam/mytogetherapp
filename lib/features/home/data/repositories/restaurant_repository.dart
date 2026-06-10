@@ -244,12 +244,11 @@ class RestaurantRepository {
   /// Popular master menu categories (`GET /api/user/master-menu-categories/popular`).
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
     int limit = 10,
-    int? days,
   }) {
-    return _remoteDataSource.getPopularMasterCategories(limit: limit, days: days);
+    return _remoteDataSource.getPopularMasterCategories(limit: limit);
   }
 
-  /// Cuisine types for search filtering (`GET /api/user/cuisine-types`).
+  /// Cuisine types for search filtering (`GET /api/master/cuisine-types`).
   Future<List<CuisineTypeDto>> getCuisineTypes() {
     return _remoteDataSource.getCuisineTypes();
   }
@@ -635,10 +634,6 @@ class RestaurantRepository {
     } else {
       await _remoteDataSource.removeMenuFavorite(menuItemId);
     }
-  }
-
-  Future<void> trackConversion(int shopId, String action) async {
-    await _remoteDataSource.trackConversion(shopId, action);
   }
 
   /// Clears the feed cache for a specific shop or all shops.
