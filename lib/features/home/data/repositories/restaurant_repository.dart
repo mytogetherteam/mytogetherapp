@@ -300,31 +300,57 @@ class RestaurantRepository {
   }
 
   Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
-    try {
-      final response = await _remoteDataSource.getShopById(
-        id,
-        lat: lat,
-        lon: lon,
-      );
-      return _mapShopDetailDtoToDomain(response.data);
-    } catch (e) {
-      // Auth fallback: enriched user shop-profile detail
-      // (GET /api/user/shop-profile/:id) enforces verified-visible shops and
-      // carries the authoritative `isFavorite` flag.
-      if (AuthService().isLoggedIn) {
-        final shop = await SearchRepository.instance.getShopProfileById(id);
-        if (shop != null) {
+    // When signed in, the authenticated shop-profile endpoint
+    // (GET /api/user/shop-profile/:id) is the source of truth for the shop's
+    // current logo and favorite state — the public `/shops/:id` payload can
+    // carry a stale `logoUrl`. We still use `/shops/:id` for the rich detail
+    // fields (operating hours, features, address, payment) that the profile
+    // list shape doesn't include, then overlay the authoritative logo/favorite.
+    if (AuthService().isLoggedIn) {
+      try {
+        final profile = await SearchRepository.instance.getShopProfileById(id);
+        if (profile != null) {
           final dist = (lat != null &&
                   lon != null &&
-                  shop.latitude != null &&
-                  shop.longitude != null)
-              ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
+                  profile.latitude != null &&
+                  profile.longitude != null)
+              ? _haversineKm(lat, lon, profile.latitude!, profile.longitude!)
               : null;
-          return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+          final base = _mapShopDtoToDomain(profile, distanceKmOverride: dist);
+          try {
+            final detail = await _remoteDataSource.getShopById(
+              id,
+              lat: lat,
+              lon: lon,
+            );
+            final rich = _mapShopDetailDtoToDomain(detail.data);
+            // The public detail payload omits description; take it from the
+            // authenticated profile when present.
+            return rich.copyWith(
+              logoPath: base.logoPath.isNotEmpty ? base.logoPath : rich.logoPath,
+              isFavorite: base.isFavorite,
+              descriptionEn: base.descriptionEn ?? rich.descriptionEn,
+              descriptionMm: base.descriptionMm ?? rich.descriptionMm,
+              descriptionTh: base.descriptionTh ?? rich.descriptionTh,
+            );
+          } catch (_) {
+            // No rich detail available — the profile alone still has the
+            // correct logo and favorite state.
+            return base;
+          }
         }
+      } catch (_) {
+        // Profile lookup failed (e.g. not visible to this user) — fall back to
+        // the public detail endpoint below.
       }
-      rethrow;
     }
+
+    final response = await _remoteDataSource.getShopById(
+      id,
+      lat: lat,
+      lon: lon,
+    );
+    return _mapShopDetailDtoToDomain(response.data);
   }
 
   /// Active payment methods for a shop, used by the checkout flow.
@@ -414,6 +440,9 @@ class RestaurantRepository {
       nameEn: dto.nameEn,
       nameMm: dto.nameMm,
       nameTh: dto.nameTh,
+      descriptionEn: dto.descriptionEn,
+      descriptionMm: dto.descriptionMm,
+      descriptionTh: dto.descriptionTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
@@ -445,6 +474,9 @@ class RestaurantRepository {
       nameEn: dto.nameEn,
       nameMm: dto.nameMm,
       nameTh: dto.nameTh,
+      descriptionEn: dto.descriptionEn,
+      descriptionMm: dto.descriptionMm,
+      descriptionTh: dto.descriptionTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,

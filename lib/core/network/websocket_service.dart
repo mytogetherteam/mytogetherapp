@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
+import '../config/env_config.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/home/data/repositories/restaurant_repository.dart';
 import '../../features/announcements/data/models/announcement_model.dart';
@@ -38,25 +39,37 @@ class WebSocketService {
       _shopProfileUpdateController.stream;
 
   bool _isConnecting = false;
+  bool _shouldReconnect = true;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 5;
+  Timer? _reconnectTimer;
 
   /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
-  /// (see `src/modules/events/events.gateway.ts`).
-  ///
-  /// Mirrors `ApiClient.baseUrl`; uses secure `wss://` for the production
-  /// (TLS) host.
-  static String get _wsUrl {
-    return 'wss://api.mytogether.org/ws/websocket';
-  }
+  /// (see `src/modules/events/events.gateway.ts`). Mirrors [EnvConfig.wsUrl].
+  static String get _wsUrl => EnvConfig.wsUrl;
 
   void connect({bool force = false}) {
     if (_isConnecting && !force) return;
-
     if (isConnected && !force) return;
 
+    // We've decided to (re)connect — re-enable auto-reconnect and cancel any
+    // pending retry so a stale timer can't tear down the fresh connection.
+    _shouldReconnect = true;
+    _reconnectTimer?.cancel();
+
     if (_stompClient != null) {
-      if (force) {
-        debugPrint(' [WS] Force reconnecting...');
+      // Re-create the client unless it's already connected and the caller
+      // isn't forcing. A stale (disconnected) client must not be silently
+      // re-activated, otherwise reconnects fail without any signal.
+      if (force || !isConnected) {
+        debugPrint(' [WS] Re-creating STOMP client...');
+        try {
+          _stompClient?.deactivate();
+        } catch (_) {}
         _stompClient = null;
+        // deactivate() above may have fired onDisconnect → _scheduleReconnect;
+        // drop that timer since we're about to connect immediately.
+        _reconnectTimer?.cancel();
       } else {
         _stompClient?.activate();
         return;
@@ -84,11 +97,13 @@ class WebSocketService {
           debugPrint(' 🚨 [WS] WebSocket Error: $error');
           _isConnecting = false;
           connectionStatus.value = false;
+          _scheduleReconnect();
         },
         onWebSocketDone: () {
           debugPrint(' 🔌 [WS] WebSocket Connection Closed.');
           _isConnecting = false;
           connectionStatus.value = false;
+          _scheduleReconnect();
         },
         onDebugMessage: (String message) {
           debugPrint(' ⚙️ [WS] [STOMP] $message');
@@ -110,18 +125,39 @@ class WebSocketService {
         onDisconnect: (frame) {
           debugPrint(' [WS] Disconnected.');
           connectionStatus.value = false;
+          _scheduleReconnect();
         },
         heartbeatOutgoing: const Duration(milliseconds: 10000),
         heartbeatIncoming: const Duration(milliseconds: 10000),
+        reconnectDelay: const Duration(seconds: 3),
       ),
     );
 
     _stompClient?.activate();
   }
 
+  void _scheduleReconnect() {
+    if (!_shouldReconnect) return;
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      debugPrint(' 🚫 [WS] Max reconnection attempts reached');
+      return;
+    }
+
+    _reconnectAttempts++;
+    final delay = Duration(seconds: _reconnectAttempts * 2);
+    debugPrint(
+      ' 🔄 [WS] Scheduling reconnection in ${delay.inSeconds}s '
+      '(attempt $_reconnectAttempts/$_maxReconnectAttempts)',
+    );
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(delay, () => connect(force: true));
+  }
+
   void onConnect(dynamic frame) {
     debugPrint(' [WS]   Connected!');
     _isConnecting = false;
+    _reconnectAttempts = 0;
     connectionStatus.value = true;
 
     final token = AuthService().accessToken;
@@ -169,9 +205,10 @@ class WebSocketService {
   /// (type: BROADCAST). Builds an [AnnouncementModel] from the live payload and
   /// shows the detail modal regardless of the current screen.
   void _handleBroadcastFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       if (raw['id'] == null) return;
@@ -187,9 +224,10 @@ class WebSocketService {
   /// Invalidates the affected shop's cache and forwards the payload so
   /// listeners (e.g. shop detail/list) can refresh open/closed state.
   void _handleShopProfileFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
@@ -203,11 +241,18 @@ class WebSocketService {
     }
   }
 
+  String? _stompBody(StompFrame frame) {
+    final raw = frame.body;
+    if (raw == null || raw.isEmpty) return null;
+    return raw.replaceAll('\u0000', '').trim();
+  }
+
   /// Handles `/topic/shop-menu-updates` (MENU_UPDATE).
   void _handleShopMenuFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
@@ -223,10 +268,11 @@ class WebSocketService {
 
   void _handleOrderFrame(StompFrame frame) {
     {
-      if (frame.body == null) return;
+      final body = _stompBody(frame);
+      if (body == null) return;
 
       try {
-        final decoded = json.decode(frame.body!);
+        final decoded = json.decode(body);
         if (decoded is! Map) return;
 
         final raw = Map<String, dynamic>.from(decoded);
@@ -307,8 +353,16 @@ class WebSocketService {
   }
 
   void disconnect() {
+    _shouldReconnect = false;
+    _reconnectTimer?.cancel();
     _stompClient?.deactivate();
     _stompClient = null;
     connectionStatus.value = false;
+  }
+
+  /// Re-enable auto-reconnect after a manual [disconnect] (e.g. on re-login).
+  void enableReconnect() {
+    _shouldReconnect = true;
+    _reconnectAttempts = 0;
   }
 }

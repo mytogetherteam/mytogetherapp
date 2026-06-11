@@ -8,14 +8,52 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
+import '../../../../core/location/location_service.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 
-class RestaurantOverviewPage extends StatelessWidget {
+class RestaurantOverviewPage extends StatefulWidget {
   final Restaurant restaurant;
 
   const RestaurantOverviewPage({super.key, required this.restaurant});
+
+  @override
+  State<RestaurantOverviewPage> createState() => _RestaurantOverviewPageState();
+}
+
+class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
+  /// Seeded immediately from the passed-in restaurant so the header renders at
+  /// once, then replaced with the fully-loaded detail (address, hours, etc.).
+  late Restaurant restaurant = widget.restaurant;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDetails();
+  }
+
+  /// The overview is often opened before the parent detail page finishes its
+  /// own async load, so it can arrive with only seed data. Fetch the complete
+  /// shop here so address/hours/payment/features are always present on first
+  /// open instead of only after a refresh/re-entry.
+  Future<void> _loadDetails() async {
+    final id = int.tryParse(widget.restaurant.id);
+    if (id == null) return;
+    try {
+      final pos = LocationService().cachedPosition;
+      final full = await RestaurantRepository.instance.getShopById(
+        id,
+        lat: pos?.latitude ?? LocationService.defaultLat,
+        lon: pos?.longitude ?? LocationService.defaultLon,
+      );
+      if (mounted) {
+        setState(() => restaurant = full);
+      }
+    } catch (_) {
+      // Keep the seed data on failure; payment section still self-loads.
+    }
+  }
 
   String _localizedAddress(BuildContext context) {
     final localized = context.localized(
@@ -235,14 +273,12 @@ class RestaurantOverviewPage extends StatelessWidget {
                       shopId: int.tryParse(restaurant.id),
                     ),
                   ),
-                  if (restaurant.hasAnyFeature) ...[
-                    const SizedBox(height: 16),
-                    _buildSectionCard(
-                      iconData: PhosphorIcons.sparkle,
-                      title: context.tr('restaurant.features_title'),
-                      customContent: _buildFeatures(context),
-                    ),
-                  ],
+                  const SizedBox(height: 16),
+                  _buildSectionCard(
+                    iconData: PhosphorIcons.sparkle,
+                    title: context.tr('restaurant.features_title'),
+                    customContent: _buildFeatures(context),
+                  ),
                 ],
               ),
             ),
@@ -466,48 +502,90 @@ class RestaurantOverviewPage extends StatelessWidget {
 
   Widget _buildFeatures(BuildContext context) {
     final features = <_Feature>[
-      if (restaurant.hasParking)
-        _Feature(PhosphorIcons.car, context.tr('restaurant.feature_parking')),
-      if (restaurant.hasWifi)
-        _Feature(PhosphorIcons.wifiHigh, context.tr('restaurant.feature_wifi')),
-      if (restaurant.isHalal)
-        _Feature(
-            PhosphorIcons.forkKnife, context.tr('restaurant.feature_halal')),
-      if (restaurant.isVegetarian)
-        _Feature(
-            PhosphorIcons.leaf, context.tr('restaurant.feature_vegetarian')),
+      _Feature(
+        PhosphorIcons.car,
+        context.tr('restaurant.feature_parking'),
+        restaurant.hasParking,
+      ),
+      _Feature(
+        PhosphorIcons.wifiHigh,
+        context.tr('restaurant.feature_wifi'),
+        restaurant.hasWifi,
+      ),
+      _Feature(
+        PhosphorIcons.forkKnife,
+        context.tr('restaurant.feature_halal'),
+        restaurant.isHalal,
+      ),
+      _Feature(
+        PhosphorIcons.leaf,
+        context.tr('restaurant.feature_vegetarian'),
+        restaurant.isVegetarian,
+      ),
     ];
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: features.map((f) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.15),
-            ),
-          ),
+    return Column(
+      children: features.asMap().entries.map((entry) {
+        final f = entry.value;
+        final bool isLast = entry.key == features.length - 1;
+        return Padding(
+          padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(f.icon, size: 18, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Text(
-                f.label,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF2D3748),
+              _buildFeatureToggle(f.enabled),
+              const SizedBox(width: 14),
+              Icon(
+                f.icon,
+                size: 20,
+                color: f.enabled ? AppColors.primary : Colors.grey[400],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  f.label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: f.enabled
+                        ? const Color(0xFF2D3748)
+                        : Colors.grey[500],
+                  ),
                 ),
               ),
             ],
           ),
         );
       }).toList(),
+    );
+  }
+
+  /// Read-only pill toggle mirroring the shop's amenity state. The customer
+  /// can see whether a feature is offered but cannot change it here.
+  Widget _buildFeatureToggle(bool enabled) {
+    const double width = 42;
+    const double height = 24;
+    const double knob = 18;
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: enabled ? AppColors.primary : Colors.grey[300],
+        borderRadius: BorderRadius.circular(height / 2),
+      ),
+      child: Align(
+        alignment: enabled ? Alignment.centerRight : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: Container(
+            width: knob,
+            height: knob,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -534,8 +612,9 @@ class RestaurantOverviewPage extends StatelessWidget {
 class _Feature {
   final IconData icon;
   final String label;
+  final bool enabled;
 
-  const _Feature(this.icon, this.label);
+  const _Feature(this.icon, this.label, this.enabled);
 }
 
 /// Shows the payment methods configured for a specific shop.

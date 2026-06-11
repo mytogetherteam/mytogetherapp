@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../reviews/presentation/screens/write_review_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
@@ -346,6 +348,39 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
     );
   }
 
+  /// Reviewer avatar: shows the user's profile photo when available, otherwise
+  /// falls back to a generic person icon on a tinted circle.
+  Widget _buildReviewerAvatar(ShopReviewDto review) {
+    const double size = 44;
+    final url = review.userProfileUrl?.trim();
+    final placeholder = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Icons.person_outline, color: AppColors.primary, size: 24),
+    );
+
+    if (url == null || url.isEmpty || !url.startsWith('http')) {
+      return placeholder;
+    }
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => placeholder,
+        errorWidget: (context, url, error) => placeholder,
+        fadeInDuration: const Duration(milliseconds: 150),
+        memCacheWidth: 200,
+      ),
+    );
+  }
+
   Widget _buildReviewItem(ShopReviewDto review) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -366,19 +401,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
         children: [
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.person_outline,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
+              _buildReviewerAvatar(review),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -426,6 +449,106 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
               fontSize: 14,
               color: const Color(0xFF475569),
               height: 1.6,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (review.hasShopReply) _buildShopReply(review),
+        ],
+      ),
+    );
+  }
+
+  /// Small circular badge for the reply: shows the admin/shop logo when
+  /// available, otherwise a tinted storefront icon.
+  Widget _buildShopReplyAvatar(ShopReviewDto review) {
+    const double size = 32;
+    final url = review.shopReplyAvatarUrl?.trim();
+    final fallback = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.storefront_outlined,
+        size: 18,
+        color: AppColors.primary,
+      ),
+    );
+
+    if (url == null || url.isEmpty || !url.startsWith('http')) {
+      return fallback;
+    }
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => fallback,
+        errorWidget: (context, url, error) => fallback,
+        fadeInDuration: const Duration(milliseconds: 150),
+        memCacheWidth: 150,
+      ),
+    );
+  }
+
+  /// Read-only shop owner reply shown under a review. Customers can see the
+  /// owner's response but cannot reply back (one-way conversation).
+  Widget _buildShopReply(ShopReviewDto review) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border(
+          left: BorderSide(color: AppColors.primary, width: 3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildShopReplyAvatar(review),
+              const SizedBox(width: 8),
+              Flexible(
+                child: GradientText(
+                  review.shopReplyAuthorName?.trim().isNotEmpty == true
+                      ? review.shopReplyAuthorName!.trim()
+                      : context.tr('review.shop_reply'),
+                  gradient: AppColors.primaryGradient,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (review.shopRepliedAt != null)
+                Text(
+                  _getTimeAgo(review.shopRepliedAt!),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            review.shopReply!.trim(),
+            style: GoogleFonts.poppins(
+              fontSize: 13.5,
+              color: const Color(0xFF475569),
+              height: 1.55,
               fontWeight: FontWeight.w500,
             ),
           ),

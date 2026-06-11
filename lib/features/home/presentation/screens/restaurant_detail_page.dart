@@ -85,6 +85,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   bool _isFavorite = false;
   StreamSubscription? _menuUpdateSubscription;
   StreamSubscription? _shopProfileUpdateSubscription;
+  late final VoidCallback _wsReconnectListener;
+  bool _wsReady = false;
 
   Restaurant? _currentRestaurant;
 
@@ -154,6 +156,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     if (shopId > 0) {
       ActiveOrderState.instance.setCurrentShopId(shopId);
+      WebSocketService().connect();
       _fetchCategories(shopId);
       _loadInitialMenu();
     }
@@ -170,11 +173,31 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         if (mounted) {
           setState(() {
             _currentRestaurant = restaurant;
-            _isFavorite = restaurant.isFavorite;
+            // The wishlist is the source of truth for the favorite heart. The
+            // public shop-detail endpoint has no auth context and returns
+            // isFavorite: false, so only trust it when the wishlist isn't primed.
+            final repo = WishlistRepository.instance;
+            _isFavorite = repo.isPrimed
+                ? repo.isShopSaved(shopId)
+                : restaurant.isFavorite;
           });
         }
       } catch (_) {}
     });
+
+    // Catch up after a dropped connection (e.g. mobile background).
+    _wsReconnectListener = () {
+      if (!mounted || !WebSocketService().connectionStatus.value) return;
+      if (!_wsReady) {
+        _wsReady = true;
+        return;
+      }
+      debugPrint(
+        ' [RestaurantDetailPage] WebSocket reconnected — refreshing menu...',
+      );
+      _handleRefresh();
+    };
+    WebSocketService().connectionStatus.addListener(_wsReconnectListener);
 
     // Listen for real-time menu updates
     _menuUpdateSubscription = WebSocketService().menuUpdates.listen((event) {
@@ -372,6 +395,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     WishlistRepository.instance.removeListener(_onWishlistChanged);
     _menuUpdateSubscription?.cancel();
     _shopProfileUpdateSubscription?.cancel();
+    WebSocketService().connectionStatus.removeListener(_wsReconnectListener);
     _scrollController.dispose();
     // Clear shop context
     ActiveOrderState.instance.setCurrentShopId(null);

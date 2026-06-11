@@ -38,14 +38,15 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
     _timer?.cancel();
     if (_banners.length <= 1) return;
     _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_controller.hasClients) {
-        final nextPage = _controller.page!.round() + 1;
-        _controller.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
+      if (!_controller.hasClients) return;
+      final page = _controller.page;
+      if (page == null) return;
+      final nextPage = page.round() + 1;
+      _controller.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 

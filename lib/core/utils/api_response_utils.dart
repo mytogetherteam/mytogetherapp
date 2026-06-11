@@ -35,13 +35,31 @@ class ApiResponseUtils {
     return body;
   }
 
-  /// News / item-post feeds return `{ content, totalElements, ... }` directly.
+  /// News / item-post feeds return a `{ content, totalElements, totalPages }`
+  /// page. The backend `TransformInterceptor` wraps these plain payloads in a
+  /// `{ success, data: { content, ... } }` envelope, while some raw responses
+  /// still expose `content` at the top level. Support both by drilling into
+  /// `data` whenever it looks like the page object.
+  static dynamic _pageBody(dynamic body) {
+    if (body is Map) {
+      final data = body['data'];
+      if (data is Map &&
+          (data['content'] != null ||
+              data['totalElements'] != null ||
+              data['totalPages'] != null)) {
+        return data;
+      }
+    }
+    return body;
+  }
+
   static List<T> parseContentPage<T>(
     dynamic body,
     T Function(Map<String, dynamic>) fromJson,
   ) {
-    if (body is Map && body['content'] is List) {
-      return (body['content'] as List)
+    final page = _pageBody(body);
+    if (page is Map && page['content'] is List) {
+      return (page['content'] as List)
           .whereType<Map<String, dynamic>>()
           .map(fromJson)
           .toList();
@@ -50,8 +68,9 @@ class ApiResponseUtils {
   }
 
   static int parseTotalElements(dynamic body) {
-    if (body is Map && body['totalElements'] != null) {
-      return int.tryParse(body['totalElements'].toString()) ?? 0;
+    final page = _pageBody(body);
+    if (page is Map && page['totalElements'] != null) {
+      return int.tryParse(page['totalElements'].toString()) ?? 0;
     }
     if (body is Map && body['meta'] is Map) {
       final total = (body['meta'] as Map)['total'];
@@ -61,8 +80,9 @@ class ApiResponseUtils {
   }
 
   static int parseLastPage(dynamic body) {
-    if (body is Map && body['totalPages'] != null) {
-      return int.tryParse(body['totalPages'].toString()) ?? 0;
+    final page = _pageBody(body);
+    if (page is Map && page['totalPages'] != null) {
+      return int.tryParse(page['totalPages'].toString()) ?? 0;
     }
     if (body is Map && body['meta'] is Map) {
       final last = (body['meta'] as Map)['last_page'];

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
@@ -147,6 +148,14 @@ class RemoteRestaurantDataSource {
           'page': page + 1, // API uses 1-based index
           'size': size,
         },
+        options: Options(
+          extra: {
+            '@dio_cache_interceptor@': CacheOptions(
+              store: MemCacheStore(),
+              policy: CachePolicy.refresh,
+            ),
+          },
+        ),
       );
       if (response.statusCode == 200) {
         return ApiResponseSliceShopFeedItemDto.fromJson(response.data);

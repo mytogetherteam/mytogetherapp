@@ -101,6 +101,9 @@ class ShopListItemDto {
   final String? nameEn;
   final String? nameMm;
   final String? nameTh;
+  final String? descriptionEn;
+  final String? descriptionMm;
+  final String? descriptionTh;
   final String? _category;
   final String? categoryEn;
   final String? categoryMm;
@@ -164,6 +167,9 @@ class ShopListItemDto {
     this.nameEn,
     this.nameMm,
     this.nameTh,
+    this.descriptionEn,
+    this.descriptionMm,
+    this.descriptionTh,
     String? category,
     this.categoryEn,
     this.categoryMm,
@@ -218,6 +224,9 @@ class ShopListItemDto {
       nameEn: json['nameEn'] as String?,
       nameMm: json['nameMm'] as String?,
       nameTh: json['nameTh'] as String?,
+      descriptionEn: json['descriptionEn'] as String?,
+      descriptionMm: json['descriptionMm'] as String?,
+      descriptionTh: json['descriptionTh'] as String?,
       category: json['category'] as String?,
       categoryEn: shopCategory?['nameEn'] as String?,
       categoryMm: shopCategory?['nameMm'] as String?,

@@ -16,7 +16,7 @@ class UserLocationRepository extends ChangeNotifier {
 
   final Dio _dio = ApiClient().dio;
   // Backend: UserLocationsController @Controller('user') with @Get('locations')
-  static const String _baseUrl = '${ApiClient.apiPrefix}/user/locations';
+  static final String _baseUrl = '${ApiClient.apiPrefix}/user/locations';
 
   List<UserLocationModel>? _cachedLocations;
   UserLocationModel? _activeLocation;

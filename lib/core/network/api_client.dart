@@ -1,25 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../auth/auth_interceptor.dart';
+import '../config/env_config.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:io';
 
 class ApiClient {
   // ───────────────────────────────────────────────────────────────────────
-  // Base URL configuration
-  //   • Production:  https://api.mytogether.org
-  //
+  // Base URL configuration (see EnvConfig — set APP_ENV=staging for local).
   // The backend (myshop_demo_api) is a NestJS server. All routes are prefixed
   // with `/api` via `app.setGlobalPrefix('api')` in main.ts.
   // ───────────────────────────────────────────────────────────────────────
-  static String get baseUrl {
-    return 'https://api.mytogether.org';
-  }
+  static String get baseUrl => EnvConfig.apiBaseUrl;
 
   /// Global API prefix used by every route on the new backend.
   /// User-facing routes live under `/api/user/...`, public routes
   /// (shops/foods/banners/etc.) live directly under `/api/...`.
-  static const String apiPrefix = '/api';
+  static String get apiPrefix => EnvConfig.apiPrefix;
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;

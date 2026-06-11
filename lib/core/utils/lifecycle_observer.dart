@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
@@ -30,11 +31,21 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // 1. Immediate disconnect on background/lock to prevent stale connections
+    // On web, switching browser tabs/windows fires inactive/paused even though
+    // the app is still "running". Disconnecting here drops the STOMP subscription
+    // and menu/order broadcasts are missed while the shop-admin tab is focused.
+    if (kIsWeb) {
+      if (state == AppLifecycleState.resumed &&
+          !WebSocketService().isConnected) {
+        WebSocketService().connect(force: true);
+      }
+      return;
+    }
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       WebSocketService().disconnect();
     } else if (state == AppLifecycleState.resumed) {
-      // 2. Foreground: Robust Sync then Reconnect
       _handleForegroundResumed();
     }
   }
