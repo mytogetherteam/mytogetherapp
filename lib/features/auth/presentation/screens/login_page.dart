@@ -10,6 +10,9 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'register_page.dart';
 import 'login_pin_page.dart';
+import 'auth_entry_page.dart';
+import '../../../../core/auth/auth_service.dart';
+import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -92,7 +95,14 @@ class _LoginPageState extends State<LoginPage>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => AuthService().isLoggedIn
+                  ? const MainNavigationScreen()
+                  : const AuthEntryPage(),
+            ),
+            (route) => false,
+          ),
         ),
       ),
       body: SafeArea(

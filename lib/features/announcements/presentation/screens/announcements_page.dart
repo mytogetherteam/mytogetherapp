@@ -124,62 +124,58 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: Text(
-          context.tr('announcement.title'),
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           if (_items.any((a) => !a.isRead))
-            TextButton(
-              onPressed: _markAllAsRead,
-              child: Text(context.tr('announcement.mark_all_read')),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: TextButton(
+                  onPressed: _markAllAsRead,
+                  child: Text(context.tr('announcement.mark_all_read')),
+                ),
+              ),
             ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CustomLoadingIndicator(size: 40))
+                : _items.isEmpty
+                    ? _buildEmptyState()
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (scrollInfo) {
+                          if (scrollInfo.metrics.pixels ==
+                                  scrollInfo.metrics.maxScrollExtent &&
+                              _hasMore) {
+                            _loadMore();
+                          }
+                          return true;
+                        },
+                        child: RefreshIndicator(
+                          color: AppColors.primary,
+                          onRefresh: () => _load(refresh: true),
+                          child: ListView.builder(
+                            itemCount: _items.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _items.length) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: CustomLoadingIndicator(size: 24),
+                                  ),
+                                );
+                              }
+                              return _buildItem(_items[index]);
+                            },
+                          ),
+                        ),
+                      ),
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CustomLoadingIndicator(size: 40))
-          : _items.isEmpty
-              ? _buildEmptyState()
-              : NotificationListener<ScrollNotification>(
-                  onNotification: (scrollInfo) {
-                    if (scrollInfo.metrics.pixels ==
-                            scrollInfo.metrics.maxScrollExtent &&
-                        _hasMore) {
-                      _loadMore();
-                    }
-                    return true;
-                  },
-                  child: RefreshIndicator(
-                    color: AppColors.primary,
-                    onRefresh: () => _load(refresh: true),
-                    child: ListView.builder(
-                      itemCount: _items.length + (_hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _items.length) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CustomLoadingIndicator(size: 24),
-                            ),
-                          );
-                        }
-                        return _buildItem(_items[index]);
-                      },
-                    ),
-                  ),
-                ),
     );
   }
 

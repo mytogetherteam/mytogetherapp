@@ -98,6 +98,7 @@ class AppTranslations {
     'profile.app_permissions': 'App Permissions',
     'profile.app_permissions_sub': 'Manage notifications and location access',
     'profile.privacy_policy': 'Privacy Policy',
+    'profile.app_version': 'Version',
 
     // App permissions page
     'permissions.title': 'App Permissions',
@@ -146,7 +147,7 @@ class AppTranslations {
     'food.deliver_prompt': 'What shall we deliver?',
     'food.my_location': 'My Location',
     'food.set_location': 'Set your location',
-    'food.nearby_shops': 'Nearby Restaurants',
+    'food.nearby_shops': 'Near You',
     'food.nearby_shops_sub': 'Get it quick',
     'food.for_you': 'For You',
     'food.for_you_sub': 'Handpicked for you',
@@ -170,7 +171,7 @@ class AppTranslations {
     'food.lunch': 'Lunch',
     'food.meal_time': 'Meal Time',
     'food.meals_count': 'Meals ({count})',
-    'food.restaurants': 'Nearby Restaurants',
+    'food.restaurants': 'Near Restaurant For you',
     'food.trending_near_you': 'Trending Near You',
     'food.right_now': 'Right Now',
     'food.popular_dishes': 'Popular Dishes',
@@ -587,6 +588,8 @@ class AppTranslations {
     'notification.empty_title': 'No notifications yet',
     'notification.load_failed': 'Failed to load notifications',
     'notification.mark_all_read': 'Mark all as read',
+    'notification.tab_orders': 'Order',
+    'notification.tab_announcements': 'Announcements',
     'notification.title': 'Notifications',
     'place.about_location': 'About Location',
     'place.nearby_places': 'Nearby Places',
@@ -710,7 +713,7 @@ class AppTranslations {
     'order_confirm.check_status': 'Check Order Status',
     'order_confirm.footer_prefix': 'You can continue next order ',
     'order_confirm.footer_link': 'here.',
-    'demo.feature_unavailable': 'Feature Unavailable',
+    'demo.feature_unavailable': 'Coming Soon',
     'demo.feature_unavailable_body':
         'On its way in a future update!',
     'common.got_it': 'Got it',
@@ -838,6 +841,7 @@ class AppTranslations {
     'profile.app_permissions': 'အက်ပ်ခွင့်ပြုချက်များ',
     'profile.app_permissions_sub': 'အသိပေးချက်နှင့် တည်နေရာ ခွင့်ပြုချက်များကို စီမံပါ',
     'profile.privacy_policy': 'ကိုယ်ရေးအချက်အလက် မူဝါဒ',
+    'profile.app_version': 'ဗားရှင်း',
 
     // App permissions page
     'permissions.title': 'အက်ပ်ခွင့်ပြုချက်များ',
@@ -1317,6 +1321,8 @@ class AppTranslations {
     'notification.empty_title': 'အကြောင်းကြားချက် မရှိသေးပါ',
     'notification.load_failed': 'အကြောင်းကြားချက်များ မတင်နိုင်ပါ',
     'notification.mark_all_read': 'အားလုံးဖတ်ပြီးဟု မှတ်မည်',
+    'notification.tab_orders': 'အော်ဒါများ',
+    'notification.tab_announcements': 'ကြေညာချက်များ',
     'notification.title': 'အကြောင်းကြားချက်များ',
     'place.about_location': 'တည်နေရာအကြောင်း',
     'place.nearby_places': 'အနီးအနားရှိ နေရာများ',

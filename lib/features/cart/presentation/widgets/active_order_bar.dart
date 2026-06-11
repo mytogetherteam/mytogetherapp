@@ -145,7 +145,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
 
         return SizeTransition(
           sizeFactor: _slideCtrl,
-          alignment: Alignment.topCenter,
+          axisAlignment: -1.0,
           child: SlideTransition(
             position: _slideAnim,
             child: Container(

@@ -40,8 +40,15 @@ class AuthService {
     if (_initialized) return;
 
     // Read tokens from secure storage
-    _accessToken = await _secureStorage.read(key: _keyAccessToken);
-    _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+    try {
+      _accessToken = await _secureStorage.read(key: _keyAccessToken);
+      _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+    } catch (e) {
+      // Keystore might be corrupted due to reinstall or debug app
+      await _secureStorage.deleteAll();
+      _accessToken = null;
+      _refreshToken = null;
+    }
 
     // Read non-sensitive profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();

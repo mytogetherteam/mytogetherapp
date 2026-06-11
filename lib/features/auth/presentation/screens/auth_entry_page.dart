@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -28,10 +29,12 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
           // Top Gradient Card
           SafeArea(
             bottom: false,
@@ -232,7 +235,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
           const Spacer(),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildDecorativePill(String title, String subtitle, IconData icon, double rotation, {Color backgroundColor = Colors.white, Color textColor = const Color(0xFF1E1E1E)}) {

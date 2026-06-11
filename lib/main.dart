@@ -42,32 +42,34 @@ void main() async {
     debugPrint('[BOOT] Firebase initialization failed: $e');
   }
 
-  debugPrint('[BOOT] Initializing LocaleController...');
-  await LocaleController.instance.initialize();
-  debugPrint('[BOOT] LocaleController initialized. Language: ${LocaleController.instance.language.code}');
+  try {
+    debugPrint('[BOOT] Initializing LocaleController...');
+    await LocaleController.instance.initialize();
+    debugPrint('[BOOT] LocaleController initialized. Language: ${LocaleController.instance.language.code}');
 
-  debugPrint('[BOOT] Initializing AuthService...');
-  await AuthService().initialize();
-  debugPrint(
-    '[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}',
-  );
+    debugPrint('[BOOT] Initializing AuthService...');
+    await AuthService().initialize();
+    debugPrint('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
 
-  debugPrint('[BOOT] Initializing NotificationService (background)...');
-  NotificationService().initialize();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  debugPrint('[BOOT] NotificationService initialization triggered.');
+    debugPrint('[BOOT] Initializing NotificationService (background)...');
+    NotificationService().initialize();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    debugPrint('[BOOT] NotificationService initialization triggered.');
 
-  debugPrint('[BOOT] Starting LocationService pre-fetch...');
-  LocationService().getCurrentPosition();
-  debugPrint('[BOOT] LocationService pre-fetch triggered.');
+    debugPrint('[BOOT] Starting LocationService pre-fetch...');
+    LocationService().getCurrentPosition();
+    debugPrint('[BOOT] LocationService pre-fetch triggered.');
 
-  debugPrint('[BOOT] Loading active order state...');
-  await ActiveOrderState.instance.loadFromPrefs();
-  debugPrint('[BOOT] Active order state loaded.');
+    debugPrint('[BOOT] Loading active order state...');
+    await ActiveOrderState.instance.loadFromPrefs();
+    debugPrint('[BOOT] Active order state loaded.');
 
-  debugPrint('[BOOT] Syncing cart...');
-  CartManager.instance.syncWithApi();
-  debugPrint('[BOOT] Cart sync triggered.');
+    debugPrint('[BOOT] Syncing cart...');
+    CartManager.instance.syncWithApi();
+    debugPrint('[BOOT] Cart sync triggered.');
+  } catch (e, stackTrace) {
+    debugPrint('[BOOT] Critical error during initialization: $e\n$stackTrace');
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

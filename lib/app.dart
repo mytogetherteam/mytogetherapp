@@ -6,6 +6,7 @@ import 'features/auth/presentation/screens/login_page.dart';
 import 'features/auth/presentation/screens/auth_entry_page.dart';
 import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
+import 'package:upgrader/upgrader.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -36,9 +37,14 @@ class App extends StatelessWidget {
             navigatorKey: navigatorKey,
             scaffoldMessengerKey: scaffoldMessengerKey,
             // Auth-aware initial route
-            home: AuthService().isLoggedIn
-                ? const MainNavigationScreen()
-                : const AuthEntryPage(),
+            home: UpgradeAlert(
+              showIgnore: false,
+              showLater: false,
+              upgrader: Upgrader(),
+              child: AuthService().isLoggedIn
+                  ? const MainNavigationScreen()
+                  : const AuthEntryPage(),
+            ),
             routes: {
               '/home': (context) => const MainNavigationScreen(),
               '/login': (context) => const LoginPage(),

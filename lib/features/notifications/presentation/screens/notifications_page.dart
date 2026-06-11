@@ -153,123 +153,140 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: false,
-        title: Text(
-          context.tr('notification.title'),
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          ValueListenableBuilder<int>(
-            valueListenable: AnnouncementRepository().unreadCount,
-            builder: (context, count, _) {
-              return IconButton(
-                tooltip: context.tr('notification.announcements_tooltip'),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AnnouncementsPage()),
-                ),
-                icon: Stack(
-                  clipBehavior: Clip.none,
+        appBar: AppBar(
+          centerTitle: false,
+          title: Text(
+            context.tr('notification.title'),
+            style: GoogleFonts.poppins(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          bottom: TabBar(
+            labelColor: AppColors.primary,
+            unselectedLabelColor: Colors.grey.shade600,
+            indicatorColor: AppColors.primary,
+            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            tabs: [
+              Tab(text: context.tr('notification.tab_orders')),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(PhosphorIcons.megaphone, color: Colors.black),
-                    if (count > 0)
-                      Positioned(
-                        top: -6,
-                        right: -6,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          alignment: Alignment.center,
+                    Text(context.tr('notification.tab_announcements')),
+                    ValueListenableBuilder<int>(
+                      valueListenable: AnnouncementRepository().unreadCount,
+                      builder: (context, count, _) {
+                        if (count == 0) return const SizedBox.shrink();
+                        return Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppColors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.5),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             count > 9 ? '9+' : count.toString(),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 8,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-          if (_notifications.any((n) => !n.read))
-            TextButton(
-              onPressed: _markAllAsRead,
-              child: Text(context.tr('notification.mark_all_read')),
-            ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CustomLoadingIndicator(size: 40))
-          : _notifications.isEmpty
-              ? _buildEmptyState()
-              : NotificationListener<ScrollNotification>(
-                  onNotification: (ScrollNotification scrollInfo) {
-                    if (scrollInfo.metrics.pixels ==
-                            scrollInfo.metrics.maxScrollExtent &&
-                        _hasMore) {
-                      _loadMore();
-                    }
-                    return true;
-                  },
-                  child: RefreshIndicator(
-                    onRefresh: () => _loadNotifications(refresh: true),
-                    child: ListView.builder(
-                      itemCount: _notifications.length + (_hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _notifications.length) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CustomLoadingIndicator(size: 24),
-                            ),
-                          );
-                        }
-                        final notification = _notifications[index];
-                        return Dismissible(
-                          key: ValueKey(notification.id),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 24),
-                            color: Colors.red.shade400,
-                            child: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onDismissed: (_) => _deleteNotification(notification),
-                          child: NotificationItemWidget(
-                            notification: notification,
-                            onTap: () => _markAsRead(notification),
                           ),
                         );
                       },
                     ),
-                  ),
+                  ],
                 ),
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Tab 1: Orders
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_notifications.any((n) => !n.read))
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                      child: TextButton(
+                        onPressed: _markAllAsRead,
+                        child: Text(context.tr('notification.mark_all_read')),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CustomLoadingIndicator(size: 40))
+                      : _notifications.isEmpty
+                          ? _buildEmptyState()
+                          : NotificationListener<ScrollNotification>(
+                              onNotification: (ScrollNotification scrollInfo) {
+                                if (scrollInfo.metrics.pixels ==
+                                        scrollInfo.metrics.maxScrollExtent &&
+                                    _hasMore) {
+                                  _loadMore();
+                                }
+                                return true;
+                              },
+                              child: RefreshIndicator(
+                                onRefresh: () => _loadNotifications(refresh: true),
+                                child: ListView.builder(
+                                  itemCount: _notifications.length + (_hasMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (index == _notifications.length) {
+                                      return const Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(16.0),
+                                          child: CustomLoadingIndicator(size: 24),
+                                        ),
+                                      );
+                                    }
+                                    final notification = _notifications[index];
+                                    return Dismissible(
+                                      key: ValueKey(notification.id),
+                                      direction: DismissDirection.endToStart,
+                                      background: Container(
+                                        alignment: Alignment.centerRight,
+                                        padding: const EdgeInsets.only(right: 24),
+                                        color: Colors.red.shade400,
+                                        child: const Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      onDismissed: (_) => _deleteNotification(notification),
+                                      child: NotificationItemWidget(
+                                        notification: notification,
+                                        onTap: () => _markAsRead(notification),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                ),
+              ],
+            ),
+            
+            // Tab 2: Announcements
+            const AnnouncementsPage(),
+          ],
+        ),
+      ),
     );
   }
 

@@ -101,7 +101,8 @@ class RestaurantCard extends StatelessWidget {
                               height: 160,
                             ),
                             errorWidget: (context, url, error) => _buildFallbackImage(context),
-                            fadeInDuration: const Duration(milliseconds: 300),
+                            fadeInDuration: const Duration(milliseconds: 50),
+                            memCacheWidth: 600,
                           )),
               ),
 
@@ -218,6 +219,8 @@ class RestaurantCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => _buildLogoFallback(),
                 errorWidget: (context, url, error) => _buildLogoFallback(),
+                fadeInDuration: const Duration(milliseconds: 50),
+                memCacheWidth: 200,
               ),
       ),
     );

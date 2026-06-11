@@ -612,7 +612,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 40),
                             Center(
                               child: Text(
-                                'demo 0.0.1',
+                                context.tr('food.end_of_list'),
                                 style: GoogleFonts.poppins(
                                   color: Colors.grey.withValues(alpha: 0.5),
                                   fontSize: 12,

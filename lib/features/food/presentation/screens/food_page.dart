@@ -16,7 +16,7 @@ import 'package:mytogetherapp/features/home/presentation/widgets/popular_brands_
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/together_deals_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/explore_menu_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/promo_banner_section.dart';
+import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_collection_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_for_you_page.dart';
@@ -127,10 +127,7 @@ class _FoodPageState extends State<FoodPage> {
                                 ),
                               ),
                           const SizedBox(height: 20),
-                          const PromoBannerSection(
-                            position: 'Top Banners',
-                            height: 120,
-                          ),
+                          const FoodPromotionsCarousel(),
                           const SizedBox(height: 20),
                           const FoodRestaurantsSection(),
                               const TrendingShopsSection(),

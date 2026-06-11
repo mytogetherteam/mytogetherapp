@@ -253,7 +253,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),
                                                   errorWidget: (context, url, error) => _buildFallbackImage(),
-                                                  fadeInDuration: const Duration(milliseconds: 300),
+                                                  fadeInDuration: const Duration(milliseconds: 50),
+                                                  memCacheWidth: 600,
                                                 )
                                               : Image.asset(
                                                   widget.imagePath,
