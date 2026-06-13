@@ -172,7 +172,23 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         );
         if (mounted) {
           setState(() {
-            _currentRestaurant = restaurant;
+            // Preserve the distance/delivery-time we were seeded with (from the
+            // card the user tapped) when the freshly-fetched shop comes back
+            // without a usable value, so the header doesn't regress to "0.0 km".
+            final seededDistance = _currentRestaurant?.distance ?? '';
+            final seededDeliveryTime = _currentRestaurant?.deliveryTime ?? '';
+            _currentRestaurant = restaurant.copyWith(
+              distance:
+                  (restaurant.distance == '0.0 km' ||
+                      restaurant.distance.isEmpty)
+                  ? seededDistance
+                  : restaurant.distance,
+              deliveryTime:
+                  (restaurant.deliveryTime == '20-30 mins' ||
+                      restaurant.deliveryTime.isEmpty)
+                  ? seededDeliveryTime
+                  : restaurant.deliveryTime,
+            );
             // The wishlist is the source of truth for the favorite heart. The
             // public shop-detail endpoint has no auth context and returns
             // isFavorite: false, so only trust it when the wishlist isn't primed.
@@ -239,7 +255,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         _menuItems.clear();
         _menuPage = 0;
         _hasMoreMenu = true;
-        _hasScrolledToTarget = false;
+        // NOTE: intentionally do NOT reset `_hasScrolledToTarget` here.
+        // The scroll-to-target is a one-time intent when the page is opened
+        // deep-linked to a specific menu item. `_handleRefresh` also runs on
+        // real-time WebSocket events (menu/shop-profile updates, reconnects),
+        // so re-arming it would repeatedly yank the user back to the target.
       });
       _fetchCategories(shopId);
       _loadInitialMenu();
@@ -311,13 +331,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     });
   }
 
-  /// Scrolls the menu until the highlighted target item is on screen.
+  /// Positions the menu so the highlighted target item is on screen.
   ///
   /// The menu is rendered with lazily-built slivers, so an off-screen item's
   /// [GlobalKey] context doesn't exist yet — `Scrollable.ensureVisible` alone
   /// silently does nothing for items below the fold. To handle that we step the
   /// scroll position down (forcing those slivers to build) until the target's
-  /// context becomes available, then let `ensureVisible` settle it into place.
+  /// context becomes available, then settle it into place.
+  ///
+  /// Like Grab, this jumps instantly rather than animating: stepping is done
+  /// with [ScrollController.jumpTo] and the final `ensureVisible` uses a zero
+  /// duration, so the page appears already positioned at the item instead of
+  /// visibly scrolling through everything above it.
   Future<void> _animateToTargetMenuItem() async {
     if (!_scrollController.hasClients) return;
 
@@ -332,8 +357,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       if (targetContext != null && targetContext.mounted) {
         await Scrollable.ensureVisible(
           targetContext,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOutCubic,
+          duration: Duration.zero,
           alignment: 0.3,
         );
         return;
@@ -346,13 +370,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       // Reached the end without the target building — nothing more we can do.
       if (nextOffset <= position.pixels) return;
 
-      await _scrollController.animateTo(
-        nextOffset,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-      );
+      _scrollController.jumpTo(nextOffset);
       // Give the newly revealed slivers a frame to build.
-      await Future.delayed(const Duration(milliseconds: 30));
+      await Future.delayed(const Duration(milliseconds: 16));
     }
   }
 

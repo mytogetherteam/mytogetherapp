@@ -1490,10 +1490,23 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           const SizedBox(width: 10),
           GestureDetector(
             onTap: () {
+              final orderIdStr =
+                  (widget.orderId ?? ActiveOrderState.instance.orderId)
+                      ?.replaceAll('#', '');
+              final orderId = int.tryParse(orderIdStr ?? '');
+              if (orderId == null || orderId <= 0) {
+                AppDialog.showToast(
+                  context,
+                  context.tr('chat.order_unavailable'),
+                  isError: true,
+                );
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChatPage(
+                    orderId: orderId,
                     peerName: order?.riderName ??
                         context.tr('order_status.delivery_rider'),
                     peerSubtitle: context.tr('order_status.delivery_rider'),
