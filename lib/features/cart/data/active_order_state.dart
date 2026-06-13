@@ -52,6 +52,9 @@ class ActiveOrderItem {
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  // Photo the shop attaches when marking the order Delivered — shown to the
+  // customer as proof the food was successfully delivered.
+  String? proofPhotoUrl;
 
   // Missing fields for backward compatibility
   String? deliveryAddress;
@@ -118,6 +121,7 @@ class ActiveOrderItem {
     this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.proofPhotoUrl,
   });
 
   String get displayShopName {
@@ -177,6 +181,7 @@ class ActiveOrderItem {
     'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'proofPhotoUrl': proofPhotoUrl,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -227,6 +232,7 @@ class ActiveOrderItem {
     shopPhone: json['shopPhone'],
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
+    proofPhotoUrl: json['proofPhotoUrl'],
   );
 }
 
@@ -323,6 +329,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? get riderPhone => _primary?.riderPhone;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
+  String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
   String? get cancelReason => _primary?.cancelReason;
@@ -508,6 +515,12 @@ class ActiveOrderState extends ChangeNotifier {
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
+
+    // Delivery proof photo attached by the shop on the "Delivered" step.
+    final proofUrl = _parseSafeString(data['proofPhotoUrl']);
+    if (proofUrl != null && proofUrl.isNotEmpty) {
+      item.proofPhotoUrl = _getFullUrl(proofUrl);
+    }
 
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);

@@ -42,7 +42,8 @@ class OrderStatusPage extends StatefulWidget {
   State<OrderStatusPage> createState() => _OrderStatusPageState();
 }
 
-class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderStateMixin {
+class _OrderStatusPageState extends State<OrderStatusPage>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentStatus = 1; 
   String? _backendStatus;
   
@@ -91,6 +92,12 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
     // Connect to WebSockets with force: true to ensure topic subscriptions are refreshed with the current orderId
     WebSocketService().connect(force: true);
+
+    // Reconcile with the backend on open and on resume so a stale local status
+    // (from missed WebSocket events) can't keep the user on an earlier stage
+    // than the order has actually reached.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
 
     // Track unread chat messages for this order so the chat icon can badge them.
     ChatUnreadController.instance.start();
@@ -242,8 +249,29 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Fetches the authoritative order status from the backend and syncs the
+  /// stepper / completion navigation, covering cases where live WebSocket
+  /// updates were missed while the app was backgrounded or disconnected.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder();
+    if (!mounted) return;
+    final status = ActiveOrderState.instance.orderStatus;
+    setState(() => _currentStatus = status.clamp(1, 4));
+    if (status == 4) {
+      Future.delayed(const Duration(seconds: 1), _navigateToComplete);
+    }
+  }
+
+  @override
   void dispose() {
     _processingController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
     super.dispose();
   }

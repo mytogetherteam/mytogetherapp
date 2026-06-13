@@ -47,7 +47,7 @@ class AwaitingPaymentPage extends StatefulWidget {
 }
 
 class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
@@ -55,6 +55,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
+
+  /// Guards against pushing the next screen more than once when several
+  /// status updates (WebSocket + backend reconcile) land close together.
+  bool _hasNavigated = false;
 
   /// Parsed integer id of this order, or null when unavailable.
   int? get _chatOrderId {
@@ -101,53 +105,82 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     // Listen to global state for real-time rebuilds (e.g., when QR URL arrives)
     ActiveOrderState.instance.addListener(_onStateUpdated);
 
+    // Reconcile with the backend on open and whenever the app returns to the
+    // foreground. Live WebSocket order events can be missed (socket reconnect,
+    // app backgrounded, events fired before this page subscribed), which would
+    // otherwise leave the user stuck on "awaiting confirmation" long after the
+    // shop has already advanced (or completed) the order.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+
     // Listen for WebSocket updates (Rider, Status, Fee)
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
-      if (mounted) {
-        final state = ActiveOrderState.instance;
-        final order = state.getOrder(widget.orderId);
-        if (order == null) return;
-
-        // ... navigation logic using 'order' status
-        if (order.orderStatus >= 2) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OrderStatusPage(
-                foodTotal: widget.foodTotal,
-                deliveryFee: order.deliveryFee ?? widget.deliveryFee,
-              ),
-            ),
-          );
-        }
-
-        if (order.orderStatus == -1) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OrderCancelPage(
-                orderId: order.orderId,
-                reason: order.cancelReason,
-                shopId: order.shopId,
-                shopName: order.shopNameEn ?? order.shopName,
-                shopNameMm: order.shopNameMm,
-                shopNameTh: order.shopNameTh,
-                shopLogo: order.shopLogo,
-                shopImageUrl: order.shopImageUrl,
-              ),
-            ),
-          );
-        }
-
-        // We intentionally do not override _showUploadSection here.
-        // It will only change via user interaction on this page.
-      }
+      if (!mounted) return;
+      // We intentionally do not override _showUploadSection here.
+      // It will only change via user interaction on this page.
+      _advanceForOrder(ActiveOrderState.instance.getOrder(widget.orderId));
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Pulls the authoritative order status from the backend, then advances the
+  /// UI if the order has already moved past the awaiting-payment stage.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder(orderId: widget.orderId);
+    if (!mounted) return;
+    _advanceForOrder(ActiveOrderState.instance.getOrder(widget.orderId));
+  }
+
+  /// Navigates off the awaiting-payment screen once the order has actually
+  /// progressed: paid/cooking/on-the-way/delivered → status page, cancelled →
+  /// cancel page. Guarded by [_hasNavigated] so it fires at most once.
+  void _advanceForOrder(ActiveOrderItem? order) {
+    if (!mounted || _hasNavigated || order == null) return;
+
+    if (order.orderStatus >= 2) {
+      _hasNavigated = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: widget.foodTotal,
+            deliveryFee: order.deliveryFee ?? widget.deliveryFee,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (order.orderStatus == -1) {
+      _hasNavigated = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderCancelPage(
+            orderId: order.orderId,
+            reason: order.cancelReason,
+            shopId: order.shopId,
+            shopName: order.shopNameEn ?? order.shopName,
+            shopNameMm: order.shopNameMm,
+            shopNameTh: order.shopNameTh,
+            shopLogo: order.shopLogo,
+            shopImageUrl: order.shopImageUrl,
+          ),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _dotsAnimController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
@@ -168,6 +201,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (order?.paymentMethodImageUrl == null) {
         _fetchPaymentMethodDetails();
       }
+      // A status change applied to global state (e.g. from a backend sync or a
+      // WebSocket frame handled elsewhere) should also move the user forward.
+      _advanceForOrder(order);
     }
   }
 

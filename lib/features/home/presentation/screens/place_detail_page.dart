@@ -474,14 +474,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                         size: 14,
                                       ),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        widget.place.locationName,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(
-                                            0xFF1D1D1F,
-                                          ).withValues(alpha: 0.7),
+                                      Expanded(
+                                        child: Text(
+                                          widget.place.locationName,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(
+                                              0xFF1D1D1F,
+                                            ).withValues(alpha: 0.7),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -510,6 +514,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 12),
                             GestureDetector(
                               onTap: () async {
                                 final lat = widget.place.latitude;
