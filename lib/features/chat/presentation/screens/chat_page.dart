@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
+import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 /// Order-scoped chat screen wired to `user/chat` REST + `/user/queue/chat-updates`.
@@ -58,6 +59,9 @@ class _ChatPageState extends State<ChatPage> {
     WebSocketService().connect();
     _scrollController.addListener(_onScroll);
     _chatSub = WebSocketService().chatUpdates.listen(_onChatEvent);
+    // Opening a thread marks the shop's messages as read; clear its badge.
+    ChatUnreadController.instance.start();
+    ChatUnreadController.instance.clear(widget.orderId);
     _bootstrap();
   }
 
@@ -67,6 +71,8 @@ class _ChatPageState extends State<ChatPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     _chatSub?.cancel();
+    // Anything received while the thread was open has now been seen.
+    ChatUnreadController.instance.clear(widget.orderId);
     super.dispose();
   }
 
