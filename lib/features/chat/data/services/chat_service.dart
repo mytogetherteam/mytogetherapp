@@ -22,6 +22,15 @@ class ChatService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// Unread message count for a single order's conversation.
+  ///
+  /// Returns 0 when there is no conversation yet, and `null` on a
+  /// network/server error so callers can keep the last known value.
+  Future<int?> getUnreadCountForOrder(int orderId) async {
+    final conversation = await getConversationByOrder(orderId);
+    return conversation?.unreadCount ?? 0;
+  }
+
   Future<ChatConversation?> getConversationByOrder(int orderId) async {
     try {
       final response = await _dio.get('$_basePath/orders/$orderId');

@@ -26,6 +26,8 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/data/services/chat_unread_controller.dart';
+import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -54,6 +56,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
 
+  /// Parsed integer id of this order, or null when unavailable.
+  int? get _chatOrderId {
+    final orderIdStr = (widget.orderId ?? ActiveOrderState.instance.orderId)
+        ?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    return (orderId != null && orderId > 0) ? orderId : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +90,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     // Fetch detailed payment method image if needed
     _fetchPaymentMethodDetails();
+
+    // Track unread chat messages for this order so the chat icon can badge them.
+    ChatUnreadController.instance.start();
+    final chatOrderId = _chatOrderId;
+    if (chatOrderId != null) {
+      ChatUnreadController.instance.refreshOrder(chatOrderId);
+    }
 
     // Listen to global state for real-time rebuilds (e.g., when QR URL arrives)
     ActiveOrderState.instance.addListener(_onStateUpdated);
@@ -1488,43 +1505,45 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {
-              final orderIdStr =
-                  (widget.orderId ?? ActiveOrderState.instance.orderId)
-                      ?.replaceAll('#', '');
-              final orderId = int.tryParse(orderIdStr ?? '');
-              if (orderId == null || orderId <= 0) {
-                AppDialog.showToast(
+          ChatUnreadBadge(
+            orderId: _chatOrderId,
+            child: GestureDetector(
+              onTap: () {
+                final orderId = _chatOrderId;
+                if (orderId == null) {
+                  AppDialog.showToast(
+                    context,
+                    context.tr('chat.order_unavailable'),
+                    isError: true,
+                  );
+                  return;
+                }
+                // Opening the thread marks the shop's messages as read.
+                ChatUnreadController.instance.clear(orderId);
+                Navigator.push(
                   context,
-                  context.tr('chat.order_unavailable'),
-                  isError: true,
-                );
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatPage(
-                    orderId: orderId,
-                    peerName: order?.riderName ??
-                        context.tr('order_status.delivery_rider'),
-                    peerSubtitle: context.tr('order_status.delivery_rider'),
-                    fallbackIcon: Icons.delivery_dining_rounded,
+                  MaterialPageRoute(
+                    builder: (_) => ChatPage(
+                      orderId: orderId,
+                      peerName: order?.riderName ??
+                          context.tr('order_status.delivery_rider'),
+                      peerSubtitle: context.tr('order_status.delivery_rider'),
+                      fallbackIcon: Icons.delivery_dining_rounded,
+                    ),
                   ),
+                );
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const GradientIcon(
-                icon: PhosphorIconsFill.chatCircleText,
-                size: 22,
+                child: const GradientIcon(
+                  icon: PhosphorIconsFill.chatCircleText,
+                  size: 22,
+                ),
               ),
             ),
           ),
