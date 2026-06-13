@@ -100,16 +100,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
-
-    // Check if item is in cart to fulfill user expectation that "Add to Cart" = "Filled Heart"
-    final isInCart =
-        CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
-        CartManager.instance.findItem(
-              widget.restaurantName,
-              int.tryParse(widget.id) ?? 0,
-            ) !=
-            null;
-    _isFavorite = widget.isFavorite ?? isInCart;
+    _isFavorite = widget.isFavorite ?? false;
 
     _fetchFoodDetails();
   }
@@ -907,12 +898,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                                 bool operationCompleted = false;
 
-                                // Optimistically fill the heart icon as requested by user
-                                final bool wasFavoriteBefore = _isFavorite;
-                                setState(() {
-                                  _isFavorite = true;
-                                });
-
                                 // Only show loading if it takes longer than 500ms
                                 Future.delayed(
                                   const Duration(milliseconds: 500),
@@ -1043,8 +1028,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                     if (mounted) {
                                       setState(() {
                                         _isAddingToCart = false;
-                                        // Rollback heart if it was only filled due to this operation
-                                        _isFavorite = wasFavoriteBefore;
                                       });
                                       final errorStr = e.toString();
 
@@ -1064,11 +1047,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                                         if (clearConfirmed == true && mounted) {
                                           try {
-                                            // Re-fill heart optimistically for retry
-                                            setState(() {
-                                              _isFavorite = true;
-                                            });
-
                                             await CartRepository.instance
                                                 .clearCart();
                                             // Retry adding to cart
@@ -1124,8 +1102,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                             if (mounted) {
                                               setState(() {
                                                 _isAddingToCart = false;
-                                                // Rollback heart again on retry failure
-                                                _isFavorite = wasFavoriteBefore;
                                               });
                                               if (!context.mounted) return;
                                               ScaffoldMessenger.of(

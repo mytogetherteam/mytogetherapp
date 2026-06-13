@@ -324,11 +324,13 @@ class RestaurantRepository {
               lon: lon,
             );
             final rich = _mapShopDetailDtoToDomain(detail.data);
-            // The public detail payload omits description; take it from the
-            // authenticated profile when present.
+            // The public detail payload omits description and `distanceKm`, so
+            // take both from the authenticated profile (which carries the
+            // haversine-computed distance) when present.
             return rich.copyWith(
               logoPath: base.logoPath.isNotEmpty ? base.logoPath : rich.logoPath,
               isFavorite: base.isFavorite,
+              distance: dist != null ? base.distance : rich.distance,
               descriptionEn: base.descriptionEn ?? rich.descriptionEn,
               descriptionMm: base.descriptionMm ?? rich.descriptionMm,
               descriptionTh: base.descriptionTh ?? rich.descriptionTh,
@@ -350,7 +352,18 @@ class RestaurantRepository {
       lat: lat,
       lon: lon,
     );
-    return _mapShopDetailDtoToDomain(response.data);
+    final detail = _mapShopDetailDtoToDomain(response.data);
+    // The public `/shops/:id` payload doesn't include `distanceKm`, so derive
+    // it client-side when we have both the origin and the shop coordinates.
+    if (lat != null &&
+        lon != null &&
+        detail.latitude != null &&
+        detail.longitude != null) {
+      final dist =
+          _haversineKm(lat, lon, detail.latitude!, detail.longitude!);
+      return detail.copyWith(distance: '${dist.toStringAsFixed(1)} km');
+    }
+    return detail;
   }
 
   /// Active payment methods for a shop, used by the checkout flow.

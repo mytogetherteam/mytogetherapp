@@ -64,6 +64,12 @@ void main() async {
     await ActiveOrderState.instance.loadFromPrefs();
     debugPrint('[BOOT] Active order state loaded.');
 
+    // Seed active orders from the backend so ongoing orders survive cold
+    // starts / cleared prefs (WebSocket alone can't hydrate unknown orders).
+    if (AuthService().isLoggedIn) {
+      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+    }
+
     debugPrint('[BOOT] Syncing cart...');
     CartManager.instance.syncWithApi();
     debugPrint('[BOOT] Cart sync triggered.');

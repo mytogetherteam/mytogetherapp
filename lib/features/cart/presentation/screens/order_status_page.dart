@@ -24,6 +24,7 @@ import 'package:geolocator/geolocator.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -133,8 +134,14 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           });
         }
 
-        // Auto-navigate back to Payment if requested and not already checking
-        if (state.orderStatus == 1 && !state.isPaymentChecking && !AwaitingPaymentPage.isCurrentlyVisible) {
+        // Auto-navigate back to Payment ONLY when the shop explicitly requested
+        // a (new) payment slip. Gating on isSlipRequested prevents other
+        // status-1 states (e.g. payment verified in flight) from bouncing the
+        // user off the status screen.
+        if (state.orderStatus == 1 &&
+            state.isSlipRequested &&
+            !state.isPaymentChecking &&
+            !AwaitingPaymentPage.isCurrentlyVisible) {
           if (!state.hasNotifiedSlipRequest) {
             state.setNotifiedSlipRequest(true);
             // ScaffoldMessenger.of(context).showSnackBar(
@@ -679,7 +686,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 ),
                               ),
                             ),
-                            _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
+                            _buildSmallCircleButton(
+                              PhosphorIcons.phoneCallFill,
+                              onTap: () => _makeCall(state.shopPhone),
+                            ),
                             const SizedBox(width: 6),
                             _buildSmallCircleButton(
                               PhosphorIcons.chatCircleTextFill,
@@ -1073,7 +1083,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           ),
                         ),
                         if (state.riderPhone != null) ...[
-                          _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
+                          _buildSmallCircleButton(
+                            PhosphorIcons.phoneCallFill,
+                            onTap: () => _makeCall(state.riderPhone),
+                          ),
                           const SizedBox(width: 6),
                         ],
                         _buildSmallCircleButton(
@@ -1274,12 +1287,43 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     return GestureDetector(onTap: onTap, child: button);
   }
 
+  Future<void> _makeCall(String? phone) async {
+    final number = phone?.trim() ?? '';
+    if (number.isEmpty || number == '-') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.no_phone_number'))),
+        );
+      }
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: number);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        );
+      }
+    }
+  }
+
   void _openChat({
     required String? name,
     required String subtitle,
     String? avatarUrl,
     IconData fallbackIcon = Icons.storefront_rounded,
   }) {
+    final orderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    if (orderId == null || orderId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.order_unavailable'))),
+      );
+      return;
+    }
+
     final peerName = (name == null || name.trim().isEmpty)
         ? subtitle
         : name;
@@ -1287,6 +1331,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
       context,
       MaterialPageRoute(
         builder: (_) => ChatPage(
+          orderId: orderId,
           peerName: peerName,
           peerSubtitle: subtitle,
           avatarUrl: avatarUrl,

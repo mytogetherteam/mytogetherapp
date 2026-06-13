@@ -9,6 +9,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
+import '../../../reviews/data/repositories/order_review_repository.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -42,6 +43,7 @@ class OrderCompletePage extends StatefulWidget {
 
 class _OrderCompletePageState extends State<OrderCompletePage> {
   int _rating = 0;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -64,6 +66,45 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   void _goToFoodTab() {
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  /// Submits the star rating (if one was picked) to the order-reviews API,
+  /// then clears the active order and returns home. The order id is captured
+  /// before clearing because clearOrder() wipes ActiveOrderState.
+  Future<void> _onDone() async {
+    if (_isSubmitting) return;
+
+    final ratingValue = _rating;
+    final orderIdStr = ActiveOrderState.instance.orderId;
+    final orderId = int.tryParse(orderIdStr?.replaceAll('#', '') ?? '');
+
+    if (ratingValue > 0 && orderId != null) {
+      setState(() => _isSubmitting = true);
+      final result = await OrderReviewRepository.instance.create(
+        orderId: orderId,
+        rating: ratingValue.toDouble(),
+      );
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+
+      // alreadyReviewed is a benign outcome here — don't block the user.
+      final isBenign = result.success ||
+          result.errorCode == OrderReviewErrorCode.alreadyReviewed;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isBenign
+                ? context.tr('order_complete.rating_thanks')
+                : (result.errorMessage ??
+                    context.tr('order_complete.rating_failed')),
+          ),
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    ActiveOrderState.instance.clearOrder();
+    _goToFoodTab();
   }
 
   @override
@@ -271,20 +312,19 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
               ),
             ),
             const SizedBox(height: 16),
-            // "Done" button to clear order and go home
+            // "Done" button: submit rating (if any), clear order, go home
             PrimaryGradientButton(
-              onPressed: () {
-                ActiveOrderState.instance.clearOrder();
-                _goToFoodTab();
-              },
-              child: Text(
-                context.tr('order_complete.done'),
-                style: GoogleFonts.poppins(
-                  fontSize: 16, 
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              onPressed: _isSubmitting ? null : _onDone,
+              child: _isSubmitting
+                  ? const CustomLoadingIndicator(size: 22, color: Colors.white)
+                  : Text(
+                      context.tr('order_complete.done'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
             const SizedBox(height: 8),
           ],

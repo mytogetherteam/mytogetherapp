@@ -8,6 +8,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/utils/image_utils.dart';
+import '../../order/data/repositories/order_repository.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -38,6 +39,7 @@ class ActiveOrderItem {
   String? shopNameTh;
   String? shopLogo;
   String? shopImageUrl;
+  String? shopPhone;
   
   // Tracking data
   List<LatLng> routePoints;
@@ -113,6 +115,7 @@ class ActiveOrderItem {
     this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
+    this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
   });
@@ -171,6 +174,7 @@ class ActiveOrderItem {
     'shopNameTh': shopNameTh,
     'shopLogo': shopLogo,
     'shopImageUrl': shopImageUrl,
+    'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
   };
@@ -220,6 +224,7 @@ class ActiveOrderItem {
     shopNameTh: json['shopNameTh'],
     shopLogo: json['shopLogo'],
     shopImageUrl: json['shopImageUrl'],
+    shopPhone: json['shopPhone'],
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
   );
@@ -332,6 +337,7 @@ class ActiveOrderState extends ChangeNotifier {
   String get displayShopName => _primary?.displayShopName ?? '';
   String? get shopLogo => _primary?.shopLogo;
   String? get shopImageUrl => _primary?.shopImageUrl;
+  String? get shopPhone => _primary?.shopPhone;
 
   // More restored getters/setters for legacy UI
   String? get deliveryAddress => _primary?.deliveryAddress;
@@ -480,6 +486,18 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
     if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+
+    // Shop contact number. The backend exposes it under a few shapes depending
+    // on the endpoint (flat field or nested `shop` object), so try each.
+    final shopMapForPhone = data['shop'];
+    final parsedShopPhone = _parseSafeString(
+      data['shopPhone'] ??
+          data['shopPhoneNo'] ??
+          (shopMapForPhone is Map ? shopMapForPhone['phone'] : null),
+    );
+    if (parsedShopPhone != null && parsedShopPhone.isNotEmpty) {
+      item.shopPhone = parsedShopPhone;
+    }
     if (data['deliveryCycleNo'] != null) item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
     if (data['waitingTimeMinutes'] != null) {
       item.estimatedTime = "${data['waitingTimeMinutes']} mins";
@@ -589,72 +607,11 @@ class ActiveOrderState extends ChangeNotifier {
 
     final String? statusStr = _parseSafeString(data['statusName'] ?? data['status']);
     if (statusStr != null) {
-      final upStatus = statusStr.toUpperCase();
-      switch (upStatus) {
-        case 'REVISED':
-          // Shop sent the order back for revision. Keep it on the awaiting
-          // screen (status 0) but flag it so the revise banner shows.
-          item.orderStatus = 0;
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          item.isRevised = true;
-          item.reviseReason =
-              _parseSafeString(data['reviseReason']) ?? item.reviseReason;
-          break;
-        case 'PENDING':
-        case 'AWAITING_APPROVAL':
-          item.orderStatus = 0; 
-          item.showUploadSection = false;
-          break;
-        case 'CONFIRMED':
-          item.orderStatus = 1; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          break;
-        case 'PAYMENT_UPLOADED':
-        case 'PAYMENT_CHECKING':
-          item.orderStatus = 1; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = true;
-          break;
-        case 'PAYMENT_SLIP_REQUESTED':
-          item.orderStatus = 1; 
-          item.showUploadSection = true; 
-          item.isPaymentChecking = false;
-          item.isSlipRequested = true;
-          break;
-        case 'PAID':
-        case 'PAYMENT_VERIFIED':
-        case 'PREPARING':
-          item.orderStatus = 2; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          break;
-        case 'ON_THE_WAY':
-        case 'DELIVERING':
-        case 'SHIPPED':
-          item.orderStatus = 3; 
-          break;
-        case 'COMPLETED':
-        case 'DELIVERED':
-          item.orderStatus = 4;
-          break;
-        case 'CANCELLED':
-          item.orderStatus = -1;
-          break;
-      }
-      
-      // Reset notification flag if status is no longer REQUESTED
-      if (upStatus != 'PAYMENT_SLIP_REQUESTED') {
-        item.hasNotifiedSlipRequest = false;
-        item.isSlipRequested = false;
-      }
-
-      // Clear the revise flag once the order moves past REVISED.
-      if (upStatus != 'REVISED') {
-        item.isRevised = false;
-        item.reviseReason = null;
-      }
+      applyStatusString(
+        item,
+        statusStr,
+        reviseReason: _parseSafeString(data['reviseReason']),
+      );
     } else if (data['orderStatus'] != null) {
       item.orderStatus = data['orderStatus'] as int;
     }
@@ -796,6 +753,142 @@ class ActiveOrderState extends ChangeNotifier {
 
     saveToPrefs();
     notifyListeners();
+  }
+
+  /// Maps a backend order status string onto an [ActiveOrderItem]'s internal
+  /// [ActiveOrderItem.orderStatus] (-1..4) and the payment/revise flags.
+  ///
+  /// Single source of truth shared by the WebSocket handler
+  /// ([updateFromSocket]) and the API hydration path
+  /// ([hydrateActiveOrdersFromApi]) so they can never drift apart.
+  static void applyStatusString(
+    ActiveOrderItem item,
+    String statusStr, {
+    String? reviseReason,
+  }) {
+    final upStatus = statusStr.toUpperCase();
+    switch (upStatus) {
+      case 'REVISED':
+        // Shop sent the order back for revision. Keep it on the awaiting
+        // screen (status 0) but flag it so the revise banner shows.
+        item.orderStatus = 0;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        item.isRevised = true;
+        item.reviseReason = reviseReason ?? item.reviseReason;
+        break;
+      case 'PENDING':
+        item.orderStatus = 0;
+        item.showUploadSection = false;
+        break;
+      case 'AWAITING_APPROVAL':
+        // Slip uploaded; shop is reviewing it. This is a forward step, not a
+        // return to "awaiting shop confirmation" (status 0).
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = true;
+        break;
+      case 'CONFIRMED':
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'PAYMENT_UPLOADED':
+      case 'PAYMENT_CHECKING':
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = true;
+        break;
+      case 'PAYMENT_SLIP_REQUESTED':
+        item.orderStatus = 1;
+        item.showUploadSection = true;
+        item.isPaymentChecking = false;
+        item.isSlipRequested = true;
+        break;
+      case 'PAID':
+      case 'PAYMENT_VERIFIED':
+      case 'PREPARING':
+      case 'COOKING':
+        item.orderStatus = 2;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'ON_THE_WAY':
+      case 'DELIVERING':
+      case 'SHIPPED':
+        item.orderStatus = 3;
+        break;
+      case 'COMPLETED':
+      case 'DELIVERED':
+        item.orderStatus = 4;
+        break;
+      case 'CANCELED':
+      case 'CANCELLED':
+        item.orderStatus = -1;
+        break;
+    }
+
+    // Reset notification flag if status is no longer REQUESTED
+    if (upStatus != 'PAYMENT_SLIP_REQUESTED') {
+      item.hasNotifiedSlipRequest = false;
+      item.isSlipRequested = false;
+    }
+
+    // Clear the revise flag once the order moves past REVISED.
+    if (upStatus != 'REVISED') {
+      item.isRevised = false;
+      item.reviseReason = null;
+    }
+  }
+
+  /// Seeds [_orders] from the backend so active orders survive cold starts,
+  /// reinstalls, or cleared prefs (WebSocket/FCM alone can't hydrate an order
+  /// the app has never heard of — see the guard in [updateFromSocket]).
+  ///
+  /// Fetches the user's orders, keeps the still-ongoing ones, registers any
+  /// that aren't already tracked locally, then enriches each with full detail.
+  Future<void> hydrateActiveOrdersFromApi() async {
+    try {
+      final all = await OrderRepository().getOrderHistory();
+      final ongoing = all.where((o) => o.ongoing).toList();
+      if (ongoing.isEmpty) return;
+
+      var added = false;
+      for (final o in ongoing) {
+        if (_orders.containsKey(o.id)) continue;
+        final item = ActiveOrderItem(
+          orderId: o.id,
+          storeName: o.shopName,
+          restaurantName: o.shopName,
+          shopId: o.shopId?.toString(),
+          shopName: o.shopName,
+          shopNameEn: o.shopNameEn,
+          shopNameMm: o.shopNameMm,
+          shopNameTh: o.shopNameTh,
+          shopImageUrl: o.shopImageUrl,
+          totalAmount: o.totalAmount,
+          displayTotalAmount: o.displayTotalAmount,
+          deliveryFee: o.deliveryFee,
+          displayDeliveryFee: o.displayDeliveryFee,
+        );
+        applyStatusString(item, o.status);
+        _orders[o.id] = item;
+        added = true;
+      }
+
+      if (added) {
+        saveToPrefs();
+        notifyListeners();
+      }
+
+      // Enrich each ongoing order with full tracking detail (shop phone, QR,
+      // rider, map, etc.). syncActiveOrder funnels through updateFromSocket.
+      for (final o in ongoing) {
+        await syncActiveOrder(orderId: o.id);
+      }
+    } catch (_) {
+      // Best-effort hydration; silent on failure.
+    }
   }
 
   // Persistence logic

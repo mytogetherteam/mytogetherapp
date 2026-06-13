@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../cart/data/cart_manager.dart';
 import 'shop_item_metadata_row.dart';
-
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -143,59 +141,52 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
     if (effectiveIsHidden) return const SizedBox.shrink();
 
-    return ListenableBuilder(
-      listenable: CartManager.instance,
+    return AnimatedBuilder(
+      animation: _controller,
       builder: (context, _) {
-        final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
-            CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
-        final showFilledHeart = widget.isFavorite || isInCart;
-
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return FractionalTranslation(
-              translation: _floatAnimation.value,
-              child: Transform.scale(
-                scale: _scaleAnimation.value,
-                child: _OutOfStockWrapper(
-                  isDisabled: effectiveIsDisabled,
-                  child: GestureDetector(
-                    onTap: effectiveIsDisabled
-                        ? null
-                        : () {
-                            if (widget.forceRestaurantNavigation) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RestaurantDetailPage(
-                                    id: widget.restaurantId,
-                                    name: widget.restaurantName,
-                                    targetMenuItemId: widget.id,
-                                    isFavorite: false,
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MenuDetailPage(
-                                  id: widget.id,
-                                  restaurantId: widget.restaurantId,
-                                  title: widget.title,
-                                  price: effectivePrice,
-                                  currency: widget.currency,
-                                  imagePath: widget.imagePath,
-                                  restaurantName: widget.restaurantName,
-                                  displayPrice: widget.displayPrice,
-                                  description: '',
-                                  isFavorite: showFilledHeart,
-                                ),
+        return FractionalTranslation(
+          translation: _floatAnimation.value,
+          child: Transform.scale(
+            scale: _scaleAnimation.value,
+            child: _OutOfStockWrapper(
+              isDisabled: effectiveIsDisabled,
+              child: GestureDetector(
+                onTap: effectiveIsDisabled
+                    ? null
+                    : () {
+                        if (widget.forceRestaurantNavigation) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RestaurantDetailPage(
+                                id: widget.restaurantId,
+                                name: widget.restaurantName,
+                                targetMenuItemId: widget.id,
+                                isFavorite: false,
                               ),
-                            );
-                          },
-                    child: Column(
+                            ),
+                          );
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MenuDetailPage(
+                              id: widget.id,
+                              restaurantId: widget.restaurantId,
+                              title: widget.title,
+                              price: effectivePrice,
+                              currency: widget.currency,
+                              imagePath: widget.imagePath,
+                              restaurantName: widget.restaurantName,
+                              displayPrice: widget.displayPrice,
+                              description: '',
+                              isFavorite: widget.isFavorite,
+                            ),
+                          ),
+                        );
+                      },
+                child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Image Section
@@ -280,10 +271,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      showFilledHeart
+                                      widget.isFavorite
                                           ? PhosphorIcons.heartFill
                                           : PhosphorIcons.heart,
-                                      color: showFilledHeart ? AppColors.primary : Colors.white,
+                                      color: widget.isFavorite ? AppColors.primary : Colors.white,
                                       size: 16,
                                     ),
                                   ),
@@ -388,8 +379,6 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
               ),
             );
           },
-        );
-      },
     );
   }
 

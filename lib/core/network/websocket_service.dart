@@ -38,6 +38,12 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get shopProfileUpdates =>
       _shopProfileUpdateController.stream;
 
+  final StreamController<Map<String, dynamic>> _chatUpdateController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Shop → user chat events on `/user/queue/chat-updates`.
+  Stream<Map<String, dynamic>> get chatUpdates => _chatUpdateController.stream;
+
   bool _isConnecting = false;
   bool _shouldReconnect = true;
   int _reconnectAttempts = 0;
@@ -199,6 +205,13 @@ class WebSocketService {
       headers: {...headers, 'receipt': 'rcpt-broadcasts-user'},
       callback: _handleBroadcastFrame,
     );
+
+    // Private per-user chat updates: CHAT_MESSAGE / EDIT / DELETE / HIDDEN
+    _stompClient?.subscribe(
+      destination: '/user/queue/chat-updates',
+      headers: {...headers, 'receipt': 'rcpt-chat-updates'},
+      callback: _handleChatFrame,
+    );
   }
 
   /// Handles `/topic/broadcasts/users` and `/user/queue/broadcasts`
@@ -261,6 +274,20 @@ class WebSocketService {
         RestaurantRepository.instance.clearCache(shopId: id);
         _menuUpdateController.add(raw);
       }
+    } catch (_) {
+      // Ignore malformed frames.
+    }
+  }
+
+  void _handleChatFrame(StompFrame frame) {
+    final body = _stompBody(frame);
+    if (body == null) return;
+    try {
+      final decoded = json.decode(body);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      debugPrint(' 💬 [WS] CHAT event: ${raw['type']}');
+      _chatUpdateController.add(raw);
     } catch (_) {
       // Ignore malformed frames.
     }

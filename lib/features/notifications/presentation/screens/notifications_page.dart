@@ -8,7 +8,6 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
 import '../../../announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -87,27 +86,46 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markAsRead(NotificationModel notification) async {
     if (notification.read) return;
 
+    // Optimistic: flip to read immediately so the swipe-left animation plays
+    // without waiting on the network. Revert if the request fails.
+    final index = _notifications.indexWhere((n) => n.id == notification.id);
+    if (index == -1) return;
+    final original = _notifications[index];
+    setState(() {
+      _notifications[index] = _asRead(original);
+    });
+
     final success = await _repository.markAsRead(notification.id);
-    if (success) {
-      setState(() {
-        final index = _notifications.indexWhere((n) => n.id == notification.id);
-        if (index != -1) {
-          _notifications[index] = NotificationModel(
-            id: notification.id,
-            title: notification.title,
-            body: notification.body,
-            type: notification.type,
-            referenceId: notification.referenceId,
-            imageUrl: notification.imageUrl,
-            sentAt: notification.sentAt,
-            readAt: DateTime.now(),
-            read: true,
-          );
+    if (!success) {
+      if (mounted) {
+        final revertIndex =
+            _notifications.indexWhere((n) => n.id == notification.id);
+        if (revertIndex != -1) {
+          setState(() => _notifications[revertIndex] = original);
         }
-      });
-      // Sync global badge with server
-      _repository.getUnreadCount();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('notification.mark_read_failed'))),
+        );
+      }
+      return;
     }
+    // Sync global badge with server
+    _repository.getUnreadCount();
+  }
+
+  /// Returns a copy of [n] flagged as read (NotificationModel is immutable).
+  NotificationModel _asRead(NotificationModel n) {
+    return NotificationModel(
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      type: n.type,
+      referenceId: n.referenceId,
+      imageUrl: n.imageUrl,
+      sentAt: n.sentAt,
+      readAt: DateTime.now(),
+      read: true,
+    );
   }
 
   Future<void> _deleteNotification(NotificationModel notification) async {
@@ -127,28 +145,35 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _markAllAsRead() async {
-    final success = await _repository.markAllAsRead();
-    if (success) {
-      setState(() {
-        for (int i = 0; i < _notifications.length; i++) {
-          if (!_notifications[i].read) {
-            _notifications[i] = NotificationModel(
-              id: _notifications[i].id,
-              title: _notifications[i].title,
-              body: _notifications[i].body,
-              type: _notifications[i].type,
-              referenceId: _notifications[i].referenceId,
-              imageUrl: _notifications[i].imageUrl,
-              sentAt: _notifications[i].sentAt,
-              readAt: DateTime.now(),
-              read: true,
-            );
-          }
+    // Snapshot for rollback, then optimistically flip every unread item to read
+    // so all rows animate (swipe-left) at once and the badge clears instantly.
+    final previous = List<NotificationModel>.from(_notifications);
+    setState(() {
+      for (int i = 0; i < _notifications.length; i++) {
+        if (!_notifications[i].read) {
+          _notifications[i] = _asRead(_notifications[i]);
         }
-      });
-      // Sync global badge immediately
-      _repository.getUnreadCount();
+      }
+    });
+    _repository.setUnreadCount(0);
+
+    final success = await _repository.markAllAsRead();
+    if (!success) {
+      if (mounted) {
+        setState(() {
+          _notifications
+            ..clear()
+            ..addAll(previous);
+        });
+        _repository.getUnreadCount();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('notification.mark_read_failed'))),
+        );
+      }
+      return;
     }
+    // Sync global badge with server truth
+    _repository.getUnreadCount();
   }
 
   @override
