@@ -127,8 +127,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
-        // Auto-navigate when status becomes CANCELLED (-1)
-        if (state.orderStatus == -1) {
+        // Auto-navigate when status becomes CANCELLED (-1). Skip when the user
+        // cancelled it themselves (they get a dedicated apology page).
+        if (state.orderStatus == -1 &&
+            !state.wasCancelledByUser(state.orderId)) {
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               Navigator.pushReplacement(
@@ -138,10 +140,13 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                     orderId: state.orderId ?? "",
                     reason: state.cancelReason,
                     shopId: state.shopId,
-                    shopName: state.shopNameEn ?? state.shopName,
+                    shopName: state.shopNameEn ??
+                        state.shopName ??
+                        state.restaurantName ??
+                        state.storeName,
                     shopNameMm: state.shopNameMm,
                     shopNameTh: state.shopNameTh,
-                    shopLogo: state.shopLogo,
+                    shopLogo: state.shopLogo ?? state.logoPath,
                     shopImageUrl: state.shopImageUrl,
                   ),
                 ),

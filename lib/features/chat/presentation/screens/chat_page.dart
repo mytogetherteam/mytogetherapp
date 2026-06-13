@@ -176,6 +176,26 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
+    // The shop read this conversation → flip our sent messages to ✅✅.
+    if (type == 'CONVERSATION_READ') {
+      final orderId = (event['orderId'] as num?)?.toInt();
+      final conversationId = (event['conversationId'] as num?)?.toInt();
+      final matchesOrder = orderId == null || orderId == widget.orderId;
+      final matchesConversation = conversationId == null ||
+          _conversationId <= 0 ||
+          conversationId == _conversationId;
+      if (!matchesOrder || !matchesConversation) return;
+      setState(() {
+        for (var i = 0; i < _messages.length; i++) {
+          final m = _messages[i];
+          if (m.isMe && !m.isRead) {
+            _messages[i] = m.copyWith(isRead: true);
+          }
+        }
+      });
+      return;
+    }
+
     if (_conversationId <= 0) {
       final conversationId = (event['conversationId'] as num?)?.toInt();
       if (conversationId != null) _conversationId = conversationId;
@@ -616,12 +636,31 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                message.isEdited ? '$timeLabel · ${context.tr('chat.edited')}' : timeLabel,
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: Colors.grey[400],
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message.isEdited ? '$timeLabel · ${context.tr('chat.edited')}' : timeLabel,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  // Read receipt for the user's own messages: a single check
+                  // once sent, a double (coloured) check once the shop reads it.
+                  if (isMine) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      message.isRead
+                          ? Icons.done_all_rounded
+                          : Icons.done_rounded,
+                      size: 13,
+                      color: message.isRead
+                          ? AppColors.primary
+                          : Colors.grey[400],
+                    ),
+                  ],
+                ],
               ),
             ),
           ],

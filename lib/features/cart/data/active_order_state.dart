@@ -251,7 +251,19 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   final Map<String, ActiveOrderItem> _orders = {};
-  final Set<String> _cancellingOrders = {}; 
+  final Set<String> _cancellingOrders = {};
+  // Orders the user cancelled themselves. The backend emits the same CANCELED
+  // WebSocket frame regardless of who cancelled, so we record user-initiated
+  // cancellations here to keep the shop-cancellation page from popping up for
+  // them (the user instead sees a dedicated apology page).
+  final Set<String> _userCancelledOrderIds = {};
+
+  /// True when [orderId] was cancelled by the user via [cancelActiveOrder]
+  /// (as opposed to being cancelled by the restaurant).
+  bool wasCancelledByUser(String? orderId) {
+    if (orderId == null) return false;
+    return _userCancelledOrderIds.contains(orderId.replaceAll('#', ''));
+  } 
   
   // Returns only non-terminal orders (not COMPLETED or CANCELLED)
   List<ActiveOrderItem> get activeOrdersList => _orders.values
@@ -721,8 +733,12 @@ class ActiveOrderState extends ChangeNotifier {
     // Concurrency guard
     if (_cancellingOrders.contains(targetId)) return false;
     _cancellingOrders.add(targetId);
-    
+
     final sanitizedOrderId = targetId.replaceAll('#', '');
+    // Mark as user-cancelled up front (before the network round-trip) so that a
+    // CANCELED WebSocket frame arriving mid-flight doesn't trigger the
+    // restaurant-cancellation page.
+    _userCancelledOrderIds.add(sanitizedOrderId);
     
     try {
       // Backend: PATCH /api/user/orders/:id/payment with status=CANCELED.

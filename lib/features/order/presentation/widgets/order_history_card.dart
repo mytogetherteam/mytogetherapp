@@ -179,21 +179,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ),
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(
-                  '${context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'})} ',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: Colors.grey[400],
-                ),
-              ],
+            Text(
+              context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'}),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),

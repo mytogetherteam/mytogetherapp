@@ -18,6 +18,7 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
+import 'order_cancel_by_user_page.dart';
 import 'revise_order_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -159,6 +160,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus == -1) {
       _hasNavigated = true;
+      // User-initiated cancellations are handled in [_cancelOrder] (apology
+      // page); only the shop-cancellation page is shown here.
+      if (ActiveOrderState.instance.wasCancelledByUser(order.orderId)) {
+        return;
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -166,10 +172,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             orderId: order.orderId,
             reason: order.cancelReason,
             shopId: order.shopId,
-            shopName: order.shopNameEn ?? order.shopName,
+            shopName: order.shopNameEn ??
+                order.shopName ??
+                order.restaurantName ??
+                order.storeName,
             shopNameMm: order.shopNameMm,
             shopNameTh: order.shopNameTh,
-            shopLogo: order.shopLogo,
+            shopLogo: order.shopLogo ?? order.logoPath,
             shopImageUrl: order.shopImageUrl,
           ),
         ),
@@ -622,7 +631,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       );
       if (success && mounted) {
         AppDialog.showToast(context, context.tr('payment.cancel_success'));
-        _goHome();
+        _hasNavigated = true;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrderCancelByUserPage()),
+        );
       } else if (mounted) {
         AppDialog.showToast(
           context,

@@ -47,7 +47,10 @@ class WebSocketService {
   bool _isConnecting = false;
   bool _shouldReconnect = true;
   int _reconnectAttempts = 0;
-  static const int _maxReconnectAttempts = 5;
+  // Cap the backoff delay but never stop retrying: the STOMP simple broker does
+  // not queue messages for offline users, so a socket that gives up permanently
+  // means missed order/chat updates until the app is restarted.
+  static const int _maxReconnectDelaySeconds = 20;
   Timer? _reconnectTimer;
 
   /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
@@ -144,16 +147,17 @@ class WebSocketService {
 
   void _scheduleReconnect() {
     if (!_shouldReconnect) return;
-    if (_reconnectAttempts >= _maxReconnectAttempts) {
-      debugPrint(' 🚫 [WS] Max reconnection attempts reached');
-      return;
-    }
 
     _reconnectAttempts++;
-    final delay = Duration(seconds: _reconnectAttempts * 2);
+    // Linear backoff capped at [_maxReconnectDelaySeconds]; keep retrying
+    // indefinitely so the socket always recovers (and missed updates get
+    // re-delivered the next time a screen reconciles over REST).
+    final delaySeconds =
+        (_reconnectAttempts * 2).clamp(2, _maxReconnectDelaySeconds);
+    final delay = Duration(seconds: delaySeconds);
     debugPrint(
       ' 🔄 [WS] Scheduling reconnection in ${delay.inSeconds}s '
-      '(attempt $_reconnectAttempts/$_maxReconnectAttempts)',
+      '(attempt $_reconnectAttempts)',
     );
 
     _reconnectTimer?.cancel();

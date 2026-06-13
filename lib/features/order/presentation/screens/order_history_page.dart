@@ -10,7 +10,9 @@ import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
-  const OrderHistoryPage({super.key, this.shopId});
+  // 0 = Completed tab, 1 = Cancelled tab.
+  final int initialTabIndex;
+  const OrderHistoryPage({super.key, this.shopId, this.initialTabIndex = 0});
 
   @override
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
@@ -62,7 +64,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       _tabController!.dispose();
     }
 
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
   }
 
   @override

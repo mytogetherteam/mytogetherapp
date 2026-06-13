@@ -115,6 +115,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     for (final order in state.allOrdersList) {
       if (order.orderStatus == -1 &&
           !_notifiedCancelledOrders.contains(order.orderId)) {
+        // The shop-cancellation page is only for orders cancelled BY the
+        // restaurant. When the user cancels their own order they're shown a
+        // dedicated apology page, so skip this notification for those.
+        if (state.wasCancelledByUser(order.orderId)) {
+          _notifiedCancelledOrders.add(order.orderId);
+          continue;
+        }
         final currentShopId = state.currentShopId;
 
         // Filter: only show if no shop context OR it matches
@@ -134,10 +141,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   orderId: order.orderId,
                   reason: order.cancelReason,
                   shopId: order.shopId,
-                  shopName: order.shopNameEn ?? order.shopName,
+                  shopName: order.shopNameEn ??
+                      order.shopName ??
+                      order.restaurantName ??
+                      order.storeName,
                   shopNameMm: order.shopNameMm,
                   shopNameTh: order.shopNameTh,
-                  shopLogo: order.shopLogo,
+                  shopLogo: order.shopLogo ?? order.logoPath,
                   shopImageUrl: order.shopImageUrl,
                 ),
               ),
