@@ -3,25 +3,37 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/utils/firebase_error_handler.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:flutter/services.dart';
 
-class LoginPinPage extends StatefulWidget {
-  final String phone;
-
-  const LoginPinPage({super.key, required this.phone});
-
-  @override
-  State<LoginPinPage> createState() => _LoginPinPageState();
+enum SetupPinStep {
+  create,
+  confirm,
 }
 
-class _LoginPinPageState extends State<LoginPinPage>
+class SetupPinPage extends StatefulWidget {
+  final String idToken;
+  final String name;
+  final String email;
+
+  const SetupPinPage({
+    super.key,
+    required this.idToken,
+    required this.name,
+    required this.email,
+  });
+
+  @override
+  State<SetupPinPage> createState() => _SetupPinPageState();
+}
+
+class _SetupPinPageState extends State<SetupPinPage>
     with SingleTickerProviderStateMixin {
+  SetupPinStep _step = SetupPinStep.create;
   String _pin = '';
+  String _firstPin = '';
   bool _isLoading = false;
   bool _hasError = false;
 
@@ -61,7 +73,11 @@ class _LoginPinPageState extends State<LoginPinPage>
       });
 
       if (_pin.length == 6) {
-        _submitPin();
+        if (_step == SetupPinStep.create) {
+          _moveToConfirm();
+        } else {
+          _submitPin();
+        }
       }
     }
   }
@@ -76,18 +92,47 @@ class _LoginPinPageState extends State<LoginPinPage>
     }
   }
 
+  void _moveToConfirm() {
+    setState(() {
+      _firstPin = _pin;
+      _pin = '';
+      _step = SetupPinStep.confirm;
+    });
+  }
+
   Future<void> _submitPin() async {
+    if (_pin != _firstPin) {
+      // PIN mismatch
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _hasError = true;
+      });
+      await _shakeController.forward(from: 0);
+
+      if (!mounted) return;
+      setState(() {
+        _pin = '';
+        _firstPin = '';
+        _step = SetupPinStep.create; // Reset to create step
+      });
+      AppDialog.showToast(context, context.tr('auth.pin_mismatch'), isError: true);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await AuthRepository.instance.login(
-        phone: widget.phone,
+      await AuthRepository.instance.register(
+        idToken: widget.idToken,
         pin: _pin,
+        name: widget.name,
+        email: widget.email,
       );
+
       if (!mounted) return;
-      // Login successful, go to home
+      // Registration successful, go to home
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } catch (e) {
       if (!mounted) return;
@@ -97,13 +142,15 @@ class _LoginPinPageState extends State<LoginPinPage>
       });
       // Play shake animation
       await _shakeController.forward(from: 0);
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _pin = ''; // Clear PIN on error
+        _pin = '';
+        _firstPin = '';
+        _step = SetupPinStep.create; // Reset to create step
       });
-      AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
+      AppDialog.showToast(context, e.toString(), isError: true);
     }
   }
 
@@ -126,7 +173,18 @@ class _LoginPinPageState extends State<LoginPinPage>
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (_step == SetupPinStep.confirm) {
+              setState(() {
+                _step = SetupPinStep.create;
+                _pin = '';
+                _firstPin = '';
+                _hasError = false;
+              });
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
         ),
       ),
       body: SafeArea(
@@ -135,7 +193,9 @@ class _LoginPinPageState extends State<LoginPinPage>
             const SizedBox(height: 20),
             // Title
             GradientText(
-              context.tr('auth.enter_passcode'),
+              _step == SetupPinStep.create
+                  ? context.tr('auth.create_pin')
+                  : context.tr('auth.confirm_pin'),
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
@@ -143,7 +203,7 @@ class _LoginPinPageState extends State<LoginPinPage>
             ),
             const SizedBox(height: 8),
             Text(
-              widget.phone,
+              widget.name,
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[600],
@@ -151,7 +211,7 @@ class _LoginPinPageState extends State<LoginPinPage>
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // Indicator Dots with Shake Animation
             AnimatedBuilder(
               animation: _shakeAnimation,
@@ -188,7 +248,7 @@ class _LoginPinPageState extends State<LoginPinPage>
                 }),
               ),
             ),
-            
+
             const SizedBox(height: 60),
 
             if (_isLoading)
@@ -200,7 +260,7 @@ class _LoginPinPageState extends State<LoginPinPage>
               const SizedBox(height: 56), // Placeholder for spinner
 
             const Spacer(),
-            
+
             // Numpad
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
@@ -258,7 +318,7 @@ class _LoginPinPageState extends State<LoginPinPage>
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primary.withValues(alpha: 0.08), // Primary color with low opacity
+          color: AppColors.primary.withValues(alpha: 0.08),
         ),
         child: Center(
           child: GradientText(

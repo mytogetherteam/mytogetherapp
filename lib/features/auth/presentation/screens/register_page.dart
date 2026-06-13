@@ -3,10 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:pinput/pinput.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'setup_pin_page.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/utils/firebase_error_handler.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -24,7 +29,6 @@ class _RegisterPageState extends State<RegisterPage>
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
 
-  bool _obscurePin = true;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -70,6 +74,24 @@ class _RegisterPageState extends State<RegisterPage>
 
     try {
       final phoneStr = '+66${_phoneController.text.trim().replaceAll(' ', '')}';
+      
+      // Check if phone number already exists
+      final bool exists = await AuthRepository.instance.checkPhoneExists(phoneStr);
+      if (exists) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This phone number is already registered. Please login instead.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneStr,
         verificationCompleted: (PhoneAuthCredential credential) async {
@@ -77,9 +99,10 @@ class _RegisterPageState extends State<RegisterPage>
           _verifyWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          final msg = FirebaseErrorHandler.getMessage(context, e);
+          AppDialog.showToast(context, msg, isError: true);
           setState(() {
-            _errorMessage =
-                e.message ?? context.tr('auth.verification_failed');
+            _errorMessage = msg;
             _isLoading = false;
           });
         },
@@ -95,8 +118,10 @@ class _RegisterPageState extends State<RegisterPage>
         },
       );
     } catch (e) {
+      final msg = FirebaseErrorHandler.getMessage(context, e);
+      AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = msg;
         _isLoading = false;
       });
     }
@@ -120,13 +145,17 @@ class _RegisterPageState extends State<RegisterPage>
       );
       await _verifyWithCredential(credential);
     } on FirebaseAuthException catch (e) {
+      final msg = FirebaseErrorHandler.getMessage(context, e);
+      AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = e.message ?? context.tr('auth.invalid_otp');
+        _errorMessage = msg;
         _isLoading = false;
       });
     } catch (e) {
+      final msg = FirebaseErrorHandler.getMessage(context, e);
+      AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = msg;
         _isLoading = false;
       });
     }
@@ -139,15 +168,16 @@ class _RegisterPageState extends State<RegisterPage>
 
       if (idToken == null) throw Exception("Failed to get Firebase ID token");
 
-      await AuthRepository.instance.register(
-        idToken: idToken,
-        pin: _pinController.text,
-        name: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
-      );
-
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SetupPinPage(
+            idToken: idToken,
+            name: _fullNameController.text.trim(),
+            email: _emailController.text.trim(),
+          ),
+        ),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -173,25 +203,37 @@ class _RegisterPageState extends State<RegisterPage>
             }
           },
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/logo_3d.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: IntrinsicHeight(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                     const SizedBox(height: 8),
                     Text(
                       context.tr('auth.create_account'),
@@ -238,42 +280,15 @@ class _RegisterPageState extends State<RegisterPage>
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            context.tr('auth.already_have_account'),
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: GradientText(
-                              context.tr('common.login'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
                           const SizedBox(height: 40),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
+              ],
+            ),
           ),
         ),
       ),
@@ -284,7 +299,7 @@ class _RegisterPageState extends State<RegisterPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel(context.tr('auth.phone')),
+        _buildLabel(context.tr('auth.register_phone')),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _phoneController,
@@ -323,37 +338,16 @@ class _RegisterPageState extends State<RegisterPage>
         ),
         const SizedBox(height: 18),
 
-        _buildLabel(context.tr('auth.pin')),
-        const SizedBox(height: 8),
-        _buildTextField(
-          controller: _pinController,
-          hint: context.tr('auth.pin_hint'),
-          icon: Icons.lock_outline_rounded,
-          keyboardType: TextInputType.number,
-          obscure: _obscurePin,
-          suffixWidget: IconButton(
-            icon: Icon(
-              _obscurePin ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              color: Colors.grey[500],
-              size: 20,
-            ),
-            onPressed: () => setState(() => _obscurePin = !_obscurePin),
-          ),
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return context.tr('auth.enter_pin');
-            if (v.trim().length != 6) return context.tr('auth.pin_six_digits');
-            return null;
-          },
-        ),
-        const SizedBox(height: 18),
-
-        _buildLabel(
-            '${context.tr('auth.full_name')} ${context.tr('auth.optional')}'),
+        _buildLabel(context.tr('auth.full_name')),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _fullNameController,
           hint: context.tr('auth.name_hint'),
           icon: Icons.badge_outlined,
+          validator: (v) {
+            if (v == null || v.trim().isEmpty) return context.tr('auth.name_required');
+            return null;
+          },
         ),
         const SizedBox(height: 18),
 
@@ -371,16 +365,51 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Widget _buildOtpForm() {
+    final defaultPinTheme = PinTheme(
+      width: 52,
+      height: 56,
+      textStyle: GoogleFonts.poppins(
+        fontSize: 22,
+        color: Colors.black,
+        fontWeight: FontWeight.w600,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(14),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: AppColors.primary, width: 1.5),
+      borderRadius: BorderRadius.circular(14),
+    );
+
+    final errorPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: Colors.red, width: 1.5),
+      borderRadius: BorderRadius.circular(14),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel(context.tr('auth.otp_code')),
-        const SizedBox(height: 8),
-        _buildTextField(
-          controller: _otpController,
-          hint: context.tr('auth.otp_hint'),
-          icon: Icons.message_outlined,
-          keyboardType: TextInputType.number,
+        const SizedBox(height: 16),
+        Center(
+          child: Pinput(
+            length: 6,
+            controller: _otpController,
+            defaultPinTheme: defaultPinTheme,
+            focusedPinTheme: focusedPinTheme,
+            errorPinTheme: errorPinTheme,
+            keyboardType: TextInputType.number,
+            showCursor: true,
+            onCompleted: (pin) {
+              if (!_isLoading) {
+                _handleVerifyOtp();
+              }
+            },
+          ),
         ),
       ],
     );

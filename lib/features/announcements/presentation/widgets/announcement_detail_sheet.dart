@@ -125,7 +125,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CachedNetworkImage(
+          CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
             imageUrl: announcement.imageUrl!,
             fit: BoxFit.cover,
             alignment: Alignment.topCenter,
@@ -196,3 +196,4 @@ class _CloseButton extends StatelessWidget {
     );
   }
 }
+

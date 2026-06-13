@@ -300,7 +300,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   Widget _buildItemBackground(bool hasImage, AnnouncementModel item) {
     if (hasImage) {
-      return CachedNetworkImage(
+      return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
         imageUrl: item.imageUrl!,
         fit: BoxFit.cover,
         placeholder: (context, url) =>
@@ -371,3 +371,4 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     return context.relativeTime(date);
   }
 }
+

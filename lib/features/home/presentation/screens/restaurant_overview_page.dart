@@ -103,7 +103,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                     color: Colors.grey[200],
                   ),
                   child: resolveMediaUrl(restaurant.imagePath).isNotEmpty
-                      ? CachedNetworkImage(
+                      ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                           imageUrl: resolveMediaUrl(restaurant.imagePath),
                           fit: BoxFit.cover,
                           placeholder: (context, url) =>
@@ -148,7 +148,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: resolveMediaUrl(restaurant.logoPath).isNotEmpty
-                            ? CachedNetworkImage(
+                            ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                 imageUrl: resolveMediaUrl(restaurant.logoPath),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) =>
@@ -759,3 +759,4 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
     return imageUrl;
   }
 }
+

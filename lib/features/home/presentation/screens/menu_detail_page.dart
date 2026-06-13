@@ -13,7 +13,8 @@ import '../../../cart/data/models/cart_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 
@@ -271,7 +272,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               ? _galleryImages.first.trim()
                               : '';
                           if (img.isEmpty) {
-                            return _buildNoImagePlaceholder();
+                            return MenuImagePlaceholder(title: widget.title);
                           }
                           return Image.network(
                             img,
@@ -281,7 +282,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               return const ImageSkeletonLoader();
                             },
                             errorBuilder: (context, error, stackTrace) =>
-                                _buildNoImagePlaceholder(),
+                                MenuImagePlaceholder(title: widget.title),
                           );
                         })(),
                         // Gradient Overlay for visibility when not scrolled
@@ -1435,11 +1436,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       return const ImageSkeletonLoader(width: 150, height: 150);
                     },
                     errorBuilder: (context, error, stackTrace) =>
-                        _buildNoImagePlaceholder(
-                          width: 150,
-                          height: 150,
-                          borderRadius: 20,
-                        ),
+                        MenuImagePlaceholder(title: title),
                   ),
                 ),
                 Positioned(
@@ -1561,41 +1558,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     );
   }
 
-  Widget _buildNoImagePlaceholder({
-    double? width,
-    double? height,
-    double borderRadius = 0,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.grey[400],
-              size: (width != null && width < 200) ? 32 : 48,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.tr('common.no_image'),
-              style: GoogleFonts.poppins(
-                color: Colors.grey[500],
-                fontSize: (width != null && width < 200) ? 12 : 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // --- Skeleton Loading View ---
   Widget _buildSkeleton(BuildContext context) {

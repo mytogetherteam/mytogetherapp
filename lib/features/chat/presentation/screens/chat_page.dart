@@ -161,7 +161,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: (url != null && url.isNotEmpty)
-          ? CachedNetworkImage(
+          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
               imageUrl: url,
               fit: BoxFit.cover,
               errorWidget: (_, _, _) => _buildAvatarFallback(),
@@ -367,3 +367,4 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 }
+

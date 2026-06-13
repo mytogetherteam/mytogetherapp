@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/notifications/notification_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'features/onboarding/data/onboarding_prefs.dart';
 import 'app.dart';
 
 @pragma('vm:entry-point')
@@ -22,6 +23,8 @@ void main() async {
   debugPrint('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[BOOT] WidgetsBinding initialized.');
+
+  bool hasSeenOnboarding = false;
 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   debugPrint('[BOOT] Splash preserved.');
@@ -56,9 +59,7 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     debugPrint('[BOOT] NotificationService initialization triggered.');
 
-    debugPrint('[BOOT] Starting LocationService pre-fetch...');
-    LocationService().getCurrentPosition();
-    debugPrint('[BOOT] LocationService pre-fetch triggered.');
+    debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
 
     debugPrint('[BOOT] Loading active order state...');
     await ActiveOrderState.instance.loadFromPrefs();
@@ -67,6 +68,10 @@ void main() async {
     debugPrint('[BOOT] Syncing cart...');
     CartManager.instance.syncWithApi();
     debugPrint('[BOOT] Cart sync triggered.');
+
+    debugPrint('[BOOT] Checking onboarding status...');
+    hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
+    debugPrint('[BOOT] Onboarding status loaded: $hasSeenOnboarding');
   } catch (e, stackTrace) {
     debugPrint('[BOOT] Critical error during initialization: $e\n$stackTrace');
   }
@@ -78,9 +83,14 @@ void main() async {
     ),
   );
 
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   GoogleFonts.config.allowRuntimeFetching = false;
 
   debugPrint('[BOOT] Calling runApp()...');
-  runApp(const App());
+  runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   debugPrint('[BOOT] runApp() called.');
 }

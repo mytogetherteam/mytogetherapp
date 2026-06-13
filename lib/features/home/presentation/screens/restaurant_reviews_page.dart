@@ -375,7 +375,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
         fit: BoxFit.cover,
         placeholder: (context, url) => placeholder,
         errorWidget: (context, url, error) => placeholder,
-        fadeInDuration: const Duration(milliseconds: 150),
+        fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
         memCacheWidth: 200,
       ),
     );
@@ -489,7 +489,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
         fit: BoxFit.cover,
         placeholder: (context, url) => fallback,
         errorWidget: (context, url, error) => fallback,
-        fadeInDuration: const Duration(milliseconds: 150),
+        fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
         memCacheWidth: 150,
       ),
     );
@@ -561,3 +561,6 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
     return context.relativeTime(dateTime);
   }
 }
+
+
+

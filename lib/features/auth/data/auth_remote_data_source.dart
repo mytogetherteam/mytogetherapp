@@ -55,7 +55,18 @@ class AuthRemoteDataSource {
       '${ApiClient.apiPrefix}/user/auth/refresh',
       data: {'refreshToken': refreshToken},
     );
-    final data = response.data['data'] as Map<String, dynamic>;
+    final responseData = response.data;
+    if (responseData['success'] == false) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 401,
+          data: responseData,
+        ),
+      );
+    }
+    final data = responseData['data'] as Map<String, dynamic>? ?? {};
     return data['token'] as String? ?? data['accessToken'] as String? ?? '';
   }
 

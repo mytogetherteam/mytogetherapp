@@ -655,7 +655,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 width: 48,
                                 height: 48,
                                 child: state.logoPath != null && state.logoPath!.isNotEmpty
-                                  ? CachedNetworkImage(
+                                  ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: state.logoPath!,
                                       width: 48,
                                       height: 48,
@@ -802,7 +802,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                           child: SizedBox(
                                             width: 48,
                                             height: 48,
-                                            child: CachedNetworkImage(
+                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                               imageUrl: item.imagePath,
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => Container(
@@ -1368,3 +1368,4 @@ class _DottedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
 import 'shop_item_metadata_row.dart';
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 
 class FoodListItemCard extends StatelessWidget {
   final String title;
@@ -85,25 +86,10 @@ class FoodListItemCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 clipBehavior: Clip.antiAlias,
                 child: (!isNetworkImage && !isAsset)
-                    ? Container(
+                    ? SizedBox(
                         width: 100,
                         height: 100,
-                        color: Colors.grey[100],
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                            const SizedBox(height: 4),
-                            Text(
-                              context.tr('common.no_image'),
-                              style: GoogleFonts.poppins(
-                                color: Colors.grey[500],
-                                fontSize: 8,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: MenuImagePlaceholder(title: title),
                       )
                     : (isAsset
                         ? Image.asset(
@@ -111,11 +97,10 @@ class FoodListItemCard extends StatelessWidget {
                             width: 100,
                             height: 100,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            errorBuilder: (context, error, stackTrace) => SizedBox(
                               width: 100,
                               height: 100,
-                              color: Colors.grey[100],
-                              child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                              child: MenuImagePlaceholder(title: title),
                             ),
                           )
                         : CachedNetworkImage(
@@ -124,13 +109,12 @@ class FoodListItemCard extends StatelessWidget {
                             height: 100,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => const ImageSkeletonLoader(width: 100, height: 100),
-                            errorWidget: (context, url, error) => Container(
+                            errorWidget: (context, url, error) => SizedBox(
                               width: 100,
                               height: 100,
-                              color: Colors.grey[100],
-                              child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                              child: MenuImagePlaceholder(title: title),
                             ),
-                            fadeInDuration: const Duration(milliseconds: 50),
+                            fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                             memCacheWidth: 300,
                           )),
               ),
@@ -270,3 +254,6 @@ class _OutOfStockListWrapper extends StatelessWidget {
     );
   }
 }
+
+
+

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -13,6 +14,7 @@ import 'login_pin_page.dart';
 import 'auth_entry_page.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
+import '../../../../core/utils/firebase_error_handler.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -80,7 +82,7 @@ class _LoginPageState extends State<LoginPage>
       }
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -104,27 +106,26 @@ class _LoginPageState extends State<LoginPage>
             (route) => false,
           ),
         ),
+        actions: const [],
       ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                           const SizedBox(height: 16),
                           // Logo — centered myTogether icon
                           Center(
@@ -247,21 +248,25 @@ class _LoginPageState extends State<LoginPage>
                           const Spacer(),
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Text(
-                              'demo 0.0.1',
-                              style: GoogleFonts.poppins(
-                                color: Colors.grey.withValues(alpha: 0.5),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            child: FutureBuilder<PackageInfo>(
+                              future: PackageInfo.fromPlatform(),
+                              builder: (context, snapshot) {
+                                final version = snapshot.data?.version ?? '0.0.1';
+                                return Text(
+                                  'v$version',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.withValues(alpha: 0.5),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
+              ],
             ),
           ),
         ),

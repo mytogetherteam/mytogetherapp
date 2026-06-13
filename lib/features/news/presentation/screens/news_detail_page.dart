@@ -549,7 +549,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             tag: widget.item.imageUrls[0],
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: CachedNetworkImage(
+                              child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                 imageUrl: widget.item.imageUrls[0],
                                 fit: BoxFit.cover,
                                 width: double.infinity,
@@ -606,7 +606,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   tag: imageUrl,
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CachedNetworkImage(
+                                    child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
@@ -877,3 +877,4 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     );
   }
 }
+

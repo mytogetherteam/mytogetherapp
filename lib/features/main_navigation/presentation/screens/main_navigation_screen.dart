@@ -13,6 +13,11 @@ import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
+import '../../../../features/news/presentation/screens/news_page.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/location/location_service.dart';
+import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -30,7 +35,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     HomePage(),
     FoodPage(),
     OrderHistoryPage(),
-    // NewsPage(),
+    NewsPage(),
     ProfilePage(),
   ];
 
@@ -47,6 +52,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     // Connect WebSocket for real-time updates
     WebSocketService().connect();
+
+    // Check permissions after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndRequestPermissions();
+    });
+  }
+
+  Future<void> _checkAndRequestPermissions() async {
+    final locationStatus = await Permission.location.status;
+    final notificationStatus = await Permission.notification.status;
+    
+    // If either permission is implicitly denied (not yet asked or just denied), show rationale
+    if (locationStatus.isDenied || notificationStatus.isDenied) {
+      if (!mounted) return;
+      await PermissionRationaleModal.show(context);
+      
+      // Request them together
+      await [
+        Permission.location,
+        Permission.notification,
+      ].request();
+      
+      // Trigger service initialization if granted
+      if (await Permission.notification.isGranted) {
+        await NotificationService().requestPermission();
+      }
+      if (await Permission.location.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+    } else {
+      // Already handled before. Just fetch if granted.
+      if (locationStatus.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+    }
   }
 
   void _onOrderStateChanged() {
@@ -181,14 +221,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               PhosphorIcons.receiptFill,
               context.tr('nav.orders'),
             ),
-            // _buildNavItem(
-            //   3,
-            //   PhosphorIcons.newspaper,
-            //   PhosphorIcons.newspaperFill,
-            //   context.tr('nav.news'),
-            // ),
             _buildNavItem(
               3,
+              PhosphorIcons.newspaper,
+              PhosphorIcons.newspaperFill,
+              context.tr('nav.news'),
+            ),
+            _buildNavItem(
+              4,
               PhosphorIcons.user,
               PhosphorIcons.userFill,
               context.tr('nav.profile'),
@@ -210,7 +250,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       onTap: () => _onTabTapped(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width / 4,
+        width: MediaQuery.of(context).size.width / 5,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

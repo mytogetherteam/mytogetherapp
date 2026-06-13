@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
+import '../location/location_service.dart';
 import 'jwt_utils.dart';
 
 class AuthService {
@@ -137,8 +138,8 @@ class AuthService {
       await prefs.remove(_keyUserLocations);
     }
 
-    // Request permission and register FCM token for the new session
-    await NotificationService().requestPermission();
+    // Register FCM token for the new session if permission is already granted.
+    // Native permission request is now handled by MainNavigationScreen rationale modal.
     await NotificationService().registerDevice();
   }
 
@@ -193,13 +194,16 @@ class AuthService {
     );
 
     if (response.statusCode == 200 && response.data != null) {
-      final data = response.data['data'];
-      final newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
-      final newRefreshToken = data['refreshToken'] as String?;
-      
-      if (newToken.isNotEmpty) {
-        await updateTokens(newToken, newRefreshToken);
-        return newToken;
+      final responseData = response.data;
+      if (responseData['success'] == true && responseData['data'] != null) {
+        final data = responseData['data'];
+        final newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
+        final newRefreshToken = data['refreshToken'] as String?;
+        
+        if (newToken.isNotEmpty) {
+          await updateTokens(newToken, newRefreshToken);
+          return newToken;
+        }
       }
     }
     return null;

@@ -107,7 +107,7 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
                   if (image.startsWith('assets/')) {
                     return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
                   }
-                  return CachedNetworkImage(
+                  return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(image),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
@@ -148,3 +148,4 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
     );
   }
 }
+

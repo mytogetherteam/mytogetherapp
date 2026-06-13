@@ -101,7 +101,7 @@ class RestaurantCard extends StatelessWidget {
                               height: 160,
                             ),
                             errorWidget: (context, url, error) => _buildFallbackImage(context),
-                            fadeInDuration: const Duration(milliseconds: 50),
+                            fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                             memCacheWidth: 600,
                           )),
               ),
@@ -233,13 +233,13 @@ class RestaurantCard extends StatelessWidget {
                       placeholder: (context, url) => _buildLogoPlaceholder(),
                       errorWidget: (context, url, error) =>
                           _buildLogoFallback(),
-                      fadeInDuration: const Duration(milliseconds: 50),
+                      fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                       memCacheWidth: 200,
                     );
                   }
                   return _buildLogoFallback();
                 },
-                fadeInDuration: const Duration(milliseconds: 50),
+                fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                 memCacheWidth: 200,
               ),
       ),
@@ -295,3 +295,6 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 }
+
+
+

@@ -116,7 +116,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                 color: Colors.grey[200],
                                 child: Icon(PhosphorIcons.image, color: Colors.grey),
                               ),
-                              fadeInDuration: const Duration(milliseconds: 50),
+                              fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                               memCacheWidth: 240,
                             )),
                 ),
@@ -298,7 +298,7 @@ class NearbyRestaurantListItem extends StatelessWidget {
                                 child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
                               ),
                             ),
-                            fadeInDuration: const Duration(milliseconds: 50),
+                            fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                             memCacheWidth: 800,
                           ),
                         ),
@@ -328,3 +328,6 @@ class NearbyRestaurantListItem extends StatelessWidget {
     );
   }
 }
+
+
+

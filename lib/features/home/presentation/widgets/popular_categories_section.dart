@@ -125,7 +125,7 @@ class _PopularCategoriesSectionState extends State<PopularCategoriesSection> {
               child: url.isEmpty
                   ? Icon(PhosphorIcons.forkKnife,
                       color: Colors.grey[400], size: 28)
-                  : CachedNetworkImage(
+                  : CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                       imageUrl: url,
                       fit: BoxFit.cover,
                       placeholder: (_, _) =>
@@ -195,3 +195,4 @@ class _PopularCategoriesSectionState extends State<PopularCategoriesSection> {
     );
   }
 }
+

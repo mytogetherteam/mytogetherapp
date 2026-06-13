@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/localization/app_language.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 
@@ -175,24 +179,32 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                 SizedBox(
                   width: double.infinity,
                   height: 54,
-                  child: OutlinedButton(
-                    onPressed: () {
+                  child: InkWell(
+                    onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const LoginPage()),
                       );
                     },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.primary, width: 2),
-                      shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                    child: Text(
-                      context.tr('auth.login_account'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                      padding: const EdgeInsets.all(2), // Gradient border width
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.center,
+                        child: GradientText(
+                          context.tr('auth.login_account'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -209,18 +221,20 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.language,
-                            color: AppColors.primary,
-                            size: 20,
+                          ShaderMask(
+                            blendMode: BlendMode.srcIn,
+                            shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                            child: const Icon(
+                              Icons.language,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
+                          GradientText(
                             context.tr('language.title'),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -333,15 +347,27 @@ class FloatingPill extends StatefulWidget {
   State<FloatingPill> createState() => _FloatingPillState();
 }
 
-class _FloatingPillState extends State<FloatingPill> with SingleTickerProviderStateMixin {
+class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _moveAnimation;
   late Animation<double> _rotationAnimation;
 
+  // Physics state
+  Offset _position = Offset.zero;
+  Offset _velocity = Offset.zero;
+  Offset _prevAccel = Offset.zero;
+  Ticker? _physicsTicker;
+  DateTime _lastTickTime = DateTime.now();
+  StreamSubscription<AccelerometerEvent>? _accelSub;
+
+  late final double _mass;
+
   @override
   void initState() {
     super.initState();
-    // Randomize duration slightly based on text length to make them out of sync
+    _mass = 0.8 + (widget.title.length % 5) * 0.1;
+
+    // Idle floating animation
     final durationMs = 2000 + (widget.title.length * 50);
     _controller = AnimationController(
       vsync: this,
@@ -353,16 +379,65 @@ class _FloatingPillState extends State<FloatingPill> with SingleTickerProviderSt
     );
 
     _rotationAnimation = Tween<double>(
-      begin: widget.initialRotation - 0.04, 
-      end: widget.initialRotation + 0.04
+      begin: widget.initialRotation - 0.04,
+      end: widget.initialRotation + 0.04,
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
+
+    // Physics ticker
+    _physicsTicker = createTicker((_) {
+      final now = DateTime.now();
+      final dt = now.difference(_lastTickTime).inMilliseconds / 1000.0;
+      _lastTickTime = now;
+      if (dt <= 0 || dt > 0.1) return;
+
+      const stiffness = 80.0;
+      const damping = 8.0;
+
+      final springForce = -_position * stiffness;
+      final dampForce = -_velocity * damping;
+      final acceleration = (springForce + dampForce) / _mass;
+
+      setState(() {
+        _velocity += acceleration * dt;
+        _position += _velocity * dt;
+
+        if (_velocity.distance < 0.5 && _position.distance < 0.5) {
+          _velocity = Offset.zero;
+          _position = Offset.zero;
+        }
+      });
+    })..start();
+
+    // Accelerometer — detect shake from sudden delta
+    _accelSub = accelerometerEventStream(
+      samplingPeriod: const Duration(milliseconds: 16),
+    ).listen((AccelerometerEvent event) {
+      final current = Offset(event.x, event.y);
+      final delta = current - _prevAccel;
+      _prevAccel = current;
+
+      final shakeMagnitude = delta.distance;
+      if (shakeMagnitude > 1.2) {
+        final impulseScale = (shakeMagnitude * 12.0).clamp(0.0, 120.0);
+        _velocity += Offset(
+          delta.dx * -impulseScale / _mass,
+          delta.dy * impulseScale / _mass,
+        );
+        final speed = _velocity.distance;
+        if (speed > 200) {
+          _velocity = _velocity / speed * 200;
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _physicsTicker?.dispose();
     _controller.dispose();
+    _accelSub?.cancel();
     super.dispose();
   }
 
@@ -372,7 +447,10 @@ class _FloatingPillState extends State<FloatingPill> with SingleTickerProviderSt
       animation: _controller,
       builder: (context, child) {
         return Transform.translate(
-          offset: Offset(0, _moveAnimation.value),
+          offset: Offset(
+            _position.dx,
+            _moveAnimation.value + _position.dy,
+          ),
           child: Transform.rotate(
             angle: _rotationAnimation.value,
             child: Container(

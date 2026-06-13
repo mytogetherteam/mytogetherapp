@@ -112,7 +112,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: widget.order.shopImageUrl != null && widget.order.shopImageUrl!.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(widget.order.shopImageUrl),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(color: Colors.grey[100]),
@@ -217,7 +217,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           child: ClipRRect(
              borderRadius: BorderRadius.circular(8),
              child: item.menuItemImageUrl != null && item.menuItemImageUrl!.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(item.menuItemImageUrl),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(color: Colors.grey[100]),
@@ -415,3 +415,4 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 }
+

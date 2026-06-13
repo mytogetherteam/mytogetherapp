@@ -19,7 +19,7 @@ class LocationService {
   double get lon => _cachedPosition?.longitude ?? defaultLon;
   String? get currentAddress => _currentAddress;
 
-  Future<Position> getCurrentPosition() async {
+  Future<Position> getCurrentPosition({bool requestPermissionIfDenied = false}) async {
     if (_cachedPosition != null) return _cachedPosition!;
 
     try {
@@ -28,7 +28,11 @@ class LocationService {
 
       LocationPermission permission = await Geolocator.checkPermission().timeout(const Duration(seconds: 2));
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission().timeout(const Duration(seconds: 5));
+        if (requestPermissionIfDenied) {
+          permission = await Geolocator.requestPermission().timeout(const Duration(seconds: 5));
+        } else {
+          return await _useFallback();
+        }
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {

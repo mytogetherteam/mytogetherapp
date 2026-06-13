@@ -391,7 +391,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       ),
       child: ClipOval(
         child: (logoPath ?? '').isNotEmpty
-            ? CachedNetworkImage(
+            ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                 imageUrl: logoPath!,
                 fit: BoxFit.cover,
                 errorWidget: (c, u, e) =>
@@ -566,3 +566,4 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     );
   }
 }
+

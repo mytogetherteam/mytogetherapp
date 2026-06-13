@@ -372,7 +372,7 @@ class _VisaListTile extends StatelessWidget {
     if (iconUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(
+        child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
           imageUrl: iconUrl,
           width: 42,
           height: 42,
@@ -400,3 +400,4 @@ class _VisaListTile extends StatelessWidget {
     );
   }
 }
+

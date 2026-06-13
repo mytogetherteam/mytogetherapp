@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/currency_rate_model.dart';
 
 class CurrencyExchangeRepository {
@@ -35,8 +37,19 @@ class CurrencyExchangeRepository {
 
     try {
       // 1. Fetch Official CBM Rates
-      final cbmResponse = await _dio.get<Map<String, dynamic>>(_cbmUrl);
-      final cbmData = cbmResponse.data!;
+      String cbmFetchUrl = _cbmUrl;
+      if (kIsWeb) {
+        cbmFetchUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(_cbmUrl)}';
+      }
+      final cbmResponse = await _dio.get<dynamic>(cbmFetchUrl);
+      
+      // Handle the case where allorigins might return a string instead of JSON directly depending on headers
+      Map<String, dynamic> cbmData;
+      if (cbmResponse.data is String) {
+        cbmData = cbmResponse.data is String ? const {} : cbmResponse.data; // this is just a safety fallback, usually dio parses JSON if headers are correct
+      }
+      cbmData = cbmResponse.data is String ? (jsonDecode(cbmResponse.data) as Map<String, dynamic>) : (cbmResponse.data as Map<String, dynamic>);
+      
       final cbmRates = cbmData['rates'] as Map<String, dynamic>;
 
       // Get official USD from CBM (e.g. 2100)
@@ -47,8 +60,15 @@ class CurrencyExchangeRepository {
       final usdBlackMarket = usdOfficial * 2.015;
 
       // 3. Fetch External Cross Rates from USD
-      final extResponse = await _dio.get<Map<String, dynamic>>(_externalUrl);
-      final extData = extResponse.data!;
+      String extFetchUrl = _externalUrl;
+      if (kIsWeb) {
+        extFetchUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(_externalUrl)}';
+      }
+      final extResponse = await _dio.get<dynamic>(extFetchUrl);
+      
+      Map<String, dynamic> extData;
+      extData = extResponse.data is String ? (jsonDecode(extResponse.data) as Map<String, dynamic>) : (extResponse.data as Map<String, dynamic>);
+      
       final extRates = extData['rates'] as Map<String, dynamic>;
 
       // Ensure we format the timestamp nicely (e.g., using extData['time_last_update_unix'])

@@ -232,7 +232,7 @@ class _MyPostTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: thumb != null
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: thumb,
                     width: 64,
                     height: 64,
@@ -315,3 +315,4 @@ class _MyPostTile extends StatelessWidget {
     );
   }
 }
+

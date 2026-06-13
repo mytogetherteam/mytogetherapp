@@ -256,23 +256,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                       );
                                     }
                                     final notification = _notifications[index];
-                                    return Dismissible(
-                                      key: ValueKey(notification.id),
-                                      direction: DismissDirection.endToStart,
-                                      background: Container(
-                                        alignment: Alignment.centerRight,
-                                        padding: const EdgeInsets.only(right: 24),
-                                        color: Colors.red.shade400,
-                                        child: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      onDismissed: (_) => _deleteNotification(notification),
-                                      child: NotificationItemWidget(
-                                        notification: notification,
-                                        onTap: () => _markAsRead(notification),
-                                      ),
+                                    return NotificationItemWidget(
+                                      notification: notification,
+                                      onTap: () => _markAsRead(notification),
                                     );
                                   },
                                 ),

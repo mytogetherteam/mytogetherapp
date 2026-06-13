@@ -299,7 +299,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _photoThumb(
-                          child: CachedNetworkImage(
+                          child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                             imageUrl: _existingPhotos[index].url,
                             width: 90,
                             height: 90,
@@ -343,3 +343,4 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
     );
   }
 }
+

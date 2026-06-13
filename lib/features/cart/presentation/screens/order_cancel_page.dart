@@ -209,14 +209,14 @@ class OrderCancelPage extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(15),
                                   child: (shopImageUrl != null && shopImageUrl!.isNotEmpty)
-                                      ? CachedNetworkImage(
+                                      ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                           imageUrl: _getFullUrl(shopImageUrl),
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                           errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
                                         )
                                       : (shopLogo != null && shopLogo!.isNotEmpty)
-                                          ? CachedNetworkImage(
+                                          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                               imageUrl: _getFullUrl(shopLogo),
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -317,3 +317,4 @@ class OrderCancelPage extends StatelessWidget {
     );
   }
 }
+

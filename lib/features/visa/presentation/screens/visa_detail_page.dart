@@ -151,7 +151,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                 fit: StackFit.expand,
                 children: [
                   if (hasImage)
-                    CachedNetworkImage(
+                    CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                       imageUrl: _args.imageUrl!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
@@ -441,3 +441,4 @@ class _SlidingGradientTransform extends GradientTransform {
     return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
   }
 }
+

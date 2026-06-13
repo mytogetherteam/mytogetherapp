@@ -613,7 +613,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       return const Center(child: CustomLoadingIndicator(size: 40));
     }
 
-    return CachedNetworkImage(
+    return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
       imageUrl: qrUrl,
       fit: BoxFit.contain,
       placeholder: (context, url) =>
@@ -1593,3 +1593,4 @@ class _DottedDivider extends StatelessWidget {
     );
   }
 }
+

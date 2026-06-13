@@ -697,7 +697,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                     size: 22,
                                     color: Colors.grey[400],
                                   )
-                                : CachedNetworkImage(
+                                : CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                     imageUrl: imageUrl,
                                     width: 32,
                                     height: 32,
@@ -1692,7 +1692,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         child: Icon(PhosphorIcons.image, color: Colors.grey[400], size: 20),
       );
     }
-    return CachedNetworkImage(
+    return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
       imageUrl: url,
       width: width,
       height: h,
@@ -1706,3 +1706,4 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 }
+

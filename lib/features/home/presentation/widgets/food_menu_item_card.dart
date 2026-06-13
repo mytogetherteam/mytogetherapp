@@ -14,6 +14,7 @@ import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 
 class FoodMenuItemCard extends StatefulWidget {
   final String id;
@@ -245,22 +246,22 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       borderRadius: BorderRadius.circular(16),
                                       clipBehavior: Clip.antiAlias,
                                       child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                          ? _buildFallbackImage()
+                                          ? MenuImagePlaceholder(title: widget.title)
                                           : (isNetworkImage
                                               ? CachedNetworkImage(
                                                   imageUrl: networkUrl,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),
-                                                  errorWidget: (context, url, error) => _buildFallbackImage(),
-                                                  fadeInDuration: const Duration(milliseconds: 50),
+                                                  errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
+                                                  fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                                   memCacheWidth: 600,
                                                 )
                                               : Image.asset(
                                                   widget.imagePath,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                                                  errorBuilder: (context, error, stackTrace) => MenuImagePlaceholder(title: widget.title),
                                                 )),
                                     ),
                                   ),
@@ -495,3 +496,6 @@ class _OutOfStockWrapper extends StatelessWidget {
     );
   }
 }
+
+
+

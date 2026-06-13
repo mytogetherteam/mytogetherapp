@@ -215,7 +215,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: imageUrl.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: imageUrl,
                     width: 52,
                     height: 52,
@@ -340,3 +340,4 @@ class _QuantityStepper extends StatelessWidget {
     );
   }
 }
+

@@ -340,7 +340,7 @@ class _HomePageState extends State<HomePage> {
                                     width: double.infinity,
                                   );
                                 }
-                                return CachedNetworkImage(
+                                return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                   imageUrl: _getImageUrl(image),
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) =>
@@ -522,7 +522,7 @@ class _HomePageState extends State<HomePage> {
                                           }
                                           final realIndex =
                                               index % _bottomBanners.length;
-                                          return CachedNetworkImage(
+                                          return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                             imageUrl: _getImageUrl(
                                               _bottomBanners[realIndex].image,
                                             ),
@@ -796,3 +796,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+

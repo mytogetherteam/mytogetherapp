@@ -798,7 +798,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         resolveMediaUrl(
                                           _currentRestaurant?.logoPath,
                                         ).isNotEmpty
-                                        ? CachedNetworkImage(
+                                        ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                             imageUrl: resolveMediaUrl(
                                               _currentRestaurant!.logoPath,
                                             ),
@@ -1482,3 +1482,4 @@ class _MenuGroup {
 
   _MenuGroup({required this.title, required this.items});
 }
+

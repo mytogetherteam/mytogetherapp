@@ -324,7 +324,7 @@ class _DealCard extends StatelessWidget {
             // Food image
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: CachedNetworkImage(
+              child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                 imageUrl: deal.imageUrl ?? '',
                 width: 130,
                 height: 120,
@@ -421,3 +421,4 @@ class _DealCard extends StatelessWidget {
     );
   }
 }
+

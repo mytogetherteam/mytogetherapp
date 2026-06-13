@@ -43,7 +43,11 @@ class NotificationService {
 
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings();
+    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
@@ -66,11 +70,7 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // Request permissions only if already logged in
-    if (AuthService().isLoggedIn) {
-      await requestPermission();
-    }
-
+    // Permissions are now requested via MainNavigationScreen rationale modal
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];

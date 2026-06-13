@@ -117,7 +117,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                   child: Center(
                     child: Hero(
                       tag: widget.imageUrls[index],
-                      child: CachedNetworkImage(
+                      child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                         imageUrl: widget.imageUrls[index],
                         fit: BoxFit.contain,
                         placeholder: (context, url) => const Center(
@@ -274,3 +274,4 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
     );
   }
 }
+

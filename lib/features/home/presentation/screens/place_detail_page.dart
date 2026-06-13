@@ -11,6 +11,8 @@ import '../../presentation/widgets/image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 import '../../data/models/place_dto.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceDto place;
@@ -191,7 +193,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       child: child,
                                     );
                                   },
-                              child: CachedNetworkImage(
+                              child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                 key: ValueKey(_allImages[_currentImageIndex]),
                                 imageUrl: _allImages[_currentImageIndex],
                                 fit: BoxFit.cover,
@@ -348,7 +350,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                               child: Hero(
                                                 tag:
                                                     'gallery_${widget.place.displayTitle}_${widget.place.galleryUrls[index]}',
-                                                child: CachedNetworkImage(
+                                                child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                                   imageUrl:
                                                       widget.place.galleryUrls[index],
                                                   fit: BoxFit.cover,
@@ -508,29 +510,54 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                 ],
                               ),
                             ),
-                            Container(
-                              height: 38,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(19),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  context.tr('place.view_on_map'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                            GestureDetector(
+                              onTap: () async {
+                                final lat = widget.place.latitude;
+                                final lon = widget.place.longitude;
+                                if (lat != null && lon != null) {
+                                  final uri = Uri.parse(
+                                    'https://www.google.com/maps/search/?api=1&query=$lat,$lon',
+                                  );
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  } else {
+                                    if (context.mounted) {
+                                      AppDialog.showUnavailable(context);
+                                    }
+                                  }
+                                } else {
+                                  if (context.mounted) {
+                                    AppDialog.showUnavailable(context);
+                                  }
+                                }
+                              },
+                              child: Container(
+                                height: 38,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(19),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    context.tr('place.view_on_map'),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -637,3 +664,4 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     );
   }
 }
+
