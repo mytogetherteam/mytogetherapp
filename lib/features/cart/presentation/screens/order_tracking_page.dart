@@ -10,12 +10,12 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
-import '../../../../core/utils/navigation_controller.dart';
 import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
+import 'order_cancel_by_user_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -39,7 +39,7 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   List<LatLng> _routePoints = [];
@@ -83,6 +83,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   StreamSubscription? _orderSubscription;
+  Timer? _statusPollTimer;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
@@ -115,6 +116,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _startIdleAnimationSequence();
 
     WebSocketService().connect(force: true);
+
+    // Live WebSocket order events can be missed entirely: the backend's STOMP
+    // broker drops messages for any user whose socket isn't connected at that
+    // instant (no durable queue). To avoid getting stuck on "awaiting
+    // confirmation" for minutes, reconcile against the backend on open, when
+    // the app resumes, and on a short poll while we wait.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+    _statusPollTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _reconcileWithBackend(),
+    );
 
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (!mounted) return;
@@ -285,8 +298,34 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Socket may have been torn down while backgrounded; force a reconnect
+      // and immediately catch up via REST in case an update was missed.
+      WebSocketService().connect(force: true);
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Pulls the authoritative order status from the backend and advances to the
+  /// payment screen once the shop has confirmed (status >= 1), even if the live
+  /// WebSocket frame never arrived.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder();
+    if (!mounted) return;
+    final status = ActiveOrderState.instance.orderStatus;
+    if (status >= 1 && status != -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _navigateToPayment();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _idleSequenceTimer?.cancel();
+    _statusPollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _idleSolidController.dispose();
     _lightProgressController.dispose();
     _orderSubscription?.cancel();
@@ -1309,13 +1348,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                   widget.store.nameKey,
                                 );
 
-                                // 3. Navigation
+                                // 3. Navigation → user-cancellation apology page.
+                                // Dismiss the confirm sheet, then replace the
+                                // tracking page (via the State's context, not
+                                // the sheet's) with the apology screen.
+                                if (context.mounted) Navigator.pop(context);
                                 if (mounted) {
-                                  if (!context.mounted) return;
-                                  Navigator.of(
-                                    context,
-                                  ).popUntil((route) => route.isFirst);
-                                  NavigationController.instance.goToFoodTab();
+                                  _statusPollTimer?.cancel();
+                                  Navigator.pushReplacement(
+                                    this.context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const OrderCancelByUserPage(),
+                                    ),
+                                  );
                                 }
                               } finally {
                                 if (mounted) {

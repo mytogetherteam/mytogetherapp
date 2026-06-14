@@ -24,6 +24,8 @@ import 'package:geolocator/geolocator.dart';
 import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/data/services/chat_unread_controller.dart';
+import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OrderStatusPage extends StatefulWidget {
@@ -40,7 +42,8 @@ class OrderStatusPage extends StatefulWidget {
   State<OrderStatusPage> createState() => _OrderStatusPageState();
 }
 
-class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderStateMixin {
+class _OrderStatusPageState extends State<OrderStatusPage>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentStatus = 1; 
   String? _backendStatus;
   
@@ -89,7 +92,20 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
     // Connect to WebSockets with force: true to ensure topic subscriptions are refreshed with the current orderId
     WebSocketService().connect(force: true);
-    
+
+    // Reconcile with the backend on open and on resume so a stale local status
+    // (from missed WebSocket events) can't keep the user on an earlier stage
+    // than the order has actually reached.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+
+    // Track unread chat messages for this order so the chat icon can badge them.
+    ChatUnreadController.instance.start();
+    final chatOrderId = _currentOrderId;
+    if (chatOrderId != null) {
+      ChatUnreadController.instance.refreshOrder(chatOrderId);
+    }
+
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (mounted) {
         final state = ActiveOrderState.instance;
@@ -111,8 +127,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
-        // Auto-navigate when status becomes CANCELLED (-1)
-        if (state.orderStatus == -1) {
+        // Auto-navigate when status becomes CANCELLED (-1). Skip when the user
+        // cancelled it themselves (they get a dedicated apology page).
+        if (state.orderStatus == -1 &&
+            !state.wasCancelledByUser(state.orderId)) {
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               Navigator.pushReplacement(
@@ -122,10 +140,13 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     orderId: state.orderId ?? "",
                     reason: state.cancelReason,
                     shopId: state.shopId,
-                    shopName: state.shopNameEn ?? state.shopName,
+                    shopName: state.shopNameEn ??
+                        state.shopName ??
+                        state.restaurantName ??
+                        state.storeName,
                     shopNameMm: state.shopNameMm,
                     shopNameTh: state.shopNameTh,
-                    shopLogo: state.shopLogo,
+                    shopLogo: state.shopLogo ?? state.logoPath,
                     shopImageUrl: state.shopImageUrl,
                   ),
                 ),
@@ -233,8 +254,29 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Fetches the authoritative order status from the backend and syncs the
+  /// stepper / completion navigation, covering cases where live WebSocket
+  /// updates were missed while the app was backgrounded or disconnected.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder();
+    if (!mounted) return;
+    final status = ActiveOrderState.instance.orderStatus;
+    setState(() => _currentStatus = status.clamp(1, 4));
+    if (status == 4) {
+      Future.delayed(const Duration(seconds: 1), _navigateToComplete);
+    }
+  }
+
+  @override
   void dispose() {
     _processingController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
     super.dispose();
   }
@@ -691,12 +733,15 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                               onTap: () => _makeCall(state.shopPhone),
                             ),
                             const SizedBox(width: 6),
-                            _buildSmallCircleButton(
-                              PhosphorIcons.chatCircleTextFill,
-                              onTap: () => _openChat(
-                                name: storeName,
-                                subtitle: context.tr('common.restaurant'),
-                                avatarUrl: state.logoPath,
+                            ChatUnreadBadge(
+                              orderId: _currentOrderId,
+                              child: _buildSmallCircleButton(
+                                PhosphorIcons.chatCircleTextFill,
+                                onTap: () => _openChat(
+                                  name: storeName,
+                                  subtitle: context.tr('common.restaurant'),
+                                  avatarUrl: state.logoPath,
+                                ),
                               ),
                             ),
                           ],
@@ -1089,12 +1134,15 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           ),
                           const SizedBox(width: 6),
                         ],
-                        _buildSmallCircleButton(
-                          PhosphorIcons.chatCircleTextFill,
-                          onTap: () => _openChat(
-                            name: state.riderName,
-                            subtitle: context.tr('order_status.delivery_rider'),
-                            fallbackIcon: Icons.delivery_dining_rounded,
+                        ChatUnreadBadge(
+                          orderId: _currentOrderId,
+                          child: _buildSmallCircleButton(
+                            PhosphorIcons.chatCircleTextFill,
+                            onTap: () => _openChat(
+                              name: state.riderName,
+                              subtitle: context.tr('order_status.delivery_rider'),
+                              fallbackIcon: Icons.delivery_dining_rounded,
+                            ),
                           ),
                         ),
                       ],
@@ -1309,20 +1357,29 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     }
   }
 
+  /// Parsed integer id of the active order, or null when unavailable.
+  int? get _currentOrderId {
+    final orderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    return (orderId != null && orderId > 0) ? orderId : null;
+  }
+
   void _openChat({
     required String? name,
     required String subtitle,
     String? avatarUrl,
     IconData fallbackIcon = Icons.storefront_rounded,
   }) {
-    final orderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
-    final orderId = int.tryParse(orderIdStr ?? '');
-    if (orderId == null || orderId <= 0) {
+    final orderId = _currentOrderId;
+    if (orderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('chat.order_unavailable'))),
       );
       return;
     }
+
+    // Opening the thread marks the shop's messages as read on the backend.
+    ChatUnreadController.instance.clear(orderId);
 
     final peerName = (name == null || name.trim().isEmpty)
         ? subtitle

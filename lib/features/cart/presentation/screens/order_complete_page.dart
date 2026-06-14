@@ -157,6 +157,13 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             _buildProgressBar(),
             const SizedBox(height: 32),
 
+            // Delivery proof photo (if the shop attached one on delivery)
+            if (state.proofPhotoUrl != null &&
+                state.proofPhotoUrl!.isNotEmpty) ...[
+              _buildDeliveryProof(state.proofPhotoUrl!),
+              const SizedBox(height: 24),
+            ],
+
             // Rating Card
             Container(
               decoration: BoxDecoration(
@@ -339,6 +346,73 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
       height: 80,
       color: Colors.grey[200],
       child: const Icon(Icons.image_not_supported_rounded, size: 36, color: Colors.grey),
+    );
+  }
+
+  /// Shows the photo the shop attached when marking the order Delivered, as
+  /// proof that the food was successfully delivered.
+  Widget _buildDeliveryProof(String url) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Icon(PhosphorIcons.checkCircle, size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  context.tr('order_complete.delivery_proof'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) return child;
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Center(child: CustomLoadingIndicator(size: 24)),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[200],
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.image_not_supported_rounded,
+                    size: 36,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

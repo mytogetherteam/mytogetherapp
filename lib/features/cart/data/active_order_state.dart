@@ -52,6 +52,9 @@ class ActiveOrderItem {
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  // Photo the shop attaches when marking the order Delivered — shown to the
+  // customer as proof the food was successfully delivered.
+  String? proofPhotoUrl;
 
   // Missing fields for backward compatibility
   String? deliveryAddress;
@@ -118,6 +121,7 @@ class ActiveOrderItem {
     this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.proofPhotoUrl,
   });
 
   String get displayShopName {
@@ -177,6 +181,7 @@ class ActiveOrderItem {
     'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'proofPhotoUrl': proofPhotoUrl,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -227,6 +232,7 @@ class ActiveOrderItem {
     shopPhone: json['shopPhone'],
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
+    proofPhotoUrl: json['proofPhotoUrl'],
   );
 }
 
@@ -245,7 +251,19 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   final Map<String, ActiveOrderItem> _orders = {};
-  final Set<String> _cancellingOrders = {}; 
+  final Set<String> _cancellingOrders = {};
+  // Orders the user cancelled themselves. The backend emits the same CANCELED
+  // WebSocket frame regardless of who cancelled, so we record user-initiated
+  // cancellations here to keep the shop-cancellation page from popping up for
+  // them (the user instead sees a dedicated apology page).
+  final Set<String> _userCancelledOrderIds = {};
+
+  /// True when [orderId] was cancelled by the user via [cancelActiveOrder]
+  /// (as opposed to being cancelled by the restaurant).
+  bool wasCancelledByUser(String? orderId) {
+    if (orderId == null) return false;
+    return _userCancelledOrderIds.contains(orderId.replaceAll('#', ''));
+  } 
   
   // Returns only non-terminal orders (not COMPLETED or CANCELLED)
   List<ActiveOrderItem> get activeOrdersList => _orders.values
@@ -323,6 +341,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? get riderPhone => _primary?.riderPhone;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
+  String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
   String? get cancelReason => _primary?.cancelReason;
@@ -508,6 +527,12 @@ class ActiveOrderState extends ChangeNotifier {
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
+
+    // Delivery proof photo attached by the shop on the "Delivered" step.
+    final proofUrl = _parseSafeString(data['proofPhotoUrl']);
+    if (proofUrl != null && proofUrl.isNotEmpty) {
+      item.proofPhotoUrl = _getFullUrl(proofUrl);
+    }
 
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
@@ -708,8 +733,12 @@ class ActiveOrderState extends ChangeNotifier {
     // Concurrency guard
     if (_cancellingOrders.contains(targetId)) return false;
     _cancellingOrders.add(targetId);
-    
+
     final sanitizedOrderId = targetId.replaceAll('#', '');
+    // Mark as user-cancelled up front (before the network round-trip) so that a
+    // CANCELED WebSocket frame arriving mid-flight doesn't trigger the
+    // restaurant-cancellation page.
+    _userCancelledOrderIds.add(sanitizedOrderId);
     
     try {
       // Backend: PATCH /api/user/orders/:id/payment with status=CANCELED.

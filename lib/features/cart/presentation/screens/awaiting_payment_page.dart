@@ -18,6 +18,7 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
+import 'order_cancel_by_user_page.dart';
 import 'revise_order_page.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -26,6 +27,8 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/data/services/chat_unread_controller.dart';
+import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -45,7 +48,7 @@ class AwaitingPaymentPage extends StatefulWidget {
 }
 
 class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
@@ -53,6 +56,18 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
+
+  /// Guards against pushing the next screen more than once when several
+  /// status updates (WebSocket + backend reconcile) land close together.
+  bool _hasNavigated = false;
+
+  /// Parsed integer id of this order, or null when unavailable.
+  int? get _chatOrderId {
+    final orderIdStr = (widget.orderId ?? ActiveOrderState.instance.orderId)
+        ?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    return (orderId != null && orderId > 0) ? orderId : null;
+  }
 
   @override
   void initState() {
@@ -81,56 +96,100 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     // Fetch detailed payment method image if needed
     _fetchPaymentMethodDetails();
 
+    // Track unread chat messages for this order so the chat icon can badge them.
+    ChatUnreadController.instance.start();
+    final chatOrderId = _chatOrderId;
+    if (chatOrderId != null) {
+      ChatUnreadController.instance.refreshOrder(chatOrderId);
+    }
+
     // Listen to global state for real-time rebuilds (e.g., when QR URL arrives)
     ActiveOrderState.instance.addListener(_onStateUpdated);
 
+    // Reconcile with the backend on open and whenever the app returns to the
+    // foreground. Live WebSocket order events can be missed (socket reconnect,
+    // app backgrounded, events fired before this page subscribed), which would
+    // otherwise leave the user stuck on "awaiting confirmation" long after the
+    // shop has already advanced (or completed) the order.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+
     // Listen for WebSocket updates (Rider, Status, Fee)
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
-      if (mounted) {
-        final state = ActiveOrderState.instance;
-        final order = state.getOrder(widget.orderId);
-        if (order == null) return;
-
-        // ... navigation logic using 'order' status
-        if (order.orderStatus >= 2) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OrderStatusPage(
-                foodTotal: widget.foodTotal,
-                deliveryFee: order.deliveryFee ?? widget.deliveryFee,
-              ),
-            ),
-          );
-        }
-
-        if (order.orderStatus == -1) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OrderCancelPage(
-                orderId: order.orderId,
-                reason: order.cancelReason,
-                shopId: order.shopId,
-                shopName: order.shopNameEn ?? order.shopName,
-                shopNameMm: order.shopNameMm,
-                shopNameTh: order.shopNameTh,
-                shopLogo: order.shopLogo,
-                shopImageUrl: order.shopImageUrl,
-              ),
-            ),
-          );
-        }
-
-        // We intentionally do not override _showUploadSection here.
-        // It will only change via user interaction on this page.
-      }
+      if (!mounted) return;
+      // We intentionally do not override _showUploadSection here.
+      // It will only change via user interaction on this page.
+      _advanceForOrder(ActiveOrderState.instance.getOrder(widget.orderId));
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Pulls the authoritative order status from the backend, then advances the
+  /// UI if the order has already moved past the awaiting-payment stage.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder(orderId: widget.orderId);
+    if (!mounted) return;
+    _advanceForOrder(ActiveOrderState.instance.getOrder(widget.orderId));
+  }
+
+  /// Navigates off the awaiting-payment screen once the order has actually
+  /// progressed: paid/cooking/on-the-way/delivered → status page, cancelled →
+  /// cancel page. Guarded by [_hasNavigated] so it fires at most once.
+  void _advanceForOrder(ActiveOrderItem? order) {
+    if (!mounted || _hasNavigated || order == null) return;
+
+    if (order.orderStatus >= 2) {
+      _hasNavigated = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: widget.foodTotal,
+            deliveryFee: order.deliveryFee ?? widget.deliveryFee,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (order.orderStatus == -1) {
+      _hasNavigated = true;
+      // User-initiated cancellations are handled in [_cancelOrder] (apology
+      // page); only the shop-cancellation page is shown here.
+      if (ActiveOrderState.instance.wasCancelledByUser(order.orderId)) {
+        return;
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderCancelPage(
+            orderId: order.orderId,
+            reason: order.cancelReason,
+            shopId: order.shopId,
+            shopName: order.shopNameEn ??
+                order.shopName ??
+                order.restaurantName ??
+                order.storeName,
+            shopNameMm: order.shopNameMm,
+            shopNameTh: order.shopNameTh,
+            shopLogo: order.shopLogo ?? order.logoPath,
+            shopImageUrl: order.shopImageUrl,
+          ),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _dotsAnimController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
@@ -151,6 +210,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (order?.paymentMethodImageUrl == null) {
         _fetchPaymentMethodDetails();
       }
+      // A status change applied to global state (e.g. from a backend sync or a
+      // WebSocket frame handled elsewhere) should also move the user forward.
+      _advanceForOrder(order);
     }
   }
 
@@ -569,7 +631,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       );
       if (success && mounted) {
         AppDialog.showToast(context, context.tr('payment.cancel_success'));
-        _goHome();
+        _hasNavigated = true;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrderCancelByUserPage()),
+        );
       } else if (mounted) {
         AppDialog.showToast(
           context,
@@ -1488,43 +1554,45 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {
-              final orderIdStr =
-                  (widget.orderId ?? ActiveOrderState.instance.orderId)
-                      ?.replaceAll('#', '');
-              final orderId = int.tryParse(orderIdStr ?? '');
-              if (orderId == null || orderId <= 0) {
-                AppDialog.showToast(
+          ChatUnreadBadge(
+            orderId: _chatOrderId,
+            child: GestureDetector(
+              onTap: () {
+                final orderId = _chatOrderId;
+                if (orderId == null) {
+                  AppDialog.showToast(
+                    context,
+                    context.tr('chat.order_unavailable'),
+                    isError: true,
+                  );
+                  return;
+                }
+                // Opening the thread marks the shop's messages as read.
+                ChatUnreadController.instance.clear(orderId);
+                Navigator.push(
                   context,
-                  context.tr('chat.order_unavailable'),
-                  isError: true,
-                );
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatPage(
-                    orderId: orderId,
-                    peerName: order?.riderName ??
-                        context.tr('order_status.delivery_rider'),
-                    peerSubtitle: context.tr('order_status.delivery_rider'),
-                    fallbackIcon: Icons.delivery_dining_rounded,
+                  MaterialPageRoute(
+                    builder: (_) => ChatPage(
+                      orderId: orderId,
+                      peerName: order?.riderName ??
+                          context.tr('order_status.delivery_rider'),
+                      peerSubtitle: context.tr('order_status.delivery_rider'),
+                      fallbackIcon: Icons.delivery_dining_rounded,
+                    ),
                   ),
+                );
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const GradientIcon(
-                icon: PhosphorIconsFill.chatCircleText,
-                size: 22,
+                child: const GradientIcon(
+                  icon: PhosphorIconsFill.chatCircleText,
+                  size: 22,
+                ),
               ),
             ),
           ),
