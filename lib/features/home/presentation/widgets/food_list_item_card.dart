@@ -77,48 +77,48 @@ class FoodListItemCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
               // Image Section
               ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 clipBehavior: Clip.antiAlias,
                 child: (!isNetworkImage && !isAsset)
                     ? SizedBox(
-                        width: 100,
-                        height: 100,
+                        width: 80,
+                        height: 80,
                         child: MenuImagePlaceholder(title: title),
                       )
                     : (isAsset
                         ? Image.asset(
                             imagePath,
-                            width: 100,
-                            height: 100,
+                            width: 80,
+                            height: 80,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => SizedBox(
-                              width: 100,
-                              height: 100,
+                              width: 80,
+                              height: 80,
                               child: MenuImagePlaceholder(title: title),
                             ),
                           )
                         : CachedNetworkImage(
                             imageUrl: networkUrl,
-                            width: 100,
-                            height: 100,
+                            width: 80,
+                            height: 80,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => const ImageSkeletonLoader(width: 100, height: 100),
+                            placeholder: (context, url) => const ImageSkeletonLoader(width: 80, height: 80),
                             errorWidget: (context, url, error) => SizedBox(
-                              width: 100,
-                              height: 100,
+                              width: 80,
+                              height: 80,
                               child: MenuImagePlaceholder(title: title),
                             ),
                             fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                            memCacheWidth: 300,
+                            memCacheWidth: 240,
                           )),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               // Details Section
               Expanded(
                 child: Column(

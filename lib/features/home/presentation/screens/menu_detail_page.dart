@@ -17,6 +17,7 @@ import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -262,18 +263,37 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           final img = _galleryImages.isNotEmpty
                               ? _galleryImages.first.trim()
                               : '';
-                          if (img.isEmpty) {
-                            return MenuImagePlaceholder(title: widget.title);
-                          }
-                          return Image.network(
-                            img,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const ImageSkeletonLoader();
+                          return GestureDetector(
+                            onTap: () {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    barrierDismissible: true,
+                                    pageBuilder: (context, _, _) =>
+                                        FullScreenImageViewer(
+                                          imageUrls: [img],
+                                          initialIndex: 0,
+                                          heroTagPrefix: 'menu_${widget.id}_',
+                                        ),
+                                  ),
+                                );
                             },
-                            errorBuilder: (context, error, stackTrace) =>
-                                MenuImagePlaceholder(title: widget.title),
+                            child: (() {
+                              if (img.isEmpty) {
+                                return MenuImagePlaceholder(title: widget.title);
+                              }
+                              return Image.network(
+                                img,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const ImageSkeletonLoader();
+                                },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    MenuImagePlaceholder(title: widget.title),
+                              );
+                            })(),
                           );
                         })(),
                         // Gradient Overlay for visibility when not scrolled

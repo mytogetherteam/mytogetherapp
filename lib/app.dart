@@ -34,7 +34,7 @@ class App extends StatelessWidget {
             title: 'Mytogether',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.system,
+            themeMode: ThemeMode.light,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [App.routeObserver],
             navigatorKey: navigatorKey,

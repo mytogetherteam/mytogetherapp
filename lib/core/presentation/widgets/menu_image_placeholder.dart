@@ -25,13 +25,15 @@ class MenuImagePlaceholder extends StatelessWidget {
         children: [
           // Logo Overlay Design
           Center(
-            child: Transform.rotate(
-              angle: 0.3,
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..scale(3.0)
+                ..rotateZ(0.3),
               child: Image.asset(
                 'assets/images/logo_white.png',
-                width: 240,
-                height: 240,
-                fit: BoxFit.contain,
+                width: 100,
+                height: 100,
               ),
             ),
           ),

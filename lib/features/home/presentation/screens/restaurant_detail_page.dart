@@ -30,6 +30,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -102,10 +103,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   final Map<int, bool> _localFavorites = {};
   final GlobalKey _targetMenuKey = GlobalKey();
   bool _hasScrolledToTarget = false;
+  String? _targetMenuItemId;
 
   @override
   void initState() {
     super.initState();
+    _targetMenuItemId = widget.targetMenuItemId;
     _scrollController.addListener(_onScroll);
 
     // Sync cart with backend to show correct basket bar
@@ -252,6 +255,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       debugPrint(' [RestaurantDetailPage] Manual refresh triggered.');
 
       setState(() {
+        _targetMenuItemId = null; // Clear deep-linked highlight
         _menuItems.clear();
         _menuPage = 0;
         _hasMoreMenu = true;
@@ -349,7 +353,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     // Let the first batch of slivers lay out before measuring.
     await Future.delayed(const Duration(milliseconds: 250));
 
-    const int maxSteps = 80;
+    const int maxSteps = 300;
     for (int step = 0; step < maxSteps; step++) {
       if (!mounted || !_scrollController.hasClients) return;
 
@@ -364,7 +368,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       }
 
       final position = _scrollController.position;
-      final nextOffset = (position.pixels + position.viewportDimension * 0.85)
+      final nextOffset = (position.pixels + 200.0)
           .clamp(0.0, position.maxScrollExtent);
 
       // Reached the end without the target building — nothing more we can do.
@@ -372,7 +376,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
       _scrollController.jumpTo(nextOffset);
       // Give the newly revealed slivers a frame to build.
-      await Future.delayed(const Duration(milliseconds: 16));
+      final completer = Completer<void>();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!completer.isCompleted) completer.complete();
+      });
+      await completer.future;
     }
   }
 
@@ -398,7 +406,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             _menuPage = 0;
           }
           _menuItems.addAll(result.content);
-          _hasMoreMenu = !result.last;
+          _hasMoreMenu = !result.last && result.content.isNotEmpty;
           if (_hasMoreMenu) _menuPage++;
           _isMenuLoading = false;
         });
@@ -509,41 +517,62 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         ),
                                       ),
                                     )
-                                  : Image.network(
-                                      resolveMediaUrl(
-                                        _currentRestaurant!.imagePath,
-                                      ),
-                                      fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return const ImageSkeletonLoader();
-                                          },
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                color: Colors.grey[200],
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    size: 50,
-                                                    color: Colors.grey,
+                                  : GestureDetector(
+                                      onTap: () {
+                                        final img = resolveMediaUrl(_currentRestaurant!.imagePath);
+                                        if (img.isNotEmpty) {
+                                          Navigator.push(
+                                            context,
+                                            PageRouteBuilder(
+                                              opaque: false,
+                                              barrierDismissible: true,
+                                              pageBuilder: (context, _, _) => FullScreenImageViewer(
+                                                imageUrls: [img],
+                                                initialIndex: 0,
+                                                heroTagPrefix: 'restaurant_banner_${widget.id}_',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Image.network(
+                                        resolveMediaUrl(
+                                          _currentRestaurant!.imagePath,
+                                        ),
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                              if (loadingProgress == null) {
+                                                return child;
+                                              }
+                                              return const ImageSkeletonLoader();
+                                            },
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  color: Colors.grey[200],
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.broken_image,
+                                                      size: 50,
+                                                      color: Colors.grey,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
+                                      ),
                                     ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.5),
-                                      Colors.transparent,
-                                      Colors.black.withValues(alpha: 0.3),
-                                    ],
+                              IgnorePointer(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.5),
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.3),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -773,16 +802,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   top: cardTop,
                   left: 15,
                   right: 15,
-                  child: IgnorePointer(
-                    child: Opacity(
-                      opacity: opacity,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: BackdropFilter(
-                          filter: ColorFilter.mode(
-                            Colors.white.withValues(alpha: 0.7),
-                            BlendMode.srcOver,
-                          ),
+                  child: Opacity(
+                    opacity: opacity,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: BackdropFilter(
+                        filter: ColorFilter.mode(
+                          Colors.white.withValues(alpha: 0.7),
+                          BlendMode.srcOver,
+                        ),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -818,22 +846,41 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         resolveMediaUrl(
                                           _currentRestaurant?.logoPath,
                                         ).isNotEmpty
-                                        ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                            imageUrl: resolveMediaUrl(
-                                              _currentRestaurant!.logoPath,
-                                            ),
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) =>
-                                                const ImageSkeletonLoader(),
-                                            errorWidget:
-                                                (
+                                        ? GestureDetector(
+                                            onTap: () {
+                                              final img = resolveMediaUrl(_currentRestaurant!.logoPath);
+                                              if (img.isNotEmpty) {
+                                                Navigator.push(
                                                   context,
-                                                  url,
-                                                  error,
-                                                ) => _buildLogoFallback(
-                                                  _currentRestaurant?.name ??
-                                                      '',
-                                                ),
+                                                  PageRouteBuilder(
+                                                    opaque: false,
+                                                    barrierDismissible: true,
+                                                    pageBuilder: (context, _, _) => FullScreenImageViewer(
+                                                      imageUrls: [img],
+                                                      initialIndex: 0,
+                                                      heroTagPrefix: 'restaurant_logo_${widget.id}_',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                              imageUrl: resolveMediaUrl(
+                                                _currentRestaurant!.logoPath,
+                                              ),
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) =>
+                                                  const ImageSkeletonLoader(),
+                                              errorWidget:
+                                                  (
+                                                    context,
+                                                    url,
+                                                    error,
+                                                  ) => _buildLogoFallback(
+                                                    _currentRestaurant?.name ??
+                                                        '',
+                                                  ),
+                                            ),
                                           )
                                         : _buildLogoFallback(
                                             _currentRestaurant?.name ?? '',
@@ -957,8 +1004,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         ),
                       ),
                     ),
-                  ),
-                );
+                  );
               },
             ),
 
@@ -1397,7 +1443,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       ),
       delegate: SliverChildBuilderDelegate((context, i) {
         final item = items[i];
-        final isTarget = item.id.toString() == widget.targetMenuItemId;
+        final isTarget = item.id.toString() == _targetMenuItemId;
         final card = FoodMenuItemCard(
           id: item.id.toString(),
           restaurantId: item.shopId.toString(),

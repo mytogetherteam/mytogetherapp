@@ -53,7 +53,7 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
     await _localNotifications.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (details) {
         _handleNotificationClick(null); // Simple navigation for now
       },
@@ -233,14 +233,15 @@ class NotificationService {
       channelDescription: 'This channel is used for important notifications.',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@mipmap/launcher_icon',
       showWhen: true,
     );
     const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
-      message.hashCode,
-      title,
-      body,
-      platformChannelSpecifics,
+      id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
       payload: 'item_id',
     );
   }

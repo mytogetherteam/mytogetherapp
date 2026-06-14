@@ -30,7 +30,6 @@ class _RegisterPageState extends State<RegisterPage>
   final _otpController = TextEditingController();
 
   bool _isLoading = false;
-  String? _errorMessage;
 
   bool _showOtpView = false;
   String? _verificationId;
@@ -69,7 +68,6 @@ class _RegisterPageState extends State<RegisterPage>
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -102,7 +100,6 @@ class _RegisterPageState extends State<RegisterPage>
           final msg = FirebaseErrorHandler.getMessage(context, e);
           AppDialog.showToast(context, msg, isError: true);
           setState(() {
-            _errorMessage = msg;
             _isLoading = false;
           });
         },
@@ -121,7 +118,6 @@ class _RegisterPageState extends State<RegisterPage>
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = msg;
         _isLoading = false;
       });
     }
@@ -129,13 +125,12 @@ class _RegisterPageState extends State<RegisterPage>
 
   Future<void> _handleVerifyOtp() async {
     if (_verificationId == null || _otpController.text.isEmpty) {
-      setState(() => _errorMessage = context.tr('auth.enter_otp'));
+      AppDialog.showToast(context, context.tr('auth.enter_otp'), isError: true);
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -148,14 +143,12 @@ class _RegisterPageState extends State<RegisterPage>
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = msg;
         _isLoading = false;
       });
     } catch (e) {
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = msg;
         _isLoading = false;
       });
     }
@@ -179,8 +172,9 @@ class _RegisterPageState extends State<RegisterPage>
         ),
       );
     } catch (e) {
+      final msg = FirebaseErrorHandler.getMessage(context, e);
+      AppDialog.showToast(context, msg, isError: true);
       setState(() {
-        _errorMessage = e.toString();
         _isLoading = false;
       });
     }
@@ -254,11 +248,6 @@ class _RegisterPageState extends State<RegisterPage>
                       ),
                     ),
                     const SizedBox(height: 32),
-
-                    if (_errorMessage != null) ...[
-                      _buildErrorBanner(_errorMessage!),
-                      const SizedBox(height: 20),
-                    ],
 
                     if (!_showOtpView) _buildRegistrationForm(),
                     if (_showOtpView) _buildOtpForm(),
@@ -349,17 +338,7 @@ class _RegisterPageState extends State<RegisterPage>
             return null;
           },
         ),
-        const SizedBox(height: 18),
 
-        _buildLabel(
-            '${context.tr('auth.email')} ${context.tr('auth.optional')}'),
-        const SizedBox(height: 8),
-        _buildTextField(
-          controller: _emailController,
-          hint: context.tr('auth.email_hint'),
-          icon: Icons.mail_outline_rounded,
-          keyboardType: TextInputType.emailAddress,
-        ),
       ],
     );
   }
@@ -423,36 +402,6 @@ class _RegisterPageState extends State<RegisterPage>
       color: Colors.black87,
     ),
   );
-
-  Widget _buildErrorBanner(String message) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade100),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            color: Colors.red.shade400,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: GoogleFonts.poppins(
-                color: Colors.red.shade700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTextField({
     required TextEditingController controller,

@@ -18,6 +18,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
+import '../widgets/welcome_modal.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -53,9 +54,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Connect WebSocket for real-time updates
     WebSocketService().connect();
 
-    // Check permissions after first frame
+    // Show welcome modal if first time, then check permissions after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndRequestPermissions();
+      WelcomeModal.showIfFirstTime(context, () {
+        _checkAndRequestPermissions();
+      });
     });
   }
 

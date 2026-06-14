@@ -20,6 +20,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -119,6 +120,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           : null,
                     ),
                   ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  right: 16,
+                  child: const NotificationBell(),
                 ),
               ],
             ),

@@ -3,19 +3,25 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/cart_manager.dart';
 import '../screens/cart_page.dart';
 
+import '../../data/active_order_state.dart';
+
 class StyledCartFab extends StatelessWidget {
   const StyledCartFab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: CartManager.instance,
+      listenable: Listenable.merge([CartManager.instance, ActiveOrderState.instance]),
       builder: (context, _) {
         final cartCount = CartManager.instance.totalItemCount;
+        final hasActiveOrder = ActiveOrderState.instance.hasActiveOrder;
 
         if (cartCount <= 0) return const SizedBox.shrink();
 
-        return Container(
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          margin: EdgeInsets.only(bottom: hasActiveOrder ? 130.0 : 0.0),
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
             shape: BoxShape.circle,

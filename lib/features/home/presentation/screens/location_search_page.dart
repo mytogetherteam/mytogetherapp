@@ -72,7 +72,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
   Future<void> _loadCurrentLocation() async {
     try {
-      final pos = await LocationService().getCurrentPosition();
+      final pos = await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
       final result = await LocationSearchService.instance.reverseGeocode(pos.latitude, pos.longitude);
       if (mounted) {
         setState(() {

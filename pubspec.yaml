@@ -61,7 +61,7 @@ dependencies:
   # Firebase & Notifications
   firebase_core: ^3.1.0
   firebase_messaging: ^15.1.0
-  flutter_local_notifications: ^18.0.1
+  flutter_local_notifications: ^22.0.0
   device_info_plus: ^11.0.0
 
   # Secure token storage
@@ -73,6 +73,7 @@ dependencies:
   upgrader: ^13.5.0
   sensors_plus: ^7.0.0
   pinput: ^6.0.2
+  live_activities: ^2.4.3
 
 dev_dependencies:
   flutter_test:

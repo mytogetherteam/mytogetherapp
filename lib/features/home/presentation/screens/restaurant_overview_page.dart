@@ -532,8 +532,6 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
           padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
           child: Row(
             children: [
-              _buildFeatureToggle(f.enabled),
-              const SizedBox(width: 14),
               Icon(
                 f.icon,
                 size: 20,
@@ -546,9 +544,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: f.enabled
-                        ? const Color(0xFF2D3748)
-                        : Colors.grey[500],
+                    color: Colors.black,
                   ),
                 ),
               ),
@@ -559,35 +555,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
     );
   }
 
-  /// Read-only pill toggle mirroring the shop's amenity state. The customer
-  /// can see whether a feature is offered but cannot change it here.
-  Widget _buildFeatureToggle(bool enabled) {
-    const double width = 42;
-    const double height = 24;
-    const double knob = 18;
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: enabled ? AppColors.primary : Colors.grey[300],
-        borderRadius: BorderRadius.circular(height / 2),
-      ),
-      child: Align(
-        alignment: enabled ? Alignment.centerRight : Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3),
-          child: Container(
-            width: knob,
-            height: knob,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildLogoFallback(String name) {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';

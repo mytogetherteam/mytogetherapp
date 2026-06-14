@@ -7,6 +7,7 @@ import 'package:mytogetherapp/features/order/presentation/widgets/order_history_
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -87,6 +88,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16.0),
+            child: NotificationBell(),
+          ),
+        ],
         bottom: _isLoading
             ? null
             : TabBar(

@@ -134,8 +134,11 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
                   width: _currentIndex == index ? 20 : 8,
                   height: 8,
                   decoration: BoxDecoration(
+                    gradient: _currentIndex == index
+                        ? AppColors.primaryGradient
+                        : null,
                     color: _currentIndex == index
-                        ? AppColors.primary
+                        ? null
                         : AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),

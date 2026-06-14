@@ -31,6 +31,8 @@ import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart'
 import 'places_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
+import '../../../../core/presentation/widgets/search_box_trigger.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -241,7 +243,7 @@ class _HomePageState extends State<HomePage> {
                   await _fetchLostFoundCount();
                 },
                 color: AppColors.primary,
-                displacement: MediaQuery.of(context).padding.top + 80,
+                displacement: MediaQuery.of(context).padding.top + 60,
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(
@@ -250,48 +252,17 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 70,
+                        height: MediaQuery.of(context).padding.top + 50,
                       ), // Push content below fixed header
                       // Search Bar
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: GestureDetector(
+                        child: SearchBoxTrigger(
+                          hintText: context.tr('home.search_hint'),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const FoodSearchPage(),
-                            ),
-                          ),
-                          child: Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  PhosphorIcons.magnifyingGlass,
-                                  color: Colors.grey.shade500,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  context.tr('home.search_hint'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ),
@@ -421,11 +392,6 @@ class _HomePageState extends State<HomePage> {
                                     title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
-                                    badgeText: _lostFoundCount > 0
-                                        ? (_lostFoundCount > 99
-                                            ? '99+'
-                                            : '$_lostFoundCount')
-                                        : null,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -710,70 +676,7 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               // Notification Bell (Top Right)
-                              ValueListenableBuilder<int>(
-                                valueListenable:
-                                    NotificationRepository().unreadCount,
-                                builder: (context, count, _) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const NotificationsPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            PhosphorIcons.bell,
-                                            size: 24,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        if (count > 0)
-                                          Positioned(
-                                            top: -2,
-                                            right: 0,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 16,
-                                                minHeight: 16,
-                                              ),
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 1.5,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                count > 9
-                                                    ? '9+'
-                                                    : count.toString(),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                              const NotificationBell(hasShadow: true),
                             ],
                           ),
                         ),
@@ -787,7 +690,7 @@ class _HomePageState extends State<HomePage> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 4 + MediaQuery.of(context).padding.bottom,
+              bottom: 12,
               child: const ActiveOrderBar(),
             ),
           ],

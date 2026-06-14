@@ -577,6 +577,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -628,6 +629,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -680,6 +682,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),

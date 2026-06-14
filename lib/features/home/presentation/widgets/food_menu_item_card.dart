@@ -78,6 +78,7 @@ class FoodMenuItemCard extends StatefulWidget {
 class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _borderController;
+  late AnimationController _floatController;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _floatAnimation;
 
@@ -94,10 +95,15 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
       TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 60),
     ]).animate(_controller);
 
-    _floatAnimation = TweenSequence<Offset>([
-      TweenSequenceItem(tween: Tween(begin: Offset.zero, end: const Offset(0, -0.06)).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: const Offset(0, -0.06), end: Offset.zero).chain(CurveTween(curve: Curves.bounceOut)), weight: 60),
-    ]).animate(_controller);
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _floatAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, -0.04), // 4% upward translation
+    ).animate(CurvedAnimation(parent: _floatController, curve: Curves.easeInOutSine));
 
     _borderController = AnimationController(
       vsync: this,
@@ -106,9 +112,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
     if (widget.isHighlighted) {
       _controller.forward();
+      _floatController.repeat(reverse: true);
       // Start border tracing animation after a slight delay
       Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) _borderController.forward();
+        if (mounted) _borderController.repeat();
       });
     }
   }
@@ -117,6 +124,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
   void dispose() {
     _controller.dispose();
     _borderController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -143,7 +151,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
     if (effectiveIsHidden) return const SizedBox.shrink();
 
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _floatController]),
       builder: (context, _) {
         return FractionalTranslation(
           translation: _floatAnimation.value,

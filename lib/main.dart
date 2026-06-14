@@ -12,6 +12,7 @@ import 'core/notifications/notification_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/onboarding/data/onboarding_prefs.dart';
+import 'core/utils/lock_screen_widget_manager.dart';
 import 'app.dart';
 
 @pragma('vm:entry-point')
@@ -58,6 +59,9 @@ void main() async {
     NotificationService().initialize();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     debugPrint('[BOOT] NotificationService initialization triggered.');
+    
+    debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
+    LockScreenWidgetManager.instance.initialize();
 
     debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
 

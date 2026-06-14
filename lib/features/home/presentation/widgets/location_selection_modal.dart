@@ -9,6 +9,7 @@ import '../../../../core/location/location_search_service.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../screens/location_search_page.dart';
+import 'package:flutter/foundation.dart';
 import 'location_skeleton_loader.dart';
 
 class LocationSelectionModal extends StatefulWidget {
@@ -43,7 +44,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
 
   Future<void> _loadCurrentLocation() async {
     try {
-      final pos = await LocationService().getCurrentPosition();
+      final pos = await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
       final result = await LocationSearchService.instance.reverseGeocode(
         pos.latitude,
         pos.longitude,
@@ -54,7 +55,8 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
           _isLoadingCurrent = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('CURRENT LOCATION ERROR: $e');
       if (mounted) setState(() => _isLoadingCurrent = false);
     }
   }

@@ -4,6 +4,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../reviews/presentation/screens/write_review_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
@@ -60,15 +61,41 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Very light gray background
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _writeReview,
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.rate_review_outlined, color: Colors.white),
-        label: Text(
-          context.tr('review.write_title'),
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(30),
+            onTap: _writeReview,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.rate_review_outlined, color: Colors.white, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr('review.write_title'),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -316,10 +343,9 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.rate_review_outlined,
+              child: const GradientIcon(
+                icon: Icons.rate_review_outlined,
                 size: 44,
-                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 20),

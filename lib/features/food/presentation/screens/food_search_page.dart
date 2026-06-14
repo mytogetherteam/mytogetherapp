@@ -22,6 +22,7 @@ import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
 
 enum SearchFlowState { idle, typing, searched }
 
@@ -1528,7 +1529,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: _buildThumbnail(logo, 48),
+                    child: _buildThumbnail(logo, shop.name, 48),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1595,8 +1596,41 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                   // Left-only padding so an overflowing list reveals a partial
                   // card flush against the right edge (a "peek" hinting scroll).
                   padding: const EdgeInsets.only(left: 16),
-                  itemCount: menuItems.length,
+                  itemCount: menuItems.length + 1,
                   itemBuilder: (context, index) {
+                    if (index == menuItems.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: GestureDetector(
+                          onTap: () => _openRestaurant(shopDto),
+                          child: SizedBox(
+                            width: 80,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: _menuCardWidth(context),
+                                  child: Center(
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: const BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        PhosphorIcons.arrowRight,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final item = menuItems[index];
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -1637,7 +1671,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: _buildThumbnail(_imageUrl(item.imageUrl), width, height: width),
+            child: _buildThumbnail(_imageUrl(item.imageUrl), item.name, width, height: width),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1682,14 +1716,13 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
-  Widget _buildThumbnail(String url, double width, {double? height}) {
+  Widget _buildThumbnail(String url, String title, double width, {double? height}) {
     final h = height ?? width;
     if (url.isEmpty) {
-      return Container(
+      return SizedBox(
         width: width,
         height: h,
-        color: Colors.grey[200],
-        child: Icon(PhosphorIcons.image, color: Colors.grey[400], size: 20),
+        child: MenuImagePlaceholder(title: title),
       );
     }
     return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
@@ -1697,11 +1730,10 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       width: width,
       height: h,
       fit: BoxFit.cover,
-      errorWidget: (_, _, _) => Container(
+      errorWidget: (_, _, _) => SizedBox(
         width: width,
         height: h,
-        color: Colors.grey[200],
-        child: Icon(PhosphorIcons.image, color: Colors.grey[400], size: 20),
+        child: MenuImagePlaceholder(title: title),
       ),
     );
   }
