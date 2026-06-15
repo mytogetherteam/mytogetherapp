@@ -15,6 +15,7 @@ import 'models/shop_review_dto.dart';
 import 'models/master_category_dto.dart';
 import 'models/menu_category_dto.dart';
 import 'models/collection_dto.dart';
+import 'models/home_discount_section_dto.dart';
 
 import 'shop_storage.dart';
 
@@ -373,6 +374,33 @@ class RemoteRestaurantDataSource {
           maxDiscountPercentage: 0,
           items: const [],
         );
+      }
+      rethrow;
+    }
+  }
+
+  /// Admin-controlled home discount carousel config.
+  /// Backend (auth): GET /api/user/home-discount-section
+  /// (UserHomeDiscountSectionController). Returns all configured sections with
+  /// their computed status plus the single `activeSection` (if any). Returns an
+  /// empty config for guests or auth errors so the carousel simply hides.
+  Future<HomeDiscountSectionListDto> getHomeDiscountSection() async {
+    if (!AuthService().isLoggedIn) {
+      return HomeDiscountSectionListDto.empty;
+    }
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/home-discount-section',
+      );
+      final raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        return HomeDiscountSectionListDto.fromJson(raw);
+      }
+      return HomeDiscountSectionListDto.empty;
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        return HomeDiscountSectionListDto.empty;
       }
       rethrow;
     }

@@ -9,6 +9,7 @@ import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/location/location_service.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -29,15 +30,19 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
     try {
-      // Use cached GPS position or Bangkok default — no blocking GPS wait
+      // Resolve location consistently with the nearby list page:
+      // saved active location first, then cached GPS, then the shared default.
+      final activeLoc = UserLocationRepository.instance.activeLocation;
       final pos = LocationService().cachedPosition;
-      final lat = pos?.latitude ?? LocationService.defaultLat;
-      final lon = pos?.longitude ?? LocationService.defaultLon;
+      final lat =
+          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+      final lon =
+          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
       return await RestaurantRepository.instance.getNearbyShops(
         lat: lat,
         lon: lon,
-        radius: 10.0,
+        radius: 5.0,
         size: 10,
       ).timeout(const Duration(seconds: 10));
     } catch (e) {

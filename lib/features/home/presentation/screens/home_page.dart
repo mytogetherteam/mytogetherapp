@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/category_card.dart';
-import '../widgets/together_deals_section.dart';
+import '../widgets/home_discount_section.dart';
 import '../widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
@@ -41,7 +41,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late PageController _bannerController;
   Timer? _bannerTimer;
   int _currentBannerIndex = 0;
@@ -61,6 +61,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController = ScrollController()..addListener(_onScroll);
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
@@ -190,7 +191,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh the discount config + carousel when the app resumes, so admin
+    // changes (which invalidate the server cache immediately) show up.
+    if (state == AppLifecycleState.resumed && mounted) {
+      RestaurantRepository.instance.clearCache();
+      setState(() => _refreshKey++);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bannerTimer?.cancel();
     _promoTimer?.cancel();
     _bannerController.dispose();
@@ -550,9 +563,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
 
-                            const SizedBox(height: 24),
-                            TogetherDealsSection(
-                              key: ValueKey('deals_$_refreshKey'),
+                            HomeDiscountSection(
+                              key: ValueKey('discount_$_refreshKey'),
                             ),
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),

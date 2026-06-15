@@ -19,6 +19,7 @@ import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class RestaurantNearbyListPage extends StatefulWidget {
@@ -287,12 +288,19 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   }
 
   void _fetchRestaurants() {
+    // Resolve location consistently with the home nearby section:
+    // saved active location first, then cached GPS, then the shared default.
     final activeLoc = UserLocationRepository.instance.activeLocation;
+    final pos = LocationService().cachedPosition;
+    final lat =
+        activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
+    final lon =
+        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
     _restaurantsFuture = RestaurantRepository.instance
         .getNearbyShops(
-          lat: activeLoc?.latitude ?? _initialPosition.latitude,
-          lon: activeLoc?.longitude ?? _initialPosition.longitude,
+          lat: lat,
+          lon: lon,
           radius: _selectedRadius,
         )
         .then((restaurants) {

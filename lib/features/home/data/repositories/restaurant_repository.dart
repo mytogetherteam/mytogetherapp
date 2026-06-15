@@ -11,6 +11,7 @@ import '../models/shop_review_dto.dart';
 import '../models/master_category_dto.dart';
 import '../models/menu_category_dto.dart';
 import '../models/collection_dto.dart';
+import '../models/home_discount_section_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
@@ -43,7 +44,13 @@ class RestaurantRepository {
 
   // Cache for the home discount carousel
   DiscountDealsDto? _cachedDiscountDeals;
+  String? _discountDealsCacheKey;
   DateTime? _discountDealsLastFetch;
+
+  // Cache for the admin-controlled home discount section config.
+  // Mirrors the backend Redis TTL (~60s); admin edits invalidate server-side.
+  HomeDiscountSectionListDto? _cachedDiscountConfig;
+  DateTime? _discountConfigLastFetch;
 
   RestaurantRepository(this._remoteDataSource);
 
@@ -558,19 +565,53 @@ class RestaurantRepository {
     return result;
   }
 
-  /// Discounted menu items for the home "Together — Up to X% Off" carousel
-  /// (`GET /api/user/menu-items/discount`). Cached for 5 minutes.
+  /// Admin-controlled home discount section config
+  /// (`GET /api/user/home-discount-section`). The backend caches this in Redis
+  /// (~60s TTL) and invalidates on admin edits; we mirror that with a short
+  /// client cache and always refetch on home open / pull-to-refresh / resume
+  /// via [forceRefresh] (or [clearCache]).
+  Future<HomeDiscountSectionListDto> getHomeDiscountSectionConfig({
+    bool forceRefresh = false,
+  }) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedDiscountConfig != null &&
+        _discountConfigLastFetch != null &&
+        now.difference(_discountConfigLastFetch!).inSeconds < 60) {
+      return _cachedDiscountConfig!;
+    }
+
+    try {
+      final result = await _remoteDataSource.getHomeDiscountSection();
+      _cachedDiscountConfig = result;
+      _discountConfigLastFetch = now;
+      return result;
+    } catch (e) {
+      if (_cachedDiscountConfig != null) return _cachedDiscountConfig!;
+      rethrow;
+    }
+  }
+
+  /// Discounted menu items for the home discount carousel
+  /// (`GET /api/user/menu-items/discount`). [percentage] and [sectionTitle]
+  /// come from the active home discount section config — never hardcoded.
+  /// Cached for 5 minutes keyed by the request inputs.
   Future<DiscountDealsDto> getDiscountDeals({
     required double lat,
     required double lon,
     int percentage = 50,
     double radiusKm = 30.0,
+    int page = 1,
     int size = 10,
+    String? sectionTitle,
     bool forceRefresh = false,
   }) async {
     final now = DateTime.now();
+    final cacheKey =
+        '$percentage|${sectionTitle ?? ''}|$page|$size|${lat.toStringAsFixed(3)}|${lon.toStringAsFixed(3)}';
     if (!forceRefresh &&
         _cachedDiscountDeals != null &&
+        _discountDealsCacheKey == cacheKey &&
         _discountDealsLastFetch != null &&
         now.difference(_discountDealsLastFetch!).inMinutes < 5) {
       return _cachedDiscountDeals!;
@@ -581,9 +622,12 @@ class RestaurantRepository {
       lon: lon,
       percentage: percentage,
       radiusKm: radiusKm,
+      page: page,
       size: size,
+      sectionTitle: sectionTitle,
     );
     _cachedDiscountDeals = result;
+    _discountDealsCacheKey = cacheKey;
     _discountDealsLastFetch = now;
     return result;
   }
@@ -630,7 +674,10 @@ class RestaurantRepository {
       _cachedBanners.clear();
       _bannersLastFetch = null;
       _cachedDiscountDeals = null;
+      _discountDealsCacheKey = null;
       _discountDealsLastFetch = null;
+      _cachedDiscountConfig = null;
+      _discountConfigLastFetch = null;
     }
   }
 
