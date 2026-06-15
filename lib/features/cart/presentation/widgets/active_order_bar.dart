@@ -8,6 +8,7 @@ import '../screens/awaiting_payment_page.dart';
 import '../screens/order_complete_page.dart';
 import '../screens/order_tracking_page.dart';
 import '../../data/cart_manager.dart';
+import '../screens/revise_order_page.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ActiveOrderBar extends StatefulWidget {
@@ -270,6 +271,15 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
 
   void _handleOrderTap(ActiveOrderItem order) {
     final s = order.orderStatus;
+    if (order.isRevised) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReviseOrderPage(orderId: order.orderId),
+        ),
+      );
+      return;
+    }
     if (s == 2 || s == -1) {
       Navigator.push(
         context,
@@ -424,6 +434,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
   }
 
   String _getStatusText(BuildContext context, ActiveOrderItem order) {
+    if (order.isRevised || order.isSlipRequested) {
+      return context.tr('active_order.action_needed');
+    }
     switch (order.orderStatus) {
       case 0:
         return context.tr('active_order.awaiting_confirmation');

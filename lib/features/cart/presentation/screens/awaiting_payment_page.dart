@@ -18,8 +18,8 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
-import 'order_cancel_by_user_page.dart';
 import 'revise_order_page.dart';
+import '../widgets/revise_unavailable_items_section.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -82,13 +82,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
 
-    // Always show Step 1 first, unconditionally
-    _showUploadSection = false;
+    // When the shop has explicitly requested a new payment slip (Revise
+    // Payment), jump straight to the upload step so the user can re-upload a
+    // correct/clearer slip. Otherwise show Step 1 (the QR) first.
+    final initialOrder = ActiveOrderState.instance.getOrder(widget.orderId);
+    final bool startOnUpload = initialOrder?.isSlipRequested == true;
+    _showUploadSection = startOnUpload;
 
     // Ensure the global state is synced so it doesn't cause weird UI jumps
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ActiveOrderState.instance.setShowUploadSection(
-        false,
+        startOnUpload,
         orderId: widget.orderId,
       );
     });
@@ -625,6 +629,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (_isCancelling) return;
     setState(() => _isCancelling = true);
 
+    // Snapshot the shop/order details before cancelling. cancelActiveOrder()
+    // clears the order from state on success, so we must capture it first for
+    // the cancellation screen to have data to show.
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+
     try {
       final success = await ActiveOrderState.instance.cancelActiveOrder(
         orderId: widget.orderId,
@@ -634,7 +643,21 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         _hasNavigated = true;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const OrderCancelByUserPage()),
+          MaterialPageRoute(
+            builder: (_) => OrderCancelPage(
+              orderId: order?.orderId ?? widget.orderId ?? '',
+              reason: order?.cancelReason,
+              shopId: order?.shopId,
+              shopName: order?.shopNameEn ??
+                  order?.shopName ??
+                  order?.restaurantName ??
+                  order?.storeName,
+              shopNameMm: order?.shopNameMm,
+              shopNameTh: order?.shopNameTh,
+              shopLogo: order?.shopLogo ?? order?.logoPath,
+              shopImageUrl: order?.shopImageUrl,
+            ),
+          ),
         );
       } else if (mounted) {
         AppDialog.showToast(
@@ -872,7 +895,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               const SizedBox(height: 10),
 
               if (order?.isRevised == true) ...[
-                _buildReviseBanner(order?.reviseReason),
+                _buildReviseBanner(order),
+                const SizedBox(height: 14),
+              ] else if (isReupload) ...[
+                _buildSlipRequestBanner(order?.reviseReason),
                 const SizedBox(height: 14),
               ],
 
@@ -1418,7 +1444,57 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (mounted) setState(() {});
   }
 
-  Widget _buildReviseBanner(String? reason) {
+  /// Shown when the shop sent the order back asking for a new payment slip.
+  /// Surfaces the shop's reason so the user understands what to fix before
+  /// re-uploading.
+  Widget _buildSlipRequestBanner(String? reason) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(PhosphorIcons.warningCircle,
+                  color: Colors.orange.shade800, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.tr('payment.reupload_reason_title'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            (reason != null && reason.trim().isNotEmpty)
+                ? reason
+                : context.tr('payment.receipt_requested'),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviseBanner(ActiveOrderItem? order) {
+    final resolved = order?.resolvedReviseInfo ??
+        (items: const <String>[], reason: '');
+    final reasonText = resolved.reason.isNotEmpty
+        ? resolved.reason
+        : context.tr('revise.banner_message');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1446,10 +1522,21 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ],
           ),
           const SizedBox(height: 6),
+          if (resolved.items.isNotEmpty) ...[
+            ReviseUnavailableItemsSection(items: resolved.items),
+            const SizedBox(height: 8),
+            Text(
+              context.tr('revise.reason_title'),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade900,
+              ),
+            ),
+            const SizedBox(height: 2),
+          ],
           Text(
-            (reason != null && reason.trim().isNotEmpty)
-                ? reason
-                : context.tr('revise.banner_message'),
+            reasonText,
             style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
           ),
           const SizedBox(height: 12),

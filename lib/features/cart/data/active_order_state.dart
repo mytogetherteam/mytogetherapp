@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,7 @@ import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../order/data/repositories/order_repository.dart';
+import '../presentation/utils/revise_reason_parser.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -27,6 +29,8 @@ class ActiveOrderItem {
   // Set when the shop sends the order back for revision (status REVISED).
   bool isRevised;
   String? reviseReason;
+  List<String> unavailableItemNames;
+  String? unavailableItemReason;
   List<CartItem> orderItems;
   bool showUploadSection;
   bool isPaymentChecking;
@@ -87,6 +91,8 @@ class ActiveOrderItem {
     this.cancelReason,
     this.isRevised = false,
     this.reviseReason,
+    this.unavailableItemNames = const [],
+    this.unavailableItemReason,
     this.orderItems = const [],
     this.showUploadSection = false,
     this.isPaymentChecking = false,
@@ -135,6 +141,16 @@ class ActiveOrderItem {
         : value;
   }
 
+  /// Unavailable item names + shop reason, preferring structured `reviseItems`
+  /// from the API and falling back to the combined `reviseReason` string.
+  ({List<String> items, String reason}) get resolvedReviseInfo =>
+      ReviseReasonParser.resolve(
+        reviseReason: reviseReason,
+        structuredItemNames:
+            unavailableItemNames.isNotEmpty ? unavailableItemNames : null,
+        structuredItemReason: unavailableItemReason,
+      );
+
   Map<String, dynamic> toJson() => {
     'orderId': orderId,
     'storeName': storeName,
@@ -151,6 +167,8 @@ class ActiveOrderItem {
     'cancelReason': cancelReason,
     'isRevised': isRevised,
     'reviseReason': reviseReason,
+    'unavailableItemNames': unavailableItemNames,
+    'unavailableItemReason': unavailableItemReason,
     'showUploadSection': showUploadSection,
     'isPaymentChecking': isPaymentChecking,
     'routeDistanceKm': routeDistanceKm,
@@ -200,6 +218,11 @@ class ActiveOrderItem {
     cancelReason: json['cancelReason'],
     isRevised: json['isRevised'] ?? false,
     reviseReason: json['reviseReason'],
+    unavailableItemNames: (json['unavailableItemNames'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [],
+    unavailableItemReason: json['unavailableItemReason']?.toString(),
     showUploadSection: json['showUploadSection'] ?? false,
     isPaymentChecking: json['isPaymentChecking'] ?? false,
     routeDistanceKm: json['routeDistanceKm'],
@@ -588,6 +611,17 @@ class ActiveOrderState extends ChangeNotifier {
       item.cancelReason = _parseSafeString(data['cancelReason']);
     }
 
+    if (data['reviseItems'] != null) {
+      final revisePayload =
+          ReviseReasonParser.parseReviseItemsPayload(data['reviseItems']);
+      if (revisePayload.names.isNotEmpty) {
+        item.unavailableItemNames = revisePayload.names;
+      }
+      if (revisePayload.reason != null && revisePayload.reason!.isNotEmpty) {
+        item.unavailableItemReason = revisePayload.reason;
+      }
+    }
+
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopNameEn'] != null) {
@@ -716,13 +750,21 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _idleProgressSaveTimer;
+
   void updateIdleProgress(double val, {String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
+    // Update the in-memory value every frame (cheap), but throttle the disk
+    // write. This is called from a 60fps animation listener, so calling
+    // saveToPrefs() here directly meant ~60 JSON-encode + SharedPreferences
+    // writes per second — a major jank source on the order tracking screen.
+    // The value is only ever read once (to seed the animation on re-entry),
+    // so persisting it at most once per second is more than enough.
     _orders[targetId]!.idleSolidProgress = val;
-    // Don't notify listeners here to avoid rebuild loops during animation
-    // Just save the state
-    saveToPrefs();
+    // Don't notify listeners here to avoid rebuild loops during animation.
+    if (_idleProgressSaveTimer?.isActive ?? false) return;
+    _idleProgressSaveTimer = Timer(const Duration(seconds: 1), saveToPrefs);
   }
 
 
@@ -834,6 +876,9 @@ class ActiveOrderState extends ChangeNotifier {
         item.showUploadSection = true;
         item.isPaymentChecking = false;
         item.isSlipRequested = true;
+        // Keep the shop's reason so the re-upload screen can explain why a new
+        // slip is needed (avoids confusing the user).
+        item.reviseReason = reviseReason ?? item.reviseReason;
         break;
       case 'PAID':
       case 'PAYMENT_VERIFIED':
@@ -867,6 +912,13 @@ class ActiveOrderState extends ChangeNotifier {
     // Clear the revise flag once the order moves past REVISED.
     if (upStatus != 'REVISED') {
       item.isRevised = false;
+      item.unavailableItemNames = [];
+      item.unavailableItemReason = null;
+    }
+
+    // The reason is shown on both the REVISED and the PAYMENT_SLIP_REQUESTED
+    // screens, so only drop it once the order leaves both of those states.
+    if (upStatus != 'REVISED' && upStatus != 'PAYMENT_SLIP_REQUESTED') {
       item.reviseReason = null;
     }
   }

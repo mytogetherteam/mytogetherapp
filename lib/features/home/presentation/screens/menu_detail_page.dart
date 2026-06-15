@@ -50,6 +50,7 @@ class MenuDetailPage extends StatefulWidget {
     this.initialInstructions,
     this.cartItemId,
     this.isFavorite,
+    this.onItemAdded,
   });
 
   final int? initialVariantId;
@@ -57,6 +58,12 @@ class MenuDetailPage extends StatefulWidget {
   final String? initialInstructions;
   final String? cartItemId;
   final bool? isFavorite;
+
+  /// Invoked after a successful add-to-cart instead of the default
+  /// `Navigator.pop`. The search flow uses this to redirect the user to the
+  /// restaurant detail page so they can keep adding items, rather than
+  /// dropping them back on the search results.
+  final void Function(BuildContext context)? onItemAdded;
 
   @override
   State<MenuDetailPage> createState() => _MenuDetailPageState();
@@ -119,6 +126,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   void _onCartChanged() {
     if (mounted) {
       _syncWithCart();
+    }
+  }
+
+  /// Default navigation after a successful add-to-cart. When [widget.onItemAdded]
+  /// is supplied (search flow) it runs instead of popping, so the user is taken
+  /// to the restaurant detail page to keep adding items.
+  void _afterAddToCart() {
+    if (!mounted) return;
+    final onAdded = widget.onItemAdded;
+    if (onAdded != null) {
+      onAdded(context);
+    } else {
+      Navigator.pop(context);
     }
   }
 
@@ -1026,9 +1046,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         operationCompleted = true;
                                         setState(() => _isAddingToCart = false);
                                         if (!context.mounted) return;
-                                        Navigator.pop(
-                                          context,
-                                        ); // Pop immediately for snappy feel
+                                        // Pop immediately for snappy feel
+                                        // (or redirect via onItemAdded).
+                                        _afterAddToCart();
                                       }
                                       return;
                                     }
@@ -1043,7 +1063,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         _isAddingToCart = false;
                                       });
                                       if (!context.mounted) return;
-                                      Navigator.pop(context);
+                                      _afterAddToCart();
                                     }
                                   } catch (e) {
                                     if (mounted) {
@@ -1104,9 +1124,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                 () => _isAddingToCart = false,
                                               );
                                               if (!context.mounted) return;
-                                              Navigator.pop(
-                                                context,
-                                              ); // Pop details page
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
@@ -1118,6 +1135,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                       AppColors.primary,
                                                 ),
                                               );
+                                              // Pop details page (or redirect
+                                              // via onItemAdded).
+                                              _afterAddToCart();
                                             }
                                           } catch (retryErr) {
                                             if (mounted) {

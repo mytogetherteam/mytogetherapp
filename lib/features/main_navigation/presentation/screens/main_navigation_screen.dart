@@ -10,6 +10,7 @@ import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
 import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
+import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
@@ -31,18 +32,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   int? _lastStatus;
   final Set<String> _notifiedCancelledOrders = {};
-
-  final List<Widget> _screens = const [
-    HomePage(),
-    FoodPage(),
-    OrderHistoryPage(),
-    NewsPage(),
-    ProfilePage(),
-  ];
+  late List<Widget> _screens;
+  String _screenLocaleKey = '';
 
   @override
   void initState() {
     super.initState();
+    _rebuildScreens();
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
     );
@@ -60,6 +56,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         _checkAndRequestPermissions();
       });
     });
+  }
+
+  /// Tab bodies are keyed by locale so a language change rebuilds copy, but
+  /// ordinary parent rebuilds (e.g. from unrelated notifiers) do not recreate
+  /// every tab and re-trigger their initState/fetch logic.
+  void _rebuildScreens() {
+    final localeKey = LocaleController.instance.language.code;
+    _screenLocaleKey = localeKey;
+    _screens = <Widget>[
+      HomePage(key: ValueKey('home_$localeKey')),
+      FoodPage(key: ValueKey('food_$localeKey')),
+      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
+      NewsPage(key: ValueKey('news_$localeKey')),
+      ProfilePage(key: ValueKey('profile_$localeKey')),
+    ];
   }
 
   Future<void> _checkAndRequestPermissions() async {
@@ -183,6 +194,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     NavigationController.instance.tabChangeRequest.removeListener(
       _onTabChangeRequested,
     );
+    ActiveOrderState.instance.removeListener(_onOrderStateChanged);
     super.dispose();
   }
 
@@ -194,7 +206,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[BOOT] Building MainNavigationScreen...');
+    // Rebuild tab list only when the active language changes.
+    final localeKey = LocaleController.instance.language.code;
+    if (localeKey != _screenLocaleKey) {
+      _rebuildScreens();
+    }
+
     return Scaffold(
       body: Stack(
         children: [IndexedStack(index: _currentIndex, children: _screens)],

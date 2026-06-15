@@ -16,7 +16,7 @@ import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
-import 'order_cancel_by_user_page.dart';
+import 'order_cancel_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -1328,6 +1328,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 () => {},
                               ); // Rebuild button to show disabled state
 
+                              // Snapshot shop/order details before cancelling.
+                              // cancelActiveOrder() clears the order from state
+                              // on success, so capture it now for the
+                              // cancellation screen.
+                              final cancelledOrder = ActiveOrderState.instance
+                                  .getOrder(ActiveOrderState.instance.orderId);
+
                               // Delayed loading indicator (500ms)
                               Future.delayed(
                                 const Duration(milliseconds: 500),
@@ -1359,18 +1366,31 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                   widget.store.nameKey,
                                 );
 
-                                // Navigation → user-cancellation apology page.
+                                // Navigation → order cancellation screen.
                                 // Dismiss the confirm sheet, then replace the
                                 // tracking page (via the State's context, not
-                                // the sheet's) with the apology screen.
+                                // the sheet's) with the cancellation screen.
                                 if (context.mounted) Navigator.pop(context);
                                 if (mounted) {
                                   _statusPollTimer?.cancel();
                                   Navigator.pushReplacement(
                                     this.context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          const OrderCancelByUserPage(),
+                                      builder: (_) => OrderCancelPage(
+                                        orderId: cancelledOrder?.orderId ?? '',
+                                        reason: cancelledOrder?.cancelReason,
+                                        shopId: cancelledOrder?.shopId,
+                                        shopName: cancelledOrder?.shopNameEn ??
+                                            cancelledOrder?.shopName ??
+                                            cancelledOrder?.restaurantName ??
+                                            cancelledOrder?.storeName,
+                                        shopNameMm: cancelledOrder?.shopNameMm,
+                                        shopNameTh: cancelledOrder?.shopNameTh,
+                                        shopLogo: cancelledOrder?.shopLogo ??
+                                            cancelledOrder?.logoPath,
+                                        shopImageUrl:
+                                            cancelledOrder?.shopImageUrl,
+                                      ),
                                     ),
                                   );
                                 }

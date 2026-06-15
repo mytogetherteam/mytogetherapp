@@ -57,6 +57,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _isLoadingBanners = true;
   int _refreshKey = 0;
   int _lostFoundCount = 0;
+  DateTime? _lastResumeRefreshAt;
 
   @override
   void initState() {
@@ -193,9 +194,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Refresh the discount config + carousel when the app resumes, so admin
-    // changes (which invalidate the server cache immediately) show up.
+    // Refresh discount/nearby sections when the app resumes so admin changes
+    // show up — but debounce: on web, tab visibility can fire resumed/inactive
+    // in quick succession and was reloading every section repeatedly.
     if (state == AppLifecycleState.resumed && mounted) {
+      final now = DateTime.now();
+      if (_lastResumeRefreshAt != null &&
+          now.difference(_lastResumeRefreshAt!) < const Duration(seconds: 30)) {
+        return;
+      }
+      _lastResumeRefreshAt = now;
       RestaurantRepository.instance.clearCache();
       setState(() => _refreshKey++);
     }

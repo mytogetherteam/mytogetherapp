@@ -8,7 +8,6 @@ import '../screens/restaurant_detail_page.dart';
 import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../../../../core/location/location_service.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
@@ -30,18 +29,14 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
     try {
-      // Resolve location consistently with the nearby list page:
-      // saved active location first, then cached GPS, then the shared default.
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = LocationService().cachedPosition;
-      final lat =
-          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon =
-          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+      // Shared resolver keeps this in sync with the nearby map page and food
+      // search (saved active location → device GPS → default).
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
 
       return await RestaurantRepository.instance.getNearbyShops(
-        lat: lat,
-        lon: lon,
+        lat: coords.lat,
+        lon: coords.lon,
         radius: 5.0,
         size: 10,
       ).timeout(const Duration(seconds: 10));

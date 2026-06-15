@@ -9,10 +9,13 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
 import '../../data/cart_manager.dart';
 import '../../../order/data/repositories/order_repository.dart';
+import '../widgets/revise_unavailable_items_section.dart';
 
 /// Lets the user review and re-submit an order the shop has marked REVISED.
 /// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.updateItems).
 class ReviseOrderPage extends StatefulWidget {
+  static bool isCurrentlyVisible = false;
+
   final String orderId;
 
   const ReviseOrderPage({super.key, required this.orderId});
@@ -24,17 +27,25 @@ class ReviseOrderPage extends StatefulWidget {
 class _ReviseOrderPageState extends State<ReviseOrderPage> {
   // Mutable editable copy of the order's items, keyed by CartItem.id.
   late final List<_EditableItem> _items;
-  late final String? _reviseReason;
+  late final ({List<String> items, String reason}) _reviseInfo;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+    ReviseOrderPage.isCurrentlyVisible = true;
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
-    _reviseReason = order?.reviseReason;
+    _reviseInfo = order?.resolvedReviseInfo ??
+        (items: const <String>[], reason: '');
     _items = (order?.orderItems ?? const <CartItem>[])
         .map((c) => _EditableItem(source: c, quantity: c.quantity))
         .toList();
+  }
+
+  @override
+  void dispose() {
+    ReviseOrderPage.isCurrentlyVisible = false;
+    super.dispose();
   }
 
   double get _estimatedTotal => _items.fold(
@@ -163,6 +174,10 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
   }
 
   Widget _buildReasonBanner() {
+    final reasonText = _reviseInfo.reason.isNotEmpty
+        ? _reviseInfo.reason
+        : context.tr('revise.reason_default');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -180,6 +195,10 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_reviseInfo.items.isNotEmpty) ...[
+                  ReviseUnavailableItemsSection(items: _reviseInfo.items),
+                  const SizedBox(height: 8),
+                ],
                 Text(
                   context.tr('revise.reason_title'),
                   style: GoogleFonts.poppins(
@@ -190,9 +209,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  (_reviseReason != null && _reviseReason.trim().isNotEmpty)
-                      ? _reviseReason
-                      : context.tr('revise.reason_default'),
+                  reasonText,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.black87,

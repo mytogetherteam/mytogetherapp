@@ -19,7 +19,7 @@ class AuthInterceptor extends QueuedInterceptor {
         final newToken = await authService.performRefresh(dio);
         if (newToken != null) {
           options.headers['Authorization'] = 'Bearer $newToken';
-          WebSocketService().connect(force: true);
+          WebSocketService().reconnectIfTokenChanged(newToken);
         }
       } catch (e) {
         // If proactive refresh fails (e.g. timeout), we don't log out yet.
@@ -58,7 +58,7 @@ class AuthInterceptor extends QueuedInterceptor {
           final retryOptions = err.requestOptions;
           retryOptions.headers['Authorization'] = 'Bearer $newToken';
           
-          WebSocketService().connect(force: true);
+          WebSocketService().reconnectIfTokenChanged(newToken);
           
           final retryResponse = await dio.fetch(retryOptions);
           handler.resolve(retryResponse);

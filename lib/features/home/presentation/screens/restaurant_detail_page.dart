@@ -88,6 +88,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   StreamSubscription? _shopProfileUpdateSubscription;
   late final VoidCallback _wsReconnectListener;
   bool _wsReady = false;
+  Timer? _refreshDebounce;
 
   Restaurant? _currentRestaurant;
 
@@ -214,7 +215,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       debugPrint(
         ' [RestaurantDetailPage] WebSocket reconnected — refreshing menu...',
       );
-      _handleRefresh();
+      _scheduleRefresh();
     };
     WebSocketService().connectionStatus.addListener(_wsReconnectListener);
 
@@ -225,7 +226,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         debugPrint(
           ' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...',
         );
-        _handleRefresh();
+        _scheduleRefresh();
       }
     });
 
@@ -238,8 +239,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         debugPrint(
           ' [RestaurantDetailPage] Real-time shop-profile update detected. Refreshing header...',
         );
-        _handleRefresh();
+        _scheduleRefresh();
       }
+    });
+  }
+
+  /// Coalesce bursty WS/reconnect events into a single refresh.
+  void _scheduleRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(seconds: 2), () {
+      if (mounted) _handleRefresh();
     });
   }
 
@@ -423,6 +432,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     WishlistRepository.instance.removeListener(_onWishlistChanged);
     _menuUpdateSubscription?.cancel();
     _shopProfileUpdateSubscription?.cancel();
+    _refreshDebounce?.cancel();
     WebSocketService().connectionStatus.removeListener(_wsReconnectListener);
     _scrollController.dispose();
     // Clear shop context

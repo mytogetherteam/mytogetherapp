@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
-import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -222,13 +221,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   }
 
   Future<({double lat, double lon})> _resolveLocation() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    if (activeLoc?.latitude != null && activeLoc?.longitude != null) {
-      return (lat: activeLoc!.latitude!, lon: activeLoc.longitude!);
-    }
-    final pos = LocationService().cachedPosition ??
-        await LocationService().getCurrentPosition();
-    return (lat: pos.latitude, lon: pos.longitude);
+    // Shared resolver keeps the food search origin consistent with the home
+    // nearby rail and the nearby map page.
+    return UserLocationRepository.instance.resolveActiveCoordinates();
   }
 
   String _imageUrl(String? path) {
@@ -370,26 +365,28 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     }
   }
 
-  void _openRestaurant(SearchShopDto shop) {
+  RestaurantDetailPage _buildRestaurantDetail(SearchShopDto shop) {
     final s = shop.shop;
+    return RestaurantDetailPage(
+      id: s.id.toString(),
+      name: s.name,
+      category: s.category ?? context.tr('common.restaurant'),
+      rating: s.rating,
+      distance: context.trArgs('food.distance_km',
+          {'distance': s.distance.toStringAsFixed(1)}),
+      imagePath: _imageUrl(s.bannerImageUrl),
+      logoPath: _imageUrl(s.logoUrl),
+      deliveryTime:
+          s.estimatedTime ?? context.tr('food.default_delivery_time'),
+      status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
+      isFavorite: s.isFavorite,
+    );
+  }
+
+  void _openRestaurant(SearchShopDto shop) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => RestaurantDetailPage(
-          id: s.id.toString(),
-          name: s.name,
-          category: s.category ?? context.tr('common.restaurant'),
-          rating: s.rating,
-          distance: context.trArgs('food.distance_km',
-              {'distance': s.distance.toStringAsFixed(1)}),
-          imagePath: _imageUrl(s.bannerImageUrl),
-          logoPath: _imageUrl(s.logoUrl),
-          deliveryTime:
-              s.estimatedTime ?? context.tr('food.default_delivery_time'),
-          status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
-          isFavorite: s.isFavorite,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => _buildRestaurantDetail(shop)),
     );
   }
 
@@ -406,6 +403,15 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           rating: shop.shop.rating,
           reviewCount: shop.shop.reviewCount,
           restaurantName: shop.shop.name,
+          // After adding to cart from a search result, take the user to the
+          // restaurant page (replacing the item page) so they can add more,
+          // instead of dropping them back on the search results.
+          onItemAdded: (menuContext) {
+            Navigator.pushReplacement(
+              menuContext,
+              MaterialPageRoute(builder: (_) => _buildRestaurantDetail(shop)),
+            );
+          },
         ),
       ),
     );

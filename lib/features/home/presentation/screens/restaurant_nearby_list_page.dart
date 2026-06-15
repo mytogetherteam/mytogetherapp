@@ -19,7 +19,6 @@ import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
-import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class RestaurantNearbyListPage extends StatefulWidget {
@@ -288,67 +287,59 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   }
 
   void _fetchRestaurants() {
-    // Resolve location consistently with the home nearby section:
-    // saved active location first, then cached GPS, then the shared default.
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = LocationService().cachedPosition;
-    final lat =
-        activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-    final lon =
-        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+    _restaurantsFuture = _loadRestaurants();
+  }
 
-    _restaurantsFuture = RestaurantRepository.instance
-        .getNearbyShops(
-          lat: lat,
-          lon: lon,
-          radius: _selectedRadius,
-        )
-        .then((restaurants) {
-          _updateMarkers(restaurants);
+  Future<List<Restaurant>> _loadRestaurants() async {
+    // Shared resolver keeps the origin consistent with the home nearby rail
+    // and the food search (saved active location → device GPS → default).
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
 
-          // Smoothly transition from skeletal loader to map when map is ready
-          // (handled in onMapCreated for speed)
+    final restaurants = await RestaurantRepository.instance.getNearbyShops(
+      lat: coords.lat,
+      lon: coords.lon,
+      radius: _selectedRadius,
+    );
 
-          // AUTO-ZOOM to show all restaurants on load
-          if (restaurants.isNotEmpty) {
-            final validPoints = restaurants
-                .where((r) => r.latitude != null && r.longitude != null)
-                .map((r) => LatLng(r.latitude!, r.longitude!))
-                .toList();
+    _updateMarkers(restaurants);
 
-            if (validPoints.isNotEmpty) {
-              // Slightly longer delay to ensure map is ready
-              Future.delayed(const Duration(milliseconds: 500), () async {
-                if (mounted) {
-                  final GoogleMapController controller =
-                      await _mapController.future;
+    final validPoints = restaurants
+        .where((r) => r.latitude != null && r.longitude != null)
+        .map((r) => LatLng(r.latitude!, r.longitude!))
+        .toList();
 
-                  final southwestLat = validPoints
-                      .map((p) => p.latitude)
-                      .reduce(min);
-                  final southwestLon = validPoints
-                      .map((p) => p.longitude)
-                      .reduce(min);
-                  final northeastLat = validPoints
-                      .map((p) => p.latitude)
-                      .reduce(max);
-                  final northeastLon = validPoints
-                      .map((p) => p.longitude)
-                      .reduce(max);
-                  final bounds = LatLngBounds(
-                    southwest: LatLng(southwestLat, southwestLon),
-                    northeast: LatLng(northeastLat, northeastLon),
-                  );
+    // Move the camera to reflect where we actually searched: fit all results
+    // when present, otherwise center on the queried origin (instead of the
+    // hardcoded initial Bangkok view, which made an empty list look wrong).
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+      final GoogleMapController controller = await _mapController.future;
 
-                  controller.animateCamera(
-                    CameraUpdate.newLatLngBounds(bounds, 100.0),
-                  );
-                }
-              });
-            }
-          }
-          return restaurants;
-        });
+      if (validPoints.length == 1) {
+        controller.animateCamera(
+          CameraUpdate.newLatLngZoom(validPoints.first, 15.0),
+        );
+      } else if (validPoints.isNotEmpty) {
+        final bounds = LatLngBounds(
+          southwest: LatLng(
+            validPoints.map((p) => p.latitude).reduce(min),
+            validPoints.map((p) => p.longitude).reduce(min),
+          ),
+          northeast: LatLng(
+            validPoints.map((p) => p.latitude).reduce(max),
+            validPoints.map((p) => p.longitude).reduce(max),
+          ),
+        );
+        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100.0));
+      } else {
+        controller.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(coords.lat, coords.lon), 13.0),
+        );
+      }
+    });
+
+    return restaurants;
   }
 
   /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
@@ -811,12 +802,20 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final sheetHeight = MediaQuery.of(context).size.height * 0.52;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Google Maps Widget
-          Positioned.fill(
+          // Google Maps Widget — constrained to the area ABOVE the bottom sheet
+          // (with a small overlap behind its rounded corners). Keeping the map
+          // platform view out from under the list prevents list-scroll gestures
+          // from leaking into the map (which made it pan/zoom while scrolling).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: sheetHeight - 40,
             child: Stack(
               children: [
                 GoogleMap(
@@ -826,7 +825,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     zoom: 14.0,
                   ),
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).size.height * 0.52,
+                    bottom: 56,
                     top: MediaQuery.of(context).padding.top,
                   ),
                   onMapCreated: (GoogleMapController controller) async {
@@ -937,7 +936,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
           // Route Pill Button - shown above restaurant list when a restaurant is selected
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.52 + 16,
+            bottom: sheetHeight + 16,
             left: 0,
             right: 0,
             child: Center(
@@ -1072,7 +1071,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.52,
+            height: sheetHeight,
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(

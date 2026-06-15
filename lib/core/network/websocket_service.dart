@@ -52,6 +52,12 @@ class WebSocketService {
   // means missed order/chat updates until the app is restarted.
   static const int _maxReconnectDelaySeconds = 20;
   Timer? _reconnectTimer;
+  // Guard against onWebSocketDone + onDisconnect + onWebSocketError all firing
+  // for the same drop and scheduling parallel reconnect timers (reconnect storm).
+  bool _reconnectScheduled = false;
+  // Skip auto-reconnect when we deliberately tear down for force-reconnect / token swap.
+  bool _intentionalTeardown = false;
+  String? _connectedToken;
 
   /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
   /// (see `src/modules/events/events.gateway.ts`). Mirrors [EnvConfig.wsUrl].
@@ -65,6 +71,7 @@ class WebSocketService {
     // pending retry so a stale timer can't tear down the fresh connection.
     _shouldReconnect = true;
     _reconnectTimer?.cancel();
+    _reconnectScheduled = false;
 
     if (_stompClient != null) {
       // Re-create the client unless it's already connected and the caller
@@ -73,12 +80,14 @@ class WebSocketService {
       if (force || !isConnected) {
         debugPrint(' [WS] Re-creating STOMP client...');
         try {
+          _intentionalTeardown = true;
           _stompClient?.deactivate();
         } catch (_) {}
+        _intentionalTeardown = false;
         _stompClient = null;
-        // deactivate() above may have fired onDisconnect → _scheduleReconnect;
-        // drop that timer since we're about to connect immediately.
+        // deactivate() may fire onWebSocketDone; drop any timer it scheduled.
         _reconnectTimer?.cancel();
+        _reconnectScheduled = false;
       } else {
         _stompClient?.activate();
         return;
@@ -104,15 +113,11 @@ class WebSocketService {
         },
         onWebSocketError: (dynamic error) {
           debugPrint(' 🚨 [WS] WebSocket Error: $error');
-          _isConnecting = false;
-          connectionStatus.value = false;
-          _scheduleReconnect();
+          _handleConnectionLost();
         },
         onWebSocketDone: () {
           debugPrint(' 🔌 [WS] WebSocket Connection Closed.');
-          _isConnecting = false;
-          connectionStatus.value = false;
-          _scheduleReconnect();
+          _handleConnectionLost();
         },
         onDebugMessage: (String message) {
           debugPrint(' ⚙️ [WS] [STOMP] $message');
@@ -133,21 +138,45 @@ class WebSocketService {
         webSocketConnectHeaders: {},
         onDisconnect: (frame) {
           debugPrint(' [WS] Disconnected.');
-          connectionStatus.value = false;
-          _scheduleReconnect();
+          // onWebSocketDone already handles reconnect; avoid double-scheduling.
         },
-        heartbeatOutgoing: const Duration(milliseconds: 10000),
-        heartbeatIncoming: const Duration(milliseconds: 10000),
-        reconnectDelay: const Duration(seconds: 3),
+        // Client-side heartbeat preference (server currently negotiates 0,0).
+        heartbeatOutgoing: const Duration(milliseconds: 30000),
+        heartbeatIncoming: const Duration(milliseconds: 30000),
+        // App owns reconnection with backoff; disable the library's fixed 3s retry
+        // so we never get two competing reconnect timers.
+        reconnectDelay: Duration.zero,
       ),
     );
 
     _stompClient?.activate();
   }
 
+  /// Single entry point when the socket drops. Coalesces duplicate callbacks
+  /// (onWebSocketDone + onDisconnect + onWebSocketError) into one reconnect.
+  void _handleConnectionLost() {
+    if (_intentionalTeardown) return;
+    _isConnecting = false;
+    if (connectionStatus.value) {
+      connectionStatus.value = false;
+    }
+    _connectedToken = null;
+    _scheduleReconnect();
+  }
+
+  /// Reconnect only when the JWT actually changed (e.g. after token refresh).
+  /// Avoids tearing down a healthy socket on every HTTP request near expiry.
+  void reconnectIfTokenChanged(String newToken) {
+    if (newToken.isEmpty) return;
+    if (_connectedToken == newToken && isConnected) return;
+    connect(force: true);
+  }
+
   void _scheduleReconnect() {
     if (!_shouldReconnect) return;
+    if (_reconnectScheduled) return;
 
+    _reconnectScheduled = true;
     _reconnectAttempts++;
     // Linear backoff capped at [_maxReconnectDelaySeconds]; keep retrying
     // indefinitely so the socket always recovers (and missed updates get
@@ -161,16 +190,21 @@ class WebSocketService {
     );
 
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(delay, () => connect(force: true));
+    _reconnectTimer = Timer(delay, () {
+      _reconnectScheduled = false;
+      connect(force: true);
+    });
   }
 
   void onConnect(dynamic frame) {
     debugPrint(' [WS]   Connected!');
     _isConnecting = false;
     _reconnectAttempts = 0;
+    _reconnectScheduled = false;
+    _reconnectTimer?.cancel();
     connectionStatus.value = true;
-
-    final token = AuthService().accessToken;
+    _connectedToken = AuthService().accessToken;
+    final token = _connectedToken;
     final headers = {if (token != null) 'Authorization': 'Bearer $token'};
 
     // Private per-user order updates: /user/queue/shop-order-updates
@@ -385,9 +419,13 @@ class WebSocketService {
 
   void disconnect() {
     _shouldReconnect = false;
+    _reconnectScheduled = false;
     _reconnectTimer?.cancel();
+    _intentionalTeardown = true;
     _stompClient?.deactivate();
+    _intentionalTeardown = false;
     _stompClient = null;
+    _connectedToken = null;
     connectionStatus.value = false;
   }
 
