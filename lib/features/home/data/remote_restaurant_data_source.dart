@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -43,45 +45,46 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  Future<ApiResponseSliceShopListDto> getNearbyShops(ShopRequestDto request) async {
-    try {
-      // Backend (public): GET /api/shops/nearby (PublicController.getNearbyShops).
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/nearby',
-        queryParameters: request.toJson(),
-      );
-      
-      if (response.statusCode == 200) {
-        return ApiResponseSliceShopListDto.fromJson(response.data);
-      } else {
-        throw Exception('Failed to load nearby shops: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
-    try {
-      // Backend (public): GET /api/shops/:id (PublicController.getShopById).
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$id',
-        queryParameters: {
-          'lat': ?lat,
-          'lon': ?lon,
-        },
+    if (!AuthService().isLoggedIn) {
+      throw DioException(
+        requestOptions: RequestOptions(
+          path: '${ApiClient.apiPrefix}/user/shop-profile/$id',
+        ),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(),
+          statusCode: 401,
+          statusMessage: 'Login required for shop details',
+        ),
       );
-      
+    }
+
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/shop-profile/$id',
+      );
+
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        if (data['data'] != null) {
-          // Save to local storage for future use (e.g. payment types in order summary)
-          ShopStorage.saveShop(id, data['data'] as Map<String, dynamic>);
+        final envelope = response.data as Map<String, dynamic>;
+        final data = envelope['data'];
+        if (data is Map<String, dynamic>) {
+          ShopStorage.saveShop(id, data);
+          final distanceKm = _distanceKmFromShop(data, lat: lat, lon: lon);
+          final detail = ShopDetailDto.fromUserProfileJson(
+            data,
+            distanceKm: distanceKm,
+          );
+          return ApiResponseShopDetailDto(
+            success: envelope['success'] == true,
+            message: envelope['message']?.toString() ?? '',
+            data: detail,
+            status: response.statusCode ?? 200,
+            timestamp: envelope['timestamp']?.toString() ?? '',
+          );
         }
-        return ApiResponseShopDetailDto.fromJson(data);
-      } else {
-        throw Exception('Failed to load shop details: ${response.statusCode}');
       }
+      throw Exception('Failed to load shop details: ${response.statusCode}');
     } catch (e) {
       rethrow;
     }
@@ -112,24 +115,22 @@ class RemoteRestaurantDataSource {
     int page = 0,
     int size = 20,
   }) async {
-    // Backend (public): GET /api/feed/trending-items
-    // (PublicController.getTrendingItems). It returns the trending payload
-    // directly (not wrapped in `data`).
-    final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/feed/trending-items',
-      queryParameters: {
-        'latitude': lat,
-        'longitude': lon,
-        'radiusKm': radiusKm,
-        'page': page,
-        'size': size,
-      },
+    if (!AuthService().isLoggedIn) {
+      return TrendingSectionDto(
+        title: '',
+        description: '',
+        items: const [],
+        totalCount: 0,
+      );
+    }
+
+    return SearchRepository.instance.searchTrendingNearby(
+      latitude: lat,
+      longitude: lon,
+      radiusKm: radiusKm,
+      page: page + 1,
+      size: size,
     );
-    final raw = response.data;
-    final data = raw is Map && raw['data'] is Map
-        ? raw['data'] as Map<String, dynamic>
-        : raw as Map<String, dynamic>;
-    return TrendingSectionDto.fromJson(data);
   }
 
   Future<ApiResponseSliceShopFeedItemDto> getShopMenu({
@@ -167,8 +168,8 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  /// Fetches one of the 5 shop feed types.
-  /// [feedType] must be one of: right-now, for-you, hot-deals, trending, popular-dishes
+  /// Shop feed sections built from `GET /api/user/menu-items?shopId=`.
+  /// [feedType]: right-now | for-you | hot-deals | trending | popular-dishes
   Future<ShopFeedSectionDto> getShopFeed({
     required int shopId,
     required String feedType,
@@ -178,16 +179,15 @@ class RemoteRestaurantDataSource {
     }
 
     try {
-      // Backend (public): GET /api/shops/:id/feed/:feedType
-      // (PublicController.getShopFeed). No auth required.
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/shops/$shopId/feed/$feedType',
-      );
-      // Explicitly throw on non-2xx so FutureBuilder snapshot.hasError = true
-      if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
-        throw Exception('Feed request failed: ${response.statusCode} for $feedType');
-      }
-      return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
+      final rawItems = await _fetchMenuItemMaps(shopId: shopId, size: 100);
+      final filtered = _filterMenuMapsForFeed(rawItems, feedType);
+      final maps = filtered.isNotEmpty || feedType == 'right-now'
+          ? filtered
+          : rawItems.take(12).toList();
+      final items = maps
+          .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+          .toList();
+      return ShopFeedSectionDto(items: items);
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
       if (statusCode == 401 || statusCode == 403) {
@@ -197,8 +197,8 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  /// Fetches one of the 5 food tab feed types.
-  /// [feedType] must be one of: right-now, for-you, hot-deals, trending, popular-dishes
+  /// Food-tab feeds via authenticated user menu/search endpoints only.
+  /// [feedType]: explore | right-now | for-you | hot-deals | trending | popular-dishes
   Future<ShopFeedSectionDto> getFoodTabFeed({
     required String feedType,
     required double lat,
@@ -211,95 +211,58 @@ class RemoteRestaurantDataSource {
       return ShopFeedSectionDto(items: []);
     }
 
-    // "Explore menu" uses the authenticated paginated catalog endpoint
-    // (GET /api/user/menu-items) instead of the public right-now feed.
-    if (feedType == 'explore') {
-      try {
-        final explore = await getExploreMenuItems(
-          page: page + 1, // user endpoint is 1-based
-          size: size,
-        );
-        if (explore.items.isNotEmpty) return explore;
-        // On a "load more" page, an empty result means the catalog is
-        // exhausted. Return it so pagination terminates instead of falling
-        // through to the public feed, which would keep returning items and
-        // loop forever. The fall-through only makes sense for the first page.
-        if (page > 0) return explore;
-      } catch (_) {
-        // Fall through to the public feed below.
-      }
+    if (feedType == 'explore' || feedType == 'right-now') {
+      return getExploreMenuItems(page: page + 1, size: size);
     }
 
-    // Trending nearby uses the authenticated meal-type-aware user search endpoint.
-    // Fall back to the public feed when empty or on error.
     if (feedType == 'trending') {
-      try {
-        final section = await SearchRepository.instance.searchTrendingNearby(
-          latitude: lat,
-          longitude: lon,
-          radiusKm: radiusKm,
-          page: page + 1,
-          size: size,
-        );
-        if (section.items.isNotEmpty) {
-          return ShopFeedSectionDto(
-            items: section.items.map(ShopFeedItemDto.fromTrendingItem).toList(),
-          );
-        }
-        // End of the paginated list: stop instead of looping the public feed.
-        if (page > 0) return ShopFeedSectionDto(items: const []);
-      } catch (_) {
-        // Fall through to the public feed below.
-      }
-    }
-
-    // Personalized "for-you" uses the authenticated, location-aware endpoint.
-    // Fall back to the public feed if it's empty (e.g. no order history) or errors.
-    if (feedType == 'for-you') {
-      try {
-        final personalized = await getForYouFeed(
-          lat: lat,
-          lon: lon,
-          radiusKm: radiusKm,
-          page: page + 1, // user endpoint is 1-based
-          size: size,
-        );
-        if (personalized.items.isNotEmpty) return personalized;
-        // End of the paginated list: stop instead of looping the public feed.
-        if (page > 0) return personalized;
-      } catch (_) {
-        // Fall through to the public feed below.
-      }
-    }
-
-    // The public feed has no "explore" type; fall back to the latest items.
-    final publicFeedType = feedType == 'explore' ? 'right-now' : feedType;
-
-    try {
-      // Backend (public): GET /api/menu/feed/:feedType
-      // (PublicController.getMenuFeed). Latitude/longitude are not used by
-      // the backend yet but are forwarded for future compatibility.
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/menu/feed/$publicFeedType',
-        queryParameters: {
-          'latitude': lat,
-          'longitude': lon,
-          'radiusKm': radiusKm,
-          'page': page,
-          'size': size,
-        },
+      final section = await SearchRepository.instance.searchTrendingNearby(
+        latitude: lat,
+        longitude: lon,
+        radiusKm: radiusKm,
+        page: page + 1,
+        size: size,
       );
-      if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
-        throw Exception('Feed request failed: ${response.statusCode} for $feedType');
-      }
-      return ShopFeedSectionDto.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      if (statusCode == 401 || statusCode == 403) {
-        return ShopFeedSectionDto(items: []);
-      }
-      rethrow;
+      return ShopFeedSectionDto(
+        items: section.items.map(ShopFeedItemDto.fromTrendingItem).toList(),
+      );
     }
+
+    if (feedType == 'for-you') {
+      return getForYouFeed(
+        lat: lat,
+        lon: lon,
+        radiusKm: radiusKm,
+        page: page + 1,
+        size: size,
+      );
+    }
+
+    if (feedType == 'hot-deals') {
+      final deals = await getDiscountDeals(
+        lat: lat,
+        lon: lon,
+        radiusKm: radiusKm,
+        page: page + 1,
+        size: size,
+      );
+      return ShopFeedSectionDto(items: deals.items);
+    }
+
+    if (feedType == 'popular-dishes') {
+      final rawItems = await _fetchMenuItemMaps(page: page + 1, size: size);
+      final recommended = rawItems
+          .where((m) => m['isRecommended'] == true)
+          .toList();
+      final maps = recommended.isNotEmpty ? recommended : rawItems;
+      return ShopFeedSectionDto(
+        items: maps
+            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .toList(),
+      );
+    }
+
+    return ShopFeedSectionDto(items: const []);
   }
 
   /// Personalized "For You" menu items for the current user.
@@ -453,32 +416,10 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  /// Full master menu category catalog for search filters.
-  /// Backend (public): GET /api/menu/master/categories (MasterController).
+  /// Master menu categories for search filters via the user popular endpoint.
+  /// Backend: `GET /api/user/master-menu-categories/popular`.
   Future<List<MasterCategoryDto>> getMasterCategories() async {
-    try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/menu/master/categories',
-      );
-      final raw = response.data;
-      final list = raw is Map ? (raw['data'] ?? raw['content']) : raw;
-      if (list is List) {
-        final categories = list
-            .whereType<Map<String, dynamic>>()
-            .map(MasterCategoryDto.fromJson)
-            .where((c) => c.id > 0 && c.isActive)
-            .toList();
-        categories.sort(
-          (a, b) => (a.displayOrder ?? 999).compareTo(b.displayOrder ?? 999),
-        );
-        return categories;
-      }
-      return [];
-    } on DioException catch (e) {
-      final code = e.response?.statusCode;
-      if (code == 401 || code == 403 || code == 404) return [];
-      rethrow;
-    }
+    return getPopularMasterCategories(limit: 100);
   }
 
   /// Popular master menu categories ranked by completed orders.
@@ -508,27 +449,14 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  /// Cuisine types available for filtering search results.
-  /// Backend (public): GET /api/master/cuisine-types (MasterController).
-  /// The response is wrapped by the global TransformInterceptor as
-  /// `{ data: [...] }`. Returns an empty list when the endpoint is unavailable.
+  /// Cuisine types for search filters, sampled from visible shop profiles.
   Future<List<CuisineTypeDto>> getCuisineTypes() async {
+    if (!AuthService().isLoggedIn) return [];
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/master/cuisine-types',
-      );
-      final raw = response.data;
-      final list = raw is Map ? (raw['data'] ?? raw['content']) : raw;
-      if (list is List) {
-        return list
-            .whereType<Map<String, dynamic>>()
-            .map(CuisineTypeDto.fromJson)
-            .toList();
-      }
-      return [];
+      return await SearchRepository.instance.listCuisineTypes();
     } on DioException catch (e) {
       final code = e.response?.statusCode;
-      if (code == 401 || code == 403 || code == 404) return [];
+      if (code == 401 || code == 403) return [];
       rethrow;
     }
   }
@@ -579,26 +507,13 @@ class RemoteRestaurantDataSource {
   }
 
   Future<FoodDetailDto?> getFoodById(int id) async {
-    try {
-      // Backend (public): GET /api/foods/:id (PublicController.getFoodById).
-      final response = await _apiClient.dio.get('${ApiClient.apiPrefix}/foods/$id');
-      if (response.statusCode == 200) {
-        final apiResponse = ApiResponseFoodDetailDto.fromJson(response.data);
-        return apiResponse.data;
-      }
-      return null;
-    } catch (e) {
-      rethrow;
-    }
+    return getUserMenuItemById(id);
   }
 
   /// Backend (auth): GET /api/user/menu-items/:id
-  /// (UserMenuItemsController.findOne). Returns a published menu item with
-  /// the current user's favorite state. Falls back to the public food
-  /// endpoint when the user is not logged in.
   Future<FoodDetailDto?> getUserMenuItemById(int id) async {
     if (!AuthService().isLoggedIn) {
-      return getFoodById(id);
+      return null;
     }
     try {
       final response = await _apiClient.dio.get(
@@ -612,7 +527,7 @@ class RemoteRestaurantDataSource {
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {
-        return getFoodById(id);
+        return null;
       }
       rethrow;
     }
@@ -651,27 +566,10 @@ class RemoteRestaurantDataSource {
   // ── Reviews ───────────────────────────────────────────────────────────────
 
   Future<List<ShopReviewDto>> getShopReviews(int shopId) async {
-    // Preferred (auth): GET /api/user/shop/:id/reviews
-    // (UserReviewsController.findAllForShop) — visible shops only, paginated
-    // envelope: { success, data: { content: [...], totalElements, ... } }.
-    if (AuthService().isLoggedIn) {
-      try {
-        final response = await _apiClient.dio.get(
-          '${ApiClient.apiPrefix}/user/shop/$shopId/reviews',
-        );
-        if (response.statusCode == 200) {
-          return _parseReviewList(response.data);
-        }
-      } on DioException catch (e) {
-        final code = e.response?.statusCode;
-        // Fall back to the public endpoint for auth issues; rethrow otherwise.
-        if (code != 401 && code != 403) rethrow;
-      }
-    }
+    if (!AuthService().isLoggedIn) return [];
 
-    // Fallback (public): GET /api/shops/:id/reviews. Envelope: { success, data: [...] }.
     final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/shops/$shopId/reviews',
+      '${ApiClient.apiPrefix}/user/shop/$shopId/reviews',
     );
     if (response.statusCode == 200) {
       return _parseReviewList(response.data);
@@ -705,29 +603,94 @@ class RemoteRestaurantDataSource {
   }
 
   Future<ShopReviewSummaryDto> getShopReviewSummary(int shopId) async {
-    // Preferred (auth): GET /api/user/shop/:id/reviews/summary
-    // (UserReviewsController.getShopSummary). Envelope: { success, data: {...} }.
-    if (AuthService().isLoggedIn) {
-      try {
-        final response = await _apiClient.dio.get(
-          '${ApiClient.apiPrefix}/user/shop/$shopId/reviews/summary',
-        );
-        if (response.statusCode == 200) {
-          return ShopReviewSummaryDto.fromJson(response.data);
-        }
-      } on DioException catch (e) {
-        final code = e.response?.statusCode;
-        if (code != 401 && code != 403) rethrow;
-      }
+    if (!AuthService().isLoggedIn) {
+      throw Exception('Login required for review summary');
     }
 
-    // Fallback (public): GET /api/shops/:id/reviews/summary.
     final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/shops/$shopId/reviews/summary',
+      '${ApiClient.apiPrefix}/user/shop/$shopId/reviews/summary',
     );
     if (response.statusCode == 200) {
       return ShopReviewSummaryDto.fromJson(response.data);
     }
     throw Exception('Failed to load review summary');
   }
+
+  Future<List<Map<String, dynamic>>> _fetchMenuItemMaps({
+    int? shopId,
+    int page = 1,
+    int size = 20,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/menu-items',
+      queryParameters: {
+        'page': page,
+        'size': size,
+        'shopId': ?shopId,
+      },
+    );
+    final raw = response.data;
+    final data = raw is Map ? raw['data'] : null;
+    final content = data is Map ? data['content'] : null;
+    if (content is List) {
+      return content.whereType<Map<String, dynamic>>().toList();
+    }
+    return const [];
+  }
+
+  List<Map<String, dynamic>> _filterMenuMapsForFeed(
+    List<Map<String, dynamic>> items,
+    String feedType,
+  ) {
+    switch (feedType) {
+      case 'hot-deals':
+        return items.where((m) => m['isHotDeal'] == true).toList();
+      case 'popular-dishes':
+      case 'for-you':
+        return items.where((m) => m['isRecommended'] == true).toList();
+      case 'trending':
+        final sorted = List<Map<String, dynamic>>.from(items);
+        sorted.sort((a, b) {
+          final ar = (a['reviewCount'] as num?)?.toInt() ?? 0;
+          final br = (b['reviewCount'] as num?)?.toInt() ?? 0;
+          return br.compareTo(ar);
+        });
+        return sorted;
+      case 'right-now':
+      default:
+        return items;
+    }
+  }
+
+  double? _distanceKmFromShop(
+    Map<String, dynamic> shop, {
+    double? lat,
+    double? lon,
+  }) {
+    if (lat == null || lon == null) return null;
+    final slat = shop['latitude'];
+    final slon = shop['longitude'];
+    if (slat == null || slon == null) return null;
+    return _haversineKm(
+      lat,
+      lon,
+      (slat as num).toDouble(),
+      (slon as num).toDouble(),
+    );
+  }
+
+  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusKm = 6371.0;
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_deg2rad(lat1)) *
+            math.cos(_deg2rad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  double _deg2rad(double deg) => deg * (math.pi / 180.0);
 }

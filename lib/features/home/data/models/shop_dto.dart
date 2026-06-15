@@ -510,6 +510,86 @@ class ShopDetailDto {
           .toList(),
     );
   }
+
+  /// Maps `GET /api/user/shop-profile/:id` (enriched user-visible shop) into
+  /// the detail shape the UI already expects from the removed public endpoint.
+  factory ShopDetailDto.fromUserProfileJson(
+    Map<String, dynamic> json, {
+    double? distanceKm,
+  }) {
+    final normalized = Map<String, dynamic>.from(json);
+
+    final galleries = json['galleries'];
+    if (galleries is List && galleries.isNotEmpty) {
+      normalized['photos'] = galleries
+          .whereType<Map>()
+          .map((g) => g['imageUrl'] ?? g['image'])
+          .whereType<String>()
+          .toList();
+    }
+
+    final shopPaymentMethods = json['shopPaymentMethods'];
+    if (shopPaymentMethods is List) {
+      normalized['paymentTypes'] = shopPaymentMethods
+          .whereType<Map<String, dynamic>>()
+          .where((row) => row['isActive'] != false)
+          .map((row) {
+            final pm = row['paymentMethod'] as Map<String, dynamic>?;
+            final name = pm?['name']?.toString() ?? '';
+            return {
+              'paymentMethodId': row['paymentMethodId'] ?? pm?['id'],
+              'paymentMethodName': name,
+              'paymentMethodCode': name.trim().toUpperCase().replaceAll(
+                RegExp(r'\s+'),
+                '_',
+              ),
+              'isActive': row['isActive'] ?? true,
+              'qrImageUrl': row['qr'],
+              'accountNumber': row['accountNumber'],
+              'accountName': row['accountName'],
+              'iconUrl': pm?['iconUrl'],
+            };
+          })
+          .toList();
+    }
+
+    final shopCategory = json['shopCategory'];
+    if (shopCategory is Map) {
+      normalized['category'] ??= shopCategory['nameEn'];
+    }
+
+    final shopCuisines = json['shopCuisines'];
+    if (shopCuisines is List && shopCuisines.isNotEmpty) {
+      final first = shopCuisines.first;
+      if (first is Map && first['cuisineType'] is Map) {
+        normalized['cuisineType'] = first['cuisineType'];
+      }
+    }
+
+    final menuItems = json['menuItems'];
+    if (menuItems is List) {
+      final dishes = menuItems.whereType<Map<String, dynamic>>().toList();
+      normalized['popularDishes'] = dishes
+          .where((m) => m['isRecommended'] == true)
+          .take(12)
+          .toList();
+      normalized['hotDeals'] = dishes
+          .where((m) => m['isHotDeal'] == true)
+          .take(12)
+          .toList();
+      normalized['recommendations'] = normalized['popularDishes'];
+    }
+
+    normalized['rating'] = json['ratingAvg'] ?? json['rating'];
+    normalized['reviewCount'] = json['ratingCount'] ?? json['reviewCount'];
+    if (distanceKm != null) {
+      normalized['distance'] = distanceKm;
+    } else {
+      normalized['distance'] = json['distanceKm'] ?? json['distance'] ?? 0;
+    }
+
+    return ShopDetailDto.fromJson(normalized);
+  }
 }
 
 class DeliveryTierDto {

@@ -15,7 +15,9 @@ class ApiClient {
 
   /// Global API prefix used by every route on the new backend.
   /// User-facing routes live under `/api/user/...`, public routes
-  /// (shops/foods/banners/etc.) live directly under `/api/...`.
+  /// REST endpoints for shops, menus, banners, etc. live under `/api/user/...`
+  /// or other authenticated routes (the legacy public `/api/shops/*` module
+  /// was removed from the backend).
   static String get apiPrefix => EnvConfig.apiPrefix;
 
   static final ApiClient _instance = ApiClient._internal();

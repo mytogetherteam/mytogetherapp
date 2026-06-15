@@ -73,6 +73,8 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
       );
       if (!mounted) return;
       if (ok) {
+        await ActiveOrderState.instance.syncActiveOrder(orderId: widget.orderId);
+        if (!mounted) return;
         AppDialog.showToast(context, context.tr('revise.resubmitted'));
         Navigator.pop(context, true);
       } else {

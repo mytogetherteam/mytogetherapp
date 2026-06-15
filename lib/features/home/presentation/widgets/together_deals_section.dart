@@ -64,8 +64,8 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
         if (deals.items.isNotEmpty) return deals;
       }
 
-      // Fallback for guests or when no discounted items are nearby: reuse the
-      // generic hot-deals feed so the strip still shows something.
+      // When discount endpoint returns nothing, try the hot-deals food-tab feed
+      // (also backed by user menu-items/discount data).
       final fallback = await RestaurantRepository.instance
           .getFoodTabFeed(
             feedType: 'hot-deals',

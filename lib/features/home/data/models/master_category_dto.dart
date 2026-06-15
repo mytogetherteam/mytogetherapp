@@ -1,9 +1,8 @@
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
 
-/// Master menu category from either:
-/// - `GET /api/menu/master/categories` (full catalog, for filters)
-/// - `GET /api/user/master-menu-categories/popular` (ranked by orders)
+/// Master menu category from
+/// `GET /api/user/master-menu-categories/popular` (user-visible catalog).
 class MasterCategoryDto {
   final int id;
   final String nameEn;

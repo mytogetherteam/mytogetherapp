@@ -758,15 +758,16 @@ class ActiveOrderState extends ChangeNotifier {
         clearOrder(orderId: targetId);
         return true;
       }
-    } catch (e) {
+
+      // Non-success HTTP — keep the active order in local state.
+      _userCancelledOrderIds.remove(sanitizedOrderId);
       _cancellingOrders.remove(targetId);
-      clearOrder(orderId: targetId);
-      return true; 
+      return false;
+    } catch (e) {
+      _userCancelledOrderIds.remove(sanitizedOrderId);
+      _cancellingOrders.remove(targetId);
+      return false;
     }
-    
-    _cancellingOrders.remove(targetId);
-    clearOrder(orderId: targetId);
-    return true;
   }
 
   void clearOrder({String? orderId}) {

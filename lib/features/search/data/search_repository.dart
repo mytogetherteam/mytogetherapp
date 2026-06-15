@@ -193,6 +193,13 @@ class SearchRepository {
   /// Backend: `GET /api/user/shop-profile/:id` (UserShopProfileController.findOne).
   /// Returns null when the response body has no usable `data` object.
   Future<ShopListItemDto?> getShopProfileById(int id) async {
+    final shop = await getShopProfileRawById(id);
+    if (shop == null) return null;
+    return ShopListItemDto.fromJson(shop);
+  }
+
+  /// Raw enriched shop profile payload from `GET /api/user/shop-profile/:id`.
+  Future<Map<String, dynamic>?> getShopProfileRawById(int id) async {
     _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/shop-profile/$id',
@@ -200,9 +207,50 @@ class SearchRepository {
     final body = response.data;
     final shop = body is Map ? body['data'] : null;
     if (shop is Map<String, dynamic>) {
-      return ShopListItemDto.fromJson(shop);
+      return shop;
     }
     return null;
+  }
+
+  /// Full shop detail for restaurant pages (`ShopDetailDto`).
+  Future<ShopDetailDto?> getShopDetailById(
+    int id, {
+    double? distanceKm,
+  }) async {
+    final shop = await getShopProfileRawById(id);
+    if (shop == null) return null;
+    return ShopDetailDto.fromUserProfileJson(shop, distanceKm: distanceKm);
+  }
+
+  /// Active cuisine types derived from visible shop profiles. The backend has
+  /// no user-facing cuisine catalog yet, so we sample shop detail payloads.
+  Future<List<CuisineTypeDto>> listCuisineTypes({int maxShops = 25}) async {
+    _requireAuth();
+    final listing = await listShopProfiles(page: 1, size: maxShops);
+    final ids = listing.shops.map((s) => s.shop.id).toList();
+    final cuisines = <int, CuisineTypeDto>{};
+
+    for (var i = 0; i < ids.length; i += 5) {
+      final chunk = ids.skip(i).take(5);
+      final profiles = await Future.wait(
+        chunk.map((id) => getShopProfileRawById(id)),
+      );
+      for (final shop in profiles) {
+        if (shop == null) continue;
+        final shopCuisines = shop['shopCuisines'];
+        if (shopCuisines is! List) continue;
+        for (final row in shopCuisines.whereType<Map>()) {
+          final cuisine = row['cuisineType'];
+          if (cuisine is! Map<String, dynamic>) continue;
+          final dto = CuisineTypeDto.fromJson(cuisine);
+          if (dto.id > 0) cuisines[dto.id] = dto;
+        }
+      }
+    }
+
+    final list = cuisines.values.toList()
+      ..sort((a, b) => a.displayName.compareTo(b.displayName));
+    return list;
   }
 
   void _requireAuth() {

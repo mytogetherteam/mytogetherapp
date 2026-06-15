@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -1339,16 +1340,26 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               );
 
                               try {
-                                // 1. Backend call
-                                await ActiveOrderState.instance
+                                final success = await ActiveOrderState.instance
                                     .cancelActiveOrder();
 
-                                // 2. Clear local store
+                                if (!success) {
+                                  if (mounted) {
+                                    AppDialog.showToast(
+                                      this.context,
+                                      this.context.tr('payment.cancel_failed'),
+                                      isError: true,
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                // Clear local store
                                 CartManager.instance.removeStore(
                                   widget.store.nameKey,
                                 );
 
-                                // 3. Navigation → user-cancellation apology page.
+                                // Navigation → user-cancellation apology page.
                                 // Dismiss the confirm sheet, then replace the
                                 // tracking page (via the State's context, not
                                 // the sheet's) with the apology screen.

@@ -124,18 +124,8 @@ class RestaurantRepository {
             .map((dto) => _mapShopDtoToDomain(dto.shop))
             .toList();
       } else {
-        final request = ShopRequestDto(
-          lat: lat,
-          lon: lon,
-          radius: radius,
-          page: page,
-          size: size,
-          search: search,
-        );
-        final response = await _remoteDataSource.getNearbyShops(request);
-        results = response.data.content
-            .map((dto) => _mapShopDtoToDomain(dto))
-            .toList();
+        // Public nearby API was removed; guests must sign in to browse shops.
+        results = [];
       }
 
       // Update cache
@@ -236,7 +226,8 @@ class RestaurantRepository {
     );
   }
 
-  /// Full master menu category catalog (`GET /api/menu/master/categories`).
+  /// Master menu categories for search filters
+  /// (`GET /api/user/master-menu-categories/popular`).
   Future<List<MasterCategoryDto>> getMasterCategories() {
     return _remoteDataSource.getMasterCategories();
   }
@@ -248,7 +239,7 @@ class RestaurantRepository {
     return _remoteDataSource.getPopularMasterCategories(limit: limit);
   }
 
-  /// Cuisine types for search filtering (`GET /api/master/cuisine-types`).
+  /// Cuisine types for search filtering (sampled from user shop profiles).
   Future<List<CuisineTypeDto>> getCuisineTypes() {
     return _remoteDataSource.getCuisineTypes();
   }
@@ -300,51 +291,8 @@ class RestaurantRepository {
   }
 
   Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
-    // When signed in, the authenticated shop-profile endpoint
-    // (GET /api/user/shop-profile/:id) is the source of truth for the shop's
-    // current logo and favorite state — the public `/shops/:id` payload can
-    // carry a stale `logoUrl`. We still use `/shops/:id` for the rich detail
-    // fields (operating hours, features, address, payment) that the profile
-    // list shape doesn't include, then overlay the authoritative logo/favorite.
-    if (AuthService().isLoggedIn) {
-      try {
-        final profile = await SearchRepository.instance.getShopProfileById(id);
-        if (profile != null) {
-          final dist = (lat != null &&
-                  lon != null &&
-                  profile.latitude != null &&
-                  profile.longitude != null)
-              ? _haversineKm(lat, lon, profile.latitude!, profile.longitude!)
-              : null;
-          final base = _mapShopDtoToDomain(profile, distanceKmOverride: dist);
-          try {
-            final detail = await _remoteDataSource.getShopById(
-              id,
-              lat: lat,
-              lon: lon,
-            );
-            final rich = _mapShopDetailDtoToDomain(detail.data);
-            // The public detail payload omits description and `distanceKm`, so
-            // take both from the authenticated profile (which carries the
-            // haversine-computed distance) when present.
-            return rich.copyWith(
-              logoPath: base.logoPath.isNotEmpty ? base.logoPath : rich.logoPath,
-              isFavorite: base.isFavorite,
-              distance: dist != null ? base.distance : rich.distance,
-              descriptionEn: base.descriptionEn ?? rich.descriptionEn,
-              descriptionMm: base.descriptionMm ?? rich.descriptionMm,
-              descriptionTh: base.descriptionTh ?? rich.descriptionTh,
-            );
-          } catch (_) {
-            // No rich detail available — the profile alone still has the
-            // correct logo and favorite state.
-            return base;
-          }
-        }
-      } catch (_) {
-        // Profile lookup failed (e.g. not visible to this user) — fall back to
-        // the public detail endpoint below.
-      }
+    if (!AuthService().isLoggedIn) {
+      throw Exception('Login required to view shop details');
     }
 
     final response = await _remoteDataSource.getShopById(
@@ -353,8 +301,6 @@ class RestaurantRepository {
       lon: lon,
     );
     final detail = _mapShopDetailDtoToDomain(response.data);
-    // The public `/shops/:id` payload doesn't include `distanceKm`, so derive
-    // it client-side when we have both the origin and the shop coordinates.
     if (lat != null &&
         lon != null &&
         detail.latitude != null &&
@@ -406,30 +352,19 @@ class RestaurantRepository {
 
     TrendingSectionDto result;
     if (AuthService().isLoggedIn) {
-      try {
-        result = await SearchRepository.instance.searchTrendingNearby(
-          latitude: lat,
-          longitude: lon,
-          radiusKm: radiusKm,
-          page: page + 1, // user endpoint is 1-based
-          size: size,
-        );
-      } catch (_) {
-        result = await _remoteDataSource.getTrendingItems(
-          lat: lat,
-          lon: lon,
-          radiusKm: radiusKm,
-          page: page,
-          size: size,
-        );
-      }
-    } else {
-      result = await _remoteDataSource.getTrendingItems(
-        lat: lat,
-        lon: lon,
+      result = await SearchRepository.instance.searchTrendingNearby(
+        latitude: lat,
+        longitude: lon,
         radiusKm: radiusKm,
-        page: page,
+        page: page + 1,
         size: size,
+      );
+    } else {
+      result = TrendingSectionDto(
+        title: '',
+        description: '',
+        items: const [],
+        totalCount: 0,
       );
     }
 
@@ -657,8 +592,7 @@ class RestaurantRepository {
     return _remoteDataSource.getFoodById(id);
   }
 
-  /// Auth-aware menu item fetch (includes favorite state). Falls back to the
-  /// public food endpoint when not logged in.
+  /// Auth-aware menu item fetch (includes favorite state). Requires login.
   Future<FoodDetailDto?> getUserFoodById(int id) async {
     return _remoteDataSource.getUserMenuItemById(id);
   }
