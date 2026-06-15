@@ -239,7 +239,7 @@ class RestaurantRepository {
     return _remoteDataSource.getPopularMasterCategories(limit: limit);
   }
 
-  /// Cuisine types for search filtering (sampled from user shop profiles).
+  /// Cuisine types for search filtering (`GET /api/user/cuisine-types`).
   Future<List<CuisineTypeDto>> getCuisineTypes() {
     return _remoteDataSource.getCuisineTypes();
   }

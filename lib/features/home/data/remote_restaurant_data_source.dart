@@ -449,7 +449,8 @@ class RemoteRestaurantDataSource {
     }
   }
 
-  /// Cuisine types for search filters, sampled from visible shop profiles.
+  /// Cuisine types for search filters.
+  /// Backend (auth): GET /api/user/cuisine-types (UserCuisineController).
   Future<List<CuisineTypeDto>> getCuisineTypes() async {
     if (!AuthService().isLoggedIn) return [];
     try {
