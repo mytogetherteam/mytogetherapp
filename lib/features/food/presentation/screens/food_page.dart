@@ -97,6 +97,8 @@ class _FoodPageState extends State<FoodPage> {
         activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
     final lon =
         activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final double statusBarHeight = isIOS ? MediaQuery.of(context).padding.top : 0.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -121,13 +123,13 @@ class _FoodPageState extends State<FoodPage> {
                                   Image.asset(
                                     'assets/images/food_header_bg.webp',
                                     width: double.infinity,
-                                    height: 240,
+                                    height: (isIOS ? 260.0 : 240.0) + statusBarHeight,
                                     fit: BoxFit.cover,
                                   ),
                                   Align(
-                                    alignment: Alignment.centerLeft,
+                                    alignment: Alignment.bottomLeft,
                                     child: Padding(
-                                      padding: const EdgeInsets.only(left: 24, bottom: 80),
+                                      padding: EdgeInsets.only(left: 24, bottom: isIOS ? 150 : 115),
                                       child: Text(
                                         context.tr('food.banner_slogan'),
                                         style: TextStyle(
@@ -147,7 +149,7 @@ class _FoodPageState extends State<FoodPage> {
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                    padding: EdgeInsets.fromLTRB(16, 0, 16, isIOS ? 56 : 32),
                                     child: SearchBoxTrigger(
                                       hintText: context.tr('food.deliver_prompt'),
                                       height: 44,

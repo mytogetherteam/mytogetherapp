@@ -491,7 +491,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     SliverAppBar(
-                      expandedHeight: 400,
+                      expandedHeight: 320,
                       pinned: false,
                       stretch: true,
                       backgroundColor: Colors.transparent,
@@ -587,7 +587,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 20), // Overlap space
+                            const SizedBox(height: 10), // Overlap space
                             // Action Buttons
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -789,7 +789,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                 }
 
                 // Calculate dynamic position
-                double cardTop = 300 - scrollOffset;
+                double cardTop = 240 - scrollOffset;
 
                 // Calculate dynamic opacity (fade out as it moves up)
                 double opacity = 1.0;

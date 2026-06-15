@@ -252,7 +252,7 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 50,
+                        height: MediaQuery.of(context).padding.top + (Theme.of(context).platform == TargetPlatform.iOS ? 16 : 42),
                       ), // Push content below fixed header
                       // Search Bar
                       Padding(
@@ -371,6 +371,7 @@ class _HomePageState extends State<HomePage> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
                               child: GridView.count(
+                                padding: const EdgeInsets.only(top: 16),
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount:
@@ -635,8 +636,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Container(
                         padding: EdgeInsets.only(
-                          top: MediaQuery.of(context).padding.top + 8,
-                          bottom: 8,
+                          top: MediaQuery.of(context).padding.top + 2,
+                          bottom: 6,
                         ),
                         // Top Row: Gift Icon, Logo, Notification Bell
                         child: Padding(
