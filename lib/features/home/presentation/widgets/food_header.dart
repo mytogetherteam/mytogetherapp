@@ -163,7 +163,7 @@ class _FoodHeaderState extends State<FoodHeader> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 8, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 2, 16, 8),
       decoration: BoxDecoration(
         color: widget.isScrolled ? null : Colors.transparent,
         gradient: widget.isScrolled ? AppColors.primaryGradient : null,
