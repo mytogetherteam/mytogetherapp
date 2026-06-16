@@ -682,6 +682,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               shopNameTh: order?.shopNameTh,
               shopLogo: order?.shopLogo ?? order?.logoPath,
               shopImageUrl: order?.shopImageUrl,
+              cancelledByUser: true,
             ),
           ),
         );

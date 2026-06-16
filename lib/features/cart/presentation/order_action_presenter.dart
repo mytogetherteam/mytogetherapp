@@ -201,6 +201,7 @@ class OrderActionPresenter {
           shopNameTh: order.shopNameTh,
           shopLogo: order.shopLogo ?? order.logoPath,
           shopImageUrl: order.shopImageUrl,
+          cancelledByUser: true,
         ),
       ),
     );

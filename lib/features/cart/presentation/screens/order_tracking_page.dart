@@ -1390,6 +1390,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             cancelledOrder?.logoPath,
                                         shopImageUrl:
                                             cancelledOrder?.shopImageUrl,
+                                        cancelledByUser: true,
                                       ),
                                     ),
                                   );

@@ -957,12 +957,20 @@ class ActiveOrderState extends ChangeNotifier {
         break;
       case 'PAYMENT_SLIP_REQUESTED':
         item.orderStatus = 1;
-        item.showUploadSection = true;
         item.isPaymentChecking = false;
-        item.isSlipRequested = true;
-        // Keep the shop's reason so the re-upload screen can explain why a new
-        // slip is needed (avoids confusing the user).
-        item.reviseReason = reviseReason ?? item.reviseReason;
+        // PAYMENT_SLIP_REQUESTED covers two different moments:
+        // 1) Shop confirmed the order → customer uploads a slip for the first time.
+        // 2) Shop called requestSlip → customer must re-upload (reviseReason set).
+        // Only (2) should surface the "new receipt requested" UI.
+        final slipReuploadRequested =
+            reviseReason != null && reviseReason.trim().isNotEmpty;
+        item.isSlipRequested = slipReuploadRequested;
+        item.showUploadSection = slipReuploadRequested;
+        if (slipReuploadRequested) {
+          item.reviseReason = reviseReason;
+        } else {
+          item.reviseReason = null;
+        }
         break;
       case 'PAID':
       case 'PAYMENT_VERIFIED':

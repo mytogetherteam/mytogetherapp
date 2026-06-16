@@ -19,6 +19,9 @@ class OrderCancelPage extends StatelessWidget {
   final String? shopNameTh;
   final String? shopLogo;
   final String? shopImageUrl;
+  /// When true, shows the user-initiated cancellation copy instead of the
+  /// "cancelled by the shop" message.
+  final bool cancelledByUser;
 
   const OrderCancelPage({
     super.key,
@@ -30,6 +33,7 @@ class OrderCancelPage extends StatelessWidget {
     this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
+    this.cancelledByUser = false,
   });
 
   String _getFullUrl(String? path) {
@@ -157,7 +161,9 @@ class OrderCancelPage extends StatelessWidget {
                       const SizedBox(height: 24),
                       
                       Text(
-                        context.tr('order_cancel.sorry'),
+                        cancelledByUser
+                            ? context.tr('order_cancel_user.title')
+                            : context.tr('order_cancel.sorry'),
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -167,7 +173,9 @@ class OrderCancelPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        context.tr('order_cancel.message'),
+                        cancelledByUser
+                            ? context.tr('order_cancel_user.message')
+                            : context.tr('order_cancel.message'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           color: Colors.grey[600],
@@ -244,8 +252,10 @@ class OrderCancelPage extends StatelessWidget {
                         const SizedBox(height: 24),
                       ],
                       
-                      // Reason Section
-                      if (reason != null && reason!.isNotEmpty) ...[
+                      // Reason Section — only when the shop cancelled the order.
+                      if (!cancelledByUser &&
+                          reason != null &&
+                          reason!.isNotEmpty) ...[
                         Container(
                           padding: const EdgeInsets.all(20),
                           width: double.infinity,
