@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/utils/file_url_util.dart';
 import 'cart_repository.dart';
 import 'models/cart_dto.dart';
 
@@ -86,6 +87,7 @@ class CartStore {
   final double total;
   final String distance;
   final String time;
+  final String? shopImageUrl;
 
   String get name => LocaleController.instance.localizedOr(
         nameKey,
@@ -104,6 +106,7 @@ class CartStore {
     this.total = 0,
     this.distance = '2 km',
     this.time = '20 Mins',
+    this.shopImageUrl,
   });
 
   bool get isClosed => nameKey == 'Lotteria' || nameKey == 'Ice Berry'; // Mock data
@@ -191,6 +194,7 @@ class CartManager extends ChangeNotifier {
   }
 
   CartStore _mapDtoToStore(CartDto cart) {
+    final shopImage = FileUrlUtil.resolve(cart.shopImageUrl);
     return CartStore(
       shopId: cart.shopId,
       nameKey: cart.shopNameKey.isNotEmpty ? cart.shopNameKey : 'Unknown Store',
@@ -198,7 +202,10 @@ class CartManager extends ChangeNotifier {
       nameMm: cart.shopNameMm,
       nameTh: cart.shopNameTh,
       total: cart.total,
-      items: cart.items.map((item) => CartItem(
+      shopImageUrl: shopImage.isEmpty ? null : shopImage,
+      items: cart.items.map((item) {
+        final image = FileUrlUtil.resolve(item.imageUrl);
+        return CartItem(
         id: item.id.toString(),
         menuItemId: item.menuItemId,
         restaurantId: cart.shopId?.toString() ?? '0',
@@ -208,8 +215,8 @@ class CartManager extends ChangeNotifier {
         titleTh: item.nameTh,
         price: item.price,
         total: item.total,
-        imagePath: item.imageUrl ?? '',
-        imageUrl: item.imageUrl,
+        imagePath: image,
+        imageUrl: image.isEmpty ? null : image,
         quantity: item.quantity,
         options: item.optionNames?.join(', '),
         optionIds: item.optionIds,
@@ -219,7 +226,8 @@ class CartManager extends ChangeNotifier {
         variantNameEn: item.variantNameEn,
         variantNameMm: item.variantNameMm,
         variantNameTh: item.variantNameTh,
-      )).toList(),
+      );
+      }).toList(),
     );
   }
 

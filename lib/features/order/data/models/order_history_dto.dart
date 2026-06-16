@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../reviews/data/models/order_review_dto.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/image_utils.dart';
+import '../../../../core/utils/file_url_util.dart';
 
 class OrderHistoryGroupedDto {
   final List<OrderHistoryDto> currentOrders;
@@ -105,14 +106,7 @@ class OrderHistoryDto {
     final shopNameEn = json['shopName'] as String? ??
         shop?['name'] as String? ??
         shop?['nameEn'] as String?;
-    final shopImageUrl =
-        json['shopImageUrl'] as String? ??
-        json['imageUrl'] as String? ??
-        (shop != null ? ShopImageResolver.resolveBannerFromJson(shop) : null) ??
-        shop?['imageUrl'] as String? ??
-        shop?['coverUrl'] as String? ??
-        shop?['logoUrl'] as String? ??
-        shop?['image'] as String?;
+    final shopImageUrl = _resolveShopImageUrl(json, shop);
 
     // The new backend (mapUserOrderListItem) doesn't emit `ongoing`; derive
     // it from `status` so the UI can still split "current" vs "past".
@@ -149,6 +143,24 @@ class OrderHistoryDto {
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,
     );
+  }
+
+  static String? _resolveShopImageUrl(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? shop,
+  ) {
+    final candidates = <String?>[
+      json['shopImageUrl'] as String?,
+      json['shopLogo'] as String?,
+      if (shop != null) ShopImageResolver.resolveShopAvatarFromJson(shop),
+      shop?['logoUrl'] as String?,
+      shop?['coverUrl'] as String?,
+    ];
+    for (final raw in candidates) {
+      final resolved = FileUrlUtil.resolve(raw);
+      if (resolved.isNotEmpty) return resolved;
+    }
+    return null;
   }
 }
 
@@ -190,6 +202,9 @@ class OrderHistoryItemDto {
     // Legacy shape used: menuItemName / menuItemNameMm / menuItemImageUrl.
     final menuItemNameEn = (json['menuItemName'] as String?) ??
         (json['nameEn'] as String?);
+    final rawImage = (json['menuItemImageUrl'] as String?) ??
+        (json['imageUrl'] as String?);
+    final resolvedImage = FileUrlUtil.resolve(rawImage);
     return OrderHistoryItemDto(
       menuItemId: json['menuItemId'] as int?,
       menuItemName: menuItemNameEn ?? 'Item',
@@ -198,8 +213,7 @@ class OrderHistoryItemDto {
           (json['nameMm'] as String?),
       menuItemNameTh: (json['menuItemNameTh'] as String?) ??
           (json['nameTh'] as String?),
-      menuItemImageUrl: (json['menuItemImageUrl'] as String?) ??
-          (json['imageUrl'] as String?),
+      menuItemImageUrl: resolvedImage.isEmpty ? null : resolvedImage,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,
       displayPrice: json['displayPrice'] as String?,

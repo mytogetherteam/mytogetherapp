@@ -193,7 +193,7 @@ class _CartPageState extends State<CartPage> {
               ),
             ),
             const SizedBox(width: 16),
-            _buildImageStack(store.items.map((i) => i.imagePath).toList()),
+            _buildStoreThumbnail(store),
           ],
         ),
       ),
@@ -215,6 +215,31 @@ class _CartPageState extends State<CartPage> {
         child: _buildStoreItem(store),
       ),
     );
+  }
+
+  Widget _buildStoreThumbnail(CartStore store) {
+    final shopImage = store.shopImageUrl;
+    if (shopImage != null && shopImage.isNotEmpty) {
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: Image.network(
+            shopImage,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, __) => _buildImageStack(
+              store.items.map((i) => i.imagePath).toList(),
+            ),
+          ),
+        ),
+      );
+    }
+    return _buildImageStack(store.items.map((i) => i.imagePath).toList());
   }
 
   Widget _buildImageStack(List<String> images) {

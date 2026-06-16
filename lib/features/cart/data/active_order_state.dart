@@ -718,10 +718,13 @@ class ActiveOrderState extends ChangeNotifier {
     
     final shopMap = data['shop'];
     final rawImage = data['shopImageUrl'] ??
+        data['shopLogo'] ??
+        data['logoPath'] ??
+        data['logoUrl'] ??
         data['coverUrl'] ??
         data['imageUrl'] ??
         (shopMap is Map<String, dynamic>
-            ? ShopImageResolver.resolveBannerFromJson(shopMap)
+            ? ShopImageResolver.resolveShopAvatarFromJson(shopMap)
             : null);
     if (rawImage != null) {
       item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));

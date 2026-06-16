@@ -73,4 +73,15 @@ class ShopImageResolver {
       primaryPhotoUrl: primaryPhotoUrl,
     );
   }
+
+  /// Small shop avatar — prefer [logoUrl] (same as myshop profile), then banner.
+  static String? resolveShopAvatarFromJson(Map<String, dynamic> json) {
+    final logo = ImageUtils.cleanImageUrl(json['logoUrl']?.toString());
+    if (logo != null &&
+        logo.isNotEmpty &&
+        !logo.contains('pinterest.com')) {
+      return logo;
+    }
+    return resolveBannerFromJson(json);
+  }
 }
