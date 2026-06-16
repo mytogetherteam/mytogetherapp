@@ -175,29 +175,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus == -1) {
       _hasNavigated = true;
-      // User-initiated cancellations are handled in [_cancelOrder] (apology
-      // page); only the shop-cancellation page is shown here.
-      if (ActiveOrderState.instance.wasCancelledByUser(order.orderId)) {
-        return;
-      }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OrderCancelPage(
-            orderId: order.orderId,
-            reason: order.cancelReason,
-            shopId: order.shopId,
-            shopName: order.shopNameEn ??
-                order.shopName ??
-                order.restaurantName ??
-                order.storeName,
-            shopNameMm: order.shopNameMm,
-            shopNameTh: order.shopNameTh,
-            shopLogo: order.shopLogo ?? order.logoPath,
-            shopImageUrl: order.shopImageUrl,
-          ),
-        ),
-      );
+      // [OrderActionPresenter] shows the shop-cancel page (pushReplacement).
+      return;
     }
   }
 
@@ -1703,7 +1682,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           ChatUnreadBadge(
             orderId: _chatOrderId,
             child: GestureDetector(
-              onTap: () {
+              onTap: () async {
                 final orderId = _chatOrderId;
                 if (orderId == null) {
                   AppDialog.showToast(
@@ -1713,9 +1692,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   );
                   return;
                 }
-                // Opening the thread marks the shop's messages as read.
                 ChatUnreadController.instance.clear(orderId);
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatPage(
@@ -1727,6 +1705,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     ),
                   ),
                 );
+                if (!mounted) return;
+                await ChatUnreadController.instance.refreshOrder(orderId);
               },
               child: Container(
                 width: 44,

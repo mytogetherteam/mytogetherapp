@@ -37,7 +37,16 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     _reviseInfo = order?.resolvedReviseInfo ??
         (items: const <String>[], reason: '');
+    final unavailableNames = _reviseInfo.items
+        .map((name) => name.toLowerCase().trim())
+        .where((name) => name.isNotEmpty)
+        .toSet();
     _items = (order?.orderItems ?? const <CartItem>[])
+        .where(
+          (c) => !unavailableNames.contains(
+            (c.titleEn ?? c.titleKey).toLowerCase().trim(),
+          ),
+        )
         .map((c) => _EditableItem(source: c, quantity: c.quantity))
         .toList();
   }

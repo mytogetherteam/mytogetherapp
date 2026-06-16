@@ -9,6 +9,8 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 
 class OrderCompletePage extends StatefulWidget {
@@ -113,7 +115,15 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final storeName = state.displayShopName.isNotEmpty
         ? state.displayShopName
         : context.tr('common.restaurant');
-    final total = state.totalAmount ?? 0.0;
+    final deliveryFee = state.deliveryFee ?? 0.0;
+    final foodFromItems = state.orderItems.fold<double>(
+      0,
+      (sum, item) => sum + item.total,
+    );
+    final foodPrice = (state.totalAmount ?? foodFromItems) - deliveryFee;
+    final total = state.totalAmount ?? (foodPrice + deliveryFee);
+    final displayTotal =
+        state.displayTotalAmount ?? total.toFormattedPrice();
     
     // In a real app we'd format actual Arrival time, mocked for now
     final now = DateTime.now();
@@ -263,7 +273,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            total.toFormattedPrice(),
+                            displayTotal,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -279,37 +289,57 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: state.orderItems.isEmpty 
-                                ? [
-                                    Text(context.tr('order_complete.items_placeholder'), 
-                                      style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                                    )
-                                  ]
-                                : state.orderItems.map((item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${item.quantity}x ${item.title}',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 13,
-                                              color: Colors.grey[700],
+                            children: [
+                              _buildSummaryRow(
+                                context.tr('payment.food_price'),
+                                state.displayFoodPrice ??
+                                    foodPrice.toFormattedPrice(),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildDeliveryFeeRow(context, state, deliveryFee),
+                              if (state.orderItems.isNotEmpty) ...[
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Divider(
+                                    height: 1,
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                ...state.orderItems.map((item) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${item.quantity}x ${item.title}',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                color: Colors.grey[700],
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        Text(
-                                          item.total.toFormattedPrice(),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.black87,
+                                          Text(
+                                            item.total.toFormattedPrice(),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  )).toList(),
+                                        ],
+                                      ),
+                                    )),
+                              ] else
+                                Text(
+                                  context.tr('order_complete.items_placeholder'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],
@@ -337,6 +367,86 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryFeeRow(
+    BuildContext context,
+    ActiveOrderState state,
+    double deliveryFee,
+  ) {
+    final isConfirmed = deliveryFee > 0;
+    final feeLabel = isConfirmed
+        ? context.tr('order_status.delivery_fee')
+        : context.tr('payment.est_delivery_fee');
+    final badgeLabel = isConfirmed
+        ? context.tr('payment.delivery_fee_badge_confirmed')
+        : context.tr('payment.delivery_fee_badge_estimate');
+    final feeAmount = state.displayDeliveryFee?.isNotEmpty == true
+        ? state.displayDeliveryFee!
+        : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
+
+    return Row(
+      children: [
+        const GradientIcon(icon: PhosphorIconsFill.moped, size: 20),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            feeLabel,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            badgeLabel,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFFEF4444),
+            ),
+          ),
+        ),
+        const Spacer(),
+        GradientText(
+          feeAmount,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 

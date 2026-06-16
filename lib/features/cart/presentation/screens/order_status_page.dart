@@ -21,7 +21,6 @@ import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
-import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
@@ -127,33 +126,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
-        // Auto-navigate when status becomes CANCELLED (-1). Skip when the user
-        // cancelled it themselves (they get a dedicated apology page).
-        if (state.orderStatus == -1 &&
-            !state.wasCancelledByUser(state.orderId)) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OrderCancelPage(
-                    orderId: state.orderId ?? "",
-                    reason: state.cancelReason,
-                    shopId: state.shopId,
-                    shopName: state.shopNameEn ??
-                        state.shopName ??
-                        state.restaurantName ??
-                        state.storeName,
-                    shopNameMm: state.shopNameMm,
-                    shopNameTh: state.shopNameTh,
-                    shopLogo: state.shopLogo ?? state.logoPath,
-                    shopImageUrl: state.shopImageUrl,
-                  ),
-                ),
-              );
-            }
-          });
-        }
+        // Shop-cancel navigation is handled by [OrderActionPresenter].
 
         // Auto-navigate back to Payment ONLY when the shop explicitly requested
         // a (new) payment slip. Gating on isSlipRequested prevents other
@@ -1364,12 +1337,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     return (orderId != null && orderId > 0) ? orderId : null;
   }
 
-  void _openChat({
+  Future<void> _openChat({
     required String? name,
     required String subtitle,
     String? avatarUrl,
     IconData fallbackIcon = Icons.storefront_rounded,
-  }) {
+  }) async {
     final orderId = _currentOrderId;
     if (orderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1378,13 +1351,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       return;
     }
 
-    // Opening the thread marks the shop's messages as read on the backend.
     ChatUnreadController.instance.clear(orderId);
 
     final peerName = (name == null || name.trim().isEmpty)
         ? subtitle
         : name;
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChatPage(
@@ -1396,6 +1368,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         ),
       ),
     );
+    if (!mounted) return;
+    await ChatUnreadController.instance.refreshOrder(orderId);
   }
 
   Widget _buildNoImageAvatar() {

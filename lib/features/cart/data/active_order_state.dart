@@ -519,11 +519,11 @@ class ActiveOrderState extends ChangeNotifier {
     final String? msgType = _parseSafeString(data['type']);
     if (msgType != null && msgType != 'ORDER_UPDATE') return;
 
-    // Identify the target order
-    final id = data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
-    if (id == null || !_orders.containsKey(id)) return;
-    
-    final item = _orders[id]!;
+    // Identify the tracked order (tolerate `#` prefixes and numeric ids).
+    final rawId =
+        data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
+    final item = _findTrackedOrder(rawId);
+    if (item == null) return;
 
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
@@ -561,9 +561,15 @@ class ActiveOrderState extends ChangeNotifier {
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
 
     final parsedShopNameEn = _parseSafeString(
-      data['shopNameEn'] ?? data['shopName'],
+      data['shopNameEn'] ??
+          data['shopName'] ??
+          (data['shop'] is Map
+              ? (data['shop'] as Map)['nameEn'] ?? (data['shop'] as Map)['name']
+              : null),
     );
-    if (parsedShopNameEn != null) {
+    if (parsedShopNameEn != null &&
+        parsedShopNameEn.isNotEmpty &&
+        parsedShopNameEn != 'Shop') {
       item.shopNameEn = parsedShopNameEn;
       item.shopName = parsedShopNameEn;
       item.restaurantName = parsedShopNameEn;
@@ -634,11 +640,35 @@ class ActiveOrderState extends ChangeNotifier {
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopNameEn'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopNameEn']);
+      final name = _parseSafeString(data['shopNameEn']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
     } else if (data['shopName'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopName']);
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
+    } else if (data['shop'] is Map) {
+      final shopMap = Map<String, dynamic>.from(data['shop'] as Map);
+      final nestedName = _parseSafeString(shopMap['nameEn'] ?? shopMap['name']);
+      if (nestedName != null && nestedName.isNotEmpty && nestedName != 'Shop') {
+        item.shopNameEn = nestedName;
+        item.shopName = nestedName;
+        item.restaurantName = nestedName;
+        item.storeName = nestedName;
+      }
+      final nestedMm = _parseSafeString(shopMap['nameMm']);
+      if (nestedMm != null && nestedMm.isNotEmpty) item.shopNameMm = nestedMm;
+      final nestedTh = _parseSafeString(shopMap['nameTh']);
+      if (nestedTh != null && nestedTh.isNotEmpty) item.shopNameTh = nestedTh;
     }
-    if (data['shopName'] != null) item.shopName = _parseSafeString(data['shopName']);
+    if (data['shopName'] != null) {
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopName = name;
+      }
+    }
     if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
       item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
     }
@@ -699,6 +729,18 @@ class ActiveOrderState extends ChangeNotifier {
     return null;
   }
 
+  ActiveOrderItem? _findTrackedOrder(String? rawId) {
+    if (rawId == null) return null;
+    final id = rawId.toString();
+    if (_orders.containsKey(id)) return _orders[id];
+    final sanitized = id.replaceAll('#', '');
+    if (_orders.containsKey(sanitized)) return _orders[sanitized];
+    for (final entry in _orders.entries) {
+      if (entry.key.replaceAll('#', '') == sanitized) return entry.value;
+    }
+    return null;
+  }
+
   String? _parseSafeString(dynamic value) {
     if (value == null) return null;
     if (value is String) return value;
@@ -737,7 +779,7 @@ class ActiveOrderState extends ChangeNotifier {
       final nameTh =
           _parseSafeString(map['menuItemNameTh'] ?? menuItem['nameTh']);
       final imageUrl = _getFullUrl(_parseSafeString(
-        map['menuItemImageUrl'] ?? menuItem['imageUrl'],
+        map['menuItemImageUrl'] ?? map['imageUrl'] ?? menuItem['imageUrl'],
       ));
       final price = _parseSafeDouble(map['price']) ?? 0;
       final quantity = _parseSafeInt(map['quantity']) ?? 1;

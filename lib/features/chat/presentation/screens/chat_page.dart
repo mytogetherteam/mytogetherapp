@@ -89,6 +89,8 @@ class _ChatPageState extends State<ChatPage> {
 
     if (conversation != null) {
       _conversationId = conversation.id;
+      await ChatService.instance.markAsRead(_conversationId);
+      ChatUnreadController.instance.clear(widget.orderId);
       await _loadMessages();
       return;
     }
