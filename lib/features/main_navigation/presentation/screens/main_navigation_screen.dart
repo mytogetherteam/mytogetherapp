@@ -106,14 +106,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final state = ActiveOrderState.instance;
     final newStatus = state.orderStatus;
 
-    // Check for transition to COMPLETED (4)
-    if (newStatus == 4 && _lastStatus != 4) {
+    // Show the completion screen only when the primary order just reached status 4.
+    if (newStatus == 4 && _lastStatus != 4 && state.orderId != null) {
+      final completedOrder = state.getOrder(state.orderId);
+      if (completedOrder == null || completedOrder.orderStatus != 4) {
+        _lastStatus = newStatus;
+        return;
+      }
+
       final currentShopId = state.currentShopId;
-      // Find the specific order that just completed
-      final completedOrder = state.allOrdersList.firstWhere(
-        (o) => o.orderStatus == 4,
-        orElse: () => state.activeOrdersList.first, // Fallback
-      );
 
       // Filter: only show popup if no shop is selected OR it matches the current shop
       if (currentShopId == null ||

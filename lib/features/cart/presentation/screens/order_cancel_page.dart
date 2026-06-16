@@ -3,12 +3,13 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../app.dart';
+import '../../../../core/utils/file_url_util.dart';
 
 class OrderCancelPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -55,40 +56,26 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
     super.dispose();
   }
 
-  String _getFullUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    
-    // Filter out Pinterest links as they often fail to load in mobile apps
-    if (path.contains('pinterest.com')) return '';
-    
-    if (path.startsWith('http') || path.startsWith('assets/')) return path;
-    
-    // Clean path and ensure single slash between base URL and path
-    String cleaned = path.trim();
-    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
-    
-    // Encode the path to handle spaces and special characters
-    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
-    
-    return '${ApiClient.baseUrl}/$encodedPath';
-  }
+  String _getFullUrl(String? path) => FileUrlUtil.resolve(path);
+
+  NavigatorState get _rootNavigator =>
+      App.navigatorKey.currentState ?? Navigator.of(context);
 
   void _onViewRestaurant(BuildContext context) {
     ActiveOrderState.instance.clearOrder(orderId: widget.orderId);
-    
+    NavigationController.instance.goToFoodTab();
+
     if (widget.shopId != null && widget.shopId!.isNotEmpty) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      NavigationController.instance.goToFoodTab();
-      Navigator.push(
-        context,
+      _rootNavigator.pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => RestaurantDetailPage(
+          builder: (_) => RestaurantDetailPage(
             id: widget.shopId!,
             name: widget.shopName,
             logoPath: _getFullUrl(widget.shopLogo),
             imagePath: _getFullUrl(widget.shopImageUrl),
           ),
         ),
+        (route) => route.isFirst,
       );
     } else {
       _goHome(context);
@@ -98,7 +85,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
   void _goHome(BuildContext context) {
     ActiveOrderState.instance.clearOrder(orderId: widget.orderId);
     NavigationController.instance.goToFoodTab();
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    _rootNavigator.popUntil((route) => route.isFirst);
   }
 
   Widget _buildNoImagePlaceholder(BuildContext context, {bool isLogo = false}) {
@@ -141,7 +128,12 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
     );
     final hasShopInfo = localizedShopName.isNotEmpty;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goHome(context);
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -342,6 +334,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

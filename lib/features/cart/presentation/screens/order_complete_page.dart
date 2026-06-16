@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
+import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -15,6 +16,18 @@ import '../../../reviews/data/repositories/order_review_repository.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
+
+  /// Replaces the current route with the order-complete screen.
+  /// Prefer this over [navigateTo] when leaving order tracking to avoid
+  /// lifecycle errors from removing routes while dependents are still mounted.
+  static bool navigateReplacing(BuildContext context) {
+    if (isCurrentlyVisible) return false;
+    isCurrentlyVisible = true;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+    );
+    return true;
+  }
 
   /// Atomically checks the guard and pushes the page.
   /// Returns true if navigation was initiated, false if already visible.
@@ -46,26 +59,42 @@ class OrderCompletePage extends StatefulWidget {
 class _OrderCompletePageState extends State<OrderCompletePage> {
   int _rating = 0;
   bool _isSubmitting = false;
+  bool _orderFinalized = false;
+  late final String? _orderId;
 
   @override
   void initState() {
     super.initState();
-    // isCurrentlyVisible is already set to true by navigateTo() before push.
-    // Set it here as a fallback for any direct constructor usage.
+    _orderId = ActiveOrderState.instance.orderId;
     OrderCompletePage.isCurrentlyVisible = true;
-    // We don't clear the order here anymore so it remains in the tracking card
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ActiveOrderState.instance.setOrderStatus(4); // 4 = Completed
+      if (_orderId != null) {
+        ActiveOrderState.instance.setOrderStatus(4, orderId: _orderId);
+      }
     });
   }
 
   @override
   void dispose() {
     OrderCompletePage.isCurrentlyVisible = false;
+    if (!_orderFinalized) {
+      _finalizeOrder(silent: true);
+    }
     super.dispose();
   }
 
+  void _finalizeOrder({bool silent = false}) {
+    if (_orderFinalized) return;
+    _orderFinalized = true;
+    if (_orderId != null) {
+      ActiveOrderState.instance.clearOrder(orderId: _orderId);
+    } else {
+      ActiveOrderState.instance.clearOrder();
+    }
+  }
+
   void _goToFoodTab() {
+    _finalizeOrder();
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
@@ -105,32 +134,37 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     }
 
     if (!mounted) return;
-    ActiveOrderState.instance.clearOrder();
     _goToFoodTab();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ActiveOrderState.instance;
-    final storeName = state.displayShopName.isNotEmpty
-        ? state.displayShopName
+    final order = ActiveOrderState.instance.getOrder(_orderId);
+    final storeName = (order?.displayShopName ?? '').isNotEmpty
+        ? order!.displayShopName
         : context.tr('common.restaurant');
-    final deliveryFee = state.deliveryFee ?? 0.0;
-    final foodFromItems = state.orderItems.fold<double>(
+    final deliveryFee = order?.deliveryFee ?? 0.0;
+    final foodFromItems = (order?.orderItems ?? const <CartItem>[]).fold<double>(
       0,
       (sum, item) => sum + item.total,
     );
-    final foodPrice = (state.totalAmount ?? foodFromItems) - deliveryFee;
-    final total = state.totalAmount ?? (foodPrice + deliveryFee);
+    final foodPrice = (order?.totalAmount ?? foodFromItems) - deliveryFee;
+    final total = order?.totalAmount ?? (foodPrice + deliveryFee);
     final displayTotal =
-        state.displayTotalAmount ?? total.toFormattedPrice();
+        order?.displayTotalAmount ?? total.toFormattedPrice();
     
     // In a real app we'd format actual Arrival time, mocked for now
     final now = DateTime.now();
     final arrivalTime = '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
-    final logoPath = state.logoPath;
+    final logoPath = order?.logoPath;
+    final orderItems = order?.orderItems ?? const <CartItem>[];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goToFoodTab();
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -168,9 +202,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             const SizedBox(height: 32),
 
             // Delivery proof photo (if the shop attached one on delivery)
-            if (state.proofPhotoUrl != null &&
-                state.proofPhotoUrl!.isNotEmpty) ...[
-              _buildDeliveryProof(state.proofPhotoUrl!),
+            if (order?.proofPhotoUrl != null &&
+                order!.proofPhotoUrl!.isNotEmpty) ...[
+              _buildDeliveryProof(order.proofPhotoUrl!),
               const SizedBox(height: 24),
             ],
 
@@ -292,12 +326,12 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             children: [
                               _buildSummaryRow(
                                 context.tr('payment.food_price'),
-                                state.displayFoodPrice ??
+                                order?.displayFoodPrice ??
                                     foodPrice.toFormattedPrice(),
                               ),
                               const SizedBox(height: 12),
-                              _buildDeliveryFeeRow(context, state, deliveryFee),
-                              if (state.orderItems.isNotEmpty) ...[
+                              _buildDeliveryFeeRow(context, order, deliveryFee),
+                              if (orderItems.isNotEmpty) ...[
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 12),
                                   child: Divider(
@@ -305,7 +339,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                     color: Color(0xFFE5E7EB),
                                   ),
                                 ),
-                                ...state.orderItems.map((item) => Padding(
+                                ...orderItems.map((item) => Padding(
                                       padding: const EdgeInsets.only(bottom: 8),
                                       child: Row(
                                         mainAxisAlignment:
@@ -367,6 +401,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -395,7 +430,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
 
   Widget _buildDeliveryFeeRow(
     BuildContext context,
-    ActiveOrderState state,
+    ActiveOrderItem? order,
     double deliveryFee,
   ) {
     final isConfirmed = deliveryFee > 0;
@@ -405,8 +440,8 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final badgeLabel = isConfirmed
         ? context.tr('payment.delivery_fee_badge_confirmed')
         : context.tr('payment.delivery_fee_badge_estimate');
-    final feeAmount = state.displayDeliveryFee?.isNotEmpty == true
-        ? state.displayDeliveryFee!
+    final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
+        ? order!.displayDeliveryFee!
         : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
 
     return Row(

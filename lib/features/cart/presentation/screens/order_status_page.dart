@@ -256,14 +256,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   void _navigateToComplete() {
     if (!mounted) return;
-    // navigateTo atomically guards against duplicates; it uses push so we
-    // manually replace by popping this page afterward if navigation succeeded.
-    if (OrderCompletePage.navigateTo(context)) {
-      // Pop this OrderStatusPage so the complete page is the only one on stack
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).removeRoute(ModalRoute.of(context)!);
-      });
-    }
+    OrderCompletePage.navigateReplacing(context);
   }
 
   LatLng get _restaurantLatLng {

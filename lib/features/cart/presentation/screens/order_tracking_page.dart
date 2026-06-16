@@ -315,7 +315,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     await ActiveOrderState.instance.syncActiveOrder();
     if (!mounted) return;
     final status = ActiveOrderState.instance.orderStatus;
-    if (status >= 1 && status != -1) {
+    if (status >= 1 && status < 4 && status != -1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _navigateToPayment();
       });
