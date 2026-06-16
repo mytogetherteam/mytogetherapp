@@ -12,7 +12,7 @@ import '../../../order/data/repositories/order_repository.dart';
 import '../widgets/revise_unavailable_items_section.dart';
 
 /// Lets the user review and re-submit an order the shop has marked REVISED.
-/// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.updateItems).
+/// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.respondRevise).
 class ReviseOrderPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
 

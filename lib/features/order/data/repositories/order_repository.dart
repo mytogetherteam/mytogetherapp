@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import '../models/order_history_dto.dart';
 
@@ -62,11 +64,15 @@ class OrderRepository {
     return [];
   }
 
-  /// Re-submits a REVISED order with a new item list.
-  /// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.updateItems).
+  /// Responds to a REVISED order by re-submitting a new item list.
+  /// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.respondRevise).
   /// Items not included are removed; totals are recomputed; status resets to
   /// PENDING. Each item: { menuItemId, quantity, variantId?,
   /// specialInstructions?, menuItemOptionId? }.
+  ///
+  /// The endpoint is now multipart-capable (it also accepts a `paymentImage`),
+  /// so we send the items as a JSON-encoded `items` field which the backend
+  /// parses back into the validated array.
   Future<bool> reviseOrderItems({
     required int orderId,
     required List<Map<String, dynamic>> items,
@@ -74,6 +80,34 @@ class OrderRepository {
     final response = await _apiClient.dio.patch(
       '${ApiClient.apiPrefix}/user/orders/$orderId/items',
       data: {'items': items},
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
+
+  /// Responds to a REVISED order by re-uploading a payment slip image.
+  /// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.respondRevise).
+  /// When a `paymentImage` is attached, the backend re-processes the slip and
+  /// moves the order to AWAITING_APPROVAL (same effect as the /payment route).
+  Future<bool> revisePaymentImage({
+    required int orderId,
+    required File file,
+  }) async {
+    final extension = file.path.split('.').last.toLowerCase();
+    final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
+    final filename =
+        'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+    final formData = FormData.fromMap({
+      'paymentImage': await MultipartFile.fromFile(
+        file.path,
+        filename: filename,
+        contentType: DioMediaType.parse(mimeType),
+      ),
+    });
+
+    final response = await _apiClient.dio.patch(
+      '${ApiClient.apiPrefix}/user/orders/$orderId/items',
+      data: formData,
     );
     return response.statusCode == 200 || response.statusCode == 201;
   }

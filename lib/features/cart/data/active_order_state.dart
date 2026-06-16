@@ -622,6 +622,15 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
 
+    // Rebuild the editable order items from the backend payload so the revise
+    // flow has data even after a cold start (checkout state is gone by then).
+    // Only overwrite when the payload actually carries items, to avoid wiping
+    // a locally-populated list with an empty array.
+    final parsedItems = _parseOrderItems(data['items'], item);
+    if (parsedItems.isNotEmpty) {
+      item.orderItems = parsedItems;
+    }
+
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopNameEn'] != null) {
@@ -697,6 +706,81 @@ class ActiveOrderState extends ChangeNotifier {
       return value['name']?.toString() ?? value['label']?.toString() ?? value['status']?.toString();
     }
     return value.toString();
+  }
+
+  /// Maps a backend order `items[]` payload into [CartItem]s for the revise
+  /// flow. Handles both the enriched shape (from `mapOrder`: `menuItemName`,
+  /// `menuItemImageUrl`, `selectedOptions[]`) and the raw shape (from
+  /// `findAwaitingPaymentInfo`: `menuItemId`, `quantity`, `price`, ...).
+  List<CartItem> _parseOrderItems(dynamic raw, ActiveOrderItem order) {
+    if (raw is! List || raw.isEmpty) return const [];
+
+    final result = <CartItem>[];
+    for (var i = 0; i < raw.length; i++) {
+      final entry = raw[i];
+      if (entry is! Map) continue;
+      final map = Map<String, dynamic>.from(entry);
+
+      final menuItemId = _parseSafeInt(map['menuItemId']);
+      if (menuItemId == null) continue;
+
+      final menuItem = map['menuItem'] is Map
+          ? Map<String, dynamic>.from(map['menuItem'] as Map)
+          : const <String, dynamic>{};
+
+      final nameEn = _parseSafeString(
+            map['menuItemName'] ?? menuItem['nameEn'] ?? menuItem['name'],
+          ) ??
+          'Item';
+      final nameMm =
+          _parseSafeString(map['menuItemNameMm'] ?? menuItem['nameMm']);
+      final nameTh =
+          _parseSafeString(map['menuItemNameTh'] ?? menuItem['nameTh']);
+      final imageUrl = _getFullUrl(_parseSafeString(
+        map['menuItemImageUrl'] ?? menuItem['imageUrl'],
+      ));
+      final price = _parseSafeDouble(map['price']) ?? 0;
+      final quantity = _parseSafeInt(map['quantity']) ?? 1;
+
+      // selectedOptions[] → option ids used when re-submitting the order.
+      final optionIds = <int>[];
+      final selectedOptions = map['selectedOptions'];
+      if (selectedOptions is List) {
+        for (final opt in selectedOptions) {
+          if (opt is Map) {
+            final id = _parseSafeInt(opt['menuItemOptionId']);
+            if (id != null) optionIds.add(id);
+          }
+        }
+      }
+
+      result.add(CartItem(
+        id: _parseSafeString(map['id']) ?? '$menuItemId-$i',
+        menuItemId: menuItemId,
+        restaurantId: order.shopId ?? order.restaurantId ?? '',
+        titleKey: nameEn,
+        titleEn: nameEn,
+        titleMm: nameMm,
+        titleTh: nameTh,
+        price: price,
+        total: price * quantity,
+        imagePath: imageUrl,
+        imageUrl: imageUrl.isEmpty ? null : imageUrl,
+        quantity: quantity,
+        optionIds: optionIds.isEmpty ? null : optionIds,
+        specialInstructions: _parseSafeString(map['specialInstructions']),
+        variantId: _parseSafeInt(map['variantId']),
+      ));
+    }
+    return result;
+  }
+
+  int? _parseSafeInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   String _getFullUrl(String? path) {
