@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,9 +56,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<BannerImageDto> _topBanners = [];
   List<BannerImageDto> _bottomBanners = [];
   bool _isLoadingBanners = true;
+  String? _bgImageUrl;
+  String? _bgThemeName;
   int _refreshKey = 0;
   int _lostFoundCount = 0;
   DateTime? _lastResumeRefreshAt;
+  Timer? _titleTimer;
+  bool _showThemeNameInAppBar = false;
 
   @override
   void initState() {
@@ -90,6 +95,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
     });
 
+    _titleTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (mounted && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) {
+        setState(() {
+          _showThemeNameInAppBar = !_showThemeNameInAppBar;
+        });
+      }
+    });
+
     NotificationRepository().getUnreadCount();
     AnnouncementRepository().getUnreadCount();
     _fetchBanners();
@@ -116,10 +129,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         position: 'Ads',
       );
 
+      final bgThemeData = await RestaurantRepository.instance.getBackgroundTheme();
+
       if (mounted) {
         setState(() {
           _topBanners = topBanners;
           _bottomBanners = bottomBanners;
+          if (bgThemeData != null) {
+            _bgImageUrl = bgThemeData['url'];
+            _bgThemeName = bgThemeData['name'];
+          }
           _isLoadingBanners = false;
         });
 
@@ -214,23 +233,123 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _bannerTimer?.cancel();
     _promoTimer?.cancel();
+    _titleTimer?.cancel();
     _bannerController.dispose();
     _promoController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _showBannerModal(BannerImageDto banner) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 16),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Image taking original aspect ratio with bottom fade overlay
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: CachedNetworkImage(
+                      imageUrl: _getImageUrl(banner.image),
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          const ImageSkeletonLoader(showLogo: true),
+                      errorWidget: (context, url, error) => Container(
+                        height: 200,
+                        color: AppColors.primary,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.broken_image, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.0),
+                            Colors.white,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Expanded area for the rest of the content (Title/Link)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          banner.nameMm ?? banner.nameEn ?? context.tr('home.promotions'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        // Link text removed per user request
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle
-          .dark, // Using dark for black text on light background
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Android
+        statusBarBrightness: Brightness.light, // iOS
+      ),
       child: Scaffold(
         backgroundColor: Colors.white, // White background
         floatingActionButton: const StyledCartFab(),
         body: Stack(
           children: [
-            // Fixed Background Image
+            // Fixed Header (Title & Background)
             Positioned(
               top: 0,
               left: 0,
@@ -238,15 +357,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               bottom: 0, // Set to 100% height (full screen)
               child: Container(
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/top-bannner.jpg'),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    colorFilter: ColorFilter.mode(
-                      Colors.white.withValues(alpha: 0.70),
-                      BlendMode.lighten,
-                    ),
-                  ),
+                  image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(_bgImageUrl!),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        )
+                      : const DecorationImage(
+                          image: AssetImage('assets/images/top-bannner.jpg'),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        ),
                 ),
               ),
             ),
@@ -273,13 +394,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   child: Column(
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + (Theme.of(context).platform == TargetPlatform.iOS ? 16 : 42),
+                        height: MediaQuery.of(context).padding.top + 70,
                       ), // Push content below fixed header
+
                       // Search Bar
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: SearchBoxTrigger(
                           hintText: context.tr('home.search_hint'),
+                          isGlassStyle: true,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -289,6 +412,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       // Banner Carousel
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -326,24 +450,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 final banner = _topBanners[realIndex];
                                 final image = banner.image;
                                 if (image.startsWith('assets/')) {
-                                  return Image.asset(
-                                    image,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
+                                  return GestureDetector(
+                                    onTap: () => _showBannerModal(banner),
+                                    child: Image.asset(
+                                      image,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
                                   );
                                 }
-                                return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                  imageUrl: _getImageUrl(image),
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      const ImageSkeletonLoader(showLogo: true),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                        color: AppColors.primary,
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          Icons.broken_image,
-                                          color: Colors.white,
+                                return GestureDetector(
+                                  onTap: () => _showBannerModal(banner),
+                                  child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                    imageUrl: _getImageUrl(image),
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        const ImageSkeletonLoader(showLogo: true),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          color: AppColors.primary,
+                                          alignment: Alignment.center,
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                 );
@@ -365,9 +495,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               width: _currentBannerIndex == index ? 20 : 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: _currentBannerIndex == index
-                                    ? AppColors.primary
-                                    : AppColors.primary.withValues(alpha: 0.2),
+                                gradient: _currentBannerIndex == index
+                                    ? AppColors.primaryGradient
+                                    : null,
+                                color: _currentBannerIndex != index
+                                    ? AppColors.primary.withValues(alpha: 0.2)
+                                    : null,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -401,7 +534,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     : 3,
                                 mainAxisSpacing: 8,
                                 crossAxisSpacing: 8,
-                                childAspectRatio: 0.85,
+                                childAspectRatio: 0.95,
                                 children: [
                                   CategoryCard(
                                     title: context.tr('home.category_food'),
@@ -476,7 +609,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               child: Column(
                                 children: [
                                   Container(
-                                    height: 200,
+                                    height: 150,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(20),
@@ -510,27 +643,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           }
                                           final realIndex =
                                               index % _bottomBanners.length;
-                                          return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                            imageUrl: _getImageUrl(
-                                              _bottomBanners[realIndex].image,
-                                            ),
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            placeholder: (context, url) =>
-                                                const ImageSkeletonLoader(
-                                                  showLogo: true,
-                                                ),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                                      color: AppColors.primary,
-                                                      alignment:
-                                                          Alignment.center,
-                                                      child: const Icon(
-                                                        Icons.broken_image,
-                                                        color: Colors.white,
+                                          final banner = _bottomBanners[realIndex];
+                                          return GestureDetector(
+                                            onTap: () => _showBannerModal(banner),
+                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                              imageUrl: _getImageUrl(banner.image),
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              placeholder: (context, url) =>
+                                                  const ImageSkeletonLoader(
+                                                    showLogo: true,
+                                                  ),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      Container(
+                                                        color: AppColors.primary,
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: const Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.white,
+                                                        ),
                                                       ),
-                                                    ),
+                                            ),
                                           );
                                         },
                                       ),
@@ -557,9 +692,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               : 8,
                                           height: 8,
                                           decoration: BoxDecoration(
-                                            color: _currentPromoIndex == index
-                                                ? AppColors.primary
-                                                : const Color(0xFFD1D1D1),
+                                            gradient: _currentPromoIndex == index
+                                                ? AppColors.primaryGradient
+                                                : null,
+                                            color: _currentPromoIndex != index
+                                                ? const Color(0xFFD1D1D1)
+                                                : null,
                                             borderRadius: BorderRadius.circular(
                                               4,
                                             ),
@@ -642,15 +780,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         top: 0,
                         left: 0,
                         right: 0,
-                        child: SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
-                          child: Image.asset(
-                            'assets/images/top-bannner.jpg',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            color: Colors.white.withValues(alpha: 0.70),
-                            colorBlendMode: BlendMode.lighten,
+                        child: Opacity(
+                          opacity: _headerOpacity,
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                                    ? DecorationImage(
+                                        image: CachedNetworkImageProvider(_bgImageUrl!),
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.topCenter,
+                                      )
+                                    : const DecorationImage(
+                                        image: AssetImage('assets/images/top-bannner.jpg'),
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.topCenter,
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -678,18 +827,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     padding: const EdgeInsets.only(top: 4),
                                     child: ShaderMask(
                                       shaderCallback: (bounds) =>
-                                          LinearGradient(
-                                            colors: [
-                                              AppColors.primary,
-                                              const Color(0xFFF96232),
-                                            ],
-                                          ).createShader(bounds),
-                                      child: Text(
-                                        context.tr('home.brand_name'),
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 22,
-                                          color: Colors.white,
+                                          AppColors.primaryGradient.createShader(bounds),
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 800),
+                                        transitionBuilder: (Widget child, Animation<double> animation) {
+                                          return FadeTransition(
+                                            opacity: animation,
+                                            child: SlideTransition(
+                                              position: Tween<Offset>(
+                                                begin: const Offset(0.0, 0.2),
+                                                end: Offset.zero,
+                                              ).animate(animation),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          _showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty
+                                              ? _bgThemeName!
+                                              : context.tr('home.brand_name'),
+                                          key: ValueKey<bool>(_showThemeNameInAppBar),
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: (_showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) ? 14 : 22,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),

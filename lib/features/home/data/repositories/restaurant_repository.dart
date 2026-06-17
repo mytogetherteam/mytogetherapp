@@ -681,6 +681,15 @@ class RestaurantRepository {
     }
   }
 
+  Future<Map<String, dynamic>?> getBackgroundTheme() async {
+    final themeData = await _remoteDataSource.getBackgroundTheme();
+    if (themeData != null && themeData['url'] != null) {
+      themeData['url'] = _getImageUrl(themeData['url']);
+      return themeData;
+    }
+    return null;
+  }
+
   Future<List<ShopReviewDto>> getShopReviews(int shopId) {
     return _remoteDataSource.getShopReviews(shopId);
   }

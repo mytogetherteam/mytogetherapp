@@ -23,7 +23,17 @@ class CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isComingSoon ? Colors.grey[100] : const Color(0xFFFFF0F6), // Faded background if coming soon
+        gradient: isComingSoon
+            ? null
+            : LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.08),
+                  AppColors.secondary.withValues(alpha: 0.08),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        color: isComingSoon ? Colors.grey[100] : null,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Opacity(

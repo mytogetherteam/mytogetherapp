@@ -215,7 +215,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       debugPrint(
         ' [RestaurantDetailPage] WebSocket reconnected — refreshing menu...',
       );
-      _scheduleRefresh();
+      _scheduleRefresh(silent: true);
     };
     WebSocketService().connectionStatus.addListener(_wsReconnectListener);
 
@@ -226,7 +226,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         debugPrint(
           ' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...',
         );
-        _scheduleRefresh();
+        _scheduleRefresh(silent: true);
       }
     });
 
@@ -239,16 +239,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         debugPrint(
           ' [RestaurantDetailPage] Real-time shop-profile update detected. Refreshing header...',
         );
-        _scheduleRefresh();
+        _scheduleRefresh(silent: true);
       }
     });
   }
 
   /// Coalesce bursty WS/reconnect events into a single refresh.
-  void _scheduleRefresh() {
+  void _scheduleRefresh({bool silent = false}) {
     _refreshDebounce?.cancel();
     _refreshDebounce = Timer(const Duration(seconds: 2), () {
-      if (mounted) _handleRefresh();
+      if (mounted) _handleRefresh(silent: silent);
     });
   }
 
@@ -258,24 +258,46 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     App.routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
   }
 
-  Future<void> _handleRefresh() async {
+  Future<void> _handleRefresh({bool silent = false}) async {
     final shopId = int.tryParse(widget.id);
     if (shopId != null) {
-      debugPrint(' [RestaurantDetailPage] Manual refresh triggered.');
+      debugPrint(' [RestaurantDetailPage] Manual refresh triggered. silent: $silent');
 
-      setState(() {
-        _targetMenuItemId = null; // Clear deep-linked highlight
-        _menuItems.clear();
-        _menuPage = 0;
-        _hasMoreMenu = true;
-        // NOTE: intentionally do NOT reset `_hasScrolledToTarget` here.
-        // The scroll-to-target is a one-time intent when the page is opened
-        // deep-linked to a specific menu item. `_handleRefresh` also runs on
-        // real-time WebSocket events (menu/shop-profile updates, reconnects),
-        // so re-arming it would repeatedly yank the user back to the target.
-      });
-      _fetchCategories(shopId);
-      _loadInitialMenu();
+      if (!silent) {
+        setState(() {
+          _targetMenuItemId = null; // Clear deep-linked highlight
+          _menuItems.clear();
+          _menuPage = 0;
+          _hasMoreMenu = true;
+          // NOTE: intentionally do NOT reset `_hasScrolledToTarget` here.
+          // The scroll-to-target is a one-time intent when the page is opened
+          // deep-linked to a specific menu item. `_handleRefresh` also runs on
+          // real-time WebSocket events (menu/shop-profile updates, reconnects),
+          // so re-arming it would repeatedly yank the user back to the target.
+        });
+        _fetchCategories(shopId);
+        _loadInitialMenu();
+      } else {
+        _fetchCategories(shopId);
+        try {
+          final currentSize = _menuItems.length > _pageSize ? _menuItems.length : _pageSize;
+          final result = await RestaurantRepository.instance.getShopMenu(
+            shopId: shopId,
+            page: 0,
+            size: currentSize,
+          );
+          if (mounted) {
+            setState(() {
+              _menuItems.clear();
+              _menuItems.addAll(result.content);
+              _hasMoreMenu = !result.last && result.content.isNotEmpty;
+              if (_hasMoreMenu) {
+                _menuPage = (_menuItems.length / _pageSize).ceil();
+              }
+            });
+          }
+        } catch (_) {}
+      }
 
       // Also re-fetch the shop detail itself
       final updatedRestaurant = await RestaurantRepository.instance.getShopById(
@@ -798,8 +820,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   scrollOffset = _scrollController.offset;
                 }
 
-                // Calculate dynamic position
-                double cardTop = 240 - scrollOffset;
+                // Calculate dynamic position to keep consistent gap with SliverAppBar bottom
+                double cardTop = 190 + MediaQuery.of(context).padding.top - scrollOffset;
 
                 // Calculate dynamic opacity (fade out as it moves up)
                 double opacity = 1.0;

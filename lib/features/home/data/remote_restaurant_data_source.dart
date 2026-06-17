@@ -46,6 +46,43 @@ class RemoteRestaurantDataSource {
     }
   }
 
+  Future<Map<String, dynamic>?> getBackgroundTheme() async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/background-themes',
+        queryParameters: {'t': DateTime.now().millisecondsSinceEpoch},
+      );
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List list = [];
+        if (data is Map && data['data'] is List) {
+          list = data['data'] as List;
+        } else if (data is List) {
+          list = data;
+        }
+        
+        if (list.isNotEmpty) {
+          // Try to find the first active theme, or fallback to the first theme
+          var activeTheme = list.firstWhere(
+            (theme) => theme['isActive'] == true,
+            orElse: () => list.first,
+          );
+          return {
+            'url': activeTheme['imageUrl']?.toString() ?? activeTheme['image']?.toString(),
+            'name': activeTheme['name']?.toString() ?? '',
+          };
+        }
+      }
+    } catch (e) {
+      print('getBackgroundTheme error: $e');
+      if (e is DioException) {
+        print('Response data: ${e.response?.data}');
+        print('Status code: ${e.response?.statusCode}');
+      }
+    }
+    return null;
+  }
+
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
     if (!AuthService().isLoggedIn) {
       throw DioException(

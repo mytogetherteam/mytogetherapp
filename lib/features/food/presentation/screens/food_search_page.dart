@@ -1736,6 +1736,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       width: width,
       height: h,
       fit: BoxFit.cover,
+      placeholder: (_, __) => ImageSkeletonLoader(width: width, height: h),
       errorWidget: (_, _, _) => SizedBox(
         width: width,
         height: h,

@@ -16,7 +16,7 @@ class NotificationsPage extends StatefulWidget {
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
+class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   final NotificationRepository _repository = NotificationRepository();
   final List<NotificationModel> _notifications = [];
   bool _isLoading = true;
@@ -24,13 +24,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
   int _currentPage = 0;
   bool _hasMore = true;
   final int _pageSize = 20;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
     _loadNotifications();
     // Keep the announcement (megaphone) badge in sync when this screen opens.
     AnnouncementRepository().getUnreadCount();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNotifications({bool refresh = false}) async {
@@ -176,127 +187,138 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _repository.getUnreadCount();
   }
 
+  Widget _buildTabText(String text, int index) {
+    if (_tabController.index == index) {
+      return ShaderMask(
+        shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+        blendMode: BlendMode.srcIn,
+        child: Text(text),
+      );
+    } else {
+      return Text(text);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          centerTitle: false,
-          title: Text(
-            context.tr('notification.title'),
-            style: GoogleFonts.poppins(
-              color: Colors.black,
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
-            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        centerTitle: false,
+        title: Text(
+          context.tr('notification.title'),
+          style: GoogleFonts.poppins(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: Colors.black),
-          bottom: TabBar(
-            labelColor: AppColors.primary,
-            unselectedLabelColor: Colors.grey.shade600,
-            indicatorColor: AppColors.primary,
-            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            tabs: [
-              Tab(text: context.tr('notification.tab_orders')),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(context.tr('notification.tab_announcements')),
-                    ValueListenableBuilder<int>(
-                      valueListenable: AnnouncementRepository().unreadCount,
-                      builder: (context, count, _) {
-                        if (count == 0) return const SizedBox.shrink();
-                        return Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(10),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white, // Handled by ShaderMask
+          unselectedLabelColor: Colors.grey.shade600,
+          indicatorColor: AppColors.primary,
+          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          tabs: [
+            Tab(child: _buildTabText(context.tr('notification.tab_orders'), 0)),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildTabText(context.tr('notification.tab_announcements'), 1),
+                  ValueListenableBuilder<int>(
+                    valueListenable: AnnouncementRepository().unreadCount,
+                    builder: (context, count, _) {
+                      if (count == 0) return const SizedBox.shrink();
+                      return Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: Text(
-                            count > 9 ? '9+' : count.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: Orders
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_notifications.any((n) => !n.read))
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: TextButton(
+                      onPressed: _markAllAsRead,
+                      child: Text(context.tr('notification.mark_all_read')),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CustomLoadingIndicator(size: 40))
+                    : _notifications.isEmpty
+                        ? _buildEmptyState()
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (ScrollNotification scrollInfo) {
+                              if (scrollInfo.metrics.pixels ==
+                                      scrollInfo.metrics.maxScrollExtent &&
+                                  _hasMore) {
+                                _loadMore();
+                              }
+                              return true;
+                            },
+                            child: RefreshIndicator(
+                              onRefresh: () => _loadNotifications(refresh: true),
+                              child: ListView.builder(
+                                itemCount: _notifications.length + (_hasMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == _notifications.length) {
+                                    return const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: CustomLoadingIndicator(size: 24),
+                                      ),
+                                    );
+                                  }
+                                  final notification = _notifications[index];
+                                  return NotificationItemWidget(
+                                    notification: notification,
+                                    onTap: () => _markAsRead(notification),
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            // Tab 1: Orders
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_notifications.any((n) => !n.read))
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                      child: TextButton(
-                        onPressed: _markAllAsRead,
-                        child: Text(context.tr('notification.mark_all_read')),
-                      ),
-                    ),
-                  ),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(child: CustomLoadingIndicator(size: 40))
-                      : _notifications.isEmpty
-                          ? _buildEmptyState()
-                          : NotificationListener<ScrollNotification>(
-                              onNotification: (ScrollNotification scrollInfo) {
-                                if (scrollInfo.metrics.pixels ==
-                                        scrollInfo.metrics.maxScrollExtent &&
-                                    _hasMore) {
-                                  _loadMore();
-                                }
-                                return true;
-                              },
-                              child: RefreshIndicator(
-                                onRefresh: () => _loadNotifications(refresh: true),
-                                child: ListView.builder(
-                                  itemCount: _notifications.length + (_hasMore ? 1 : 0),
-                                  itemBuilder: (context, index) {
-                                    if (index == _notifications.length) {
-                                      return const Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.all(16.0),
-                                          child: CustomLoadingIndicator(size: 24),
-                                        ),
-                                      );
-                                    }
-                                    final notification = _notifications[index];
-                                    return NotificationItemWidget(
-                                      notification: notification,
-                                      onTap: () => _markAsRead(notification),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                ),
-              ],
-            ),
-            
-            // Tab 2: Announcements
-            const AnnouncementsPage(),
-          ],
-        ),
+          
+          // Tab 2: Announcements
+          const AnnouncementsPage(),
+        ],
       ),
     );
   }

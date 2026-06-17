@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'core/auth/auth_service.dart';
+import 'core/network/api_client.dart';
 import 'core/localization/locale_controller.dart';
 import 'core/location/location_service.dart';
 import 'features/cart/data/active_order_state.dart';
@@ -54,6 +55,30 @@ void main() async {
     debugPrint('[BOOT] Initializing AuthService...');
     await AuthService().initialize();
     debugPrint('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
+
+    // ── Next-day startup refresh ──────────────────────────────────────────
+    // If the stored access token is already expired at launch, refresh it NOW
+    // before any widget makes an API call.  This prevents dozens of concurrent
+    // refresh requests racing each other (which would invalidate a
+    // single-use refresh token on the backend).
+    if (AuthService().isLoggedIn && AuthService().isTokenNearlyExpired) {
+      debugPrint('[BOOT] Access token expired — refreshing before runApp()...');
+      try {
+        final newToken = await AuthService().performRefresh(
+          ApiClient().dio,
+        );
+        if (newToken != null) {
+          debugPrint('[BOOT] Token refreshed successfully.');
+        } else {
+          debugPrint('[BOOT] Refresh returned null — user will be asked to log in.');
+          await AuthService().clearSession(navigate: false);
+        }
+      } catch (e) {
+        debugPrint('[BOOT] Startup refresh failed: $e — continuing without valid token.');
+        // Keep session; interceptor will retry on the first real API call.
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     debugPrint('[BOOT] Initializing NotificationService (background)...');
     NotificationService().initialize();

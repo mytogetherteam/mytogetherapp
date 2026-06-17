@@ -93,6 +93,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
         return Column(
           children: [
+            const SizedBox(height: 32),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -177,6 +178,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 32),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(

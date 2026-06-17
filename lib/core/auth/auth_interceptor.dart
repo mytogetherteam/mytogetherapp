@@ -1,19 +1,27 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import '../network/websocket_service.dart';
+import '../../app.dart';
+import '../../features/auth/presentation/screens/auth_entry_page.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final Dio dio;
-  bool _isRefreshing = false;
 
   AuthInterceptor(this.dio);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     final authService = AuthService();
-    final isAuthPath = options.path.contains('/auth/');
+    final path = options.path;
 
-    // Proactive refresh: if token is about to expire, refresh it BEFORE sending the request
+    // Paths that never need an Authorization header
+    final isAuthPath = path.contains('/auth/refresh') ||
+        path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/check-phone');
+
+    // Proactive refresh: if token is about to expire, refresh it BEFORE sending
     if (authService.isLoggedIn && authService.isTokenNearlyExpired && !isAuthPath) {
       try {
         final newToken = await authService.performRefresh(dio);
@@ -22,16 +30,18 @@ class AuthInterceptor extends QueuedInterceptor {
           WebSocketService().reconnectIfTokenChanged(newToken);
         }
       } catch (e) {
-        // If proactive refresh fails (e.g. timeout), we don't log out yet.
-        // We let the request proceed and handle 401/403 in onError if it happens.
+        // Proactive refresh failed — let request proceed; handle 401 in onError.
       }
     }
 
-    final token = authService.accessToken;
-    if (token != null && token.isNotEmpty && !options.headers.containsKey('Authorization')) {
-      options.headers['Authorization'] = 'Bearer $token';
+    // Attach current token for protected routes only
+    if (!isAuthPath) {
+      final token = authService.accessToken;
+      if (token != null && token.isNotEmpty && !options.headers.containsKey('Authorization')) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
-    
+
     handler.next(options);
   }
 
@@ -40,53 +50,57 @@ class AuthInterceptor extends QueuedInterceptor {
     final statusCode = err.response?.statusCode;
     final path = err.requestOptions.path;
 
-    // Never retry the refresh endpoint itself
-    final isAuthPath = path.contains('/auth/');
+    // Never retry auth endpoints themselves to avoid infinite loops
+    final isAuthEndpoint = path.contains('/auth/');
 
-    // Only attempt token refresh on 401 or 403 from non-auth endpoints
-    if ((statusCode == 401 || statusCode == 403) && !isAuthPath) {
-      if (_isRefreshing) {
-        // QueuedInterceptor will handle the queuing of subsequent requests automatically
-        // but we need to ensure we don't start multiple refreshes simultaneously.
-      }
-
-      _isRefreshing = true;
+    if ((statusCode == 401 || statusCode == 403) && !isAuthEndpoint) {
       try {
         final newToken = await AuthService().performRefresh(dio);
-        
+
         if (newToken != null && newToken.isNotEmpty) {
+          // Retry the original failed request with the new token
           final retryOptions = err.requestOptions;
           retryOptions.headers['Authorization'] = 'Bearer $newToken';
-          
+
           WebSocketService().reconnectIfTokenChanged(newToken);
-          
+
           final retryResponse = await dio.fetch(retryOptions);
           handler.resolve(retryResponse);
           return;
         } else {
-          // Explicit fail (no token returned but no exception)
-          await AuthService().clearSession();
+          // Refresh returned no token (refresh token probably expired on server)
+          await _forceLogout();
           handler.next(err);
           return;
         }
       } catch (e) {
-        // Refresh failed. Check if it's a structural failure (401/403) or network/server failure.
         if (e is DioException) {
           final refreshStatus = e.response?.statusCode;
           if (refreshStatus == 401 || refreshStatus == 403) {
-            // Only clear session if the refresh token itself is invalid
-            await AuthService().clearSession();
+            // Refresh token itself is invalid/expired — force logout
+            await _forceLogout();
           }
+          // For network errors (5xx, timeout) during refresh, keep session
+          // but fail the current request gracefully
+        } else {
+          await _forceLogout();
         }
-        // For timeouts, 500s during refresh, we keep the session but fail the current request.
         handler.next(err);
         return;
-      } finally {
-        _isRefreshing = false;
       }
     }
     handler.next(err);
   }
+
+  /// Clears all local session data and navigates the user back to the login screen.
+  Future<void> _forceLogout() async {
+    await AuthService().clearSession();
+    final nav = App.navigatorKey.currentState;
+    if (nav != null) {
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+        (route) => false,
+      );
+    }
+  }
 }
-
-

@@ -48,8 +48,8 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients && _categories.isNotEmpty) {
             final int middleIndex = _categories.length ~/ 2;
-            // Jump to the middle item. Each item has 88.0 width extent.
-            _scrollController.jumpTo(middleIndex * 88.0);
+            // Jump to the middle item. Each item has 96.0 width extent.
+            _scrollController.jumpTo(middleIndex * 96.0);
           }
         });
       }
@@ -109,7 +109,7 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
             ),
           ),
           SizedBox(
-            height: 120,
+            height: 136,
             child: _isLoading
                 ? _buildSkeletonList()
                 : AnimatedBuilder(
@@ -130,7 +130,7 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
                           final imageUrl = _categoryImageUrl(category.imageUrl);
                           
                           // Calculate distance from center
-                          double itemCenterScrollOffset = index * 88.0; // 72 width + 16 right margin
+                          double itemCenterScrollOffset = index * 96.0; // 80 width + 16 right margin
                           double distanceFromCenter = itemCenterScrollOffset - scrollOffset;
                           
                           // Normalize distance to calculate curve and scale
@@ -148,14 +148,14 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
                               child: GestureDetector(
                                 onTap: () => _onCategoryTap(category),
                                 child: Container(
-                                  width: 72,
+                                  width: 80,
                                   margin: const EdgeInsets.only(right: 16),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       Container(
-                                        width: 64,
-                                        height: 64,
+                                        width: 72,
+                                        height: 72,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                         gradient: LinearGradient(
@@ -183,8 +183,8 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
                                                 imageUrl: imageUrl,
                                                 fit: BoxFit.cover,
                                                 placeholder: (_, _) => const ImageSkeletonLoader(
-                                                  width: 64,
-                                                  height: 64,
+                                                  width: 72,
+                                                  height: 72,
                                                 ),
                                                 errorWidget: (_, _, _) => ShaderMask(
                                                   shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
@@ -231,14 +231,14 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
       itemCount: 6, // Show 6 skeleton items
       itemBuilder: (context, index) {
         return Container(
-          width: 72,
+          width: 80,
           margin: const EdgeInsets.only(right: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
                   shape: BoxShape.circle,

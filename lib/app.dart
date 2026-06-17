@@ -9,7 +9,7 @@ import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 import 'package:upgrader/upgrader.dart';
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
   final bool hasSeenOnboarding;
 
   const App({super.key, required this.hasSeenOnboarding});
@@ -20,6 +20,32 @@ class App extends StatelessWidget {
       GlobalKey<NavigatorState>();
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  @override
+  void initState() {
+    super.initState();
+    // Register callback so any clearSession() call navigates to login
+    AuthService().onSessionExpired = () {
+      final nav = App.navigatorKey.currentState;
+      if (nav != null) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+          (route) => false,
+        );
+      }
+    };
+  }
+
+  @override
+  void dispose() {
+    AuthService().onSessionExpired = null;
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,14 +63,14 @@ class App extends StatelessWidget {
             themeMode: ThemeMode.light,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [App.routeObserver],
-            navigatorKey: navigatorKey,
-            scaffoldMessengerKey: scaffoldMessengerKey,
+            navigatorKey: App.navigatorKey,
+            scaffoldMessengerKey: App.scaffoldMessengerKey,
             // Auth-aware initial route
             home: UpgradeAlert(
               showIgnore: false,
               showLater: false,
               upgrader: Upgrader(),
-              child: !hasSeenOnboarding
+              child: !widget.hasSeenOnboarding
                   ? const OnboardingScreen()
                   : AuthService().isLoggedIn
                       ? const MainNavigationScreen()
