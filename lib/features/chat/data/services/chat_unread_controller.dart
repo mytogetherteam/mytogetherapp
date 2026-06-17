@@ -38,6 +38,11 @@ class ChatUnreadController {
       _set(orderId, 0);
       return;
     }
+    if (type == 'CONVERSATION_READ') {
+      final unread = (event['userUnreadCount'] as num?)?.toInt() ?? 0;
+      _set(orderId, unread);
+      return;
+    }
 
     final unread = (event['userUnreadCount'] as num?)?.toInt();
     if (unread != null) {

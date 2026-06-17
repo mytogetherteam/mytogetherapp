@@ -111,6 +111,20 @@ class ChatService {
     }
   }
 
+  /// Marks all shop messages in a conversation as read for the current user.
+  Future<bool> markAsRead(int conversationId) async {
+    try {
+      final response = await _dio.put(
+        '$_basePath/conversations/$conversationId/read',
+      );
+      final body = _body(response);
+      return body != null && body['success'] == true;
+    } catch (e) {
+      debugPrint('[ChatService.markAsRead] $e');
+      return false;
+    }
+  }
+
   Future<bool> deleteMessage(int conversationId, String messageId) async {
     try {
       final response = await _dio.delete(

@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
+import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../order/data/repositories/order_repository.dart';
 import '../presentation/utils/revise_reason_parser.dart';
@@ -274,6 +275,8 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   final Map<String, ActiveOrderItem> _orders = {};
+  /// The order the UI should treat as "current" (tracking, payment, complete).
+  String? _primaryOrderId;
   final Set<String> _cancellingOrders = {};
   // Orders the user cancelled themselves. The backend emits the same CANCELED
   // WebSocket frame regardless of who cancelled, so we record user-initiated
@@ -296,16 +299,41 @@ class ActiveOrderState extends ChangeNotifier {
   // Returns everything currently tracked
   List<ActiveOrderItem> get allOrdersList => _orders.values.toList();
   
+  ActiveOrderItem? get _primary {
+    if (_primaryOrderId != null) {
+      return _orders[_primaryOrderId];
+    }
+    final active = activeOrdersList;
+    return active.isNotEmpty ? active.last : null;
+  }
+
+  void _purgeTerminalOrders() {
+    _orders.removeWhere(
+      (_, o) => o.orderStatus == 4 || o.orderStatus == -1,
+    );
+    if (_primaryOrderId != null && !_orders.containsKey(_primaryOrderId)) {
+      _primaryOrderId = activeOrdersList.isNotEmpty
+          ? activeOrdersList.last.orderId
+          : null;
+    }
+  }
+
+  void _reassignPrimaryOrderId() {
+    if (_primaryOrderId != null && _orders.containsKey(_primaryOrderId)) {
+      return;
+    }
+    final active = activeOrdersList;
+    _primaryOrderId = active.isNotEmpty ? active.last.orderId : null;
+  }
+  
   // --- Properties & Backward Compatibility ---
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
   
-  ActiveOrderItem? get _primary => _orders.isNotEmpty ? _orders.values.first : null;
-
   // Helper to get a specific order
   ActiveOrderItem? getOrder(String? id) => _orders[id];
 
-  String? get orderId => _primary?.orderId;
+  String? get orderId => _primaryOrderId ?? _primary?.orderId;
   set orderId(String? val) {
     if (val == null) return;
     if (!_orders.containsKey(val)) {
@@ -422,7 +450,11 @@ class ActiveOrderState extends ChangeNotifier {
     LatLng? restaurantLatLng,
     LatLng? userLocation,
   }) {
+    // Drop completed/cancelled orders so they cannot hijack the next checkout.
+    _purgeTerminalOrders();
+
     final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    _primaryOrderId = id;
     _orders[id] = ActiveOrderItem(
       orderId: id,
       storeName: storeName,
@@ -482,8 +514,9 @@ class ActiveOrderState extends ChangeNotifier {
 
 
   Future<void> syncActiveOrder({String? orderId}) async {
-    final targetId = orderId ?? this.orderId;
-    if (targetId == null || !hasActiveOrder) return;
+    final targetId = orderId ?? _primaryOrderId ?? this.orderId;
+    if (targetId == null) return;
+    if (!_orders.containsKey(targetId)) return;
     
     try {
       final sanitizedOrderId = targetId.replaceAll('#', '');
@@ -519,11 +552,11 @@ class ActiveOrderState extends ChangeNotifier {
     final String? msgType = _parseSafeString(data['type']);
     if (msgType != null && msgType != 'ORDER_UPDATE') return;
 
-    // Identify the target order
-    final id = data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
-    if (id == null || !_orders.containsKey(id)) return;
-    
-    final item = _orders[id]!;
+    // Identify the tracked order (tolerate `#` prefixes and numeric ids).
+    final rawId =
+        data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
+    final item = _findTrackedOrder(rawId);
+    if (item == null) return;
 
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
@@ -561,9 +594,15 @@ class ActiveOrderState extends ChangeNotifier {
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
 
     final parsedShopNameEn = _parseSafeString(
-      data['shopNameEn'] ?? data['shopName'],
+      data['shopNameEn'] ??
+          data['shopName'] ??
+          (data['shop'] is Map
+              ? (data['shop'] as Map)['nameEn'] ?? (data['shop'] as Map)['name']
+              : null),
     );
-    if (parsedShopNameEn != null) {
+    if (parsedShopNameEn != null &&
+        parsedShopNameEn.isNotEmpty &&
+        parsedShopNameEn != 'Shop') {
       item.shopNameEn = parsedShopNameEn;
       item.shopName = parsedShopNameEn;
       item.restaurantName = parsedShopNameEn;
@@ -622,14 +661,47 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
 
+    // Rebuild the editable order items from the backend payload so the revise
+    // flow has data even after a cold start (checkout state is gone by then).
+    // Only overwrite when the payload actually carries items, to avoid wiping
+    // a locally-populated list with an empty array.
+    final parsedItems = _parseOrderItems(data['items'], item);
+    if (parsedItems.isNotEmpty) {
+      item.orderItems = parsedItems;
+    }
+
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopNameEn'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopNameEn']);
+      final name = _parseSafeString(data['shopNameEn']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
     } else if (data['shopName'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopName']);
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
+    } else if (data['shop'] is Map) {
+      final shopMap = Map<String, dynamic>.from(data['shop'] as Map);
+      final nestedName = _parseSafeString(shopMap['nameEn'] ?? shopMap['name']);
+      if (nestedName != null && nestedName.isNotEmpty && nestedName != 'Shop') {
+        item.shopNameEn = nestedName;
+        item.shopName = nestedName;
+        item.restaurantName = nestedName;
+        item.storeName = nestedName;
+      }
+      final nestedMm = _parseSafeString(shopMap['nameMm']);
+      if (nestedMm != null && nestedMm.isNotEmpty) item.shopNameMm = nestedMm;
+      final nestedTh = _parseSafeString(shopMap['nameTh']);
+      if (nestedTh != null && nestedTh.isNotEmpty) item.shopNameTh = nestedTh;
     }
-    if (data['shopName'] != null) item.shopName = _parseSafeString(data['shopName']);
+    if (data['shopName'] != null) {
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopName = name;
+      }
+    }
     if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
       item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
     }
@@ -646,10 +718,13 @@ class ActiveOrderState extends ChangeNotifier {
     
     final shopMap = data['shop'];
     final rawImage = data['shopImageUrl'] ??
+        data['shopLogo'] ??
+        data['logoPath'] ??
+        data['logoUrl'] ??
         data['coverUrl'] ??
         data['imageUrl'] ??
         (shopMap is Map<String, dynamic>
-            ? ShopImageResolver.resolveBannerFromJson(shopMap)
+            ? ShopImageResolver.resolveShopAvatarFromJson(shopMap)
             : null);
     if (rawImage != null) {
       item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));
@@ -690,6 +765,18 @@ class ActiveOrderState extends ChangeNotifier {
     return null;
   }
 
+  ActiveOrderItem? _findTrackedOrder(String? rawId) {
+    if (rawId == null) return null;
+    final id = rawId.toString();
+    if (_orders.containsKey(id)) return _orders[id];
+    final sanitized = id.replaceAll('#', '');
+    if (_orders.containsKey(sanitized)) return _orders[sanitized];
+    for (final entry in _orders.entries) {
+      if (entry.key.replaceAll('#', '') == sanitized) return entry.value;
+    }
+    return null;
+  }
+
   String? _parseSafeString(dynamic value) {
     if (value == null) return null;
     if (value is String) return value;
@@ -699,23 +786,82 @@ class ActiveOrderState extends ChangeNotifier {
     return value.toString();
   }
 
-  String _getFullUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    
-    // Filter out Pinterest links as they often fail to load in mobile apps/webview
-    if (path.contains('pinterest.com')) return '';
-    
-    if (path.startsWith('http') || path.startsWith('assets/')) return path;
-    
-    // Clean path and ensure single slash between base URL and path
-    String cleaned = path.trim();
-    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
-    
-    // Encode the path to handle spaces and special characters
-    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
-    
-    return '${ApiClient.baseUrl}/$encodedPath';
+  /// Maps a backend order `items[]` payload into [CartItem]s for the revise
+  /// flow. Handles both the enriched shape (from `mapOrder`: `menuItemName`,
+  /// `menuItemImageUrl`, `selectedOptions[]`) and the raw shape (from
+  /// `findAwaitingPaymentInfo`: `menuItemId`, `quantity`, `price`, ...).
+  List<CartItem> _parseOrderItems(dynamic raw, ActiveOrderItem order) {
+    if (raw is! List || raw.isEmpty) return const [];
+
+    final result = <CartItem>[];
+    for (var i = 0; i < raw.length; i++) {
+      final entry = raw[i];
+      if (entry is! Map) continue;
+      final map = Map<String, dynamic>.from(entry);
+
+      final menuItemId = _parseSafeInt(map['menuItemId']);
+      if (menuItemId == null) continue;
+
+      final menuItem = map['menuItem'] is Map
+          ? Map<String, dynamic>.from(map['menuItem'] as Map)
+          : const <String, dynamic>{};
+
+      final nameEn = _parseSafeString(
+            map['menuItemName'] ?? menuItem['nameEn'] ?? menuItem['name'],
+          ) ??
+          'Item';
+      final nameMm =
+          _parseSafeString(map['menuItemNameMm'] ?? menuItem['nameMm']);
+      final nameTh =
+          _parseSafeString(map['menuItemNameTh'] ?? menuItem['nameTh']);
+      final imageUrl = _getFullUrl(_parseSafeString(
+        map['menuItemImageUrl'] ?? map['imageUrl'] ?? menuItem['imageUrl'],
+      ));
+      final price = _parseSafeDouble(map['price']) ?? 0;
+      final quantity = _parseSafeInt(map['quantity']) ?? 1;
+
+      // selectedOptions[] → option ids used when re-submitting the order.
+      final optionIds = <int>[];
+      final selectedOptions = map['selectedOptions'];
+      if (selectedOptions is List) {
+        for (final opt in selectedOptions) {
+          if (opt is Map) {
+            final id = _parseSafeInt(opt['menuItemOptionId']);
+            if (id != null) optionIds.add(id);
+          }
+        }
+      }
+
+      result.add(CartItem(
+        id: _parseSafeString(map['id']) ?? '$menuItemId-$i',
+        menuItemId: menuItemId,
+        restaurantId: order.shopId ?? order.restaurantId ?? '',
+        titleKey: nameEn,
+        titleEn: nameEn,
+        titleMm: nameMm,
+        titleTh: nameTh,
+        price: price,
+        total: price * quantity,
+        imagePath: imageUrl,
+        imageUrl: imageUrl.isEmpty ? null : imageUrl,
+        quantity: quantity,
+        optionIds: optionIds.isEmpty ? null : optionIds,
+        specialInstructions: _parseSafeString(map['specialInstructions']),
+        variantId: _parseSafeInt(map['variantId']),
+      ));
+    }
+    return result;
   }
+
+  int? _parseSafeInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  String _getFullUrl(String? path) => FileUrlUtil.resolve(path);
 
   bool _isValidUrl(String url) {
     if (url.isEmpty) return false;
@@ -815,9 +961,15 @@ class ActiveOrderState extends ChangeNotifier {
   void clearOrder({String? orderId}) {
     if (orderId != null) {
       _orders.remove(orderId);
+      if (_primaryOrderId == orderId) {
+        _primaryOrderId = null;
+      }
     } else {
       _orders.clear();
+      _primaryOrderId = null;
     }
+
+    _reassignPrimaryOrderId();
     
     // Keep the shared WebSocket open even with no orders so global
     // broadcasts/announcements still reach the user (lifecycle is owned by
@@ -873,12 +1025,20 @@ class ActiveOrderState extends ChangeNotifier {
         break;
       case 'PAYMENT_SLIP_REQUESTED':
         item.orderStatus = 1;
-        item.showUploadSection = true;
         item.isPaymentChecking = false;
-        item.isSlipRequested = true;
-        // Keep the shop's reason so the re-upload screen can explain why a new
-        // slip is needed (avoids confusing the user).
-        item.reviseReason = reviseReason ?? item.reviseReason;
+        // PAYMENT_SLIP_REQUESTED covers two different moments:
+        // 1) Shop confirmed the order → customer uploads a slip for the first time.
+        // 2) Shop called requestSlip → customer must re-upload (reviseReason set).
+        // Only (2) should surface the "new receipt requested" UI.
+        final slipReuploadRequested =
+            reviseReason != null && reviseReason.trim().isNotEmpty;
+        item.isSlipRequested = slipReuploadRequested;
+        item.showUploadSection = slipReuploadRequested;
+        if (slipReuploadRequested) {
+          item.reviseReason = reviseReason;
+        } else {
+          item.reviseReason = null;
+        }
         break;
       case 'PAID':
       case 'PAYMENT_VERIFIED':
@@ -959,6 +1119,7 @@ class ActiveOrderState extends ChangeNotifier {
       }
 
       if (added) {
+        _reassignPrimaryOrderId();
         saveToPrefs();
         notifyListeners();
       }
@@ -981,6 +1142,11 @@ class ActiveOrderState extends ChangeNotifier {
           .map((o) => jsonEncode(o.toJson()))
           .toList();
       await prefs.setStringList('active_orders_v2', ordersJson);
+      if (_primaryOrderId != null) {
+        await prefs.setString('primary_order_id', _primaryOrderId!);
+      } else {
+        await prefs.remove('primary_order_id');
+      }
     } catch (e) {
       // Ignore prefs save errors
     }
@@ -1018,6 +1184,17 @@ class ActiveOrderState extends ChangeNotifier {
           }
         }
       }
+
+      _purgeTerminalOrders();
+      final savedPrimary = prefs.getString('primary_order_id');
+      if (savedPrimary != null &&
+          savedPrimary.isNotEmpty &&
+          _orders.containsKey(savedPrimary)) {
+        _primaryOrderId = savedPrimary;
+      } else {
+        _reassignPrimaryOrderId();
+      }
+
       notifyListeners();
     } catch (e) {
       // Ignore prefs load errors

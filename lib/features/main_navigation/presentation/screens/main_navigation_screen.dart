@@ -9,7 +9,6 @@ import '../../../../features/order/presentation/screens/order_history_page.dart'
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
-import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
@@ -31,7 +30,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   int? _lastStatus;
-  final Set<String> _notifiedCancelledOrders = {};
   late List<Widget> _screens;
   String _screenLocaleKey = '';
 
@@ -108,14 +106,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final state = ActiveOrderState.instance;
     final newStatus = state.orderStatus;
 
-    // Check for transition to COMPLETED (4)
-    if (newStatus == 4 && _lastStatus != 4) {
+    // Show the completion screen only when the primary order just reached status 4.
+    if (newStatus == 4 && _lastStatus != 4 && state.orderId != null) {
+      final completedOrder = state.getOrder(state.orderId);
+      if (completedOrder == null || completedOrder.orderStatus != 4) {
+        _lastStatus = newStatus;
+        return;
+      }
+
       final currentShopId = state.currentShopId;
-      // Find the specific order that just completed
-      final completedOrder = state.allOrdersList.firstWhere(
-        (o) => o.orderStatus == 4,
-        orElse: () => state.activeOrdersList.first, // Fallback
-      );
 
       // Filter: only show popup if no shop is selected OR it matches the current shop
       if (currentShopId == null ||
@@ -124,52 +123,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       }
     }
 
-    // Check for any order that just became CANCELLED (-1)
-    // We check allOrdersList to find terminal states that are filtered out of activeOrdersList
-    for (final order in state.allOrdersList) {
-      if (order.orderStatus == -1 &&
-          !_notifiedCancelledOrders.contains(order.orderId)) {
-        // The shop-cancellation page is only for orders cancelled BY the
-        // restaurant. When the user cancels their own order they're shown a
-        // dedicated apology page, so skip this notification for those.
-        if (state.wasCancelledByUser(order.orderId)) {
-          _notifiedCancelledOrders.add(order.orderId);
-          continue;
-        }
-        final currentShopId = state.currentShopId;
-
-        // Filter: only show if no shop context OR it matches
-        if (currentShopId != null && order.shopId != currentShopId.toString()) {
-          continue; // Skip this notification for now
-        }
-
-        _notifiedCancelledOrders.add(order.orderId);
-
-        // Use a small delay to ensure WS state has settled and avoid UI jank
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderCancelPage(
-                  orderId: order.orderId,
-                  reason: order.cancelReason,
-                  shopId: order.shopId,
-                  shopName: order.shopNameEn ??
-                      order.shopName ??
-                      order.restaurantName ??
-                      order.storeName,
-                  shopNameMm: order.shopNameMm,
-                  shopNameTh: order.shopNameTh,
-                  shopLogo: order.shopLogo ?? order.logoPath,
-                  shopImageUrl: order.shopImageUrl,
-                ),
-              ),
-            );
-          }
-        });
-      }
-    }
+    // Shop-cancel navigation is handled globally by [OrderActionPresenter].
 
     _lastStatus = newStatus;
   }

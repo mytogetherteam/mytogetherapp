@@ -9,7 +9,7 @@ import 'package:mytogetherapp/features/reviews/data/repositories/order_review_re
 import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
 import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
@@ -57,9 +57,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   Color get primaryColor => AppColors.primary;
 
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    return '${ApiClient.baseUrl}/$path';
+    return FileUrlUtil.resolve(path);
   }
 
   @override

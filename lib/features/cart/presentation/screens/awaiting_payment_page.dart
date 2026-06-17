@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../order/data/repositories/order_repository.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import 'order_status_page.dart';
@@ -61,6 +62,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   /// status updates (WebSocket + backend reconcile) land close together.
   bool _hasNavigated = false;
 
+  /// A payment-only revision: the shop sent the order back (status REVISED)
+  /// without flagging any unavailable items, meaning the customer just needs to
+  /// re-upload a correct payment slip. The new payment image is submitted to
+  /// the respondRevise endpoint (`PATCH /user/orders/:id/items`).
+  bool _isPaymentReviseOrder(ActiveOrderItem? order) =>
+      order != null &&
+      order.isRevised &&
+      order.resolvedReviseInfo.items.isEmpty;
+
   /// Parsed integer id of this order, or null when unavailable.
   int? get _chatOrderId {
     final orderIdStr = (widget.orderId ?? ActiveOrderState.instance.orderId)
@@ -86,7 +96,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     // Payment), jump straight to the upload step so the user can re-upload a
     // correct/clearer slip. Otherwise show Step 1 (the QR) first.
     final initialOrder = ActiveOrderState.instance.getOrder(widget.orderId);
-    final bool startOnUpload = initialOrder?.isSlipRequested == true;
+    final bool startOnUpload = initialOrder?.isSlipRequested == true ||
+        _isPaymentReviseOrder(initialOrder);
     _showUploadSection = startOnUpload;
 
     // Ensure the global state is synced so it doesn't cause weird UI jumps
@@ -164,29 +175,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus == -1) {
       _hasNavigated = true;
-      // User-initiated cancellations are handled in [_cancelOrder] (apology
-      // page); only the shop-cancellation page is shown here.
-      if (ActiveOrderState.instance.wasCancelledByUser(order.orderId)) {
-        return;
-      }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OrderCancelPage(
-            orderId: order.orderId,
-            reason: order.cancelReason,
-            shopId: order.shopId,
-            shopName: order.shopNameEn ??
-                order.shopName ??
-                order.restaurantName ??
-                order.storeName,
-            shopNameMm: order.shopNameMm,
-            shopNameTh: order.shopNameTh,
-            shopLogo: order.shopLogo ?? order.logoPath,
-            shopImageUrl: order.shopImageUrl,
-          ),
-        ),
-      );
+      // [OrderActionPresenter] shows the shop-cancel page (pushReplacement).
+      return;
     }
   }
 
@@ -436,6 +426,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     }
   }
 
+  /// Clears the picked payment slip so the user can start over after uploading
+  /// the wrong image. Submission is disabled again until a new image is chosen.
+  void _removeReceiptImage() {
+    if (_isUploading) return;
+    setState(() => _receiptImage = null);
+  }
+
   void _showPermissionDialog() {
     showDialog(
       context: context,
@@ -491,33 +488,41 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     }
 
     try {
-      // Backend: PATCH /api/user/orders/:id/payment
-      // (UserOrdersController.uploadPaymentImage).
-      // Accepts multipart/form-data with a `paymentImage` file field. The
-      // response moves the order to AWAITING_APPROVAL on success.
       final intId =
           int.tryParse(orderId.replaceAll('#', '')) ?? int.tryParse(orderId) ?? 0;
-      final extension = _receiptImage!.path.split('.').last.toLowerCase();
-      final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-      final filename =
-          'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
-      final formData = FormData.fromMap({
-        'paymentImage': await MultipartFile.fromFile(
-          _receiptImage!.path,
-          filename: filename,
-          contentType: DioMediaType.parse(mimeType),
-        ),
-      });
+      // A payment-only revision is re-submitted through the respondRevise
+      // endpoint (PATCH /user/orders/:id/items); a normal slip upload (first
+      // time or shop-requested re-upload) goes to PATCH /user/orders/:id/payment.
+      // Both move the order to AWAITING_APPROVAL on success.
+      final order = ActiveOrderState.instance.getOrder(widget.orderId);
+      if (_isPaymentReviseOrder(order)) {
+        await OrderRepository().revisePaymentImage(
+          orderId: intId,
+          file: _receiptImage!,
+        );
+      } else {
+        final extension = _receiptImage!.path.split('.').last.toLowerCase();
+        final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
+        final filename =
+            'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
-      await ApiClient().dio.patch(
-        '${ApiClient.apiPrefix}/user/orders/$intId/payment',
-        data: formData,
-      );
+        final formData = FormData.fromMap({
+          'paymentImage': await MultipartFile.fromFile(
+            _receiptImage!.path,
+            filename: filename,
+            contentType: DioMediaType.parse(mimeType),
+          ),
+        });
+
+        await ApiClient().dio.patch(
+          '${ApiClient.apiPrefix}/user/orders/$intId/payment',
+          data: formData,
+        );
+      }
 
       if (mounted) {
-        // 3. Clear states and navigate
-        final order = ActiveOrderState.instance.getOrder(widget.orderId);
+        // Clear states and navigate
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -656,6 +661,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               shopNameTh: order?.shopNameTh,
               shopLogo: order?.shopLogo ?? order?.logoPath,
               shopImageUrl: order?.shopImageUrl,
+              cancelledByUser: true,
             ),
           ),
         );
@@ -811,29 +817,57 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             fit: BoxFit.cover,
           ),
         ),
-        // Remove / re-pick button
+        // Change (re-pick) and remove actions so the user can fix a wrongly
+        // selected slip before submitting.
         Positioned(
           top: 8,
           right: 8,
-          child: GestureDetector(
-            onTap: _pickReceiptImage,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+          child: Row(
+            children: [
+              _previewActionButton(
+                icon: Icons.refresh_rounded,
+                tooltip: context.tr('payment.change_image'),
+                onTap: _isUploading ? null : _pickReceiptImage,
               ),
-              child: const Icon(
-                Icons.refresh_rounded,
-                size: 20,
-                color: Colors.black87,
+              const SizedBox(width: 8),
+              _previewActionButton(
+                icon: Icons.close_rounded,
+                tooltip: context.tr('payment.remove_image'),
+                iconColor: Colors.red,
+                onTap: _isUploading ? null : _removeReceiptImage,
               ),
-            ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _previewActionButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+    Color iconColor = Colors.black87,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: onTap == null ? Colors.grey : iconColor,
+          ),
+        ),
+      ),
     );
   }
 
@@ -842,7 +876,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     final bool canSubmit = _receiptImage != null;
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     final bool isVerifying = order?.isPaymentChecking == true;
-    final bool isReupload = order?.isSlipRequested == true;
+    final bool isPaymentRevise = _isPaymentReviseOrder(order);
+    // An item revision (unavailable items) still needs the "review items" flow;
+    // a payment-only revision behaves like a slip re-upload request.
+    final bool isItemRevise = order?.isRevised == true && !isPaymentRevise;
+    final bool isReupload = order?.isSlipRequested == true || isPaymentRevise;
     final String pageTitle = isReupload
         ? context.tr('payment.awaiting_title')
         : (isVerifying
@@ -894,7 +932,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             children: [
               const SizedBox(height: 10),
 
-              if (order?.isRevised == true) ...[
+              if (isItemRevise) ...[
                 _buildReviseBanner(order),
                 const SizedBox(height: 14),
               ] else if (isReupload) ...[
@@ -1644,7 +1682,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           ChatUnreadBadge(
             orderId: _chatOrderId,
             child: GestureDetector(
-              onTap: () {
+              onTap: () async {
                 final orderId = _chatOrderId;
                 if (orderId == null) {
                   AppDialog.showToast(
@@ -1654,9 +1692,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   );
                   return;
                 }
-                // Opening the thread marks the shop's messages as read.
                 ChatUnreadController.instance.clear(orderId);
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatPage(
@@ -1668,6 +1705,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     ),
                   ),
                 );
+                if (!mounted) return;
+                await ChatUnreadController.instance.refreshOrder(orderId);
               },
               child: Container(
                 width: 44,

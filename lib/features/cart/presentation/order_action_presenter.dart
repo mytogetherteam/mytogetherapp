@@ -46,6 +46,17 @@ class OrderActionPresenter {
   static void _evaluateOrder(ActiveOrderItem order) {
     final slipEpisode = '${order.orderId}:SLIP';
     final reviseEpisode = '${order.orderId}:REVISED';
+    final shopCancelEpisode = '${order.orderId}:SHOP_CANCEL';
+
+    if (order.orderStatus == -1) {
+      if (!ActiveOrderState.instance.wasCancelledByUser(order.orderId) &&
+          !_shownEpisodeKeys.contains(shopCancelEpisode) &&
+          !OrderCancelPage.isCurrentlyVisible) {
+        unawaited(_presentShopCancelled(order, shopCancelEpisode));
+      }
+      return;
+    }
+    _shownEpisodeKeys.remove(shopCancelEpisode);
 
     final needsSlip = order.isSlipRequested &&
         order.orderStatus == 1 &&
@@ -82,6 +93,44 @@ class OrderActionPresenter {
       ReviseOrderPage.isCurrentlyVisible ||
       (AwaitingPaymentPage.isCurrentlyVisible &&
           ActiveOrderState.instance.activeOrdersList.any((o) => o.isRevised));
+
+  static Future<void> _presentShopCancelled(
+    ActiveOrderItem order,
+    String episodeKey,
+  ) async {
+    if (_isShowing || _shownEpisodeKeys.contains(episodeKey)) return;
+
+    final nav = App.navigatorKey.currentState;
+    if (nav == null) return;
+
+    _isShowing = true;
+    _shownEpisodeKeys.add(episodeKey);
+    try {
+      final route = MaterialPageRoute(
+        builder: (_) => OrderCancelPage(
+          orderId: order.orderId,
+          reason: order.cancelReason,
+          shopId: order.shopId,
+          shopName: order.shopNameEn ??
+              order.shopName ??
+              order.restaurantName ??
+              order.storeName,
+          shopNameMm: order.shopNameMm,
+          shopNameTh: order.shopNameTh,
+          shopLogo: order.shopLogo ?? order.logoPath,
+          shopImageUrl: order.shopImageUrl,
+        ),
+      );
+
+      if (AwaitingPaymentPage.isCurrentlyVisible) {
+        await nav.pushReplacement(route);
+      } else {
+        await nav.push(route);
+      }
+    } finally {
+      _isShowing = false;
+    }
+  }
 
   static Future<void> _present({
     required OrderActionDialogKind kind,
@@ -201,6 +250,7 @@ class OrderActionPresenter {
           shopNameTh: order.shopNameTh,
           shopLogo: order.shopLogo ?? order.logoPath,
           shopImageUrl: order.shopImageUrl,
+          cancelledByUser: true,
         ),
       ),
     );

@@ -4,15 +4,30 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
+import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
+
+  /// Replaces the current route with the order-complete screen.
+  /// Prefer this over [navigateTo] when leaving order tracking to avoid
+  /// lifecycle errors from removing routes while dependents are still mounted.
+  static bool navigateReplacing(BuildContext context) {
+    if (isCurrentlyVisible) return false;
+    isCurrentlyVisible = true;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+    );
+    return true;
+  }
 
   /// Atomically checks the guard and pushes the page.
   /// Returns true if navigation was initiated, false if already visible.
@@ -44,26 +59,42 @@ class OrderCompletePage extends StatefulWidget {
 class _OrderCompletePageState extends State<OrderCompletePage> {
   int _rating = 0;
   bool _isSubmitting = false;
+  bool _orderFinalized = false;
+  late final String? _orderId;
 
   @override
   void initState() {
     super.initState();
-    // isCurrentlyVisible is already set to true by navigateTo() before push.
-    // Set it here as a fallback for any direct constructor usage.
+    _orderId = ActiveOrderState.instance.orderId;
     OrderCompletePage.isCurrentlyVisible = true;
-    // We don't clear the order here anymore so it remains in the tracking card
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ActiveOrderState.instance.setOrderStatus(4); // 4 = Completed
+      if (_orderId != null) {
+        ActiveOrderState.instance.setOrderStatus(4, orderId: _orderId);
+      }
     });
   }
 
   @override
   void dispose() {
     OrderCompletePage.isCurrentlyVisible = false;
+    if (!_orderFinalized) {
+      _finalizeOrder(silent: true);
+    }
     super.dispose();
   }
 
+  void _finalizeOrder({bool silent = false}) {
+    if (_orderFinalized) return;
+    _orderFinalized = true;
+    if (_orderId != null) {
+      ActiveOrderState.instance.clearOrder(orderId: _orderId);
+    } else {
+      ActiveOrderState.instance.clearOrder();
+    }
+  }
+
   void _goToFoodTab() {
+    _finalizeOrder();
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
@@ -103,24 +134,37 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     }
 
     if (!mounted) return;
-    ActiveOrderState.instance.clearOrder();
     _goToFoodTab();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ActiveOrderState.instance;
-    final storeName = state.displayShopName.isNotEmpty
-        ? state.displayShopName
+    final order = ActiveOrderState.instance.getOrder(_orderId);
+    final storeName = (order?.displayShopName ?? '').isNotEmpty
+        ? order!.displayShopName
         : context.tr('common.restaurant');
-    final total = state.totalAmount ?? 0.0;
+    final deliveryFee = order?.deliveryFee ?? 0.0;
+    final foodFromItems = (order?.orderItems ?? const <CartItem>[]).fold<double>(
+      0,
+      (sum, item) => sum + item.total,
+    );
+    final foodPrice = (order?.totalAmount ?? foodFromItems) - deliveryFee;
+    final total = order?.totalAmount ?? (foodPrice + deliveryFee);
+    final displayTotal =
+        order?.displayTotalAmount ?? total.toFormattedPrice();
     
     // In a real app we'd format actual Arrival time, mocked for now
     final now = DateTime.now();
     final arrivalTime = '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
-    final logoPath = state.logoPath;
+    final logoPath = order?.logoPath;
+    final orderItems = order?.orderItems ?? const <CartItem>[];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goToFoodTab();
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -158,9 +202,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             const SizedBox(height: 32),
 
             // Delivery proof photo (if the shop attached one on delivery)
-            if (state.proofPhotoUrl != null &&
-                state.proofPhotoUrl!.isNotEmpty) ...[
-              _buildDeliveryProof(state.proofPhotoUrl!),
+            if (order?.proofPhotoUrl != null &&
+                order!.proofPhotoUrl!.isNotEmpty) ...[
+              _buildDeliveryProof(order.proofPhotoUrl!),
               const SizedBox(height: 24),
             ],
 
@@ -263,7 +307,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            total.toFormattedPrice(),
+                            displayTotal,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -279,37 +323,57 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: state.orderItems.isEmpty 
-                                ? [
-                                    Text(context.tr('order_complete.items_placeholder'), 
-                                      style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                                    )
-                                  ]
-                                : state.orderItems.map((item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${item.quantity}x ${item.title}',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 13,
-                                              color: Colors.grey[700],
+                            children: [
+                              _buildSummaryRow(
+                                context.tr('payment.food_price'),
+                                order?.displayFoodPrice ??
+                                    foodPrice.toFormattedPrice(),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildDeliveryFeeRow(context, order, deliveryFee),
+                              if (orderItems.isNotEmpty) ...[
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Divider(
+                                    height: 1,
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                ...orderItems.map((item) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${item.quantity}x ${item.title}',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                color: Colors.grey[700],
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        Text(
-                                          item.total.toFormattedPrice(),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.black87,
+                                          Text(
+                                            item.total.toFormattedPrice(),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  )).toList(),
+                                        ],
+                                      ),
+                                    )),
+                              ] else
+                                Text(
+                                  context.tr('order_complete.items_placeholder'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],
@@ -337,6 +401,87 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryFeeRow(
+    BuildContext context,
+    ActiveOrderItem? order,
+    double deliveryFee,
+  ) {
+    final isConfirmed = deliveryFee > 0;
+    final feeLabel = isConfirmed
+        ? context.tr('order_status.delivery_fee')
+        : context.tr('payment.est_delivery_fee');
+    final badgeLabel = isConfirmed
+        ? context.tr('payment.delivery_fee_badge_confirmed')
+        : context.tr('payment.delivery_fee_badge_estimate');
+    final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
+        ? order!.displayDeliveryFee!
+        : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
+
+    return Row(
+      children: [
+        const GradientIcon(icon: PhosphorIconsFill.moped, size: 20),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            feeLabel,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            badgeLabel,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFFEF4444),
+            ),
+          ),
+        ),
+        const Spacer(),
+        GradientText(
+          feeAmount,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
