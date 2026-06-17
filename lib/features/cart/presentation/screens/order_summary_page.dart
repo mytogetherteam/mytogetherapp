@@ -913,6 +913,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       restaurantId:
                                           _restaurant?.id ??
                                           widget.store.items.first.restaurantId,
+                                      orderType: _isDelivery
+                                          ? 'DELIVERY'
+                                          : 'PICK_UP',
                                     );
                                     // Store real location data for Delivery Information display
                                     ActiveOrderState

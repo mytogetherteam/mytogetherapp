@@ -200,9 +200,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     }
 
     // Pre-build custom marker icons
-    _buildCustomMarkers().then((_) {
-      _initLocationAndRoute();
-    });
+    if (ActiveOrderState.instance.isPickupFulfillment) {
+      if (mounted) setState(() => _showMap = false);
+    } else {
+      _buildCustomMarkers().then((_) {
+        _initLocationAndRoute();
+      });
+    }
   }
 
   void _startIdleAnimationSequence() {
@@ -893,7 +897,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         children: [
           // ── MAP ──────────────────────────────────────────────────────────
           Positioned.fill(
-            child: _showMap
+            child: ActiveOrderState.instance.isPickupFulfillment && !_showMap
+                ? ColoredBox(
+                    color: const Color(0xFFF8FAFC),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/pickup_bag.png',
+                        height: 180,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  )
+                : _showMap
                 ? GoogleMap(
                     padding: EdgeInsets.only(
                       bottom: panelH * 1.1,
@@ -1224,13 +1239,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildDeliveryFeeRow() {
+    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
             Text(
-              context.tr('order_status.delivery_fee'),
+              isPickup
+                  ? context.tr('order_status.pickup_fee')
+                  : context.tr('order_status.delivery_fee'),
               style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(width: 4),
