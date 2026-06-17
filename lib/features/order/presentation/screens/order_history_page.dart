@@ -5,10 +5,15 @@ import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart'
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
+import 'package:mytogetherapp/core/utils/navigation_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
-  const OrderHistoryPage({super.key, this.shopId});
+  // 0 = Completed tab, 1 = Cancelled tab.
+  final int initialTabIndex;
+  const OrderHistoryPage({super.key, this.shopId, this.initialTabIndex = 0});
 
   @override
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
@@ -60,7 +65,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       _tabController!.dispose();
     }
 
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
   }
 
   @override
@@ -85,6 +94,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16.0),
+            child: NotificationBell(),
+          ),
+        ],
         bottom: _isLoading
             ? null
             : TabBar(
@@ -143,31 +158,70 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     );
   }
 
+  void _goToOrdering() {
+    NavigationController.instance.goToFoodTab();
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   Widget _buildEmptyState(String title) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Illustration Placeholder
-          Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Illustration Placeholder
+            Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
+              child:
+                  Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
             ),
-            child: Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            context.tr('orders.no_orders'),
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+            const SizedBox(height: 24),
+            Text(
+              context.tr('orders.no_orders'),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              context.tr('orders.start_ordering_desc'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey[500],
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryGradientButton(
+              width: 220,
+              onPressed: _goToOrdering,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.restaurant_menu, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr('orders.start_ordering'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -106,6 +106,24 @@ class OrderReviewRepository {
     }
   }
 
+  /// Fetches a single order review by its id.
+  /// Backend: GET /api/user/order-reviews/:id. Returns null on 404.
+  Future<OrderReviewDto?> getById(int id) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/order-reviews/$id',
+      );
+      final data = _unwrapData(response.data);
+      if (data is Map<String, dynamic>) {
+        return OrderReviewDto.fromJson(data);
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   Future<List<OrderReviewDto>> getMyReviews({int page = 1, int size = 20}) async {
     try {
       final response = await _apiClient.dio.get(

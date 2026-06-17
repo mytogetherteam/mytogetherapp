@@ -42,6 +42,7 @@ class FoodDetailDto {
   final List<MenuItemVariantDto> variants;
   final List<MenuItemOptionGroupDto> optionGroups;
   final bool isFavorite;
+  final bool isAvailable;
 
   final CuisineTypeDto? cuisineType;
 
@@ -77,18 +78,32 @@ class FoodDetailDto {
     this.variants = const [],
     this.optionGroups = const [],
     required this.isFavorite,
+    this.isAvailable = true,
     this.cuisineType,
   })  : _name = name,
         _shopName = shopName;
 
   factory FoodDetailDto.fromJson(Map<String, dynamic> json) {
+    // The user menu-item detail endpoint nests shop info under `shop` and uses
+    // `addOns` for option groups; older/public payloads used flat `shopId` /
+    // `shopName*` and `optionGroups`. Read both so either shape works.
+    final shop = json['shop'] is Map
+        ? Map<String, dynamic>.from(json['shop'] as Map)
+        : null;
+    final optionGroupsRaw =
+        (json['optionGroups'] as List?) ?? (json['addOns'] as List?) ?? const [];
+
     return FoodDetailDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      shopId: json['shopId'],
-      shopName: (json['shopName'] as String? ?? json['shopNameEn'] as String?),
-      shopNameEn: json['shopNameEn'] as String? ?? json['shopName'] as String?,
-      shopNameMm: json['shopNameMm'] as String?,
-      shopNameTh: json['shopNameTh'] as String?,
+      shopId: json['shopId'] ?? shop?['id'],
+      shopName: (json['shopName'] as String? ??
+          json['shopNameEn'] as String? ??
+          shop?['nameEn'] as String?),
+      shopNameEn: json['shopNameEn'] as String? ??
+          json['shopName'] as String? ??
+          shop?['nameEn'] as String?,
+      shopNameMm: json['shopNameMm'] as String? ?? shop?['nameMm'] as String?,
+      shopNameTh: json['shopNameTh'] as String? ?? shop?['nameTh'] as String?,
       name: (json['name'] as String? ?? json['nameEn'] as String?) ?? '',
       nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
@@ -110,11 +125,12 @@ class FoodDetailDto {
           .where((e) => e != null)
           .map((e) => MenuItemVariantDto.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
-      optionGroups: (json['optionGroups'] as List? ?? [])
+      optionGroups: optionGroupsRaw
           .where((e) => e != null)
           .map((e) => MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
       isFavorite: json['isFavorite'] ?? false,
+      isAvailable: json['isAvailable'] as bool? ?? true,
     );
   }
 }
@@ -186,16 +202,22 @@ class MenuItemOptionGroupDto {
   }) : _name = name;
 
   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
+    final minSelection = json['minSelection'] as int? ?? 0;
+    final maxSelection = json['maxSelection'] as int? ?? 0;
+    // The user `addOns` payload has no `groupType`/`isRequired`; derive them
+    // from the selection bounds (max 1 → single-select; min > 0 → required).
+    final groupType = json['groupType'] as String? ??
+        (maxSelection == 1 ? 'SINGLE_SELECT' : 'MULTI_SELECT');
     return MenuItemOptionGroupDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
       nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
       nameTh: json['nameTh'] as String?,
-      groupType: json['groupType'] ?? 'MULTI_SELECT',
-      isRequired: json['isRequired'] ?? false,
-      minSelection: json['minSelection'] ?? 0,
-      maxSelection: json['maxSelection'] ?? 0,
+      groupType: groupType,
+      isRequired: json['isRequired'] as bool? ?? (minSelection > 0),
+      minSelection: minSelection,
+      maxSelection: maxSelection,
       options: (json['options'] as List? ?? [])
           .where((e) => e != null)
           .map((e) => MenuItemOptionDto.fromJson(Map<String, dynamic>.from(e as Map)))

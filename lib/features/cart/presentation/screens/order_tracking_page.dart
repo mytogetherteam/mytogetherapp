@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -10,12 +11,12 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
-import '../../../../core/utils/navigation_controller.dart';
 import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
+import 'order_cancel_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -39,7 +40,7 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   List<LatLng> _routePoints = [];
@@ -83,6 +84,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   StreamSubscription? _orderSubscription;
+  Timer? _statusPollTimer;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
@@ -115,6 +117,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _startIdleAnimationSequence();
 
     WebSocketService().connect(force: true);
+
+    // Live WebSocket order events can be missed entirely: the backend's STOMP
+    // broker drops messages for any user whose socket isn't connected at that
+    // instant (no durable queue). To avoid getting stuck on "awaiting
+    // confirmation" for minutes, reconcile against the backend on open, when
+    // the app resumes, and on a short poll while we wait.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+    _statusPollTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _reconcileWithBackend(),
+    );
 
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (!mounted) return;
@@ -186,9 +200,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     }
 
     // Pre-build custom marker icons
-    _buildCustomMarkers().then((_) {
-      _initLocationAndRoute();
-    });
+    if (ActiveOrderState.instance.isPickupFulfillment) {
+      if (mounted) setState(() => _showMap = false);
+    } else {
+      _buildCustomMarkers().then((_) {
+        _initLocationAndRoute();
+      });
+    }
   }
 
   void _startIdleAnimationSequence() {
@@ -285,8 +303,34 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Socket may have been torn down while backgrounded; force a reconnect
+      // and immediately catch up via REST in case an update was missed.
+      WebSocketService().connect(force: true);
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Pulls the authoritative order status from the backend and advances to the
+  /// payment screen once the shop has confirmed (status >= 1), even if the live
+  /// WebSocket frame never arrived.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder();
+    if (!mounted) return;
+    final status = ActiveOrderState.instance.orderStatus;
+    if (status >= 1 && status < 4 && status != -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _navigateToPayment();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _idleSequenceTimer?.cancel();
+    _statusPollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _idleSolidController.dispose();
     _lightProgressController.dispose();
     _orderSubscription?.cancel();
@@ -853,7 +897,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         children: [
           // ── MAP ──────────────────────────────────────────────────────────
           Positioned.fill(
-            child: _showMap
+            child: ActiveOrderState.instance.isPickupFulfillment && !_showMap
+                ? ColoredBox(
+                    color: const Color(0xFFF8FAFC),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/pickup_bag.png',
+                        height: 180,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  )
+                : _showMap
                 ? GoogleMap(
                     padding: EdgeInsets.only(
                       bottom: panelH * 1.1,
@@ -1184,13 +1239,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildDeliveryFeeRow() {
+    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
             Text(
-              context.tr('order_status.delivery_fee'),
+              isPickup
+                  ? context.tr('order_status.pickup_fee')
+                  : context.tr('order_status.delivery_fee'),
               style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(width: 4),
@@ -1288,6 +1346,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 () => {},
                               ); // Rebuild button to show disabled state
 
+                              // Snapshot shop/order details before cancelling.
+                              // cancelActiveOrder() clears the order from state
+                              // on success, so capture it now for the
+                              // cancellation screen.
+                              final cancelledOrder = ActiveOrderState.instance
+                                  .getOrder(ActiveOrderState.instance.orderId);
+
                               // Delayed loading indicator (500ms)
                               Future.delayed(
                                 const Duration(milliseconds: 500),
@@ -1300,22 +1365,53 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               );
 
                               try {
-                                // 1. Backend call
-                                await ActiveOrderState.instance
+                                final success = await ActiveOrderState.instance
                                     .cancelActiveOrder();
 
-                                // 2. Clear local store
+                                if (!success) {
+                                  if (mounted) {
+                                    AppDialog.showToast(
+                                      this.context,
+                                      this.context.tr('payment.cancel_failed'),
+                                      isError: true,
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                // Clear local store
                                 CartManager.instance.removeStore(
                                   widget.store.nameKey,
                                 );
 
-                                // 3. Navigation
+                                // Navigation → order cancellation screen.
+                                // Dismiss the confirm sheet, then replace the
+                                // tracking page (via the State's context, not
+                                // the sheet's) with the cancellation screen.
+                                if (context.mounted) Navigator.pop(context);
                                 if (mounted) {
-                                  if (!context.mounted) return;
-                                  Navigator.of(
-                                    context,
-                                  ).popUntil((route) => route.isFirst);
-                                  NavigationController.instance.goToFoodTab();
+                                  _statusPollTimer?.cancel();
+                                  Navigator.pushReplacement(
+                                    this.context,
+                                    MaterialPageRoute(
+                                      builder: (_) => OrderCancelPage(
+                                        orderId: cancelledOrder?.orderId ?? '',
+                                        reason: cancelledOrder?.cancelReason,
+                                        shopId: cancelledOrder?.shopId,
+                                        shopName: cancelledOrder?.shopNameEn ??
+                                            cancelledOrder?.shopName ??
+                                            cancelledOrder?.restaurantName ??
+                                            cancelledOrder?.storeName,
+                                        shopNameMm: cancelledOrder?.shopNameMm,
+                                        shopNameTh: cancelledOrder?.shopNameTh,
+                                        shopLogo: cancelledOrder?.shopLogo ??
+                                            cancelledOrder?.logoPath,
+                                        shopImageUrl:
+                                            cancelledOrder?.shopImageUrl,
+                                        cancelledByUser: true,
+                                      ),
+                                    ),
+                                  );
                                 }
                               } finally {
                                 if (mounted) {

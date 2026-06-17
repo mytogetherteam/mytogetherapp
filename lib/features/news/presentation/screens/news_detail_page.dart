@@ -529,12 +529,17 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => NewsImageViewer(
+                              PageRouteBuilder(
+                                opaque: false,
+                                transitionDuration: const Duration(milliseconds: 300),
+                                pageBuilder: (context, _, __) => NewsImageViewer(
                                   imageUrls: widget.item.imageUrls,
                                   initialIndex: 0,
                                   item: widget.item,
                                 ),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return FadeTransition(opacity: animation, child: child);
+                                },
                               ),
                             ).then((_) {
                               if (mounted) {
@@ -549,7 +554,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             tag: widget.item.imageUrls[0],
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: CachedNetworkImage(
+                              child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                 imageUrl: widget.item.imageUrls[0],
                                 fit: BoxFit.cover,
                                 width: double.infinity,
@@ -583,12 +588,17 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => NewsImageViewer(
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    transitionDuration: const Duration(milliseconds: 300),
+                                    pageBuilder: (context, _, __) => NewsImageViewer(
                                       imageUrls: widget.item.imageUrls,
                                       initialIndex: index,
                                       item: widget.item,
                                     ),
+                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      return FadeTransition(opacity: animation, child: child);
+                                    },
                                   ),
                                 ).then((_) {
                                   if (mounted) {
@@ -606,7 +616,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   tag: imageUrl,
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CachedNetworkImage(
+                                    child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
@@ -877,3 +887,4 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     );
   }
 }
+

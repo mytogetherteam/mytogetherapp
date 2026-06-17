@@ -19,6 +19,8 @@ import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -28,6 +30,23 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initAppVersion();
+  }
+
+  Future<void> _initAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = packageInfo.version;
+      });
+    }
+  }
+
   String _getImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
@@ -37,6 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -48,14 +68,35 @@ class _ProfilePageState extends State<ProfilePage> {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                Container(
-                  height: 120,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, Color(0xFFF96232)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                ClipRect(
+                  child: Container(
+                    height: 120,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, Color(0xFFF96232)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: -size.width * 0.3,
+                          right: -size.width * 0.1,
+                          child: Container(
+                            width: size.width * 1.5,
+                            height: size.width * 1.5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                width: 80,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -79,6 +120,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           : null,
                     ),
                   ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  right: 16,
+                  child: const NotificationBell(),
                 ),
               ],
             ),
@@ -196,7 +242,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            if (_appVersion.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 40),
+                child: Text(
+                  '${context.tr('profile.app_version')} $_appVersion',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              )
+            else
+              const SizedBox(height: 40),
           ],
         ),
       ),

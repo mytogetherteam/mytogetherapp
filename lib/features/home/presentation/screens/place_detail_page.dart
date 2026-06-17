@@ -11,6 +11,8 @@ import '../../presentation/widgets/image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 import '../../data/models/place_dto.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceDto place;
@@ -165,48 +167,65 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                     background: Stack(
                       fit: StackFit.expand,
                       children: [
-                        ScaleTransition(
-                          scale: _zoomAnimation,
-                          child: Hero(
-                            tag: 'top_places_${widget.place.displayTitle}',
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 1000),
-                              layoutBuilder:
-                                  (
-                                    Widget? currentChild,
-                                    List<Widget> previousChildren,
-                                  ) {
-                                    return Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        ...previousChildren,
-                                        ?currentChild,
-                                      ],
-                                    );
-                                  },
-                              transitionBuilder:
-                                  (Widget child, Animation<double> animation) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    );
-                                  },
-                              child: CachedNetworkImage(
-                                key: ValueKey(_allImages[_currentImageIndex]),
-                                imageUrl: _allImages[_currentImageIndex],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                                placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                opaque: false,
+                                barrierDismissible: true,
+                                pageBuilder: (context, _, _) =>
+                                    FullScreenImageViewer(
+                                  imageUrls: _allImages,
+                                  initialIndex: _currentImageIndex,
+                                  heroTagPrefix:
+                                      'top_places_${widget.place.displayTitle}_',
+                                ),
+                              ),
+                            );
+                          },
+                          child: ScaleTransition(
+                            scale: _zoomAnimation,
+                            child: Hero(
+                              tag: 'top_places_${widget.place.displayTitle}_${_allImages[_currentImageIndex]}',
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 1000),
+                                layoutBuilder: (
+                                  Widget? currentChild,
+                                  List<Widget> previousChildren,
+                                ) {
+                                  return Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ...previousChildren,
+                                      if (currentChild != null) currentChild,
+                                    ],
+                                  );
+                                },
+                                transitionBuilder: (Widget child, Animation<double> animation) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  );
+                                },
+                                child: CachedNetworkImage(
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
+                                  key: ValueKey(_allImages[_currentImageIndex]),
+                                  imageUrl: _allImages[_currentImageIndex],
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => const Icon(
+                                    Icons.error,
                                     color: Colors.white,
                                   ),
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(
-                                      Icons.error,
-                                      color: Colors.white,
-                                    ),
                               ),
                             ),
                           ),
@@ -251,8 +270,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                             Container(
                               margin: const EdgeInsets.only(top: 60),
                               padding: const EdgeInsets.only(
-                                top: 20,
-                                bottom: 40,
+                                top: 40,
+                                bottom: 100,
                               ),
                               decoration: const BoxDecoration(
                                 color: Colors.white,
@@ -263,21 +282,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // About Location
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20.0,
-                                    ),
-                                    child: Text(
-                                      context.tr('place.about_location'),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20.0,
@@ -348,7 +352,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                               child: Hero(
                                                 tag:
                                                     'gallery_${widget.place.displayTitle}_${widget.place.galleryUrls[index]}',
-                                                child: CachedNetworkImage(
+                                                child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                                   imageUrl:
                                                       widget.place.galleryUrls[index],
                                                   fit: BoxFit.cover,
@@ -442,99 +446,68 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                       right: 20,
                       child: Opacity(
                         opacity: opacity,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  AutoSizeText(
-                                    widget.place.displayTitle,
-                                    maxLines: 2,
-                                    minFontSize: 16,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1D1D1F),
-                                      height: 1.1,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        PhosphorIcons.mapPinFill,
-                                        color: AppColors.primary,
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.place.locationName,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(
-                                            0xFF1D1D1F,
-                                          ).withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (widget.place.formattedHours.isNotEmpty) ...[
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          PhosphorIcons.clock,
-                                          color: Colors.green[600],
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          widget.place.formattedHours,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.green[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
+                            AutoSizeText(
+                              widget.place.displayTitle,
+                              maxLines: 2,
+                              minFontSize: 16,
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1D1D1F),
+                                height: 1.1,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            Container(
-                              height: 38,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(19),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  context.tr('place.view_on_map'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  PhosphorIcons.mapPinFill,
+                                  color: AppColors.primary,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    widget.place.locationName,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(
+                                        0xFF1D1D1F,
+                                      ).withValues(alpha: 0.7),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
+                            if (widget.place.formattedHours.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Icon(
+                                    PhosphorIcons.clock,
+                                    color: Colors.green[600],
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.place.formattedHours,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.green[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -606,6 +579,76 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 ),
               ),
             ),
+
+            // Fixed Bottom Map Button
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom > 0
+                  ? MediaQuery.of(context).padding.bottom + 10
+                  : 20,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () async {
+                    final lat = widget.place.latitude;
+                    final lon = widget.place.longitude;
+                    if (lat != null && lon != null) {
+                      final uri = Uri.parse(
+                        'https://www.google.com/maps/search/?api=1&query=$lat,$lon',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      } else {
+                        if (context.mounted) {
+                          AppDialog.showUnavailable(context);
+                        }
+                      }
+                    } else {
+                      if (context.mounted) {
+                        AppDialog.showUnavailable(context);
+                      }
+                    }
+                  },
+                  child: Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          PhosphorIcons.mapTrifoldFill,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          context.tr('place.view_on_map'),
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -637,3 +680,4 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     );
   }
 }
+

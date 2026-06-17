@@ -78,7 +78,8 @@ class NotificationRepository {
       final response = await _dio.put(
         '${ApiClient.apiPrefix}/user/notifications/$id/read',
       );
-      if (response.statusCode == 200) {
+      final status = response.statusCode ?? 0;
+      if (status >= 200 && status < 300) {
         decrementCount();
         return true;
       }
@@ -93,7 +94,8 @@ class NotificationRepository {
       final response = await _dio.put(
         '${ApiClient.apiPrefix}/user/notifications/read-all',
       );
-      if (response.statusCode == 200) {
+      final status = response.statusCode ?? 0;
+      if (status >= 200 && status < 300) {
         unreadCount.value = 0;
         return true;
       }

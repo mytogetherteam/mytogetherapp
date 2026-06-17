@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -6,6 +7,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
+import '../location/location_service.dart';
 import 'jwt_utils.dart';
 
 class AuthService {
@@ -35,13 +37,28 @@ class AuthService {
   List<UserLocationModel>? _userLocations;
   bool _initialized = false;
 
+  // Mutex: only one refresh request runs at a time.
+  // Other callers await the same future instead of firing duplicate requests.
+  Completer<String?>? _refreshCompleter;
+
+  /// Called when the session is cleared due to token expiry or explicit logout.
+  /// Wire this up in app.dart or wherever navigation is available.
+  void Function()? onSessionExpired;
+
   /// Call once at app startup in main()
   Future<void> initialize() async {
     if (_initialized) return;
 
     // Read tokens from secure storage
-    _accessToken = await _secureStorage.read(key: _keyAccessToken);
-    _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+    try {
+      _accessToken = await _secureStorage.read(key: _keyAccessToken);
+      _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
+    } catch (e) {
+      // Keystore might be corrupted due to reinstall or debug app
+      await _secureStorage.deleteAll();
+      _accessToken = null;
+      _refreshToken = null;
+    }
 
     // Read non-sensitive profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
@@ -130,12 +147,12 @@ class AuthService {
       await prefs.remove(_keyUserLocations);
     }
 
-    // Request permission and register FCM token for the new session
-    await NotificationService().requestPermission();
+    // Register FCM token for the new session if permission is already granted.
+    // Native permission request is now handled by MainNavigationScreen rationale modal.
     await NotificationService().registerDevice();
   }
 
-  Future<void> clearSession() async {
+  Future<void> clearSession({bool navigate = true}) async {
     _accessToken = null;
     _refreshToken = null;
     _currentUser = null;
@@ -147,6 +164,11 @@ class AuthService {
     // Clear remaining profile data from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+
+    // Navigate to login screen if a callback is registered
+    if (navigate && onSessionExpired != null) {
+      onSessionExpired!();
+    }
   }
 
   void updateAccessToken(String newToken) {
@@ -174,27 +196,49 @@ class AuthService {
     }
   }
 
+  /// Refreshes the access token. If a refresh is already in flight,
+  /// all concurrent callers wait for the same result instead of sending
+  /// duplicate requests (which would invalidate a single-use refresh token).
   Future<String?> performRefresh(Dio dio) async {
     if (_refreshToken == null || _refreshToken!.isEmpty) {
       return null;
     }
 
-    final response = await dio.post(
-      '${ApiClient.apiPrefix}/user/auth/refresh',
-      data: {'refreshToken': _refreshToken},
-      options: Options(headers: {'Authorization': ''}),
-    );
-
-    if (response.statusCode == 200 && response.data != null) {
-      final data = response.data['data'];
-      final newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
-      final newRefreshToken = data['refreshToken'] as String?;
-      
-      if (newToken.isNotEmpty) {
-        await updateTokens(newToken, newRefreshToken);
-        return newToken;
-      }
+    // If a refresh is already running, wait for it and return the same result
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
     }
-    return null;
+
+    _refreshCompleter = Completer<String?>();
+    try {
+      final response = await dio.post(
+        '${ApiClient.apiPrefix}/user/auth/refresh',
+        data: {'refreshToken': _refreshToken},
+      );
+
+      String? newToken;
+      if (response.statusCode == 200 && response.data != null) {
+        final responseData = response.data;
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'];
+          newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
+          final newRefreshToken = data['refreshToken'] as String?;
+          if (newToken != null && newToken.isNotEmpty) {
+            await updateTokens(newToken, newRefreshToken);
+          } else {
+            newToken = null;
+          }
+        }
+      }
+
+      _refreshCompleter!.complete(newToken);
+      return newToken;
+    } catch (e) {
+      _refreshCompleter!.completeError(e);
+      rethrow;
+    } finally {
+      // Reset so the next expiry can start a fresh refresh cycle
+      _refreshCompleter = null;
+    }
   }
 }

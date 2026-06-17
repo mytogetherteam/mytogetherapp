@@ -46,6 +46,16 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
     }
   }
 
+  /// First line of the post becomes the headline; the remaining text is the
+  /// preview description (empty when the post is a single line).
+  String _headline(String content) => content.split('\n').first.trim();
+
+  String _summary(String content) {
+    final lines = content.split('\n');
+    if (lines.length <= 1) return '';
+    return lines.sublist(1).join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
   void _navigateToDetail(NewsItem item) {
     Navigator.push(
       context,
@@ -57,7 +67,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const SizedBox(
-        height: 250,
+        height: 260,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
@@ -90,7 +100,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 250,
+          height: 260,
           child: PageView.builder(
             controller: _pageController,
             itemCount: (_items.length / 2).ceil(),
@@ -104,7 +114,8 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                   children: [
                     Expanded(
                       child: NewsCard(
-                        title: _items[firstItemIndex].content.split('\n').first,
+                        title: _headline(_items[firstItemIndex].content),
+                        description: _summary(_items[firstItemIndex].content),
                         source: _items[firstItemIndex].authorName,
                         imageUrl: _items[firstItemIndex].imageUrls.isNotEmpty
                             ? _items[firstItemIndex].imageUrls.first
@@ -117,7 +128,8 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
                     if (secondItemIndex < _items.length)
                       Expanded(
                         child: NewsCard(
-                          title: _items[secondItemIndex].content.split('\n').first,
+                          title: _headline(_items[secondItemIndex].content),
+                          description: _summary(_items[secondItemIndex].content),
                           source: _items[secondItemIndex].authorName,
                           imageUrl:
                               _items[secondItemIndex].imageUrls.isNotEmpty

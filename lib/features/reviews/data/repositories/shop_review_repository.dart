@@ -54,6 +54,20 @@ class ShopReviewRepository {
         .toList();
   }
 
+  /// Fetches a single review owned by the current user.
+  /// Backend: GET /api/user/reviews/:id. Returns null on 404.
+  Future<ShopReviewDto?> getById(int reviewId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/reviews/$reviewId',
+      );
+      return ShopReviewDto.fromJson(_unwrap(response.data));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   Future<ShopReviewDto> update({
     required int reviewId,
     double? rating,

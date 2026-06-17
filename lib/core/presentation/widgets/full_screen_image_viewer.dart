@@ -88,7 +88,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                   child: Center(
                     child: Hero(
                       tag: '${widget.heroTagPrefix}${widget.imageUrls[index]}',
-                      child: CachedNetworkImage(
+                      child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                         imageUrl: widget.imageUrls[index],
                         fit: BoxFit.contain,
                         placeholder: (context, url) => const Center(
@@ -159,3 +159,4 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     );
   }
 }
+

@@ -21,9 +21,12 @@ import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
-import 'order_cancel_page.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/data/services/chat_unread_controller.dart';
+import '../../../chat/presentation/widgets/chat_unread_badge.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../widgets/pickup_order_qr_card.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -39,7 +42,8 @@ class OrderStatusPage extends StatefulWidget {
   State<OrderStatusPage> createState() => _OrderStatusPageState();
 }
 
-class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderStateMixin {
+class _OrderStatusPageState extends State<OrderStatusPage>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentStatus = 1; 
   String? _backendStatus;
   
@@ -88,7 +92,20 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
     // Connect to WebSockets with force: true to ensure topic subscriptions are refreshed with the current orderId
     WebSocketService().connect(force: true);
-    
+
+    // Reconcile with the backend on open and on resume so a stale local status
+    // (from missed WebSocket events) can't keep the user on an earlier stage
+    // than the order has actually reached.
+    WidgetsBinding.instance.addObserver(this);
+    _reconcileWithBackend();
+
+    // Track unread chat messages for this order so the chat icon can badge them.
+    ChatUnreadController.instance.start();
+    final chatOrderId = _currentOrderId;
+    if (chatOrderId != null) {
+      ChatUnreadController.instance.refreshOrder(chatOrderId);
+    }
+
     _orderSubscription = WebSocketService().orderUpdates.listen((update) {
       if (mounted) {
         final state = ActiveOrderState.instance;
@@ -110,31 +127,16 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
-        // Auto-navigate when status becomes CANCELLED (-1)
-        if (state.orderStatus == -1) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OrderCancelPage(
-                    orderId: state.orderId ?? "",
-                    reason: state.cancelReason,
-                    shopId: state.shopId,
-                    shopName: state.shopNameEn ?? state.shopName,
-                    shopNameMm: state.shopNameMm,
-                    shopNameTh: state.shopNameTh,
-                    shopLogo: state.shopLogo,
-                    shopImageUrl: state.shopImageUrl,
-                  ),
-                ),
-              );
-            }
-          });
-        }
+        // Shop-cancel navigation is handled by [OrderActionPresenter].
 
-        // Auto-navigate back to Payment if requested and not already checking
-        if (state.orderStatus == 1 && !state.isPaymentChecking && !AwaitingPaymentPage.isCurrentlyVisible) {
+        // Auto-navigate back to Payment ONLY when the shop explicitly requested
+        // a (new) payment slip. Gating on isSlipRequested prevents other
+        // status-1 states (e.g. payment verified in flight) from bouncing the
+        // user off the status screen.
+        if (state.orderStatus == 1 &&
+            state.isSlipRequested &&
+            !state.isPaymentChecking &&
+            !AwaitingPaymentPage.isCurrentlyVisible) {
           if (!state.hasNotifiedSlipRequest) {
             state.setNotifiedSlipRequest(true);
             // ScaffoldMessenger.of(context).showSnackBar(
@@ -226,22 +228,36 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcileWithBackend();
+    }
+  }
+
+  /// Fetches the authoritative order status from the backend and syncs the
+  /// stepper / completion navigation, covering cases where live WebSocket
+  /// updates were missed while the app was backgrounded or disconnected.
+  Future<void> _reconcileWithBackend() async {
+    await ActiveOrderState.instance.syncActiveOrder();
+    if (!mounted) return;
+    final status = ActiveOrderState.instance.orderStatus;
+    setState(() => _currentStatus = status.clamp(1, 4));
+    if (status == 4) {
+      Future.delayed(const Duration(seconds: 1), _navigateToComplete);
+    }
+  }
+
+  @override
   void dispose() {
     _processingController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
     super.dispose();
   }
 
   void _navigateToComplete() {
     if (!mounted) return;
-    // navigateTo atomically guards against duplicates; it uses push so we
-    // manually replace by popping this page afterward if navigation succeeded.
-    if (OrderCompletePage.navigateTo(context)) {
-      // Pop this OrderStatusPage so the complete page is the only one on stack
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).removeRoute(ModalRoute.of(context)!);
-      });
-    }
+    OrderCompletePage.navigateReplacing(context);
   }
 
   LatLng get _restaurantLatLng {
@@ -395,6 +411,13 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
 
   String _statusTitle(BuildContext context) {
     if (_currentStatus == -1) return context.tr('order_status.cancelled');
+    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
+    if (isPickup && ActiveOrderState.instance.isReadyForPickup) {
+      return context.tr('order_status.ready_for_pickup');
+    }
+    if (isPickup && _currentStatus == 4) {
+      return context.tr('order_status.picked_up');
+    }
     switch (_currentStatus) {
       case 1:
         return context.tr('order_status.checking_payment');
@@ -459,15 +482,26 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             const SizedBox(height: 8),
             if (_currentStatus != -1) ...[
               Text(
-                context.trArgs('order_status.estimate_arrival', {
-                  'time': state.estimatedTime ?? '09:45 PM',
-                }),
+                state.isPickupFulfillment
+                    ? (state.estimatedTime != null &&
+                            state.estimatedTime!.isNotEmpty
+                        ? '${context.tr('order_status.est_waiting_time')}: ${state.estimatedTime!}'
+                        : context.tr('order_status.preparing'))
+                    : context.trArgs('order_status.estimate_arrival', {
+                        'time': state.estimatedTime ?? '09:45 PM',
+                      }),
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
               // Progress Bar
               _buildProgressBar(),
               const SizedBox(height: 32),
+              if (state.isPickupFulfillment &&
+                  state.isReadyForPickup &&
+                  state.orderId != null) ...[
+                PickupOrderQrCard(orderId: state.orderId!),
+                const SizedBox(height: 24),
+              ],
             ],
 
             // Map Embed (only if status >= 3)
@@ -477,8 +511,12 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                 return FadeTransition(opacity: animation, child: SizeTransition(sizeFactor: animation, child: child));
               },
               child: (() {
-                if (_currentStatus < 3 || _currentStatus == -1) return const SizedBox.shrink(key: ValueKey('empty_map'));
-                
+                if (ActiveOrderState.instance.isPickupFulfillment ||
+                    _currentStatus < 3 ||
+                    _currentStatus == -1) {
+                  return const SizedBox.shrink(key: ValueKey('empty_map'));
+                }
+
                 final state = ActiveOrderState.instance;
                 final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
                 
@@ -574,22 +612,28 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          context.tr('order_status.delivery_fee'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[500],
-                            letterSpacing: 0.5,
+                        if (!state.isPickupFulfillment ||
+                            state.displayDeliveryFee != null) ...[
+                          Text(
+                            state.isPickupFulfillment
+                                ? context.tr('order_status.pickup_fee')
+                                : context.tr('order_status.delivery_fee'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        GradientText(
-                          state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice(),
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          GradientText(
+                            state.displayDeliveryFee ??
+                                widget.deliveryFee.toFormattedPrice(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ],
@@ -655,7 +699,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 width: 48,
                                 height: 48,
                                 child: state.logoPath != null && state.logoPath!.isNotEmpty
-                                  ? CachedNetworkImage(
+                                  ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: state.logoPath!,
                                       width: 48,
                                       height: 48,
@@ -679,14 +723,20 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                 ),
                               ),
                             ),
-                            _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
-                            const SizedBox(width: 6),
                             _buildSmallCircleButton(
-                              PhosphorIcons.chatCircleTextFill,
-                              onTap: () => _openChat(
-                                name: storeName,
-                                subtitle: context.tr('common.restaurant'),
-                                avatarUrl: state.logoPath,
+                              PhosphorIcons.phoneCallFill,
+                              onTap: () => _makeCall(state.shopPhone),
+                            ),
+                            const SizedBox(width: 6),
+                            ChatUnreadBadge(
+                              orderId: _currentOrderId,
+                              child: _buildSmallCircleButton(
+                                PhosphorIcons.chatCircleTextFill,
+                                onTap: () => _openChat(
+                                  name: storeName,
+                                  subtitle: context.tr('common.restaurant'),
+                                  avatarUrl: state.logoPath,
+                                ),
                               ),
                             ),
                           ],
@@ -802,7 +852,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                                           child: SizedBox(
                                             width: 48,
                                             height: 48,
-                                            child: CachedNetworkImage(
+                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                               imageUrl: item.imagePath,
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => Container(
@@ -883,7 +933,10 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
             const SizedBox(height: 16),
 
             // Delivery Info Card
-            if (_currentStatus != -1 && (_currentStatus >= 3 || (state.riderName != null && state.riderName!.isNotEmpty)))
+            if (!state.isPickupFulfillment &&
+                _currentStatus != -1 &&
+                (_currentStatus >= 3 ||
+                    (state.riderName != null && state.riderName!.isNotEmpty)))
               Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1073,15 +1126,21 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
                           ),
                         ),
                         if (state.riderPhone != null) ...[
-                          _buildSmallCircleButton(PhosphorIcons.phoneCallFill),
+                          _buildSmallCircleButton(
+                            PhosphorIcons.phoneCallFill,
+                            onTap: () => _makeCall(state.riderPhone),
+                          ),
                           const SizedBox(width: 6),
                         ],
-                        _buildSmallCircleButton(
-                          PhosphorIcons.chatCircleTextFill,
-                          onTap: () => _openChat(
-                            name: state.riderName,
-                            subtitle: context.tr('order_status.delivery_rider'),
-                            fallbackIcon: Icons.delivery_dining_rounded,
+                        ChatUnreadBadge(
+                          orderId: _currentOrderId,
+                          child: _buildSmallCircleButton(
+                            PhosphorIcons.chatCircleTextFill,
+                            onTap: () => _openChat(
+                              name: state.riderName,
+                              subtitle: context.tr('order_status.delivery_rider'),
+                              fallbackIcon: Icons.delivery_dining_rounded,
+                            ),
                           ),
                         ),
                       ],
@@ -1274,19 +1333,59 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
     return GestureDetector(onTap: onTap, child: button);
   }
 
-  void _openChat({
+  Future<void> _makeCall(String? phone) async {
+    final number = phone?.trim() ?? '';
+    if (number.isEmpty || number == '-') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.no_phone_number'))),
+        );
+      }
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: number);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        );
+      }
+    }
+  }
+
+  /// Parsed integer id of the active order, or null when unavailable.
+  int? get _currentOrderId {
+    final orderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    return (orderId != null && orderId > 0) ? orderId : null;
+  }
+
+  Future<void> _openChat({
     required String? name,
     required String subtitle,
     String? avatarUrl,
     IconData fallbackIcon = Icons.storefront_rounded,
-  }) {
+  }) async {
+    final orderId = _currentOrderId;
+    if (orderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.order_unavailable'))),
+      );
+      return;
+    }
+
+    ChatUnreadController.instance.clear(orderId);
+
     final peerName = (name == null || name.trim().isEmpty)
         ? subtitle
         : name;
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChatPage(
+          orderId: orderId,
           peerName: peerName,
           peerSubtitle: subtitle,
           avatarUrl: avatarUrl,
@@ -1294,6 +1393,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
         ),
       ),
     );
+    if (!mounted) return;
+    await ChatUnreadController.instance.refreshOrder(orderId);
   }
 
   Widget _buildNoImageAvatar() {
@@ -1333,6 +1434,17 @@ class _OrderStatusPageState extends State<OrderStatusPage> with TickerProviderSt
   }
 
   String _statusDescription(BuildContext context, String storeName) {
+    if (ActiveOrderState.instance.isPickupFulfillment) {
+      if (ActiveOrderState.instance.isReadyForPickup) {
+        return context.tr('order_status.pickup_qr_subtitle');
+      }
+      final key = switch (_currentStatus) {
+        1 => 'order_status.checking_payment_shop',
+        2 => 'order_status.preparing_shop',
+        _ => 'order_status.picked_up',
+      };
+      return context.trArgs(key, {'shop': storeName});
+    }
     final key = switch (_currentStatus) {
       1 => 'order_status.checking_payment_shop',
       2 => 'order_status.preparing_shop',
@@ -1368,3 +1480,4 @@ class _DottedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

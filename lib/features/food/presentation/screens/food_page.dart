@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_section.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
@@ -16,11 +17,14 @@ import 'package:mytogetherapp/features/home/presentation/widgets/popular_brands_
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/together_deals_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/explore_menu_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/promo_banner_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_categories_section.dart';
+import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_collection_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_for_you_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/search_box_trigger.dart';
+import 'food_search_page.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -33,6 +37,7 @@ class _FoodPageState extends State<FoodPage> {
   Key _refreshKey = UniqueKey();
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -49,6 +54,12 @@ class _FoodPageState extends State<FoodPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
+
+    final isScrolled = _scrollController.offset > 80;
+    if (isScrolled != _isScrolled) {
+      setState(() => _isScrolled = isScrolled);
+    }
+
     final shouldShow = _scrollController.offset > 600;
     if (shouldShow != _showBackToTop) {
       setState(() => _showBackToTop = shouldShow);
@@ -86,6 +97,8 @@ class _FoodPageState extends State<FoodPage> {
         activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
     final lon =
         activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final double statusBarHeight = isIOS ? MediaQuery.of(context).padding.top : 0.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -94,21 +107,68 @@ class _FoodPageState extends State<FoodPage> {
         floatingActionButton: const StyledCartFab(),
         body: Stack(
           children: [
-            Column(
-              children: [
-                FoodHeader(onLocationChanged: _onRefresh),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      RefreshIndicator(
-                        onRefresh: _onRefresh,
-                        color: AppColors.primary,
-                        child: SingleChildScrollView(
-                          key: _refreshKey,
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Column(
-                            children: [
+            RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: AppColors.primary,
+              child: SingleChildScrollView(
+                key: _refreshKey,
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                // padding zero to start exactly at top
+                child: Column(
+                  children: [
+                              Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/food_header_bg.webp',
+                                    width: double.infinity,
+                                    height: (isIOS ? 260.0 : 240.0) + statusBarHeight,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.bottomLeft,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(left: 24, bottom: isIOS ? 150 : 115),
+                                      child: Text(
+                                        context.tr('food.banner_slogan'),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          height: 1.3,
+                                          shadows: [
+                                            Shadow(
+                                              offset: const Offset(0, 2),
+                                              blurRadius: 8,
+                                              color: Colors.black.withValues(alpha: 0.4),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.fromLTRB(16, 0, 16, isIOS ? 56 : 32),
+                                    child: SearchBoxTrigger(
+                                      hintText: context.tr('food.deliver_prompt'),
+                                      height: 44,
+                                      borderRadius: 12,
+                                      backgroundColor: Colors.white.withValues(alpha: 0.85),
+                                      contentColor: Colors.grey[600]!,
+                                      shadowAlpha: 0.08,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const FoodSearchPage()),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const FoodCategoriesSection(),
                               const SizedBox(height: 16),
                               FoodQuickAccessSection(
                                 onNearbyTap: () =>
@@ -126,13 +186,10 @@ class _FoodPageState extends State<FoodPage> {
                                   ),
                                 ),
                               ),
-                          const SizedBox(height: 20),
-                          const PromoBannerSection(
-                            position: 'Top Banners',
-                            height: 120,
-                          ),
-                          const SizedBox(height: 20),
-                          const FoodRestaurantsSection(),
+                              const SizedBox(height: 20),
+                              const FoodPromotionsCarousel(),
+                              const SizedBox(height: 20),
+                              const FoodRestaurantsSection(),
                               const TrendingShopsSection(),
                               PopularBrandsSection(
                                 title: context.tr('food.popular'),
@@ -159,22 +216,26 @@ class _FoodPageState extends State<FoodPage> {
                             ],
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 20,
-                        left: 0,
-                        right: 0,
-                        child: Center(child: _buildBackToTopButton()),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: FoodHeader(
+                isScrolled: _isScrolled,
+                onLocationChanged: _onRefresh,
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Center(child: _buildBackToTopButton()),
             ),
             Positioned(
               left: 0,
               right: 0,
-              bottom: 4 + MediaQuery.of(context).padding.bottom,
+              bottom: 12,
               child: const ActiveOrderBar(),
             ),
           ],

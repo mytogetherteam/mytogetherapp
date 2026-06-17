@@ -3,14 +3,17 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../app.dart';
+import '../../../../core/utils/file_url_util.dart';
 
-class OrderCancelPage extends StatelessWidget {
+class OrderCancelPage extends StatefulWidget {
+  static bool isCurrentlyVisible = false;
+
   final String orderId;
   final String? reason;
   final String? shopId;
@@ -19,6 +22,9 @@ class OrderCancelPage extends StatelessWidget {
   final String? shopNameTh;
   final String? shopLogo;
   final String? shopImageUrl;
+  /// When true, shows the user-initiated cancellation copy instead of the
+  /// "cancelled by the shop" message.
+  final bool cancelledByUser;
 
   const OrderCancelPage({
     super.key,
@@ -30,42 +36,46 @@ class OrderCancelPage extends StatelessWidget {
     this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
+    this.cancelledByUser = false,
   });
 
-  String _getFullUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    
-    // Filter out Pinterest links as they often fail to load in mobile apps
-    if (path.contains('pinterest.com')) return '';
-    
-    if (path.startsWith('http') || path.startsWith('assets/')) return path;
-    
-    // Clean path and ensure single slash between base URL and path
-    String cleaned = path.trim();
-    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
-    
-    // Encode the path to handle spaces and special characters
-    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
-    
-    return '${ApiClient.baseUrl}/$encodedPath';
+  @override
+  State<OrderCancelPage> createState() => _OrderCancelPageState();
+}
+
+class _OrderCancelPageState extends State<OrderCancelPage> {
+  @override
+  void initState() {
+    super.initState();
+    OrderCancelPage.isCurrentlyVisible = true;
   }
 
+  @override
+  void dispose() {
+    OrderCancelPage.isCurrentlyVisible = false;
+    super.dispose();
+  }
+
+  String _getFullUrl(String? path) => FileUrlUtil.resolve(path);
+
+  NavigatorState get _rootNavigator =>
+      App.navigatorKey.currentState ?? Navigator.of(context);
+
   void _onViewRestaurant(BuildContext context) {
-    ActiveOrderState.instance.clearOrder(orderId: orderId);
-    
-    if (shopId != null && shopId!.isNotEmpty) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      NavigationController.instance.goToFoodTab();
-      Navigator.push(
-        context,
+    ActiveOrderState.instance.clearOrder(orderId: widget.orderId);
+    NavigationController.instance.goToFoodTab();
+
+    if (widget.shopId != null && widget.shopId!.isNotEmpty) {
+      _rootNavigator.pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => RestaurantDetailPage(
-            id: shopId!,
-            name: shopName,
-            logoPath: _getFullUrl(shopLogo),
-            imagePath: _getFullUrl(shopImageUrl),
+          builder: (_) => RestaurantDetailPage(
+            id: widget.shopId!,
+            name: widget.shopName,
+            logoPath: _getFullUrl(widget.shopLogo),
+            imagePath: _getFullUrl(widget.shopImageUrl),
           ),
         ),
+        (route) => route.isFirst,
       );
     } else {
       _goHome(context);
@@ -73,9 +83,9 @@ class OrderCancelPage extends StatelessWidget {
   }
 
   void _goHome(BuildContext context) {
-    ActiveOrderState.instance.clearOrder(orderId: orderId);
+    ActiveOrderState.instance.clearOrder(orderId: widget.orderId);
     NavigationController.instance.goToFoodTab();
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    _rootNavigator.popUntil((route) => route.isFirst);
   }
 
   Widget _buildNoImagePlaceholder(BuildContext context, {bool isLogo = false}) {
@@ -109,16 +119,21 @@ class OrderCancelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasLogo = shopLogo != null && shopLogo!.isNotEmpty;
-    final hasImage = shopImageUrl != null && shopImageUrl!.isNotEmpty;
+    final hasLogo = widget.shopLogo != null && widget.shopLogo!.isNotEmpty;
+    final hasImage = widget.shopImageUrl != null && widget.shopImageUrl!.isNotEmpty;
     final localizedShopName = context.localized(
-      en: shopName,
-      mm: shopNameMm,
-      th: shopNameTh,
+      en: widget.shopName,
+      mm: widget.shopNameMm,
+      th: widget.shopNameTh,
     );
     final hasShopInfo = localizedShopName.isNotEmpty;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goHome(context);
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -157,7 +172,9 @@ class OrderCancelPage extends StatelessWidget {
                       const SizedBox(height: 24),
                       
                       Text(
-                        context.tr('order_cancel.sorry'),
+                        widget.cancelledByUser
+                            ? context.tr('order_cancel_user.title')
+                            : context.tr('order_cancel.sorry'),
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -167,7 +184,9 @@ class OrderCancelPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        context.tr('order_cancel.message'),
+                        widget.cancelledByUser
+                            ? context.tr('order_cancel_user.message')
+                            : context.tr('order_cancel.message'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           color: Colors.grey[600],
@@ -208,16 +227,16 @@ class OrderCancelPage extends StatelessWidget {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(15),
-                                  child: (shopImageUrl != null && shopImageUrl!.isNotEmpty)
-                                      ? CachedNetworkImage(
-                                          imageUrl: _getFullUrl(shopImageUrl),
+                                  child: (widget.shopImageUrl != null && widget.shopImageUrl!.isNotEmpty)
+                                      ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                          imageUrl: _getFullUrl(widget.shopImageUrl),
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                           errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
                                         )
-                                      : (shopLogo != null && shopLogo!.isNotEmpty)
-                                          ? CachedNetworkImage(
-                                              imageUrl: _getFullUrl(shopLogo),
+                                      : (widget.shopLogo != null && widget.shopLogo!.isNotEmpty)
+                                          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                              imageUrl: _getFullUrl(widget.shopLogo),
                                               fit: BoxFit.cover,
                                               placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                               errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
@@ -244,8 +263,10 @@ class OrderCancelPage extends StatelessWidget {
                         const SizedBox(height: 24),
                       ],
                       
-                      // Reason Section
-                      if (reason != null && reason!.isNotEmpty) ...[
+                      // Reason Section — only when the shop cancelled the order.
+                      if (!widget.cancelledByUser &&
+                          widget.reason != null &&
+                          widget.reason!.isNotEmpty) ...[
                         Container(
                           padding: const EdgeInsets.all(20),
                           width: double.infinity,
@@ -277,7 +298,7 @@ class OrderCancelPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                reason!,
+                                widget.reason!,
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   color: AppColors.primary,
@@ -314,6 +335,8 @@ class OrderCancelPage extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 }
+

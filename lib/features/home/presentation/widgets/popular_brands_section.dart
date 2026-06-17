@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'view_all_icon_button.dart';
 import '../screens/food_collection_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -12,7 +12,6 @@ import '../../../../core/location/location_service.dart';
 import 'image_skeleton_loader.dart';
 
 class PopularBrandsSection extends StatefulWidget {
-  /// Optional header override. Defaults to `home.popular_restaurants`.
   final String? title;
 
   const PopularBrandsSection({super.key, this.title});
@@ -23,6 +22,7 @@ class PopularBrandsSection extends StatefulWidget {
 
 class _PopularBrandsSectionState extends State<PopularBrandsSection> {
   Future<List<Restaurant>>? _restaurantsFuture;
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           .getPopularShops(
             lat: activeLoc?.latitude ?? pos.latitude,
             lon: activeLoc?.longitude ?? pos.longitude,
-            size: 10,
+            size: 20, // Request up to 20 for 2 pages
           )
           .timeout(const Duration(seconds: 5));
     } catch (e) {
@@ -57,122 +57,104 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           return _buildSkeleton(context);
         }
 
-        final List<Restaurant> brands = (snapshot.data ?? []).take(10).toList();
+        final List<Restaurant> brands = (snapshot.data ?? []).take(20).toList();
         if (brands.isEmpty) return const SizedBox.shrink();
 
-        // Group brands into chunks of 3 for the horizontal scroll
-        final List<List<Restaurant>> brandChunks = [];
-        for (var i = 0; i < brands.length; i += 3) {
-          brandChunks.add(
-            brands.sublist(i, i + 3 > brands.length ? brands.length : i + 3),
-          );
+        final List<List<Restaurant>> pages = [];
+        for (var i = 0; i < brands.length; i += 8) {
+          pages.add(brands.sublist(i, i + 8 > brands.length ? brands.length : i + 8));
         }
 
         return Container(
           width: double.infinity,
-          clipBehavior: Clip.antiAlias,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFEF0F5), // Base light pink
-          ),
-          child: Stack(
+          color: Colors.white, // Plain background
+          padding: const EdgeInsets.symmetric(vertical: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Background Decorative Shape (White Curve)
-              Positioned(
-                right: -150,
-                bottom: -50,
-                child: Container(
-                  width: 400,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: -50,
-                top: -50,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              // Content
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Header Row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            widget.title ??
-                                context.tr('home.popular_restaurants'),
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                          ViewAllIconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const FoodCollectionListPage(
-                                    kind: FoodCollectionKind.popular,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                    Text(
+                      widget.title ?? context.tr('home.popular_restaurants'),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    // Horizontal scrolling list of columns
-                    SizedBox(
-                      height: 224, // Optimized height for 3 rows + spacing
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        scrollDirection: Axis.horizontal,
-                        itemCount:
-                            brandChunks.length + 1, // +1 for the "More" button
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          if (index == brandChunks.length) {
-                            return const _MoreCard();
-                          }
-                          final chunk = brandChunks[index];
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _BrandCard(brand: chunk[0]),
-                              if (chunk.length > 1) ...[
-                                const SizedBox(height: 12),
-                                _BrandCard(brand: chunk[1]),
-                              ],
-                              if (chunk.length > 2) ...[
-                                const SizedBox(height: 12),
-                                _BrandCard(brand: chunk[2]),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
+                    ViewAllIconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FoodCollectionListPage(
+                              kind: FoodCollectionKind.popular,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 220, // Reduced height
+                child: PageView.builder(
+                  itemCount: pages.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, pageIndex) {
+                    final pageItems = pages[pageIndex];
+                    return GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 0.8, // Adjusted to fit 4 columns
+                      ),
+                      itemCount: pageItems.length,
+                      itemBuilder: (context, index) {
+                        return _BrandCardSquare(brand: pageItems[index]);
+                      },
+                    );
+                  },
+                ),
+              ),
+              // Dots Indicator
+              if (pages.length > 1) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    pages.length,
+                    (index) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == index ? 20 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        gradient: _currentPage == index
+                            ? AppColors.primaryGradient
+                            : null,
+                        color: _currentPage == index
+                            ? null
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
             ],
           ),
         );
@@ -183,8 +165,8 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
   Widget _buildSkeleton(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: const Color(0xFFFEF0F5),
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -207,132 +189,67 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 224,
-            child: ListView.separated(
+            height: 220,
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, index) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _shimmerCard(),
-                  const SizedBox(height: 12),
-                  _shimmerCard(),
-                  const SizedBox(height: 12),
-                  _shimmerCard(),
-                ],
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.8,
               ),
+              itemCount: 8,
+              itemBuilder: (context, index) => const _ShimmerCardSquare(),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _shimmerCard() {
-    return Container(
-      width: 210,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey.shade50,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: const ImageSkeletonLoader(),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: const ImageSkeletonLoader(width: 100, height: 14),
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: const ImageSkeletonLoader(width: 60, height: 12),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
 
-class _MoreCard extends StatelessWidget {
-  const _MoreCard();
+class _ShimmerCardSquare extends StatelessWidget {
+  const _ShimmerCardSquare();
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const FoodCollectionListPage(
-                kind: FoodCollectionKind.popular,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          width: 80,
-          height: 60,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(14),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                PhosphorIcons.caretRightBold,
-                color: Colors.black87,
-                size: 20,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                context.tr('common.more'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
+          child: const ImageSkeletonLoader(),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: 40,
+          height: 10,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(4),
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _BrandCard extends StatelessWidget {
+class _BrandCardSquare extends StatelessWidget {
   final Restaurant brand;
 
-  const _BrandCard({required this.brand});
+  const _BrandCardSquare({required this.brand});
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = brand.logoPath.isNotEmpty ? brand.logoPath : brand.imagePath;
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -353,92 +270,52 @@ class _BrandCard extends StatelessWidget {
           ),
         );
       },
-      child: Container(
-        width: 210, // Fixed width for consistent columns
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            // Rounded Logo Container
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.shade50,
-                border: Border.all(color: Colors.grey.shade100, width: 1),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  brand.logoPath.isNotEmpty ? brand.logoPath : brand.imagePath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => Icon(
-                    Icons.store_rounded,
-                    color: Colors.grey.shade400,
-                    size: 24,
-                  ),
-                ),
-              ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Colors.white,
             ),
-            const SizedBox(width: 12),
-            // Info Column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    brand.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      if (brand.rating > 0) ...[
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Colors.amber,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          brand.rating.toString(),
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                      Expanded(
-                        child: Text(
-                          ' · ${brand.deliveryTime} · ${brand.distance}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+            padding: const EdgeInsets.all(4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: imageUrl.isEmpty
+                  ? Icon(
+                      Icons.store_rounded,
+                      color: Colors.grey.shade400,
+                      size: 28,
+                    )
+                  : Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.store_rounded,
+                        color: Colors.grey.shade400,
+                        size: 28,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: Text(
+              brand.name,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+            ),
+          ),
+        ],
       ),
     );
   }

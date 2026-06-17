@@ -38,14 +38,15 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
     _timer?.cancel();
     if (_banners.length <= 1) return;
     _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_controller.hasClients) {
-        final nextPage = _controller.page!.round() + 1;
-        _controller.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
+      if (!_controller.hasClients) return;
+      final page = _controller.page;
+      if (page == null) return;
+      final nextPage = page.round() + 1;
+      _controller.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -106,7 +107,7 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
                   if (image.startsWith('assets/')) {
                     return Image.asset(image, fit: BoxFit.cover, width: double.infinity);
                   }
-                  return CachedNetworkImage(
+                  return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(image),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => const ImageSkeletonLoader(showLogo: true),
@@ -133,8 +134,11 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
                   width: _currentIndex == index ? 20 : 8,
                   height: 8,
                   decoration: BoxDecoration(
+                    gradient: _currentIndex == index
+                        ? AppColors.primaryGradient
+                        : null,
                     color: _currentIndex == index
-                        ? AppColors.primary
+                        ? null
                         : AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -147,3 +151,4 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
     );
   }
 }
+

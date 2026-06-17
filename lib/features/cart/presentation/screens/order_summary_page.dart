@@ -58,6 +58,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   void initState() {
     super.initState();
     _loadPrimaryLocation();
+    // Stay in sync with primary-location changes made from any selection path
+    // (the modal, or the full search page that may close without a callback).
+    UserLocationRepository.instance.addListener(_onLocationRepositoryChanged);
     if (widget.store.items.isNotEmpty) {
       final restaurantIdString = widget.store.items.first.restaurantId;
       final restaurantId = int.tryParse(restaurantIdString);
@@ -113,9 +116,20 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
-  Future<void> _loadPrimaryLocation() async {
+  @override
+  void dispose() {
+    UserLocationRepository.instance.removeListener(_onLocationRepositoryChanged);
+    super.dispose();
+  }
+
+  void _onLocationRepositoryChanged() {
+    _loadPrimaryLocation(forceRefresh: true);
+  }
+
+  Future<void> _loadPrimaryLocation({bool forceRefresh = false}) async {
     try {
-      final loc = await UserLocationRepository.instance.getPrimaryLocation();
+      final loc = await UserLocationRepository.instance
+          .getPrimaryLocation(forceRefresh: forceRefresh);
       if (mounted) {
         setState(() {
           _primaryLocation = loc;
@@ -197,6 +211,57 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       distanceKm: km,
       durationMins: (km * 2).ceil(),
       fee: (30.0 + (km * 15.0)).roundToDouble(),
+    );
+  }
+
+  /// Builds the delivery address text. The backend stores a location as a
+  /// `label` (+ coordinates) and does not return a full `address` string, so
+  /// fall back through the available fields instead of always showing the
+  /// "No address set" empty state when a location is actually selected.
+  Widget _buildAddressText() {
+    final loc = _primaryLocation;
+    final name = loc?.locationName?.trim();
+    final address = (loc?.address ?? loc?.addressTh ?? loc?.addressMm)?.trim();
+
+    final hasName = name != null && name.isNotEmpty;
+    final hasAddress = address != null && address.isNotEmpty;
+
+    if (loc == null || (!hasName && !hasAddress)) {
+      return Text(
+        context.tr('cart.no_address'),
+        style: GoogleFonts.poppins(
+          fontSize: 14,
+          color: Colors.black87,
+          height: 1.5,
+        ),
+      );
+    }
+
+    final title = hasName ? name : address;
+    final subtitle = hasName && hasAddress ? address : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title!,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+            height: 1.5,
+          ),
+        ),
+        if (subtitle != null)
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              height: 1.4,
+            ),
+          ),
+      ],
     );
   }
 
@@ -503,15 +568,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     Expanded(
                                       child: _isLoadingLocation
                                           ? const LocationSkeletonLoader()
-                                          : Text(
-                                              _primaryLocation?.address ??
-                                                  context.tr('cart.no_address'),
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 14,
-                                                color: Colors.black87,
-                                                height: 1.5,
-                                              ),
-                                            ),
+                                          : _buildAddressText(),
                                     ),
                                   ],
                                 ),
@@ -856,6 +913,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       restaurantId:
                                           _restaurant?.id ??
                                           widget.store.items.first.restaurantId,
+                                      orderType: _isDelivery
+                                          ? 'DELIVERY'
+                                          : 'PICK_UP',
                                     );
                                     // Store real location data for Delivery Information display
                                     ActiveOrderState

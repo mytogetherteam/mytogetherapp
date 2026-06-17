@@ -16,6 +16,7 @@ import 'restaurant_detail_page.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -47,6 +48,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _showMap = false;
   double _currentZoom = 14.0;
+  double _selectedRadius = 5.0;
 
   late final Dio _dio;
   static const String _googleMapsApiKey =
@@ -117,6 +119,20 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       }
     } catch (_) {
       // Ignore timeout or errors here as we have the stream/lastKnown
+    }
+  }
+
+  Future<void> _launchExternalMaps(double sLat, double sLng, double dLat, double dLng) async {
+    final url = 'https://www.google.com/maps/dir/?api=1&origin=$sLat,$sLng&destination=$dLat,$dLng&travelmode=driving';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('nearby.location_failed'))),
+        );
+      }
     }
   }
 
@@ -260,68 +276,70 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         setState(() {
           _isRouting = false;
         });
+        _launchExternalMaps(startLoc.latitude, startLoc.longitude, selected.latitude!, selected.longitude!);
       }
     } catch (e) {
       setState(() {
         _isRouting = false;
       });
+      _launchExternalMaps(startLoc.latitude, startLoc.longitude, selected.latitude!, selected.longitude!);
     }
   }
 
   void _fetchRestaurants() {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
+    _restaurantsFuture = _loadRestaurants();
+  }
 
-    _restaurantsFuture = RestaurantRepository.instance
-        .getNearbyShops(
-          lat: activeLoc?.latitude ?? _initialPosition.latitude,
-          lon: activeLoc?.longitude ?? _initialPosition.longitude,
-        )
-        .then((restaurants) {
-          _updateMarkers(restaurants);
+  Future<List<Restaurant>> _loadRestaurants() async {
+    // Shared resolver keeps the origin consistent with the home nearby rail
+    // and the food search (saved active location → device GPS → default).
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
 
-          // Smoothly transition from skeletal loader to map when map is ready
-          // (handled in onMapCreated for speed)
+    final restaurants = await RestaurantRepository.instance.getNearbyShops(
+      lat: coords.lat,
+      lon: coords.lon,
+      radius: _selectedRadius,
+    );
 
-          // AUTO-ZOOM to show all restaurants on load
-          if (restaurants.isNotEmpty) {
-            final validPoints = restaurants
-                .where((r) => r.latitude != null && r.longitude != null)
-                .map((r) => LatLng(r.latitude!, r.longitude!))
-                .toList();
+    _updateMarkers(restaurants);
 
-            if (validPoints.isNotEmpty) {
-              // Slightly longer delay to ensure map is ready
-              Future.delayed(const Duration(milliseconds: 500), () async {
-                if (mounted) {
-                  final GoogleMapController controller =
-                      await _mapController.future;
+    final validPoints = restaurants
+        .where((r) => r.latitude != null && r.longitude != null)
+        .map((r) => LatLng(r.latitude!, r.longitude!))
+        .toList();
 
-                  final southwestLat = validPoints
-                      .map((p) => p.latitude)
-                      .reduce(min);
-                  final southwestLon = validPoints
-                      .map((p) => p.longitude)
-                      .reduce(min);
-                  final northeastLat = validPoints
-                      .map((p) => p.latitude)
-                      .reduce(max);
-                  final northeastLon = validPoints
-                      .map((p) => p.longitude)
-                      .reduce(max);
-                  final bounds = LatLngBounds(
-                    southwest: LatLng(southwestLat, southwestLon),
-                    northeast: LatLng(northeastLat, northeastLon),
-                  );
+    // Move the camera to reflect where we actually searched: fit all results
+    // when present, otherwise center on the queried origin (instead of the
+    // hardcoded initial Bangkok view, which made an empty list look wrong).
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+      final GoogleMapController controller = await _mapController.future;
 
-                  controller.animateCamera(
-                    CameraUpdate.newLatLngBounds(bounds, 100.0),
-                  );
-                }
-              });
-            }
-          }
-          return restaurants;
-        });
+      if (validPoints.length == 1) {
+        controller.animateCamera(
+          CameraUpdate.newLatLngZoom(validPoints.first, 15.0),
+        );
+      } else if (validPoints.isNotEmpty) {
+        final bounds = LatLngBounds(
+          southwest: LatLng(
+            validPoints.map((p) => p.latitude).reduce(min),
+            validPoints.map((p) => p.longitude).reduce(min),
+          ),
+          northeast: LatLng(
+            validPoints.map((p) => p.latitude).reduce(max),
+            validPoints.map((p) => p.longitude).reduce(max),
+          ),
+        );
+        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100.0));
+      } else {
+        controller.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(coords.lat, coords.lon), 13.0),
+        );
+      }
+    });
+
+    return restaurants;
   }
 
   /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
@@ -360,22 +378,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     required double zoom,
     required int index,
   }) async {
-    // Progressive Disclosure Logic
-    // Tier 1: Zoom < 12 -> Only show small icon circle
-    // Tier 2: Zoom 12-14.9 -> Show icon + text for the 8 closest shops, others just icon
-    // Tier 3: Zoom >= 15 -> Show icon + text for all shops
-
-    // Always show full pill if selected
+    // To prevent map clutter, we only show text for the selected marker.
     bool showText = selected;
-    if (!selected) {
-      if (zoom >= 15) {
-        showText = true;
-      } else if (zoom >= 12 && index < 8) {
-        showText = true;
-      } else {
-        showText = false;
-      }
-    }
 
     final String nameStr = restaurant.name.length > 14
         ? '${restaurant.name.substring(0, 12)}…'
@@ -722,54 +726,134 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       _updateMarkers(restaurants);
     }
   }
+  void _showRangeFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Select Distance Range',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...[1.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0].map((radius) {
+                        final isSelected = _selectedRadius == radius;
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                          title: Text(
+                            '${radius.toInt()} KM',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected ? AppColors.primary : Colors.black87,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(PhosphorIcons.checkCircleFill, color: AppColors.primary)
+                              : const SizedBox.shrink(),
+                          onTap: () {
+                            Navigator.pop(context);
+                            if (_selectedRadius != radius) {
+                              setState(() {
+                                _selectedRadius = radius;
+                              });
+                              _fetchRestaurants();
+                            }
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final sheetHeight = MediaQuery.of(context).size.height * 0.52;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Google Maps Widget
-          Positioned.fill(
-            child: FutureBuilder<List<Restaurant>>(
-              future: _restaurantsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const MapSkeletonLoader();
-                }
-                return AnimatedOpacity(
-                  opacity: _showMap ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 600),
-                  child: GoogleMap(
-                    mapType: MapType.normal,
-                    initialCameraPosition: const CameraPosition(
-                      target: _initialPosition,
-                      zoom: 14.0,
-                    ),
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).size.height * 0.52,
-                      top: MediaQuery.of(context).padding.top,
-                    ),
-                    onMapCreated: (GoogleMapController controller) async {
-                      _mapController.complete(controller);
-                      // Show map immediately for speed
-                      if (mounted) {
-                        setState(() => _showMap = true);
-                      }
-                    },
-                    onCameraMove: _onCameraMove,
-                    onCameraIdle: _onCameraIdle,
-                    style: AppMapTheme.defaultStyle,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    compassEnabled: false,
-                    markers: _markers,
-                    polylines: _polylines,
+          // Google Maps Widget — constrained to the area ABOVE the bottom sheet
+          // (with a small overlap behind its rounded corners). Keeping the map
+          // platform view out from under the list prevents list-scroll gestures
+          // from leaking into the map (which made it pan/zoom while scrolling).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: sheetHeight - 40,
+            child: Stack(
+              children: [
+                GoogleMap(
+                  mapType: MapType.normal,
+                  initialCameraPosition: const CameraPosition(
+                    target: _initialPosition,
+                    zoom: 14.0,
                   ),
-                );
-              },
+                  padding: EdgeInsets.only(
+                    bottom: 56,
+                    top: MediaQuery.of(context).padding.top,
+                  ),
+                  onMapCreated: (GoogleMapController controller) async {
+                    if (!_mapController.isCompleted) {
+                      _mapController.complete(controller);
+                    }
+                    // Show map immediately for speed
+                    if (mounted) {
+                      setState(() => _showMap = true);
+                    }
+                  },
+                  onCameraMove: _onCameraMove,
+                  onCameraIdle: _onCameraIdle,
+                  style: AppMapTheme.defaultStyle,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
+                  compassEnabled: false,
+                  markers: _markers,
+                  polylines: _polylines,
+                ),
+                // Show lazy loading skeleton while map native view is initializing
+                if (!_showMap)
+                  const Positioned.fill(
+                    child: MapSkeletonLoader(),
+                  ),
+              ],
             ),
           ),
 
@@ -801,41 +885,48 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Search Box
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          PhosphorIcons.magnifyingGlass,
-                          color: Colors.grey[600],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            context.tr('food.deliver_prompt'),
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[500],
-                              fontSize: 14,
+                const Spacer(),
+                // KM Range Filter Modal Pill
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: _showRangeFilterModal,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              PhosphorIcons.faders,
+                              color: AppColors.primary,
+                              size: 18,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Up to ${_selectedRadius.toInt()} KM',
+                              style: GoogleFonts.poppins(
+                                color: Colors.black87,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -845,7 +936,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
           // Route Pill Button - shown above restaurant list when a restaurant is selected
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.52 + 16,
+            bottom: sheetHeight + 16,
             left: 0,
             right: 0,
             child: Center(
@@ -860,56 +951,114 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                   duration: const Duration(milliseconds: 300),
                   child: IgnorePointer(
                     ignoring: _expandedRestaurantId == null,
-                    child: GestureDetector(
-                      onTap: _isRouting ? null : _onCurrentLocationTapped,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _isRouting ? Colors.white : null,
-                          gradient: _isRouting
-                              ? null
-                              : AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Button 1: Explore
+                        GestureDetector(
+                          onTap: () async {
+                            if (_restaurantsFuture != null && _expandedRestaurantId != null) {
+                              final restaurants = await _restaurantsFuture!;
+                              final selected = restaurants.cast<Restaurant?>().firstWhere(
+                                (r) => r?.id == _expandedRestaurantId,
+                                orElse: () => null,
+                              );
+                              if (selected != null) {
+                                _navigateToDetail(selected);
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 11,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_isRouting)
-                              const CustomLoadingIndicator(size: 16)
-                            else
-                              const Icon(
-                                Icons.near_me_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _isRouting
-                                  ? context.tr('nearby.finding_route')
-                                  : (_polylines.isNotEmpty
-                                        ? context.tr('nearby.see_full_route')
-                                        : context.tr('nearby.show_me_the_way')),
-                              style: GoogleFonts.poppins(
-                                color: _isRouting
-                                    ? AppColors.primary
-                                    : Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  PhosphorIcons.storefront,
+                                  color: AppColors.primary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Explore',
+                                  style: GoogleFonts.poppins(
+                                    color: AppColors.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        // Button 2: Show me the way
+                        GestureDetector(
+                          onTap: _isRouting ? null : _onCurrentLocationTapped,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 11,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isRouting ? Colors.white : null,
+                              gradient: _isRouting
+                                  ? null
+                                  : AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isRouting)
+                                  const CustomLoadingIndicator(size: 16)
+                                else
+                                  const Icon(
+                                    Icons.near_me_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isRouting
+                                      ? context.tr('nearby.finding_route')
+                                      : (_polylines.isNotEmpty
+                                            ? context.tr('nearby.see_full_route')
+                                            : context.tr('nearby.show_me_the_way')),
+                                  style: GoogleFonts.poppins(
+                                    color: _isRouting
+                                        ? AppColors.primary
+                                        : Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -922,7 +1071,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.52,
+            height: sheetHeight,
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(
@@ -1058,6 +1207,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                               reviewCount: data.reviewCount,
                               distance: data.distance,
                               imagePath: data.imagePath,
+                              logoPath: data.logoPath,
                               deliveryTime: data.deliveryTime,
                               deliveryFee: data.deliveryFee,
                               originalDeliveryFee: data.originalDeliveryFee,
@@ -1065,17 +1215,20 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                   _localFavorites[data.id] ?? data.isFavorite,
                               onFavoriteToggle: () => _toggleFavorite(data),
                               onTap: () {
-                                // First select/expand for map interaction
-                                setState(() {
-                                  _expandedRestaurantId = data.id;
-                                  _centerMapOnRestaurant(
-                                    data,
-                                    isExpandedAtTarget: true,
-                                  );
-                                  _updateMarkers(restaurants);
-                                });
-                                // Then navigate to detail
-                                _navigateToDetail(data);
+                                if (_expandedRestaurantId == data.id) {
+                                  // Already selected: navigate to detail
+                                  _navigateToDetail(data);
+                                } else {
+                                  // Not selected: select and zoom on map
+                                  setState(() {
+                                    _expandedRestaurantId = data.id;
+                                    _centerMapOnRestaurant(
+                                      data,
+                                      isExpandedAtTarget: true,
+                                    );
+                                    _updateMarkers(restaurants);
+                                  });
+                                }
                               },
                               width: double.infinity,
                               margin: const EdgeInsets.only(

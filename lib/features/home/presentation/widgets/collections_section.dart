@@ -120,7 +120,7 @@ class _CollectionsSectionState extends State<CollectionsSection> {
           fit: StackFit.expand,
           children: [
             if (cover.isNotEmpty)
-              CachedNetworkImage(
+              CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                 imageUrl: cover,
                 fit: BoxFit.cover,
                 placeholder: (_, _) => const ImageSkeletonLoader(),
@@ -211,3 +211,4 @@ class _CollectionsSectionState extends State<CollectionsSection> {
     );
   }
 }
+

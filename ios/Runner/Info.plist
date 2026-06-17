@@ -24,10 +24,21 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We need your location to show routes to restaurants.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>We need your location to show routes to restaurants even when the app is in the background.</string>
 		<key>NSCameraUsageDescription</key>
 		<string>We need access to your camera so you can take a profile picture, capture images for lost &amp; found items, and take photos of payment receipts.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>We need access to your photo library so you can select a profile picture, choose images for lost &amp; found items, and upload payment receipts.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>We need permission to save images (such as payment receipts) to your photo library.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>We need access to your microphone for video recording features if required by camera usage.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>
@@ -61,5 +72,7 @@
 		<false/>
 		<key>GOOGLE_MAPS_API_KEY</key>
 		<string>$(GOOGLE_MAPS_API_KEY)</string>
+		<key>NSSupportsLiveActivities</key>
+		<true/>
 	</dict>
 </plist>

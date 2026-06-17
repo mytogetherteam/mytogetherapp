@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../cart/data/cart_manager.dart';
 import 'shop_item_metadata_row.dart';
-
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -14,6 +12,7 @@ import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 
 class FoodMenuItemCard extends StatefulWidget {
   final String id;
@@ -79,6 +78,7 @@ class FoodMenuItemCard extends StatefulWidget {
 class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _borderController;
+  late AnimationController _floatController;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _floatAnimation;
 
@@ -95,10 +95,15 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
       TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 60),
     ]).animate(_controller);
 
-    _floatAnimation = TweenSequence<Offset>([
-      TweenSequenceItem(tween: Tween(begin: Offset.zero, end: const Offset(0, -0.06)).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: const Offset(0, -0.06), end: Offset.zero).chain(CurveTween(curve: Curves.bounceOut)), weight: 60),
-    ]).animate(_controller);
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _floatAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, -0.04), // 4% upward translation
+    ).animate(CurvedAnimation(parent: _floatController, curve: Curves.easeInOutSine));
 
     _borderController = AnimationController(
       vsync: this,
@@ -107,9 +112,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
     if (widget.isHighlighted) {
       _controller.forward();
+      _floatController.repeat(reverse: true);
       // Start border tracing animation after a slight delay
       Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) _borderController.forward();
+        if (mounted) _borderController.repeat();
       });
     }
   }
@@ -118,6 +124,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
   void dispose() {
     _controller.dispose();
     _borderController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -143,59 +150,52 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
     if (effectiveIsHidden) return const SizedBox.shrink();
 
-    return ListenableBuilder(
-      listenable: CartManager.instance,
+    return AnimatedBuilder(
+      animation: Listenable.merge([_controller, _floatController]),
       builder: (context, _) {
-        final isInCart = CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
-            CartManager.instance.findItem(widget.restaurantName, int.tryParse(widget.id) ?? 0) != null;
-        final showFilledHeart = widget.isFavorite || isInCart;
-
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return FractionalTranslation(
-              translation: _floatAnimation.value,
-              child: Transform.scale(
-                scale: _scaleAnimation.value,
-                child: _OutOfStockWrapper(
-                  isDisabled: effectiveIsDisabled,
-                  child: GestureDetector(
-                    onTap: effectiveIsDisabled
-                        ? null
-                        : () {
-                            if (widget.forceRestaurantNavigation) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RestaurantDetailPage(
-                                    id: widget.restaurantId,
-                                    name: widget.restaurantName,
-                                    targetMenuItemId: widget.id,
-                                    isFavorite: false,
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MenuDetailPage(
-                                  id: widget.id,
-                                  restaurantId: widget.restaurantId,
-                                  title: widget.title,
-                                  price: effectivePrice,
-                                  currency: widget.currency,
-                                  imagePath: widget.imagePath,
-                                  restaurantName: widget.restaurantName,
-                                  displayPrice: widget.displayPrice,
-                                  description: '',
-                                  isFavorite: showFilledHeart,
-                                ),
+        return FractionalTranslation(
+          translation: _floatAnimation.value,
+          child: Transform.scale(
+            scale: _scaleAnimation.value,
+            child: _OutOfStockWrapper(
+              isDisabled: effectiveIsDisabled,
+              child: GestureDetector(
+                onTap: effectiveIsDisabled
+                    ? null
+                    : () {
+                        if (widget.forceRestaurantNavigation) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RestaurantDetailPage(
+                                id: widget.restaurantId,
+                                name: widget.restaurantName,
+                                targetMenuItemId: widget.id,
+                                isFavorite: false,
                               ),
-                            );
-                          },
-                    child: Column(
+                            ),
+                          );
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MenuDetailPage(
+                              id: widget.id,
+                              restaurantId: widget.restaurantId,
+                              title: widget.title,
+                              price: effectivePrice,
+                              currency: widget.currency,
+                              imagePath: widget.imagePath,
+                              restaurantName: widget.restaurantName,
+                              displayPrice: widget.displayPrice,
+                              description: '',
+                              isFavorite: widget.isFavorite,
+                            ),
+                          ),
+                        );
+                      },
+                child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Image Section
@@ -245,21 +245,22 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       borderRadius: BorderRadius.circular(16),
                                       clipBehavior: Clip.antiAlias,
                                       child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                          ? _buildFallbackImage()
+                                          ? MenuImagePlaceholder(title: widget.title)
                                           : (isNetworkImage
                                               ? CachedNetworkImage(
                                                   imageUrl: networkUrl,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),
-                                                  errorWidget: (context, url, error) => _buildFallbackImage(),
-                                                  fadeInDuration: const Duration(milliseconds: 300),
+                                                  errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
+                                                  fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                                  memCacheWidth: 600,
                                                 )
                                               : Image.asset(
                                                   widget.imagePath,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                                                  errorBuilder: (context, error, stackTrace) => MenuImagePlaceholder(title: widget.title),
                                                 )),
                                     ),
                                   ),
@@ -279,10 +280,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      showFilledHeart
+                                      widget.isFavorite
                                           ? PhosphorIcons.heartFill
                                           : PhosphorIcons.heart,
-                                      color: showFilledHeart ? AppColors.primary : Colors.white,
+                                      color: widget.isFavorite ? AppColors.primary : Colors.white,
                                       size: 16,
                                     ),
                                   ),
@@ -387,8 +388,6 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
               ),
             );
           },
-        );
-      },
     );
   }
 
@@ -494,3 +493,6 @@ class _OutOfStockWrapper extends StatelessWidget {
     );
   }
 }
+
+
+

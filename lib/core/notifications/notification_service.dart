@@ -43,13 +43,17 @@ class NotificationService {
 
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings();
+    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
     await _localNotifications.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (details) {
         _handleNotificationClick(null); // Simple navigation for now
       },
@@ -66,11 +70,7 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // Request permissions only if already logged in
-    if (AuthService().isLoggedIn) {
-      await requestPermission();
-    }
-
+    // Permissions are now requested via MainNavigationScreen rationale modal
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];
@@ -233,14 +233,15 @@ class NotificationService {
       channelDescription: 'This channel is used for important notifications.',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@mipmap/launcher_icon',
       showWhen: true,
     );
     const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
-      message.hashCode,
-      title,
-      body,
-      platformChannelSpecifics,
+      id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
       payload: 'item_id',
     );
   }

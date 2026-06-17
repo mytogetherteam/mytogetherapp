@@ -4,6 +4,7 @@ import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+import 'package:mytogetherapp/core/config/env_config.dart';
 import '../../data/models/announcement_model.dart';
 
 /// Full-bleed announcement detail, styled after the early-access reference:
@@ -126,19 +127,32 @@ class AnnouncementDetailSheet extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           CachedNetworkImage(
-            imageUrl: announcement.imageUrl!,
+            fadeInDuration: const Duration(milliseconds: 300),
+            fadeOutDuration: const Duration(milliseconds: 300),
+            imageUrl: _getFullImageUrl(announcement.imageUrl!),
             fit: BoxFit.cover,
             alignment: Alignment.topCenter,
-            placeholder: (context, url) =>
-                Container(color: Colors.grey.shade200),
-            errorWidget: (context, url, error) => Container(
+            placeholder: (context, url) => Container(
               color: Colors.grey.shade200,
-              child: Icon(
-                Icons.image_not_supported_outlined,
-                color: Colors.grey.shade400,
-                size: 48,
+              child: const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
             ),
+            errorWidget: (context, url, error) {
+              debugPrint('ANNOUNCEMENT IMAGE LOAD ERROR: $url -> $error');
+              return Container(
+                color: Colors.grey.shade200,
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Colors.grey.shade400,
+                  size: 48,
+                ),
+              );
+            },
           ),
           // Fade the bottom of the image into the white body so the photo
           // blends into the content instead of showing a hard edge.
@@ -164,6 +178,20 @@ class AnnouncementDetailSheet extends StatelessWidget {
   String _formatDate(DateTime date) {
     return LocaleController.instance
         .relativeTime(date, olderFormat: 'MMM d, yyyy');
+  }
+
+  String _getFullImageUrl(String url) {
+    if (url.startsWith('http')) return url;
+    
+    // The backend currently returns relative paths for announcements but stores them in S3
+    if (url.startsWith('announcements/')) {
+      return 'https://my-together-moonlight201.s3.ap-southeast-1.amazonaws.com/$url';
+    }
+
+    String baseUrl = EnvConfig.apiBaseUrl;
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    if (!url.startsWith('/')) url = '/$url';
+    return '$baseUrl$url';
   }
 }
 
@@ -196,3 +224,4 @@ class _CloseButton extends StatelessWidget {
     );
   }
 }
+

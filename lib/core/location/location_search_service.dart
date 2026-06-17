@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:math';
 
 /// Result from a Google Maps Places/Geocoding query.
@@ -116,7 +117,13 @@ class LocationSearchService {
   static final LocationSearchService instance = LocationSearchService._internal();
   LocationSearchService._internal();
 
-  static String get _apiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  static String get _apiKey {
+    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (key != null && key.isNotEmpty && key != 'YOUR_NEW_API_KEY_HERE') {
+      return key;
+    }
+    return 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
+  }
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://maps.googleapis.com/maps/api',
@@ -153,9 +160,12 @@ class LocationSearchService {
         return predictions
             .map((e) => PlaceResult.fromGooglePlace(e as Map<String, dynamic>))
             .toList();
+      } else {
+        debugPrint('PLACES API FAILED: ${response.data}');
       }
       return [];
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PLACES API EXCEPTION: $e');
       return [];
     }
   }
@@ -207,9 +217,12 @@ class LocationSearchService {
         if (results.isNotEmpty) {
            return PlaceResult.fromGoogleGeocode(results.first as Map<String, dynamic>, userLat: lat, userLon: lon);
         }
+      } else {
+        debugPrint('REVERSE GEOCODE API FAILED: ${response.data}');
       }
       return null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('REVERSE GEOCODE EXCEPTION: $e');
       return null;
     }
   }

@@ -9,8 +9,12 @@ import 'package:mytogetherapp/features/reviews/data/repositories/order_review_re
 import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
+import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
+import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
+import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -34,6 +38,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   /// one we just created). Initialized from the order's embedded review,
   /// then overwritten when the user submits one.
   OrderReviewDto? _review;
+  bool _isReordering = false;
 
   @override
   void initState() {
@@ -52,9 +57,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   Color get primaryColor => AppColors.primary;
 
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    return '${ApiClient.baseUrl}/$path';
+    return FileUrlUtil.resolve(path);
   }
 
   @override
@@ -112,7 +115,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: widget.order.shopImageUrl != null && widget.order.shopImageUrl!.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(widget.order.shopImageUrl),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(color: Colors.grey[100]),
@@ -174,21 +177,12 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ),
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(
-                  '${context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'})} ',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: Colors.grey[400],
-                ),
-              ],
+            Text(
+              context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'}),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),
@@ -217,7 +211,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           child: ClipRRect(
              borderRadius: BorderRadius.circular(8),
              child: item.menuItemImageUrl != null && item.menuItemImageUrl!.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(item.menuItemImageUrl),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(color: Colors.grey[100]),
@@ -301,7 +295,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
         ),
         PrimaryGradientButton(
-           onPressed: () => AppDialog.showUnavailable(context),
+           onPressed: _isReordering ? null : _reorder,
+           isLoading: _isReordering,
            height: 42,
            width: 120,
            borderRadius: BorderRadius.circular(12),
@@ -331,6 +326,76 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
        child: _review != null
            ? _buildRatedContent(context, _review!)
            : _buildPromptContent(context),
+    );
+  }
+
+  /// Re-adds each line item from this past order to the cart via the existing
+  /// cart API, then opens the cart so the user can proceed to checkout.
+  Future<void> _reorder() async {
+    if (_isReordering) return;
+
+    final shopId = widget.order.shopId;
+    final reorderable =
+        widget.order.items.where((i) => i.menuItemId != null).toList();
+
+    if (reorderable.isEmpty) {
+      AppDialog.showToast(
+        context,
+        context.tr('orders.reorder_failed'),
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isReordering = true);
+
+    var added = 0;
+    var failed = 0;
+    CartDto? lastCart;
+
+    for (final item in reorderable) {
+      try {
+        lastCart = await CartRepository.instance.addToCart(
+          AddToCartRequest(
+            menuItemId: item.menuItemId!,
+            quantity: item.quantity,
+            shopId: shopId,
+          ),
+        );
+        added++;
+      } catch (_) {
+        failed++;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isReordering = false);
+
+    if (added == 0) {
+      AppDialog.showToast(
+        context,
+        context.tr('orders.reorder_failed'),
+        isError: true,
+      );
+      return;
+    }
+
+    if (lastCart != null) {
+      CartManager.instance.updateCartFromDto(lastCart);
+      await CartManager.instance.invalidateCache();
+    } else {
+      await CartManager.instance.syncWithApi();
+    }
+
+    if (!mounted) return;
+
+    final message = failed > 0
+        ? context.tr('orders.reorder_some_unavailable')
+        : context.tr('orders.reorder_added');
+    AppDialog.showToast(context, message);
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CartPage()),
     );
   }
 
@@ -415,3 +480,4 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 }
+

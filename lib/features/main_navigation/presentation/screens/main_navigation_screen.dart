@@ -9,10 +9,16 @@ import '../../../../features/order/presentation/screens/order_history_page.dart'
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
-import '../../../../features/cart/presentation/screens/order_cancel_page.dart';
+import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
+import '../../../../features/news/presentation/screens/news_page.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/location/location_service.dart';
+import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
+import '../widgets/welcome_modal.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -24,19 +30,13 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   int? _lastStatus;
-  final Set<String> _notifiedCancelledOrders = {};
-
-  final List<Widget> _screens = const [
-    HomePage(),
-    FoodPage(),
-    OrderHistoryPage(),
-    // NewsPage(),
-    ProfilePage(),
-  ];
+  late List<Widget> _screens;
+  String _screenLocaleKey = '';
 
   @override
   void initState() {
     super.initState();
+    _rebuildScreens();
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
     );
@@ -47,6 +47,58 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     // Connect WebSocket for real-time updates
     WebSocketService().connect();
+
+    // Show welcome modal if first time, then check permissions after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WelcomeModal.showIfFirstTime(context, () {
+        _checkAndRequestPermissions();
+      });
+    });
+  }
+
+  /// Tab bodies are keyed by locale so a language change rebuilds copy, but
+  /// ordinary parent rebuilds (e.g. from unrelated notifiers) do not recreate
+  /// every tab and re-trigger their initState/fetch logic.
+  void _rebuildScreens() {
+    final localeKey = LocaleController.instance.language.code;
+    _screenLocaleKey = localeKey;
+    _screens = <Widget>[
+      HomePage(key: ValueKey('home_$localeKey')),
+      FoodPage(key: ValueKey('food_$localeKey')),
+      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
+      NewsPage(key: ValueKey('news_$localeKey')),
+      ProfilePage(key: ValueKey('profile_$localeKey')),
+    ];
+  }
+
+  Future<void> _checkAndRequestPermissions() async {
+    final locationStatus = await Permission.location.status;
+    final notificationStatus = await Permission.notification.status;
+    
+    // If either permission is implicitly denied (not yet asked or just denied), show rationale
+    if (locationStatus.isDenied || notificationStatus.isDenied) {
+      if (!mounted) return;
+      await PermissionRationaleModal.show(context);
+      
+      // Request them together
+      await [
+        Permission.location,
+        Permission.notification,
+      ].request();
+      
+      // Trigger service initialization if granted
+      if (await Permission.notification.isGranted) {
+        await NotificationService().requestPermission();
+      }
+      if (await Permission.location.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+    } else {
+      // Already handled before. Just fetch if granted.
+      if (locationStatus.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+    }
   }
 
   void _onOrderStateChanged() {
@@ -54,14 +106,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final state = ActiveOrderState.instance;
     final newStatus = state.orderStatus;
 
-    // Check for transition to COMPLETED (4)
-    if (newStatus == 4 && _lastStatus != 4) {
+    // Show the completion screen only when the primary order just reached status 4.
+    if (newStatus == 4 && _lastStatus != 4 && state.orderId != null) {
+      final completedOrder = state.getOrder(state.orderId);
+      if (completedOrder == null || completedOrder.orderStatus != 4) {
+        _lastStatus = newStatus;
+        return;
+      }
+
       final currentShopId = state.currentShopId;
-      // Find the specific order that just completed
-      final completedOrder = state.allOrdersList.firstWhere(
-        (o) => o.orderStatus == 4,
-        orElse: () => state.activeOrdersList.first, // Fallback
-      );
 
       // Filter: only show popup if no shop is selected OR it matches the current shop
       if (currentShopId == null ||
@@ -70,42 +123,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       }
     }
 
-    // Check for any order that just became CANCELLED (-1)
-    // We check allOrdersList to find terminal states that are filtered out of activeOrdersList
-    for (final order in state.allOrdersList) {
-      if (order.orderStatus == -1 &&
-          !_notifiedCancelledOrders.contains(order.orderId)) {
-        final currentShopId = state.currentShopId;
-
-        // Filter: only show if no shop context OR it matches
-        if (currentShopId != null && order.shopId != currentShopId.toString()) {
-          continue; // Skip this notification for now
-        }
-
-        _notifiedCancelledOrders.add(order.orderId);
-
-        // Use a small delay to ensure WS state has settled and avoid UI jank
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderCancelPage(
-                  orderId: order.orderId,
-                  reason: order.cancelReason,
-                  shopId: order.shopId,
-                  shopName: order.shopNameEn ?? order.shopName,
-                  shopNameMm: order.shopNameMm,
-                  shopNameTh: order.shopNameTh,
-                  shopLogo: order.shopLogo,
-                  shopImageUrl: order.shopImageUrl,
-                ),
-              ),
-            );
-          }
-        });
-      }
-    }
+    // Shop-cancel navigation is handled globally by [OrderActionPresenter].
 
     _lastStatus = newStatus;
   }
@@ -130,6 +148,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     NavigationController.instance.tabChangeRequest.removeListener(
       _onTabChangeRequested,
     );
+    ActiveOrderState.instance.removeListener(_onOrderStateChanged);
     super.dispose();
   }
 
@@ -141,15 +160,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[BOOT] Building MainNavigationScreen...');
+    // Rebuild tab list only when the active language changes.
+    final localeKey = LocaleController.instance.language.code;
+    if (localeKey != _screenLocaleKey) {
+      _rebuildScreens();
+    }
+
     return Scaffold(
       body: Stack(
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
       floatingActionButton: const StyledCartFab(),
       bottomNavigationBar: Container(
-        height: 70 + MediaQuery.of(context).padding.bottom,
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        height: 60 + (Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
+        padding: EdgeInsets.only(bottom: Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -181,14 +205,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               PhosphorIcons.receiptFill,
               context.tr('nav.orders'),
             ),
-            // _buildNavItem(
-            //   3,
-            //   PhosphorIcons.newspaper,
-            //   PhosphorIcons.newspaperFill,
-            //   context.tr('nav.news'),
-            // ),
             _buildNavItem(
               3,
+              PhosphorIcons.newspaper,
+              PhosphorIcons.newspaperFill,
+              context.tr('nav.news'),
+            ),
+            _buildNavItem(
+              4,
               PhosphorIcons.user,
               PhosphorIcons.userFill,
               context.tr('nav.profile'),
@@ -210,7 +234,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       onTap: () => _onTabTapped(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width / 4,
+        width: MediaQuery.of(context).size.width / 5,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

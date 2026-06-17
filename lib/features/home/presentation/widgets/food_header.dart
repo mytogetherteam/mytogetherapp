@@ -10,11 +10,13 @@ import 'location_selection_modal.dart';
 import 'location_skeleton_loader.dart';
 import '../../../food/presentation/screens/food_search_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
 
 class FoodHeader extends StatefulWidget {
   final VoidCallback? onLocationChanged;
+  final bool isScrolled;
 
-  const FoodHeader({super.key, this.onLocationChanged});
+  const FoodHeader({super.key, this.onLocationChanged, this.isScrolled = false});
 
   @override
   State<FoodHeader> createState() => _FoodHeaderState();
@@ -159,10 +161,21 @@ class _FoodHeaderState extends State<FoodHeader> {
   Widget build(BuildContext context) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 8, 16, 8),
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 2, 16, 8),
+      decoration: BoxDecoration(
+        color: widget.isScrolled ? null : Colors.transparent,
+        gradient: widget.isScrolled ? AppColors.primaryGradient : null,
+        boxShadow: widget.isScrolled
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -177,7 +190,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                   onTap: () => _showLocationModal(context),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         PhosphorIconsFill.mapPin,
                         color: Colors.white,
                         size: 20,
@@ -206,7 +219,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                                 const SizedBox(width: 4),
                                 Icon(
                                   PhosphorIcons.caretDown,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: Colors.white,
                                   size: 16,
                                 ),
                               ],
@@ -216,58 +229,40 @@ class _FoodHeaderState extends State<FoodHeader> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const FoodSearchPage(openFilterOnLoad: true),
-                    ),
-                  );
-                },
-                child: Icon(
-                  PhosphorIcons.funnel,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FoodSearchPage()),
-              );
-            },
-            child: Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    PhosphorIcons.magnifyingGlass,
-                    color: Colors.white.withValues(alpha: 0.8),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    context.tr('food.deliver_prompt'),
-                    style: GoogleFonts.poppins(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 14,
+                  if (widget.isScrolled) ...[
+                    AnimatedOpacity(
+                      opacity: widget.isScrolled ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const FoodSearchPage()),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            PhosphorIcons.magnifyingGlass,
+                            color: Colors.black,
+                            size: 24,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                  ],
+                  const NotificationBell(),
                 ],
               ),
-            ),
+            ],
           ),
         ],
       ),

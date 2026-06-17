@@ -102,7 +102,7 @@ class _PromoBannerSectionState extends State<PromoBannerSection> {
                     return const ImageSkeletonLoader(showLogo: true);
                   }
                   final banner = _banners[index % _banners.length];
-                  return CachedNetworkImage(
+                  return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: _resolveUrl(banner.imageUrl),
                     fit: BoxFit.cover,
                     width: double.infinity,
@@ -146,3 +146,4 @@ class _PromoBannerSectionState extends State<PromoBannerSection> {
     );
   }
 }
+

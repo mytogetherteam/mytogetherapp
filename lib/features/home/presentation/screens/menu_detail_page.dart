@@ -13,9 +13,11 @@ import '../../../cart/data/models/cart_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/food_detail_dto.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -48,6 +50,7 @@ class MenuDetailPage extends StatefulWidget {
     this.initialInstructions,
     this.cartItemId,
     this.isFavorite,
+    this.onItemAdded,
   });
 
   final int? initialVariantId;
@@ -55,6 +58,12 @@ class MenuDetailPage extends StatefulWidget {
   final String? initialInstructions;
   final String? cartItemId;
   final bool? isFavorite;
+
+  /// Invoked after a successful add-to-cart instead of the default
+  /// `Navigator.pop`. The search flow uses this to redirect the user to the
+  /// restaurant detail page so they can keep adding items, rather than
+  /// dropping them back on the search results.
+  final void Function(BuildContext context)? onItemAdded;
 
   @override
   State<MenuDetailPage> createState() => _MenuDetailPageState();
@@ -100,16 +109,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
-
-    // Check if item is in cart to fulfill user expectation that "Add to Cart" = "Filled Heart"
-    final isInCart =
-        CartManager.instance.getStoreItemCount(widget.restaurantName) > 0 &&
-        CartManager.instance.findItem(
-              widget.restaurantName,
-              int.tryParse(widget.id) ?? 0,
-            ) !=
-            null;
-    _isFavorite = widget.isFavorite ?? isInCart;
+    _isFavorite = widget.isFavorite ?? false;
 
     _fetchFoodDetails();
   }
@@ -126,6 +126,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   void _onCartChanged() {
     if (mounted) {
       _syncWithCart();
+    }
+  }
+
+  /// Default navigation after a successful add-to-cart. When [widget.onItemAdded]
+  /// is supplied (search flow) it runs instead of popping, so the user is taken
+  /// to the restaurant detail page to keep adding items.
+  void _afterAddToCart() {
+    if (!mounted) return;
+    final onAdded = widget.onItemAdded;
+    if (onAdded != null) {
+      onAdded(context);
+    } else {
+      Navigator.pop(context);
     }
   }
 
@@ -270,18 +283,37 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           final img = _galleryImages.isNotEmpty
                               ? _galleryImages.first.trim()
                               : '';
-                          if (img.isEmpty) {
-                            return _buildNoImagePlaceholder();
-                          }
-                          return Image.network(
-                            img,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const ImageSkeletonLoader();
+                          return GestureDetector(
+                            onTap: () {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    barrierDismissible: true,
+                                    pageBuilder: (context, _, _) =>
+                                        FullScreenImageViewer(
+                                          imageUrls: [img],
+                                          initialIndex: 0,
+                                          heroTagPrefix: 'menu_${widget.id}_',
+                                        ),
+                                  ),
+                                );
                             },
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildNoImagePlaceholder(),
+                            child: (() {
+                              if (img.isEmpty) {
+                                return MenuImagePlaceholder(title: widget.title);
+                              }
+                              return Image.network(
+                                img,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const ImageSkeletonLoader();
+                                },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    MenuImagePlaceholder(title: widget.title),
+                              );
+                            })(),
                           );
                         })(),
                         // Gradient Overlay for visibility when not scrolled
@@ -907,12 +939,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                                 bool operationCompleted = false;
 
-                                // Optimistically fill the heart icon as requested by user
-                                final bool wasFavoriteBefore = _isFavorite;
-                                setState(() {
-                                  _isFavorite = true;
-                                });
-
                                 // Only show loading if it takes longer than 500ms
                                 Future.delayed(
                                   const Duration(milliseconds: 500),
@@ -1020,9 +1046,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         operationCompleted = true;
                                         setState(() => _isAddingToCart = false);
                                         if (!context.mounted) return;
-                                        Navigator.pop(
-                                          context,
-                                        ); // Pop immediately for snappy feel
+                                        // Pop immediately for snappy feel
+                                        // (or redirect via onItemAdded).
+                                        _afterAddToCart();
                                       }
                                       return;
                                     }
@@ -1037,14 +1063,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         _isAddingToCart = false;
                                       });
                                       if (!context.mounted) return;
-                                      Navigator.pop(context);
+                                      _afterAddToCart();
                                     }
                                   } catch (e) {
                                     if (mounted) {
                                       setState(() {
                                         _isAddingToCart = false;
-                                        // Rollback heart if it was only filled due to this operation
-                                        _isFavorite = wasFavoriteBefore;
                                       });
                                       final errorStr = e.toString();
 
@@ -1064,11 +1088,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                                         if (clearConfirmed == true && mounted) {
                                           try {
-                                            // Re-fill heart optimistically for retry
-                                            setState(() {
-                                              _isFavorite = true;
-                                            });
-
                                             await CartRepository.instance
                                                 .clearCart();
                                             // Retry adding to cart
@@ -1105,9 +1124,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                 () => _isAddingToCart = false,
                                               );
                                               if (!context.mounted) return;
-                                              Navigator.pop(
-                                                context,
-                                              ); // Pop details page
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
@@ -1119,13 +1135,14 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                       AppColors.primary,
                                                 ),
                                               );
+                                              // Pop details page (or redirect
+                                              // via onItemAdded).
+                                              _afterAddToCart();
                                             }
                                           } catch (retryErr) {
                                             if (mounted) {
                                               setState(() {
                                                 _isAddingToCart = false;
-                                                // Rollback heart again on retry failure
-                                                _isFavorite = wasFavoriteBefore;
                                               });
                                               if (!context.mounted) return;
                                               ScaffoldMessenger.of(
@@ -1435,11 +1452,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                       return const ImageSkeletonLoader(width: 150, height: 150);
                     },
                     errorBuilder: (context, error, stackTrace) =>
-                        _buildNoImagePlaceholder(
-                          width: 150,
-                          height: 150,
-                          borderRadius: 20,
-                        ),
+                        MenuImagePlaceholder(title: title),
                   ),
                 ),
                 Positioned(
@@ -1561,41 +1574,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     );
   }
 
-  Widget _buildNoImagePlaceholder({
-    double? width,
-    double? height,
-    double borderRadius = 0,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.grey[400],
-              size: (width != null && width < 200) ? 32 : 48,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.tr('common.no_image'),
-              style: GoogleFonts.poppins(
-                color: Colors.grey[500],
-                fontSize: (width != null && width < 200) ? 12 : 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // --- Skeleton Loading View ---
   Widget _buildSkeleton(BuildContext context) {

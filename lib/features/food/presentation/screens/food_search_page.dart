@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
-import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -22,6 +21,7 @@ import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
 
 enum SearchFlowState { idle, typing, searched }
 
@@ -221,13 +221,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   }
 
   Future<({double lat, double lon})> _resolveLocation() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    if (activeLoc?.latitude != null && activeLoc?.longitude != null) {
-      return (lat: activeLoc!.latitude!, lon: activeLoc.longitude!);
-    }
-    final pos = LocationService().cachedPosition ??
-        await LocationService().getCurrentPosition();
-    return (lat: pos.latitude, lon: pos.longitude);
+    // Shared resolver keeps the food search origin consistent with the home
+    // nearby rail and the nearby map page.
+    return UserLocationRepository.instance.resolveActiveCoordinates();
   }
 
   String _imageUrl(String? path) {
@@ -369,26 +365,28 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     }
   }
 
-  void _openRestaurant(SearchShopDto shop) {
+  RestaurantDetailPage _buildRestaurantDetail(SearchShopDto shop) {
     final s = shop.shop;
+    return RestaurantDetailPage(
+      id: s.id.toString(),
+      name: s.name,
+      category: s.category ?? context.tr('common.restaurant'),
+      rating: s.rating,
+      distance: context.trArgs('food.distance_km',
+          {'distance': s.distance.toStringAsFixed(1)}),
+      imagePath: _imageUrl(s.bannerImageUrl),
+      logoPath: _imageUrl(s.logoUrl),
+      deliveryTime:
+          s.estimatedTime ?? context.tr('food.default_delivery_time'),
+      status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
+      isFavorite: s.isFavorite,
+    );
+  }
+
+  void _openRestaurant(SearchShopDto shop) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => RestaurantDetailPage(
-          id: s.id.toString(),
-          name: s.name,
-          category: s.category ?? context.tr('common.restaurant'),
-          rating: s.rating,
-          distance: context.trArgs('food.distance_km',
-              {'distance': s.distance.toStringAsFixed(1)}),
-          imagePath: _imageUrl(s.bannerImageUrl),
-          logoPath: _imageUrl(s.logoUrl),
-          deliveryTime:
-              s.estimatedTime ?? context.tr('food.default_delivery_time'),
-          status: s.isOpen ? context.tr('common.open') : context.tr('common.closed'),
-          isFavorite: s.isFavorite,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => _buildRestaurantDetail(shop)),
     );
   }
 
@@ -405,6 +403,15 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           rating: shop.shop.rating,
           reviewCount: shop.shop.reviewCount,
           restaurantName: shop.shop.name,
+          // After adding to cart from a search result, take the user to the
+          // restaurant page (replacing the item page) so they can add more,
+          // instead of dropping them back on the search results.
+          onItemAdded: (menuContext) {
+            Navigator.pushReplacement(
+              menuContext,
+              MaterialPageRoute(builder: (_) => _buildRestaurantDetail(shop)),
+            );
+          },
         ),
       ),
     );
@@ -697,7 +704,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                     size: 22,
                                     color: Colors.grey[400],
                                   )
-                                : CachedNetworkImage(
+                                : CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                     imageUrl: imageUrl,
                                     width: 32,
                                     height: 32,
@@ -1528,7 +1535,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: _buildThumbnail(logo, 48),
+                    child: _buildThumbnail(logo, shop.name, 48),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1595,8 +1602,41 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                   // Left-only padding so an overflowing list reveals a partial
                   // card flush against the right edge (a "peek" hinting scroll).
                   padding: const EdgeInsets.only(left: 16),
-                  itemCount: menuItems.length,
+                  itemCount: menuItems.length + 1,
                   itemBuilder: (context, index) {
+                    if (index == menuItems.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: GestureDetector(
+                          onTap: () => _openRestaurant(shopDto),
+                          child: SizedBox(
+                            width: 80,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: _menuCardWidth(context),
+                                  child: Center(
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: const BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        PhosphorIcons.arrowRight,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final item = menuItems[index];
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -1637,7 +1677,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: _buildThumbnail(_imageUrl(item.imageUrl), width, height: width),
+            child: _buildThumbnail(_imageUrl(item.imageUrl), item.name, width, height: width),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1682,27 +1722,27 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
-  Widget _buildThumbnail(String url, double width, {double? height}) {
+  Widget _buildThumbnail(String url, String title, double width, {double? height}) {
     final h = height ?? width;
     if (url.isEmpty) {
-      return Container(
+      return SizedBox(
         width: width,
         height: h,
-        color: Colors.grey[200],
-        child: Icon(PhosphorIcons.image, color: Colors.grey[400], size: 20),
+        child: MenuImagePlaceholder(title: title),
       );
     }
-    return CachedNetworkImage(
+    return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
       imageUrl: url,
       width: width,
       height: h,
       fit: BoxFit.cover,
-      errorWidget: (_, _, _) => Container(
+      placeholder: (_, __) => ImageSkeletonLoader(width: width, height: h),
+      errorWidget: (_, _, _) => SizedBox(
         width: width,
         height: h,
-        color: Colors.grey[200],
-        child: Icon(PhosphorIcons.image, color: Colors.grey[400], size: 20),
+        child: MenuImagePlaceholder(title: title),
       ),
     );
   }
 }
+

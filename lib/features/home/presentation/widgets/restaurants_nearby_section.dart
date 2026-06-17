@@ -8,7 +8,7 @@ import '../screens/restaurant_detail_page.dart';
 import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../../../../core/location/location_service.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -29,15 +29,15 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {
     try {
-      // Use cached GPS position or Bangkok default — no blocking GPS wait
-      final pos = LocationService().cachedPosition;
-      final lat = pos?.latitude ?? LocationService.defaultLat;
-      final lon = pos?.longitude ?? LocationService.defaultLon;
+      // Shared resolver keeps this in sync with the nearby map page and food
+      // search (saved active location → device GPS → default).
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
 
       return await RestaurantRepository.instance.getNearbyShops(
-        lat: lat,
-        lon: lon,
-        radius: 10.0,
+        lat: coords.lat,
+        lon: coords.lon,
+        radius: 5.0,
         size: 10,
       ).timeout(const Duration(seconds: 10));
     } catch (e) {
@@ -93,6 +93,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
 
         return Column(
           children: [
+            const SizedBox(height: 32),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -177,6 +178,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 32),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(

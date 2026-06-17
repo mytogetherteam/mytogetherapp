@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/category_card.dart';
-import '../widgets/together_deals_section.dart';
+import '../widgets/home_discount_section.dart';
 import '../widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
@@ -31,6 +32,8 @@ import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart'
 import 'places_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
+import '../../../../core/presentation/widgets/search_box_trigger.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,7 +42,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late PageController _bannerController;
   Timer? _bannerTimer;
   int _currentBannerIndex = 0;
@@ -53,12 +56,18 @@ class _HomePageState extends State<HomePage> {
   List<BannerImageDto> _topBanners = [];
   List<BannerImageDto> _bottomBanners = [];
   bool _isLoadingBanners = true;
+  String? _bgImageUrl;
+  String? _bgThemeName;
   int _refreshKey = 0;
   int _lostFoundCount = 0;
+  DateTime? _lastResumeRefreshAt;
+  Timer? _titleTimer;
+  bool _showThemeNameInAppBar = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController = ScrollController()..addListener(_onScroll);
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
@@ -83,6 +92,14 @@ class _HomePageState extends State<HomePage> {
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
+      }
+    });
+
+    _titleTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (mounted && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) {
+        setState(() {
+          _showThemeNameInAppBar = !_showThemeNameInAppBar;
+        });
       }
     });
 
@@ -112,10 +129,16 @@ class _HomePageState extends State<HomePage> {
         position: 'Ads',
       );
 
+      final bgThemeData = await RestaurantRepository.instance.getBackgroundTheme();
+
       if (mounted) {
         setState(() {
           _topBanners = topBanners;
           _bottomBanners = bottomBanners;
+          if (bgThemeData != null) {
+            _bgImageUrl = bgThemeData['url'];
+            _bgThemeName = bgThemeData['name'];
+          }
           _isLoadingBanners = false;
         });
 
@@ -188,26 +211,145 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh discount/nearby sections when the app resumes so admin changes
+    // show up — but debounce: on web, tab visibility can fire resumed/inactive
+    // in quick succession and was reloading every section repeatedly.
+    if (state == AppLifecycleState.resumed && mounted) {
+      final now = DateTime.now();
+      if (_lastResumeRefreshAt != null &&
+          now.difference(_lastResumeRefreshAt!) < const Duration(seconds: 30)) {
+        return;
+      }
+      _lastResumeRefreshAt = now;
+      RestaurantRepository.instance.clearCache();
+      setState(() => _refreshKey++);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bannerTimer?.cancel();
     _promoTimer?.cancel();
+    _titleTimer?.cancel();
     _bannerController.dispose();
     _promoController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _showBannerModal(BannerImageDto banner) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 16),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Image taking original aspect ratio with bottom fade overlay
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: CachedNetworkImage(
+                      imageUrl: _getImageUrl(banner.image),
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          const ImageSkeletonLoader(showLogo: true),
+                      errorWidget: (context, url, error) => Container(
+                        height: 200,
+                        color: AppColors.primary,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.broken_image, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.0),
+                            Colors.white,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Expanded area for the rest of the content (Title/Link)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          banner.nameMm ?? banner.nameEn ?? context.tr('home.promotions'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        // Link text removed per user request
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle
-          .dark, // Using dark for black text on light background
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Android
+        statusBarBrightness: Brightness.light, // iOS
+      ),
       child: Scaffold(
         backgroundColor: Colors.white, // White background
         floatingActionButton: const StyledCartFab(),
         body: Stack(
           children: [
-            // Fixed Background Image
+            // Fixed Header (Title & Background)
             Positioned(
               top: 0,
               left: 0,
@@ -215,15 +357,17 @@ class _HomePageState extends State<HomePage> {
               bottom: 0, // Set to 100% height (full screen)
               child: Container(
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/top-bannner.jpg'),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    colorFilter: ColorFilter.mode(
-                      Colors.white.withValues(alpha: 0.70),
-                      BlendMode.lighten,
-                    ),
-                  ),
+                  image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(_bgImageUrl!),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        )
+                      : const DecorationImage(
+                          image: AssetImage('assets/images/top-bannner.jpg'),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        ),
                 ),
               ),
             ),
@@ -241,7 +385,7 @@ class _HomePageState extends State<HomePage> {
                   await _fetchLostFoundCount();
                 },
                 color: AppColors.primary,
-                displacement: MediaQuery.of(context).padding.top + 80,
+                displacement: MediaQuery.of(context).padding.top + 60,
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(
@@ -252,51 +396,23 @@ class _HomePageState extends State<HomePage> {
                       SizedBox(
                         height: MediaQuery.of(context).padding.top + 70,
                       ), // Push content below fixed header
+
                       // Search Bar
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: GestureDetector(
+                        child: SearchBoxTrigger(
+                          hintText: context.tr('home.search_hint'),
+                          isGlassStyle: true,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const FoodSearchPage(),
                             ),
                           ),
-                          child: Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  PhosphorIcons.magnifyingGlass,
-                                  color: Colors.grey.shade500,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  context.tr('home.search_hint'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       // Banner Carousel
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -334,24 +450,30 @@ class _HomePageState extends State<HomePage> {
                                 final banner = _topBanners[realIndex];
                                 final image = banner.image;
                                 if (image.startsWith('assets/')) {
-                                  return Image.asset(
-                                    image,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
+                                  return GestureDetector(
+                                    onTap: () => _showBannerModal(banner),
+                                    child: Image.asset(
+                                      image,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
                                   );
                                 }
-                                return CachedNetworkImage(
-                                  imageUrl: _getImageUrl(image),
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      const ImageSkeletonLoader(showLogo: true),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                        color: AppColors.primary,
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          Icons.broken_image,
-                                          color: Colors.white,
+                                return GestureDetector(
+                                  onTap: () => _showBannerModal(banner),
+                                  child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                    imageUrl: _getImageUrl(image),
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        const ImageSkeletonLoader(showLogo: true),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          color: AppColors.primary,
+                                          alignment: Alignment.center,
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                 );
@@ -373,9 +495,12 @@ class _HomePageState extends State<HomePage> {
                               width: _currentBannerIndex == index ? 20 : 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: _currentBannerIndex == index
-                                    ? AppColors.primary
-                                    : AppColors.primary.withValues(alpha: 0.2),
+                                gradient: _currentBannerIndex == index
+                                    ? AppColors.primaryGradient
+                                    : null,
+                                color: _currentBannerIndex != index
+                                    ? AppColors.primary.withValues(alpha: 0.2)
+                                    : null,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -400,6 +525,7 @@ class _HomePageState extends State<HomePage> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(15, 0, 15, 12),
                               child: GridView.count(
+                                padding: const EdgeInsets.only(top: 16),
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount:
@@ -408,7 +534,7 @@ class _HomePageState extends State<HomePage> {
                                     : 3,
                                 mainAxisSpacing: 8,
                                 crossAxisSpacing: 8,
-                                childAspectRatio: 0.85,
+                                childAspectRatio: 0.95,
                                 children: [
                                   CategoryCard(
                                     title: context.tr('home.category_food'),
@@ -421,11 +547,6 @@ class _HomePageState extends State<HomePage> {
                                     title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
-                                    badgeText: _lostFoundCount > 0
-                                        ? (_lostFoundCount > 99
-                                            ? '99+'
-                                            : '$_lostFoundCount')
-                                        : null,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -488,7 +609,7 @@ class _HomePageState extends State<HomePage> {
                               child: Column(
                                 children: [
                                   Container(
-                                    height: 200,
+                                    height: 150,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(20),
@@ -522,27 +643,29 @@ class _HomePageState extends State<HomePage> {
                                           }
                                           final realIndex =
                                               index % _bottomBanners.length;
-                                          return CachedNetworkImage(
-                                            imageUrl: _getImageUrl(
-                                              _bottomBanners[realIndex].image,
-                                            ),
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            placeholder: (context, url) =>
-                                                const ImageSkeletonLoader(
-                                                  showLogo: true,
-                                                ),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                                      color: AppColors.primary,
-                                                      alignment:
-                                                          Alignment.center,
-                                                      child: const Icon(
-                                                        Icons.broken_image,
-                                                        color: Colors.white,
+                                          final banner = _bottomBanners[realIndex];
+                                          return GestureDetector(
+                                            onTap: () => _showBannerModal(banner),
+                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                              imageUrl: _getImageUrl(banner.image),
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              placeholder: (context, url) =>
+                                                  const ImageSkeletonLoader(
+                                                    showLogo: true,
+                                                  ),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      Container(
+                                                        color: AppColors.primary,
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: const Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.white,
+                                                        ),
                                                       ),
-                                                    ),
+                                            ),
                                           );
                                         },
                                       ),
@@ -569,9 +692,12 @@ class _HomePageState extends State<HomePage> {
                                               : 8,
                                           height: 8,
                                           decoration: BoxDecoration(
-                                            color: _currentPromoIndex == index
-                                                ? AppColors.primary
-                                                : const Color(0xFFD1D1D1),
+                                            gradient: _currentPromoIndex == index
+                                                ? AppColors.primaryGradient
+                                                : null,
+                                            color: _currentPromoIndex != index
+                                                ? const Color(0xFFD1D1D1)
+                                                : null,
                                             borderRadius: BorderRadius.circular(
                                               4,
                                             ),
@@ -583,9 +709,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
 
-                            const SizedBox(height: 24),
-                            TogetherDealsSection(
-                              key: ValueKey('deals_$_refreshKey'),
+                            HomeDiscountSection(
+                              key: ValueKey('discount_$_refreshKey'),
                             ),
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
@@ -612,7 +737,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 40),
                             Center(
                               child: Text(
-                                'demo 0.0.1',
+                                context.tr('food.end_of_list'),
                                 style: GoogleFonts.poppins(
                                   color: Colors.grey.withValues(alpha: 0.5),
                                   fontSize: 12,
@@ -655,22 +780,33 @@ class _HomePageState extends State<HomePage> {
                         top: 0,
                         left: 0,
                         right: 0,
-                        child: SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
-                          child: Image.asset(
-                            'assets/images/top-bannner.jpg',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            color: Colors.white.withValues(alpha: 0.70),
-                            colorBlendMode: BlendMode.lighten,
+                        child: Opacity(
+                          opacity: _headerOpacity,
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                                    ? DecorationImage(
+                                        image: CachedNetworkImageProvider(_bgImageUrl!),
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.topCenter,
+                                      )
+                                    : const DecorationImage(
+                                        image: AssetImage('assets/images/top-bannner.jpg'),
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.topCenter,
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                       Container(
                         padding: EdgeInsets.only(
-                          top: MediaQuery.of(context).padding.top + 8,
-                          bottom: 8,
+                          top: MediaQuery.of(context).padding.top + 2,
+                          bottom: 6,
                         ),
                         // Top Row: Gift Icon, Logo, Notification Bell
                         child: Padding(
@@ -691,18 +827,31 @@ class _HomePageState extends State<HomePage> {
                                     padding: const EdgeInsets.only(top: 4),
                                     child: ShaderMask(
                                       shaderCallback: (bounds) =>
-                                          LinearGradient(
-                                            colors: [
-                                              AppColors.primary,
-                                              const Color(0xFFF96232),
-                                            ],
-                                          ).createShader(bounds),
-                                      child: Text(
-                                        context.tr('home.brand_name'),
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 22,
-                                          color: Colors.white,
+                                          AppColors.primaryGradient.createShader(bounds),
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 800),
+                                        transitionBuilder: (Widget child, Animation<double> animation) {
+                                          return FadeTransition(
+                                            opacity: animation,
+                                            child: SlideTransition(
+                                              position: Tween<Offset>(
+                                                begin: const Offset(0.0, 0.2),
+                                                end: Offset.zero,
+                                              ).animate(animation),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          _showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty
+                                              ? _bgThemeName!
+                                              : context.tr('home.brand_name'),
+                                          key: ValueKey<bool>(_showThemeNameInAppBar),
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: (_showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) ? 14 : 22,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -710,70 +859,7 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               // Notification Bell (Top Right)
-                              ValueListenableBuilder<int>(
-                                valueListenable:
-                                    NotificationRepository().unreadCount,
-                                builder: (context, count, _) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const NotificationsPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            PhosphorIcons.bell,
-                                            size: 24,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        if (count > 0)
-                                          Positioned(
-                                            top: -2,
-                                            right: 0,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 16,
-                                                minHeight: 16,
-                                              ),
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 1.5,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                count > 9
-                                                    ? '9+'
-                                                    : count.toString(),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                              const NotificationBell(hasShadow: true),
                             ],
                           ),
                         ),
@@ -787,7 +873,7 @@ class _HomePageState extends State<HomePage> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 4 + MediaQuery.of(context).padding.bottom,
+              bottom: 12,
               child: const ActiveOrderBar(),
             ),
           ],
@@ -796,3 +882,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+

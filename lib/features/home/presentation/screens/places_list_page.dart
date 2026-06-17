@@ -89,47 +89,62 @@ class _PlacesListPageState extends State<PlacesListPage> {
         ),
         centerTitle: true,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _places.isEmpty
-              ? Center(child: Text(context.tr('place.none_found')))
-              : GridView.builder(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width > 600 ? 3 : 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.75,
+      body: RefreshIndicator(
+        onRefresh: _loadPlaces,
+        color: Theme.of(context).primaryColor,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _places.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        child: Center(
+                          child: Text(context.tr('place.none_found')),
+                        ),
+                      ),
+                    ],
+                  )
+                : GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount:
+                          MediaQuery.of(context).size.width > 600 ? 3 : 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: _places.length,
+                    itemBuilder: (context, index) {
+                      final place = _places[index];
+                      final image = place.coverImage.isNotEmpty
+                          ? place.coverImage
+                          : (place.galleryUrls.isNotEmpty
+                              ? place.galleryUrls.first
+                              : '');
+                      return PlaceCard(
+                        name: place.displayTitle,
+                        category: place.locationName,
+                        distance: place.formattedDistance,
+                        imagePath: image,
+                        isFavorite: place.isFavorite,
+                        onFavoriteToggle: () => _toggleFavorite(place),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PlaceDetailPage(place: place),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
-                  itemCount: _places.length,
-                  itemBuilder: (context, index) {
-                    final place = _places[index];
-                    final image = place.coverImage.isNotEmpty
-                        ? place.coverImage
-                        : (place.galleryUrls.isNotEmpty
-                            ? place.galleryUrls.first
-                            : '');
-                    return PlaceCard(
-                      name: place.displayTitle,
-                      category: place.locationName,
-                      distance: place.formattedDistance,
-                      imagePath: image,
-                      isFavorite: place.isFavorite,
-                      onFavoriteToggle: () => _toggleFavorite(place),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PlaceDetailPage(place: place),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+      ),
     );
   }
 }

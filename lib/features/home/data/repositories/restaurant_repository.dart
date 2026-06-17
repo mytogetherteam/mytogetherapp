@@ -11,6 +11,7 @@ import '../models/shop_review_dto.dart';
 import '../models/master_category_dto.dart';
 import '../models/menu_category_dto.dart';
 import '../models/collection_dto.dart';
+import '../models/home_discount_section_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
@@ -43,7 +44,13 @@ class RestaurantRepository {
 
   // Cache for the home discount carousel
   DiscountDealsDto? _cachedDiscountDeals;
+  String? _discountDealsCacheKey;
   DateTime? _discountDealsLastFetch;
+
+  // Cache for the admin-controlled home discount section config.
+  // Mirrors the backend Redis TTL (~60s); admin edits invalidate server-side.
+  HomeDiscountSectionListDto? _cachedDiscountConfig;
+  DateTime? _discountConfigLastFetch;
 
   RestaurantRepository(this._remoteDataSource);
 
@@ -124,18 +131,8 @@ class RestaurantRepository {
             .map((dto) => _mapShopDtoToDomain(dto.shop))
             .toList();
       } else {
-        final request = ShopRequestDto(
-          lat: lat,
-          lon: lon,
-          radius: radius,
-          page: page,
-          size: size,
-          search: search,
-        );
-        final response = await _remoteDataSource.getNearbyShops(request);
-        results = response.data.content
-            .map((dto) => _mapShopDtoToDomain(dto))
-            .toList();
+        // Public nearby API was removed; guests must sign in to browse shops.
+        results = [];
       }
 
       // Update cache
@@ -236,7 +233,8 @@ class RestaurantRepository {
     );
   }
 
-  /// Full master menu category catalog (`GET /api/menu/master/categories`).
+  /// Master menu categories for search filters
+  /// (`GET /api/user/master-menu-categories/popular`).
   Future<List<MasterCategoryDto>> getMasterCategories() {
     return _remoteDataSource.getMasterCategories();
   }
@@ -244,9 +242,8 @@ class RestaurantRepository {
   /// Popular master menu categories (`GET /api/user/master-menu-categories/popular`).
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
     int limit = 10,
-    int? days,
   }) {
-    return _remoteDataSource.getPopularMasterCategories(limit: limit, days: days);
+    return _remoteDataSource.getPopularMasterCategories(limit: limit);
   }
 
   /// Cuisine types for search filtering (`GET /api/user/cuisine-types`).
@@ -301,31 +298,25 @@ class RestaurantRepository {
   }
 
   Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
-    try {
-      final response = await _remoteDataSource.getShopById(
-        id,
-        lat: lat,
-        lon: lon,
-      );
-      return _mapShopDetailDtoToDomain(response.data);
-    } catch (e) {
-      // Auth fallback: enriched user shop-profile detail
-      // (GET /api/user/shop-profile/:id) enforces verified-visible shops and
-      // carries the authoritative `isFavorite` flag.
-      if (AuthService().isLoggedIn) {
-        final shop = await SearchRepository.instance.getShopProfileById(id);
-        if (shop != null) {
-          final dist = (lat != null &&
-                  lon != null &&
-                  shop.latitude != null &&
-                  shop.longitude != null)
-              ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
-              : null;
-          return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
-        }
-      }
-      rethrow;
+    if (!AuthService().isLoggedIn) {
+      throw Exception('Login required to view shop details');
     }
+
+    final response = await _remoteDataSource.getShopById(
+      id,
+      lat: lat,
+      lon: lon,
+    );
+    final detail = _mapShopDetailDtoToDomain(response.data);
+    if (lat != null &&
+        lon != null &&
+        detail.latitude != null &&
+        detail.longitude != null) {
+      final dist =
+          _haversineKm(lat, lon, detail.latitude!, detail.longitude!);
+      return detail.copyWith(distance: '${dist.toStringAsFixed(1)} km');
+    }
+    return detail;
   }
 
   /// Active payment methods for a shop, used by the checkout flow.
@@ -368,30 +359,19 @@ class RestaurantRepository {
 
     TrendingSectionDto result;
     if (AuthService().isLoggedIn) {
-      try {
-        result = await SearchRepository.instance.searchTrendingNearby(
-          latitude: lat,
-          longitude: lon,
-          radiusKm: radiusKm,
-          page: page + 1, // user endpoint is 1-based
-          size: size,
-        );
-      } catch (_) {
-        result = await _remoteDataSource.getTrendingItems(
-          lat: lat,
-          lon: lon,
-          radiusKm: radiusKm,
-          page: page,
-          size: size,
-        );
-      }
-    } else {
-      result = await _remoteDataSource.getTrendingItems(
-        lat: lat,
-        lon: lon,
+      result = await SearchRepository.instance.searchTrendingNearby(
+        latitude: lat,
+        longitude: lon,
         radiusKm: radiusKm,
-        page: page,
+        page: page + 1,
         size: size,
+      );
+    } else {
+      result = TrendingSectionDto(
+        title: '',
+        description: '',
+        items: const [],
+        totalCount: 0,
       );
     }
 
@@ -415,6 +395,9 @@ class RestaurantRepository {
       nameEn: dto.nameEn,
       nameMm: dto.nameMm,
       nameTh: dto.nameTh,
+      descriptionEn: dto.descriptionEn,
+      descriptionMm: dto.descriptionMm,
+      descriptionTh: dto.descriptionTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
@@ -446,6 +429,9 @@ class RestaurantRepository {
       nameEn: dto.nameEn,
       nameMm: dto.nameMm,
       nameTh: dto.nameTh,
+      descriptionEn: dto.descriptionEn,
+      descriptionMm: dto.descriptionMm,
+      descriptionTh: dto.descriptionTh,
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
@@ -579,19 +565,53 @@ class RestaurantRepository {
     return result;
   }
 
-  /// Discounted menu items for the home "Together — Up to X% Off" carousel
-  /// (`GET /api/user/menu-items/discount`). Cached for 5 minutes.
+  /// Admin-controlled home discount section config
+  /// (`GET /api/user/home-discount-section`). The backend caches this in Redis
+  /// (~60s TTL) and invalidates on admin edits; we mirror that with a short
+  /// client cache and always refetch on home open / pull-to-refresh / resume
+  /// via [forceRefresh] (or [clearCache]).
+  Future<HomeDiscountSectionListDto> getHomeDiscountSectionConfig({
+    bool forceRefresh = false,
+  }) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedDiscountConfig != null &&
+        _discountConfigLastFetch != null &&
+        now.difference(_discountConfigLastFetch!).inSeconds < 60) {
+      return _cachedDiscountConfig!;
+    }
+
+    try {
+      final result = await _remoteDataSource.getHomeDiscountSection();
+      _cachedDiscountConfig = result;
+      _discountConfigLastFetch = now;
+      return result;
+    } catch (e) {
+      if (_cachedDiscountConfig != null) return _cachedDiscountConfig!;
+      rethrow;
+    }
+  }
+
+  /// Discounted menu items for the home discount carousel
+  /// (`GET /api/user/menu-items/discount`). [percentage] and [sectionTitle]
+  /// come from the active home discount section config — never hardcoded.
+  /// Cached for 5 minutes keyed by the request inputs.
   Future<DiscountDealsDto> getDiscountDeals({
     required double lat,
     required double lon,
     int percentage = 50,
     double radiusKm = 30.0,
+    int page = 1,
     int size = 10,
+    String? sectionTitle,
     bool forceRefresh = false,
   }) async {
     final now = DateTime.now();
+    final cacheKey =
+        '$percentage|${sectionTitle ?? ''}|$page|$size|${lat.toStringAsFixed(3)}|${lon.toStringAsFixed(3)}';
     if (!forceRefresh &&
         _cachedDiscountDeals != null &&
+        _discountDealsCacheKey == cacheKey &&
         _discountDealsLastFetch != null &&
         now.difference(_discountDealsLastFetch!).inMinutes < 5) {
       return _cachedDiscountDeals!;
@@ -602,9 +622,12 @@ class RestaurantRepository {
       lon: lon,
       percentage: percentage,
       radiusKm: radiusKm,
+      page: page,
       size: size,
+      sectionTitle: sectionTitle,
     );
     _cachedDiscountDeals = result;
+    _discountDealsCacheKey = cacheKey;
     _discountDealsLastFetch = now;
     return result;
   }
@@ -613,8 +636,7 @@ class RestaurantRepository {
     return _remoteDataSource.getFoodById(id);
   }
 
-  /// Auth-aware menu item fetch (includes favorite state). Falls back to the
-  /// public food endpoint when not logged in.
+  /// Auth-aware menu item fetch (includes favorite state). Requires login.
   Future<FoodDetailDto?> getUserFoodById(int id) async {
     return _remoteDataSource.getUserMenuItemById(id);
   }
@@ -637,10 +659,6 @@ class RestaurantRepository {
     }
   }
 
-  Future<void> trackConversion(int shopId, String action) async {
-    await _remoteDataSource.trackConversion(shopId, action);
-  }
-
   /// Clears the feed cache for a specific shop or all shops.
   void clearCache({int? shopId}) {
     if (shopId != null) {
@@ -656,8 +674,20 @@ class RestaurantRepository {
       _cachedBanners.clear();
       _bannersLastFetch = null;
       _cachedDiscountDeals = null;
+      _discountDealsCacheKey = null;
       _discountDealsLastFetch = null;
+      _cachedDiscountConfig = null;
+      _discountConfigLastFetch = null;
     }
+  }
+
+  Future<Map<String, dynamic>?> getBackgroundTheme() async {
+    final themeData = await _remoteDataSource.getBackgroundTheme();
+    if (themeData != null && themeData['url'] != null) {
+      themeData['url'] = _getImageUrl(themeData['url']);
+      return themeData;
+    }
+    return null;
   }
 
   Future<List<ShopReviewDto>> getShopReviews(int shopId) {

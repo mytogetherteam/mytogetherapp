@@ -39,7 +39,7 @@ class PlaceCard extends StatelessWidget {
             Positioned.fill(
               child: Hero(
                 tag: 'top_places_$name',
-                child: CachedNetworkImage(
+                child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                   imageUrl: imagePath,
                   fit: BoxFit.cover,
                   placeholder: (context, url) =>
@@ -168,3 +168,4 @@ class PlaceCard extends StatelessWidget {
     );
   }
 }
+

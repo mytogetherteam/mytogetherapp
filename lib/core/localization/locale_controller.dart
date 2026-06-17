@@ -19,7 +19,7 @@ class LocaleController extends ChangeNotifier {
 
   static const String _prefsKey = 'app_language';
 
-  AppLanguage _language = AppLanguage.en;
+  AppLanguage _language = AppLanguage.mm;
   AppLanguage get language => _language;
 
   bool _initialized = false;
@@ -31,7 +31,7 @@ class LocaleController extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _language = AppLanguage.fromCode(prefs.getString(_prefsKey));
     } catch (_) {
-      _language = AppLanguage.en;
+      _language = AppLanguage.mm;
     }
     _initialized = true;
   }

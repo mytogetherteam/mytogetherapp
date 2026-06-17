@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,7 +8,10 @@ import '../../../core/network/api_client.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
+import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
+import '../../order/data/repositories/order_repository.dart';
+import '../presentation/utils/revise_reason_parser.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -26,6 +30,8 @@ class ActiveOrderItem {
   // Set when the shop sends the order back for revision (status REVISED).
   bool isRevised;
   String? reviseReason;
+  List<String> unavailableItemNames;
+  String? unavailableItemReason;
   List<CartItem> orderItems;
   bool showUploadSection;
   bool isPaymentChecking;
@@ -38,6 +44,7 @@ class ActiveOrderItem {
   String? shopNameTh;
   String? shopLogo;
   String? shopImageUrl;
+  String? shopPhone;
   
   // Tracking data
   List<LatLng> routePoints;
@@ -50,6 +57,9 @@ class ActiveOrderItem {
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  // Photo the shop attaches when marking the order Delivered — shown to the
+  // customer as proof the food was successfully delivered.
+  String? proofPhotoUrl;
 
   // Missing fields for backward compatibility
   String? deliveryAddress;
@@ -64,7 +74,17 @@ class ActiveOrderItem {
   bool hasNotifiedSlipRequest;
   bool isSlipRequested;
   String? deliveryType;
+  String? orderType;
+  String? backendStatus;
   String? riderVehicleNumber;
+
+  bool get isPickupFulfillment {
+    final type = (orderType ?? '').toUpperCase();
+    return type == 'PICK_UP' || type == 'PICKUP';
+  }
+
+  bool get isReadyForPickup =>
+      (backendStatus ?? '').toUpperCase() == 'READY_FOR_PICKUP';
 
   ActiveOrderItem({
     required this.orderId,
@@ -82,6 +102,8 @@ class ActiveOrderItem {
     this.cancelReason,
     this.isRevised = false,
     this.reviseReason,
+    this.unavailableItemNames = const [],
+    this.unavailableItemReason,
     this.orderItems = const [],
     this.showUploadSection = false,
     this.isPaymentChecking = false,
@@ -105,6 +127,8 @@ class ActiveOrderItem {
     this.hasNotifiedSlipRequest = false,
     this.isSlipRequested = false,
     this.deliveryType,
+    this.orderType,
+    this.backendStatus,
     this.riderVehicleNumber,
     this.shopId,
     this.shopName,
@@ -113,8 +137,10 @@ class ActiveOrderItem {
     this.shopNameTh,
     this.shopLogo,
     this.shopImageUrl,
+    this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.proofPhotoUrl,
   });
 
   String get displayShopName {
@@ -127,6 +153,16 @@ class ActiveOrderItem {
         ? (storeName ?? restaurantName ?? shopName ?? '')
         : value;
   }
+
+  /// Unavailable item names + shop reason, preferring structured `reviseItems`
+  /// from the API and falling back to the combined `reviseReason` string.
+  ({List<String> items, String reason}) get resolvedReviseInfo =>
+      ReviseReasonParser.resolve(
+        reviseReason: reviseReason,
+        structuredItemNames:
+            unavailableItemNames.isNotEmpty ? unavailableItemNames : null,
+        structuredItemReason: unavailableItemReason,
+      );
 
   Map<String, dynamic> toJson() => {
     'orderId': orderId,
@@ -144,6 +180,8 @@ class ActiveOrderItem {
     'cancelReason': cancelReason,
     'isRevised': isRevised,
     'reviseReason': reviseReason,
+    'unavailableItemNames': unavailableItemNames,
+    'unavailableItemReason': unavailableItemReason,
     'showUploadSection': showUploadSection,
     'isPaymentChecking': isPaymentChecking,
     'routeDistanceKm': routeDistanceKm,
@@ -171,8 +209,13 @@ class ActiveOrderItem {
     'shopNameTh': shopNameTh,
     'shopLogo': shopLogo,
     'shopImageUrl': shopImageUrl,
+    'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'proofPhotoUrl': proofPhotoUrl,
+    'deliveryType': deliveryType,
+    'orderType': orderType,
+    'backendStatus': backendStatus,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -191,6 +234,11 @@ class ActiveOrderItem {
     cancelReason: json['cancelReason'],
     isRevised: json['isRevised'] ?? false,
     reviseReason: json['reviseReason'],
+    unavailableItemNames: (json['unavailableItemNames'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [],
+    unavailableItemReason: json['unavailableItemReason']?.toString(),
     showUploadSection: json['showUploadSection'] ?? false,
     isPaymentChecking: json['isPaymentChecking'] ?? false,
     routeDistanceKm: json['routeDistanceKm'],
@@ -220,8 +268,13 @@ class ActiveOrderItem {
     shopNameTh: json['shopNameTh'],
     shopLogo: json['shopLogo'],
     shopImageUrl: json['shopImageUrl'],
+    shopPhone: json['shopPhone'],
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
+    proofPhotoUrl: json['proofPhotoUrl'],
+    deliveryType: json['deliveryType'],
+    orderType: json['orderType'],
+    backendStatus: json['backendStatus'],
   );
 }
 
@@ -240,7 +293,21 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   final Map<String, ActiveOrderItem> _orders = {};
-  final Set<String> _cancellingOrders = {}; 
+  /// The order the UI should treat as "current" (tracking, payment, complete).
+  String? _primaryOrderId;
+  final Set<String> _cancellingOrders = {};
+  // Orders the user cancelled themselves. The backend emits the same CANCELED
+  // WebSocket frame regardless of who cancelled, so we record user-initiated
+  // cancellations here to keep the shop-cancellation page from popping up for
+  // them (the user instead sees a dedicated apology page).
+  final Set<String> _userCancelledOrderIds = {};
+
+  /// True when [orderId] was cancelled by the user via [cancelActiveOrder]
+  /// (as opposed to being cancelled by the restaurant).
+  bool wasCancelledByUser(String? orderId) {
+    if (orderId == null) return false;
+    return _userCancelledOrderIds.contains(orderId.replaceAll('#', ''));
+  } 
   
   // Returns only non-terminal orders (not COMPLETED or CANCELLED)
   List<ActiveOrderItem> get activeOrdersList => _orders.values
@@ -250,16 +317,41 @@ class ActiveOrderState extends ChangeNotifier {
   // Returns everything currently tracked
   List<ActiveOrderItem> get allOrdersList => _orders.values.toList();
   
+  ActiveOrderItem? get _primary {
+    if (_primaryOrderId != null) {
+      return _orders[_primaryOrderId];
+    }
+    final active = activeOrdersList;
+    return active.isNotEmpty ? active.last : null;
+  }
+
+  void _purgeTerminalOrders() {
+    _orders.removeWhere(
+      (_, o) => o.orderStatus == 4 || o.orderStatus == -1,
+    );
+    if (_primaryOrderId != null && !_orders.containsKey(_primaryOrderId)) {
+      _primaryOrderId = activeOrdersList.isNotEmpty
+          ? activeOrdersList.last.orderId
+          : null;
+    }
+  }
+
+  void _reassignPrimaryOrderId() {
+    if (_primaryOrderId != null && _orders.containsKey(_primaryOrderId)) {
+      return;
+    }
+    final active = activeOrdersList;
+    _primaryOrderId = active.isNotEmpty ? active.last.orderId : null;
+  }
+  
   // --- Properties & Backward Compatibility ---
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
   
-  ActiveOrderItem? get _primary => _orders.isNotEmpty ? _orders.values.first : null;
-
   // Helper to get a specific order
   ActiveOrderItem? getOrder(String? id) => _orders[id];
 
-  String? get orderId => _primary?.orderId;
+  String? get orderId => _primaryOrderId ?? _primary?.orderId;
   set orderId(String? val) {
     if (val == null) return;
     if (!_orders.containsKey(val)) {
@@ -303,6 +395,10 @@ class ActiveOrderState extends ChangeNotifier {
   String? get statusLabel => _primary?.statusLabel;
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
+  bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
+  bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
+  String? get backendStatus => _primary?.backendStatus;
+  String? get orderType => _primary?.orderType;
   double? get totalAmount => _primary?.totalAmount;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
@@ -318,6 +414,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? get riderPhone => _primary?.riderPhone;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
+  String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
   String? get cancelReason => _primary?.cancelReason;
@@ -332,6 +429,7 @@ class ActiveOrderState extends ChangeNotifier {
   String get displayShopName => _primary?.displayShopName ?? '';
   String? get shopLogo => _primary?.shopLogo;
   String? get shopImageUrl => _primary?.shopImageUrl;
+  String? get shopPhone => _primary?.shopPhone;
 
   // More restored getters/setters for legacy UI
   String? get deliveryAddress => _primary?.deliveryAddress;
@@ -373,8 +471,13 @@ class ActiveOrderState extends ChangeNotifier {
     String? userLocationName,
     LatLng? restaurantLatLng,
     LatLng? userLocation,
+    String? orderType,
   }) {
+    // Drop completed/cancelled orders so they cannot hijack the next checkout.
+    _purgeTerminalOrders();
+
     final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    _primaryOrderId = id;
     _orders[id] = ActiveOrderItem(
       orderId: id,
       storeName: storeName,
@@ -387,6 +490,7 @@ class ActiveOrderState extends ChangeNotifier {
       userLocationName: userLocationName,
       restaurantLatLng: restaurantLatLng,
       userLocation: userLocation,
+      orderType: orderType,
     );
     saveToPrefs();
     notifyListeners();
@@ -434,8 +538,9 @@ class ActiveOrderState extends ChangeNotifier {
 
 
   Future<void> syncActiveOrder({String? orderId}) async {
-    final targetId = orderId ?? this.orderId;
-    if (targetId == null || !hasActiveOrder) return;
+    final targetId = orderId ?? _primaryOrderId ?? this.orderId;
+    if (targetId == null) return;
+    if (!_orders.containsKey(targetId)) return;
     
     try {
       final sanitizedOrderId = targetId.replaceAll('#', '');
@@ -471,15 +576,27 @@ class ActiveOrderState extends ChangeNotifier {
     final String? msgType = _parseSafeString(data['type']);
     if (msgType != null && msgType != 'ORDER_UPDATE') return;
 
-    // Identify the target order
-    final id = data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
-    if (id == null || !_orders.containsKey(id)) return;
-    
-    final item = _orders[id]!;
+    // Identify the tracked order (tolerate `#` prefixes and numeric ids).
+    final rawId =
+        data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
+    final item = _findTrackedOrder(rawId);
+    if (item == null) return;
 
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
     if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+
+    // Shop contact number. The backend exposes it under a few shapes depending
+    // on the endpoint (flat field or nested `shop` object), so try each.
+    final shopMapForPhone = data['shop'];
+    final parsedShopPhone = _parseSafeString(
+      data['shopPhone'] ??
+          data['shopPhoneNo'] ??
+          (shopMapForPhone is Map ? shopMapForPhone['phone'] : null),
+    );
+    if (parsedShopPhone != null && parsedShopPhone.isNotEmpty) {
+      item.shopPhone = parsedShopPhone;
+    }
     if (data['deliveryCycleNo'] != null) item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
     if (data['waitingTimeMinutes'] != null) {
       item.estimatedTime = "${data['waitingTimeMinutes']} mins";
@@ -491,13 +608,25 @@ class ActiveOrderState extends ChangeNotifier {
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
 
+    // Delivery proof photo attached by the shop on the "Delivered" step.
+    final proofUrl = _parseSafeString(data['proofPhotoUrl']);
+    if (proofUrl != null && proofUrl.isNotEmpty) {
+      item.proofPhotoUrl = _getFullUrl(proofUrl);
+    }
+
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
     if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
 
     final parsedShopNameEn = _parseSafeString(
-      data['shopNameEn'] ?? data['shopName'],
+      data['shopNameEn'] ??
+          data['shopName'] ??
+          (data['shop'] is Map
+              ? (data['shop'] as Map)['nameEn'] ?? (data['shop'] as Map)['name']
+              : null),
     );
-    if (parsedShopNameEn != null) {
+    if (parsedShopNameEn != null &&
+        parsedShopNameEn.isNotEmpty &&
+        parsedShopNameEn != 'Shop') {
       item.shopNameEn = parsedShopNameEn;
       item.shopName = parsedShopNameEn;
       item.restaurantName = parsedShopNameEn;
@@ -506,6 +635,9 @@ class ActiveOrderState extends ChangeNotifier {
     
     if (data['deliveryType'] != null) {
       item.deliveryType = _parseSafeString(data['deliveryType']);
+    }
+    if (data['orderType'] != null) {
+      item.orderType = _parseSafeString(data['orderType']);
     }
 
     if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);
@@ -545,14 +677,58 @@ class ActiveOrderState extends ChangeNotifier {
       item.cancelReason = _parseSafeString(data['cancelReason']);
     }
 
+    if (data['reviseItems'] != null) {
+      final revisePayload =
+          ReviseReasonParser.parseReviseItemsPayload(data['reviseItems']);
+      if (revisePayload.names.isNotEmpty) {
+        item.unavailableItemNames = revisePayload.names;
+      }
+      if (revisePayload.reason != null && revisePayload.reason!.isNotEmpty) {
+        item.unavailableItemReason = revisePayload.reason;
+      }
+    }
+
+    // Rebuild the editable order items from the backend payload so the revise
+    // flow has data even after a cold start (checkout state is gone by then).
+    // Only overwrite when the payload actually carries items, to avoid wiping
+    // a locally-populated list with an empty array.
+    final parsedItems = _parseOrderItems(data['items'], item);
+    if (parsedItems.isNotEmpty) {
+      item.orderItems = parsedItems;
+    }
+
     // Refined shop fields
     if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
     if (data['shopNameEn'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopNameEn']);
+      final name = _parseSafeString(data['shopNameEn']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
     } else if (data['shopName'] != null) {
-      item.shopNameEn = _parseSafeString(data['shopName']);
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopNameEn = name;
+      }
+    } else if (data['shop'] is Map) {
+      final shopMap = Map<String, dynamic>.from(data['shop'] as Map);
+      final nestedName = _parseSafeString(shopMap['nameEn'] ?? shopMap['name']);
+      if (nestedName != null && nestedName.isNotEmpty && nestedName != 'Shop') {
+        item.shopNameEn = nestedName;
+        item.shopName = nestedName;
+        item.restaurantName = nestedName;
+        item.storeName = nestedName;
+      }
+      final nestedMm = _parseSafeString(shopMap['nameMm']);
+      if (nestedMm != null && nestedMm.isNotEmpty) item.shopNameMm = nestedMm;
+      final nestedTh = _parseSafeString(shopMap['nameTh']);
+      if (nestedTh != null && nestedTh.isNotEmpty) item.shopNameTh = nestedTh;
     }
-    if (data['shopName'] != null) item.shopName = _parseSafeString(data['shopName']);
+    if (data['shopName'] != null) {
+      final name = _parseSafeString(data['shopName']);
+      if (name != null && name.isNotEmpty && name != 'Shop') {
+        item.shopName = name;
+      }
+    }
     if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
       item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
     }
@@ -569,10 +745,13 @@ class ActiveOrderState extends ChangeNotifier {
     
     final shopMap = data['shop'];
     final rawImage = data['shopImageUrl'] ??
+        data['shopLogo'] ??
+        data['logoPath'] ??
+        data['logoUrl'] ??
         data['coverUrl'] ??
         data['imageUrl'] ??
         (shopMap is Map<String, dynamic>
-            ? ShopImageResolver.resolveBannerFromJson(shopMap)
+            ? ShopImageResolver.resolveShopAvatarFromJson(shopMap)
             : null);
     if (rawImage != null) {
       item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));
@@ -589,72 +768,11 @@ class ActiveOrderState extends ChangeNotifier {
 
     final String? statusStr = _parseSafeString(data['statusName'] ?? data['status']);
     if (statusStr != null) {
-      final upStatus = statusStr.toUpperCase();
-      switch (upStatus) {
-        case 'REVISED':
-          // Shop sent the order back for revision. Keep it on the awaiting
-          // screen (status 0) but flag it so the revise banner shows.
-          item.orderStatus = 0;
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          item.isRevised = true;
-          item.reviseReason =
-              _parseSafeString(data['reviseReason']) ?? item.reviseReason;
-          break;
-        case 'PENDING':
-        case 'AWAITING_APPROVAL':
-          item.orderStatus = 0; 
-          item.showUploadSection = false;
-          break;
-        case 'CONFIRMED':
-          item.orderStatus = 1; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          break;
-        case 'PAYMENT_UPLOADED':
-        case 'PAYMENT_CHECKING':
-          item.orderStatus = 1; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = true;
-          break;
-        case 'PAYMENT_SLIP_REQUESTED':
-          item.orderStatus = 1; 
-          item.showUploadSection = true; 
-          item.isPaymentChecking = false;
-          item.isSlipRequested = true;
-          break;
-        case 'PAID':
-        case 'PAYMENT_VERIFIED':
-        case 'PREPARING':
-          item.orderStatus = 2; 
-          item.showUploadSection = false;
-          item.isPaymentChecking = false;
-          break;
-        case 'ON_THE_WAY':
-        case 'DELIVERING':
-        case 'SHIPPED':
-          item.orderStatus = 3; 
-          break;
-        case 'COMPLETED':
-        case 'DELIVERED':
-          item.orderStatus = 4;
-          break;
-        case 'CANCELLED':
-          item.orderStatus = -1;
-          break;
-      }
-      
-      // Reset notification flag if status is no longer REQUESTED
-      if (upStatus != 'PAYMENT_SLIP_REQUESTED') {
-        item.hasNotifiedSlipRequest = false;
-        item.isSlipRequested = false;
-      }
-
-      // Clear the revise flag once the order moves past REVISED.
-      if (upStatus != 'REVISED') {
-        item.isRevised = false;
-        item.reviseReason = null;
-      }
+      applyStatusString(
+        item,
+        statusStr,
+        reviseReason: _parseSafeString(data['reviseReason']),
+      );
     } else if (data['orderStatus'] != null) {
       item.orderStatus = data['orderStatus'] as int;
     }
@@ -674,6 +792,18 @@ class ActiveOrderState extends ChangeNotifier {
     return null;
   }
 
+  ActiveOrderItem? _findTrackedOrder(String? rawId) {
+    if (rawId == null) return null;
+    final id = rawId.toString();
+    if (_orders.containsKey(id)) return _orders[id];
+    final sanitized = id.replaceAll('#', '');
+    if (_orders.containsKey(sanitized)) return _orders[sanitized];
+    for (final entry in _orders.entries) {
+      if (entry.key.replaceAll('#', '') == sanitized) return entry.value;
+    }
+    return null;
+  }
+
   String? _parseSafeString(dynamic value) {
     if (value == null) return null;
     if (value is String) return value;
@@ -683,23 +813,82 @@ class ActiveOrderState extends ChangeNotifier {
     return value.toString();
   }
 
-  String _getFullUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    
-    // Filter out Pinterest links as they often fail to load in mobile apps/webview
-    if (path.contains('pinterest.com')) return '';
-    
-    if (path.startsWith('http') || path.startsWith('assets/')) return path;
-    
-    // Clean path and ensure single slash between base URL and path
-    String cleaned = path.trim();
-    if (cleaned.startsWith('/')) cleaned = cleaned.substring(1);
-    
-    // Encode the path to handle spaces and special characters
-    final encodedPath = Uri.encodeComponent(cleaned).replaceAll('%2F', '/');
-    
-    return '${ApiClient.baseUrl}/$encodedPath';
+  /// Maps a backend order `items[]` payload into [CartItem]s for the revise
+  /// flow. Handles both the enriched shape (from `mapOrder`: `menuItemName`,
+  /// `menuItemImageUrl`, `selectedOptions[]`) and the raw shape (from
+  /// `findAwaitingPaymentInfo`: `menuItemId`, `quantity`, `price`, ...).
+  List<CartItem> _parseOrderItems(dynamic raw, ActiveOrderItem order) {
+    if (raw is! List || raw.isEmpty) return const [];
+
+    final result = <CartItem>[];
+    for (var i = 0; i < raw.length; i++) {
+      final entry = raw[i];
+      if (entry is! Map) continue;
+      final map = Map<String, dynamic>.from(entry);
+
+      final menuItemId = _parseSafeInt(map['menuItemId']);
+      if (menuItemId == null) continue;
+
+      final menuItem = map['menuItem'] is Map
+          ? Map<String, dynamic>.from(map['menuItem'] as Map)
+          : const <String, dynamic>{};
+
+      final nameEn = _parseSafeString(
+            map['menuItemName'] ?? menuItem['nameEn'] ?? menuItem['name'],
+          ) ??
+          'Item';
+      final nameMm =
+          _parseSafeString(map['menuItemNameMm'] ?? menuItem['nameMm']);
+      final nameTh =
+          _parseSafeString(map['menuItemNameTh'] ?? menuItem['nameTh']);
+      final imageUrl = _getFullUrl(_parseSafeString(
+        map['menuItemImageUrl'] ?? map['imageUrl'] ?? menuItem['imageUrl'],
+      ));
+      final price = _parseSafeDouble(map['price']) ?? 0;
+      final quantity = _parseSafeInt(map['quantity']) ?? 1;
+
+      // selectedOptions[] → option ids used when re-submitting the order.
+      final optionIds = <int>[];
+      final selectedOptions = map['selectedOptions'];
+      if (selectedOptions is List) {
+        for (final opt in selectedOptions) {
+          if (opt is Map) {
+            final id = _parseSafeInt(opt['menuItemOptionId']);
+            if (id != null) optionIds.add(id);
+          }
+        }
+      }
+
+      result.add(CartItem(
+        id: _parseSafeString(map['id']) ?? '$menuItemId-$i',
+        menuItemId: menuItemId,
+        restaurantId: order.shopId ?? order.restaurantId ?? '',
+        titleKey: nameEn,
+        titleEn: nameEn,
+        titleMm: nameMm,
+        titleTh: nameTh,
+        price: price,
+        total: price * quantity,
+        imagePath: imageUrl,
+        imageUrl: imageUrl.isEmpty ? null : imageUrl,
+        quantity: quantity,
+        optionIds: optionIds.isEmpty ? null : optionIds,
+        specialInstructions: _parseSafeString(map['specialInstructions']),
+        variantId: _parseSafeInt(map['variantId']),
+      ));
+    }
+    return result;
   }
+
+  int? _parseSafeInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  String _getFullUrl(String? path) => FileUrlUtil.resolve(path);
 
   bool _isValidUrl(String url) {
     if (url.isEmpty) return false;
@@ -734,13 +923,21 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _idleProgressSaveTimer;
+
   void updateIdleProgress(double val, {String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
+    // Update the in-memory value every frame (cheap), but throttle the disk
+    // write. This is called from a 60fps animation listener, so calling
+    // saveToPrefs() here directly meant ~60 JSON-encode + SharedPreferences
+    // writes per second — a major jank source on the order tracking screen.
+    // The value is only ever read once (to seed the animation on re-entry),
+    // so persisting it at most once per second is more than enough.
     _orders[targetId]!.idleSolidProgress = val;
-    // Don't notify listeners here to avoid rebuild loops during animation
-    // Just save the state
-    saveToPrefs();
+    // Don't notify listeners here to avoid rebuild loops during animation.
+    if (_idleProgressSaveTimer?.isActive ?? false) return;
+    _idleProgressSaveTimer = Timer(const Duration(seconds: 1), saveToPrefs);
   }
 
 
@@ -751,8 +948,12 @@ class ActiveOrderState extends ChangeNotifier {
     // Concurrency guard
     if (_cancellingOrders.contains(targetId)) return false;
     _cancellingOrders.add(targetId);
-    
+
     final sanitizedOrderId = targetId.replaceAll('#', '');
+    // Mark as user-cancelled up front (before the network round-trip) so that a
+    // CANCELED WebSocket frame arriving mid-flight doesn't trigger the
+    // restaurant-cancellation page.
+    _userCancelledOrderIds.add(sanitizedOrderId);
     
     try {
       // Backend: PATCH /api/user/orders/:id/payment with status=CANCELED.
@@ -772,23 +973,30 @@ class ActiveOrderState extends ChangeNotifier {
         clearOrder(orderId: targetId);
         return true;
       }
-    } catch (e) {
+
+      // Non-success HTTP — keep the active order in local state.
+      _userCancelledOrderIds.remove(sanitizedOrderId);
       _cancellingOrders.remove(targetId);
-      clearOrder(orderId: targetId);
-      return true; 
+      return false;
+    } catch (e) {
+      _userCancelledOrderIds.remove(sanitizedOrderId);
+      _cancellingOrders.remove(targetId);
+      return false;
     }
-    
-    _cancellingOrders.remove(targetId);
-    clearOrder(orderId: targetId);
-    return true;
   }
 
   void clearOrder({String? orderId}) {
     if (orderId != null) {
       _orders.remove(orderId);
+      if (_primaryOrderId == orderId) {
+        _primaryOrderId = null;
+      }
     } else {
       _orders.clear();
+      _primaryOrderId = null;
     }
+
+    _reassignPrimaryOrderId();
     
     // Keep the shared WebSocket open even with no orders so global
     // broadcasts/announcements still reach the user (lifecycle is owned by
@@ -796,6 +1004,168 @@ class ActiveOrderState extends ChangeNotifier {
 
     saveToPrefs();
     notifyListeners();
+  }
+
+  /// Maps a backend order status string onto an [ActiveOrderItem]'s internal
+  /// [ActiveOrderItem.orderStatus] (-1..4) and the payment/revise flags.
+  ///
+  /// Single source of truth shared by the WebSocket handler
+  /// ([updateFromSocket]) and the API hydration path
+  /// ([hydrateActiveOrdersFromApi]) so they can never drift apart.
+  static void applyStatusString(
+    ActiveOrderItem item,
+    String statusStr, {
+    String? reviseReason,
+  }) {
+    final upStatus = statusStr.toUpperCase();
+    item.backendStatus = upStatus;
+    switch (upStatus) {
+      case 'REVISED':
+        // Shop sent the order back for revision. Keep it on the awaiting
+        // screen (status 0) but flag it so the revise banner shows.
+        item.orderStatus = 0;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        item.isRevised = true;
+        item.reviseReason = reviseReason ?? item.reviseReason;
+        break;
+      case 'PENDING':
+        item.orderStatus = 0;
+        item.showUploadSection = false;
+        break;
+      case 'AWAITING_APPROVAL':
+        // Slip uploaded; shop is reviewing it. This is a forward step, not a
+        // return to "awaiting shop confirmation" (status 0).
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = true;
+        break;
+      case 'CONFIRMED':
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'PAYMENT_UPLOADED':
+      case 'PAYMENT_CHECKING':
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = true;
+        break;
+      case 'PAYMENT_SLIP_REQUESTED':
+        item.orderStatus = 1;
+        item.isPaymentChecking = false;
+        // PAYMENT_SLIP_REQUESTED covers two different moments:
+        // 1) Shop confirmed the order → customer uploads a slip for the first time.
+        // 2) Shop called requestSlip → customer must re-upload (reviseReason set).
+        // Only (2) should surface the "new receipt requested" UI.
+        final slipReuploadRequested =
+            reviseReason != null && reviseReason.trim().isNotEmpty;
+        item.isSlipRequested = slipReuploadRequested;
+        item.showUploadSection = slipReuploadRequested;
+        if (slipReuploadRequested) {
+          item.reviseReason = reviseReason;
+        } else {
+          item.reviseReason = null;
+        }
+        break;
+      case 'PAID':
+      case 'PAYMENT_VERIFIED':
+      case 'PREPARING':
+      case 'COOKING':
+        item.orderStatus = 2;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'READY_FOR_PICKUP':
+        item.orderStatus = 2;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'ON_THE_WAY':
+      case 'DELIVERING':
+      case 'SHIPPED':
+        item.orderStatus = 3;
+        break;
+      case 'COMPLETED':
+      case 'DELIVERED':
+      case 'PICKED_UP':
+        item.orderStatus = 4;
+        break;
+      case 'CANCELED':
+      case 'CANCELLED':
+        item.orderStatus = -1;
+        break;
+    }
+
+    // Reset notification flag if status is no longer REQUESTED
+    if (upStatus != 'PAYMENT_SLIP_REQUESTED') {
+      item.hasNotifiedSlipRequest = false;
+      item.isSlipRequested = false;
+    }
+
+    // Clear the revise flag once the order moves past REVISED.
+    if (upStatus != 'REVISED') {
+      item.isRevised = false;
+      item.unavailableItemNames = [];
+      item.unavailableItemReason = null;
+    }
+
+    // The reason is shown on both the REVISED and the PAYMENT_SLIP_REQUESTED
+    // screens, so only drop it once the order leaves both of those states.
+    if (upStatus != 'REVISED' && upStatus != 'PAYMENT_SLIP_REQUESTED') {
+      item.reviseReason = null;
+    }
+  }
+
+  /// Seeds [_orders] from the backend so active orders survive cold starts,
+  /// reinstalls, or cleared prefs (WebSocket/FCM alone can't hydrate an order
+  /// the app has never heard of — see the guard in [updateFromSocket]).
+  ///
+  /// Fetches the user's orders, keeps the still-ongoing ones, registers any
+  /// that aren't already tracked locally, then enriches each with full detail.
+  Future<void> hydrateActiveOrdersFromApi() async {
+    try {
+      final all = await OrderRepository().getOrderHistory();
+      final ongoing = all.where((o) => o.ongoing).toList();
+      if (ongoing.isEmpty) return;
+
+      var added = false;
+      for (final o in ongoing) {
+        if (_orders.containsKey(o.id)) continue;
+        final item = ActiveOrderItem(
+          orderId: o.id,
+          storeName: o.shopName,
+          restaurantName: o.shopName,
+          shopId: o.shopId?.toString(),
+          shopName: o.shopName,
+          shopNameEn: o.shopNameEn,
+          shopNameMm: o.shopNameMm,
+          shopNameTh: o.shopNameTh,
+          shopImageUrl: o.shopImageUrl,
+          totalAmount: o.totalAmount,
+          displayTotalAmount: o.displayTotalAmount,
+          deliveryFee: o.deliveryFee,
+          displayDeliveryFee: o.displayDeliveryFee,
+        );
+        applyStatusString(item, o.status);
+        _orders[o.id] = item;
+        added = true;
+      }
+
+      if (added) {
+        _reassignPrimaryOrderId();
+        saveToPrefs();
+        notifyListeners();
+      }
+
+      // Enrich each ongoing order with full tracking detail (shop phone, QR,
+      // rider, map, etc.). syncActiveOrder funnels through updateFromSocket.
+      for (final o in ongoing) {
+        await syncActiveOrder(orderId: o.id);
+      }
+    } catch (_) {
+      // Best-effort hydration; silent on failure.
+    }
   }
 
   // Persistence logic
@@ -806,6 +1176,11 @@ class ActiveOrderState extends ChangeNotifier {
           .map((o) => jsonEncode(o.toJson()))
           .toList();
       await prefs.setStringList('active_orders_v2', ordersJson);
+      if (_primaryOrderId != null) {
+        await prefs.setString('primary_order_id', _primaryOrderId!);
+      } else {
+        await prefs.remove('primary_order_id');
+      }
     } catch (e) {
       // Ignore prefs save errors
     }
@@ -843,6 +1218,17 @@ class ActiveOrderState extends ChangeNotifier {
           }
         }
       }
+
+      _purgeTerminalOrders();
+      final savedPrimary = prefs.getString('primary_order_id');
+      if (savedPrimary != null &&
+          savedPrimary.isNotEmpty &&
+          _orders.containsKey(savedPrimary)) {
+        _primaryOrderId = savedPrimary;
+      } else {
+        _reassignPrimaryOrderId();
+      }
+
       notifyListeners();
     } catch (e) {
       // Ignore prefs load errors

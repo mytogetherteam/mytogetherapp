@@ -21,9 +21,9 @@ enum AppLanguage {
   final String nativeName;
 
   /// Resolve a stored/string code back to an [AppLanguage].
-  /// Falls back to [AppLanguage.en] for unknown values.
+  /// Falls back to [AppLanguage.mm] for unknown values.
   static AppLanguage fromCode(String? code) {
-    if (code == null) return AppLanguage.en;
+    if (code == null) return AppLanguage.mm;
     final normalized = code.toLowerCase();
     for (final lang in AppLanguage.values) {
       if (lang.code == normalized) return lang;
@@ -37,7 +37,7 @@ enum AppLanguage {
       case 'tha':
         return AppLanguage.th;
       default:
-        return AppLanguage.en;
+        return AppLanguage.mm;
     }
   }
 

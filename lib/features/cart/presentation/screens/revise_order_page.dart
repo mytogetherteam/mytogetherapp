@@ -9,10 +9,14 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
 import '../../data/cart_manager.dart';
 import '../../../order/data/repositories/order_repository.dart';
+import '../widgets/revise_unavailable_items_section.dart';
+import 'order_cancel_page.dart';
 
 /// Lets the user review and re-submit an order the shop has marked REVISED.
-/// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.updateItems).
+/// Backend: PATCH /api/user/orders/:id/items (UserOrdersController.respondRevise).
 class ReviseOrderPage extends StatefulWidget {
+  static bool isCurrentlyVisible = false;
+
   final String orderId;
 
   const ReviseOrderPage({super.key, required this.orderId});
@@ -24,17 +28,35 @@ class ReviseOrderPage extends StatefulWidget {
 class _ReviseOrderPageState extends State<ReviseOrderPage> {
   // Mutable editable copy of the order's items, keyed by CartItem.id.
   late final List<_EditableItem> _items;
-  late final String? _reviseReason;
+  late final ({List<String> items, String reason}) _reviseInfo;
   bool _isSubmitting = false;
+  bool _isCancelling = false;
 
   @override
   void initState() {
     super.initState();
+    ReviseOrderPage.isCurrentlyVisible = true;
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
-    _reviseReason = order?.reviseReason;
+    _reviseInfo = order?.resolvedReviseInfo ??
+        (items: const <String>[], reason: '');
+    final unavailableNames = _reviseInfo.items
+        .map((name) => name.toLowerCase().trim())
+        .where((name) => name.isNotEmpty)
+        .toSet();
     _items = (order?.orderItems ?? const <CartItem>[])
+        .where(
+          (c) => !unavailableNames.contains(
+            (c.titleEn ?? c.titleKey).toLowerCase().trim(),
+          ),
+        )
         .map((c) => _EditableItem(source: c, quantity: c.quantity))
         .toList();
+  }
+
+  @override
+  void dispose() {
+    ReviseOrderPage.isCurrentlyVisible = false;
+    super.dispose();
   }
 
   double get _estimatedTotal => _items.fold(
@@ -73,6 +95,8 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
       );
       if (!mounted) return;
       if (ok) {
+        await ActiveOrderState.instance.syncActiveOrder(orderId: widget.orderId);
+        if (!mounted) return;
         AppDialog.showToast(context, context.tr('revise.resubmitted'));
         Navigator.pop(context, true);
       } else {
@@ -92,6 +116,100 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _confirmCancelOrder() async {
+    if (_isCancelling || _isSubmitting) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          ctx.tr('order_action.cancel_confirm_title'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
+        content: Text(
+          ctx.tr('order_action.cancel_confirm_message'),
+          style: GoogleFonts.poppins(fontSize: 13, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              ctx.tr('order_action.keep_order'),
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              ctx.tr('order_action.revise_cancel'),
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFEF4444),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _cancelOrder();
+    }
+  }
+
+  Future<void> _cancelOrder() async {
+    if (_isCancelling) return;
+    setState(() => _isCancelling = true);
+
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+
+    try {
+      final success = await ActiveOrderState.instance.cancelActiveOrder(
+        orderId: widget.orderId,
+      );
+      if (!mounted) return;
+      if (success) {
+        AppDialog.showToast(context, context.tr('payment.cancel_success'));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderCancelPage(
+              orderId: order?.orderId ?? widget.orderId,
+              reason: order?.cancelReason,
+              shopId: order?.shopId,
+              shopName: order?.shopNameEn ??
+                  order?.shopName ??
+                  order?.restaurantName ??
+                  order?.storeName,
+              shopNameMm: order?.shopNameMm,
+              shopNameTh: order?.shopNameTh,
+              shopLogo: order?.shopLogo ?? order?.logoPath,
+              shopImageUrl: order?.shopImageUrl,
+              cancelledByUser: true,
+            ),
+          ),
+        );
+      } else {
+        AppDialog.showToast(
+          context,
+          context.tr('payment.cancel_failed'),
+          isError: true,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr('payment.connection_error'),
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
     }
   }
 
@@ -118,9 +236,47 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
       ),
       body: _items.isEmpty
           ? Center(
-              child: Text(
-                context.tr('revise.no_items'),
-                style: const TextStyle(color: Colors.black54),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      context.tr('revise.no_items'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _isCancelling ? null : _confirmCancelOrder,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.35),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isCancelling
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                context.tr('order_action.revise_cancel'),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           : ListView(
@@ -143,24 +299,58 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
           ? null
           : SafeArea(
               minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: PrimaryGradientButton(
-                onPressed: (_isSubmitting || !_hasItems) ? null : _submit,
-                isLoading: _isSubmitting,
-                child: Text(
-                  context.trArgs('revise.resubmit', {
-                    'total': _estimatedTotal.toStringAsFixed(0),
-                  }),
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PrimaryGradientButton(
+                    onPressed: (_isSubmitting || _isCancelling || !_hasItems)
+                        ? null
+                        : _submit,
+                    isLoading: _isSubmitting,
+                    child: Text(
+                      context.trArgs('revise.resubmit', {
+                        'total': _estimatedTotal.toStringAsFixed(0),
+                      }),
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      onPressed: (_isSubmitting || _isCancelling)
+                          ? null
+                          : _confirmCancelOrder,
+                      child: _isCancelling
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              context.tr('order_action.revise_cancel'),
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
     );
   }
 
   Widget _buildReasonBanner() {
+    final reasonText = _reviseInfo.reason.isNotEmpty
+        ? _reviseInfo.reason
+        : context.tr('revise.reason_default');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -178,6 +368,10 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_reviseInfo.items.isNotEmpty) ...[
+                  ReviseUnavailableItemsSection(items: _reviseInfo.items),
+                  const SizedBox(height: 8),
+                ],
                 Text(
                   context.tr('revise.reason_title'),
                   style: GoogleFonts.poppins(
@@ -188,9 +382,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  (_reviseReason != null && _reviseReason.trim().isNotEmpty)
-                      ? _reviseReason
-                      : context.tr('revise.reason_default'),
+                  reasonText,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.black87,
@@ -215,7 +407,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: imageUrl.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: imageUrl,
                     width: 52,
                     height: 52,
@@ -340,3 +532,4 @@ class _QuantityStepper extends StatelessWidget {
     );
   }
 }
+

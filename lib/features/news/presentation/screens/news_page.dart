@@ -5,6 +5,7 @@ import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/notification_bell.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -109,6 +110,12 @@ class _NewsPageState extends State<NewsPage> {
               toolbarHeight: 48,
               title: Image.asset('assets/images/app_icon_small.png', height: 28),
               centerTitle: true,
+              actions: const [
+                Padding(
+                  padding: EdgeInsets.only(right: 16.0),
+                  child: NotificationBell(),
+                ),
+              ],
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               elevation: 0,

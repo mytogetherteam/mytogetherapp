@@ -3,10 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
-import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/utils/firebase_error_handler.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:flutter/services.dart';
+import '../../../cart/data/active_order_state.dart';
 
 class LoginPinPage extends StatefulWidget {
   final String phone;
@@ -84,6 +87,8 @@ class _LoginPinPageState extends State<LoginPinPage>
         phone: widget.phone,
         pin: _pin,
       );
+      // Seed any ongoing orders for this account from the backend.
+      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
       if (!mounted) return;
       // Login successful, go to home
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
@@ -101,7 +106,7 @@ class _LoginPinPageState extends State<LoginPinPage>
         _isLoading = false;
         _pin = ''; // Clear PIN on error
       });
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
     }
   }
 

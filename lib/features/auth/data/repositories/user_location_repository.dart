@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/dio_error_message.dart';
+import '../../../../core/location/location_service.dart';
 import '../models/user_location_model.dart';
 
 class UserLocationRepository extends ChangeNotifier {
@@ -16,7 +17,7 @@ class UserLocationRepository extends ChangeNotifier {
 
   final Dio _dio = ApiClient().dio;
   // Backend: UserLocationsController @Controller('user') with @Get('locations')
-  static const String _baseUrl = '${ApiClient.apiPrefix}/user/locations';
+  static final String _baseUrl = '${ApiClient.apiPrefix}/user/locations';
 
   List<UserLocationModel>? _cachedLocations;
   UserLocationModel? _activeLocation;
@@ -136,6 +137,35 @@ class UserLocationRepository extends ChangeNotifier {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Single source of truth for the coordinates used by every "nearby" query
+  /// (home nearby rail, nearby map page, and food search). Resolution order:
+  ///   1. The user's saved primary/active location (loaded here if not yet in
+  ///      memory) so the result is deterministic regardless of which screen
+  ///      calls it first or whether [activeLocation] has been populated.
+  ///   2. The device GPS — cached position, otherwise a fresh fetch.
+  ///   3. The shared Bangkok default (returned by [LocationService] when GPS is
+  ///      unavailable).
+  ///
+  /// Centralizing this guarantees the three screens query from the same origin,
+  /// so distances and result lists stay consistent across them.
+  Future<({double lat, double lon})> resolveActiveCoordinates() async {
+    var active = _activeLocation;
+    if (active?.latitude == null || active?.longitude == null) {
+      try {
+        active = await getPrimaryLocation();
+      } catch (_) {
+        // Not logged in / network error — fall through to GPS/default.
+      }
+    }
+    if (active?.latitude != null && active?.longitude != null) {
+      return (lat: active!.latitude!, lon: active.longitude!);
+    }
+
+    final pos = LocationService().cachedPosition ??
+        await LocationService().getCurrentPosition();
+    return (lat: pos.latitude, lon: pos.longitude);
   }
 
   Future<UserLocationModel?> getPrimaryLocation({bool forceRefresh = false}) async {

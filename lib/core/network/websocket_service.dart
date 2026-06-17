@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
+import '../config/env_config.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/home/data/repositories/restaurant_repository.dart';
 import '../../features/announcements/data/models/announcement_model.dart';
@@ -37,26 +38,56 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get shopProfileUpdates =>
       _shopProfileUpdateController.stream;
 
+  final StreamController<Map<String, dynamic>> _chatUpdateController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Shop → user chat events on `/user/queue/chat-updates`.
+  Stream<Map<String, dynamic>> get chatUpdates => _chatUpdateController.stream;
+
   bool _isConnecting = false;
+  bool _shouldReconnect = true;
+  int _reconnectAttempts = 0;
+  // Cap the backoff delay but never stop retrying: the STOMP simple broker does
+  // not queue messages for offline users, so a socket that gives up permanently
+  // means missed order/chat updates until the app is restarted.
+  static const int _maxReconnectDelaySeconds = 20;
+  Timer? _reconnectTimer;
+  // Guard against onWebSocketDone + onDisconnect + onWebSocketError all firing
+  // for the same drop and scheduling parallel reconnect timers (reconnect storm).
+  bool _reconnectScheduled = false;
+  // Skip auto-reconnect when we deliberately tear down for force-reconnect / token swap.
+  bool _intentionalTeardown = false;
+  String? _connectedToken;
 
   /// STOMP-over-WebSocket endpoint exposed by NestJS at `/ws/websocket`
-  /// (see `src/modules/events/events.gateway.ts`).
-  ///
-  /// Mirrors `ApiClient.baseUrl`; uses secure `wss://` for the production
-  /// (TLS) host.
-  static String get _wsUrl {
-    return 'wss://api.mytogether.org/ws/websocket';
-  }
+  /// (see `src/modules/events/events.gateway.ts`). Mirrors [EnvConfig.wsUrl].
+  static String get _wsUrl => EnvConfig.wsUrl;
 
   void connect({bool force = false}) {
     if (_isConnecting && !force) return;
-
     if (isConnected && !force) return;
 
+    // We've decided to (re)connect — re-enable auto-reconnect and cancel any
+    // pending retry so a stale timer can't tear down the fresh connection.
+    _shouldReconnect = true;
+    _reconnectTimer?.cancel();
+    _reconnectScheduled = false;
+
     if (_stompClient != null) {
-      if (force) {
-        debugPrint(' [WS] Force reconnecting...');
+      // Re-create the client unless it's already connected and the caller
+      // isn't forcing. A stale (disconnected) client must not be silently
+      // re-activated, otherwise reconnects fail without any signal.
+      if (force || !isConnected) {
+        debugPrint(' [WS] Re-creating STOMP client...');
+        try {
+          _intentionalTeardown = true;
+          _stompClient?.deactivate();
+        } catch (_) {}
+        _intentionalTeardown = false;
         _stompClient = null;
+        // deactivate() may fire onWebSocketDone; drop any timer it scheduled.
+        _reconnectTimer?.cancel();
+        _reconnectScheduled = false;
       } else {
         _stompClient?.activate();
         return;
@@ -82,13 +113,11 @@ class WebSocketService {
         },
         onWebSocketError: (dynamic error) {
           debugPrint(' 🚨 [WS] WebSocket Error: $error');
-          _isConnecting = false;
-          connectionStatus.value = false;
+          _handleConnectionLost();
         },
         onWebSocketDone: () {
           debugPrint(' 🔌 [WS] WebSocket Connection Closed.');
-          _isConnecting = false;
-          connectionStatus.value = false;
+          _handleConnectionLost();
         },
         onDebugMessage: (String message) {
           debugPrint(' ⚙️ [WS] [STOMP] $message');
@@ -109,22 +138,73 @@ class WebSocketService {
         webSocketConnectHeaders: {},
         onDisconnect: (frame) {
           debugPrint(' [WS] Disconnected.');
-          connectionStatus.value = false;
+          // onWebSocketDone already handles reconnect; avoid double-scheduling.
         },
-        heartbeatOutgoing: const Duration(milliseconds: 10000),
-        heartbeatIncoming: const Duration(milliseconds: 10000),
+        // Client-side heartbeat preference (server currently negotiates 0,0).
+        heartbeatOutgoing: const Duration(milliseconds: 30000),
+        heartbeatIncoming: const Duration(milliseconds: 30000),
+        // App owns reconnection with backoff; disable the library's fixed 3s retry
+        // so we never get two competing reconnect timers.
+        reconnectDelay: Duration.zero,
       ),
     );
 
     _stompClient?.activate();
   }
 
+  /// Single entry point when the socket drops. Coalesces duplicate callbacks
+  /// (onWebSocketDone + onDisconnect + onWebSocketError) into one reconnect.
+  void _handleConnectionLost() {
+    if (_intentionalTeardown) return;
+    _isConnecting = false;
+    if (connectionStatus.value) {
+      connectionStatus.value = false;
+    }
+    _connectedToken = null;
+    _scheduleReconnect();
+  }
+
+  /// Reconnect only when the JWT actually changed (e.g. after token refresh).
+  /// Avoids tearing down a healthy socket on every HTTP request near expiry.
+  void reconnectIfTokenChanged(String newToken) {
+    if (newToken.isEmpty) return;
+    if (_connectedToken == newToken && isConnected) return;
+    connect(force: true);
+  }
+
+  void _scheduleReconnect() {
+    if (!_shouldReconnect) return;
+    if (_reconnectScheduled) return;
+
+    _reconnectScheduled = true;
+    _reconnectAttempts++;
+    // Linear backoff capped at [_maxReconnectDelaySeconds]; keep retrying
+    // indefinitely so the socket always recovers (and missed updates get
+    // re-delivered the next time a screen reconciles over REST).
+    final delaySeconds =
+        (_reconnectAttempts * 2).clamp(2, _maxReconnectDelaySeconds);
+    final delay = Duration(seconds: delaySeconds);
+    debugPrint(
+      ' 🔄 [WS] Scheduling reconnection in ${delay.inSeconds}s '
+      '(attempt $_reconnectAttempts)',
+    );
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(delay, () {
+      _reconnectScheduled = false;
+      connect(force: true);
+    });
+  }
+
   void onConnect(dynamic frame) {
     debugPrint(' [WS]   Connected!');
     _isConnecting = false;
+    _reconnectAttempts = 0;
+    _reconnectScheduled = false;
+    _reconnectTimer?.cancel();
     connectionStatus.value = true;
-
-    final token = AuthService().accessToken;
+    _connectedToken = AuthService().accessToken;
+    final token = _connectedToken;
     final headers = {if (token != null) 'Authorization': 'Bearer $token'};
 
     // Private per-user order updates: /user/queue/shop-order-updates
@@ -163,15 +243,23 @@ class WebSocketService {
       headers: {...headers, 'receipt': 'rcpt-broadcasts-user'},
       callback: _handleBroadcastFrame,
     );
+
+    // Private per-user chat updates: CHAT_MESSAGE / EDIT / DELETE / HIDDEN
+    _stompClient?.subscribe(
+      destination: '/user/queue/chat-updates',
+      headers: {...headers, 'receipt': 'rcpt-chat-updates'},
+      callback: _handleChatFrame,
+    );
   }
 
   /// Handles `/topic/broadcasts/users` and `/user/queue/broadcasts`
   /// (type: BROADCAST). Builds an [AnnouncementModel] from the live payload and
   /// shows the detail modal regardless of the current screen.
   void _handleBroadcastFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       if (raw['id'] == null) return;
@@ -187,9 +275,10 @@ class WebSocketService {
   /// Invalidates the affected shop's cache and forwards the payload so
   /// listeners (e.g. shop detail/list) can refresh open/closed state.
   void _handleShopProfileFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
@@ -203,11 +292,18 @@ class WebSocketService {
     }
   }
 
+  String? _stompBody(StompFrame frame) {
+    final raw = frame.body;
+    if (raw == null || raw.isEmpty) return null;
+    return raw.replaceAll('\u0000', '').trim();
+  }
+
   /// Handles `/topic/shop-menu-updates` (MENU_UPDATE).
   void _handleShopMenuFrame(StompFrame frame) {
-    if (frame.body == null) return;
+    final body = _stompBody(frame);
+    if (body == null) return;
     try {
-      final decoded = json.decode(frame.body!);
+      final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
@@ -221,12 +317,27 @@ class WebSocketService {
     }
   }
 
+  void _handleChatFrame(StompFrame frame) {
+    final body = _stompBody(frame);
+    if (body == null) return;
+    try {
+      final decoded = json.decode(body);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      debugPrint(' 💬 [WS] CHAT event: ${raw['type']}');
+      _chatUpdateController.add(raw);
+    } catch (_) {
+      // Ignore malformed frames.
+    }
+  }
+
   void _handleOrderFrame(StompFrame frame) {
     {
-      if (frame.body == null) return;
+      final body = _stompBody(frame);
+      if (body == null) return;
 
       try {
-        final decoded = json.decode(frame.body!);
+        final decoded = json.decode(body);
         if (decoded is! Map) return;
 
         final raw = Map<String, dynamic>.from(decoded);
@@ -307,8 +418,20 @@ class WebSocketService {
   }
 
   void disconnect() {
+    _shouldReconnect = false;
+    _reconnectScheduled = false;
+    _reconnectTimer?.cancel();
+    _intentionalTeardown = true;
     _stompClient?.deactivate();
+    _intentionalTeardown = false;
     _stompClient = null;
+    _connectedToken = null;
     connectionStatus.value = false;
+  }
+
+  /// Re-enable auto-reconnect after a manual [disconnect] (e.g. on re-login).
+  void enableReconnect() {
+    _shouldReconnect = true;
+    _reconnectAttempts = 0;
   }
 }

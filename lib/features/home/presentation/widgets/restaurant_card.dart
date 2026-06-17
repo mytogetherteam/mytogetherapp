@@ -101,7 +101,8 @@ class RestaurantCard extends StatelessWidget {
                               height: 160,
                             ),
                             errorWidget: (context, url, error) => _buildFallbackImage(context),
-                            fadeInDuration: const Duration(milliseconds: 300),
+                            fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                            memCacheWidth: 600,
                           )),
               ),
 
@@ -192,6 +193,8 @@ class RestaurantCard extends StatelessWidget {
   Widget _buildLogoBadge(BuildContext context) {
     const double size = 48;
     final logoUrl = _resolveNetworkUrl(logoPath);
+    final coverUrl = _resolveNetworkUrl(imagePath);
+    final primaryUrl = logoUrl ?? coverUrl;
 
     return Container(
       width: size,
@@ -209,18 +212,42 @@ class RestaurantCard extends StatelessWidget {
         ],
       ),
       child: ClipOval(
-        child: logoUrl == null
+        child: primaryUrl == null
             ? _buildLogoFallback()
             : CachedNetworkImage(
-                imageUrl: logoUrl,
+                imageUrl: primaryUrl,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => _buildLogoFallback(),
-                errorWidget: (context, url, error) => _buildLogoFallback(),
+                placeholder: (context, url) => _buildLogoPlaceholder(),
+                errorWidget: (context, url, error) {
+                  // If the logo failed, try the cover before the letter avatar.
+                  if (logoUrl != null &&
+                      coverUrl != null &&
+                      coverUrl != logoUrl) {
+                    return CachedNetworkImage(
+                      imageUrl: coverUrl,
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => _buildLogoPlaceholder(),
+                      errorWidget: (context, url, error) =>
+                          _buildLogoFallback(),
+                      fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                      memCacheWidth: 200,
+                    );
+                  }
+                  return _buildLogoFallback();
+                },
+                fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                memCacheWidth: 200,
               ),
       ),
     );
+  }
+
+  Widget _buildLogoPlaceholder() {
+    return Container(color: Colors.grey.shade200);
   }
 
   Widget _buildLogoFallback() {
@@ -268,3 +295,6 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 }
+
+
+
