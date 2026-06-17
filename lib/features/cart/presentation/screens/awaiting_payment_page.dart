@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +29,7 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../../core/presentation/widgets/local_image.dart';
 import '../../../../core/utils/multipart_helper.dart';
+import '../../../../core/utils/web_file_download.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
@@ -91,7 +91,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     )..repeat();
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
-    if (!kIsWeb && Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       const MethodChannel('secure_screen').invokeMethod('enable');
     }
 
@@ -191,7 +191,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
-    if (!kIsWeb && Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       const MethodChannel('secure_screen').invokeMethod('disable');
     }
     _orderSubscription?.cancel();
@@ -329,11 +329,18 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      await Gal.putImageBytes(
-        Uint8List.fromList(pngBytes),
-        album: 'MyTogether',
-        name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      if (kIsWeb) {
+        await downloadBytes(
+          Uint8List.fromList(pngBytes),
+          'qr_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+      } else {
+        await Gal.putImageBytes(
+          Uint8List.fromList(pngBytes),
+          album: 'MyTogether',
+          name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      }
 
       if (mounted) {
         AppDialog.showToast(context, context.tr('payment.image_saved'));
@@ -447,13 +454,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     setState(() => _receiptImage = null);
   }
 
-  /// Clears the picked payment slip so the user can start over after uploading
-  /// the wrong image. Submission is disabled again until a new image is chosen.
-  void _removeReceiptImage() {
-    if (_isUploading) return;
-    setState(() => _receiptImage = null);
-  }
-
   void _showPermissionDialog() {
     showDialog(
       context: context,
@@ -528,16 +528,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           file: _receiptImage!,
         );
       } else {
-        final extension = _receiptImage!.path.split('.').last.toLowerCase();
-        final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-        final filename =
-            'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
-
         final formData = FormData.fromMap({
-          'paymentImage': await MultipartFile.fromFile(
-            _receiptImage!.path,
-            filename: filename,
-            contentType: DioMediaType.parse(mimeType),
+          'paymentImage': await multipartFromXFile(
+            _receiptImage!,
+            filenamePrefix:
+                'payment_${DateTime.now().millisecondsSinceEpoch}',
           ),
         });
 

@@ -1,6 +1,7 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/multipart_helper.dart';
 import '../models/order_history_dto.dart';
 
 /// Talks to the new backend's user-orders endpoint.
@@ -90,18 +91,12 @@ class OrderRepository {
   /// moves the order to AWAITING_APPROVAL (same effect as the /payment route).
   Future<bool> revisePaymentImage({
     required int orderId,
-    required File file,
+    required XFile file,
   }) async {
-    final extension = file.path.split('.').last.toLowerCase();
-    final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-    final filename =
-        'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
-
     final formData = FormData.fromMap({
-      'paymentImage': await MultipartFile.fromFile(
-        file.path,
-        filename: filename,
-        contentType: DioMediaType.parse(mimeType),
+      'paymentImage': await multipartFromXFile(
+        file,
+        filenamePrefix: 'payment_${DateTime.now().millisecondsSinceEpoch}',
       ),
     });
 

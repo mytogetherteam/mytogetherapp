@@ -1,15 +1,16 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+export 'local_image_provider_io.dart'
+    if (dart.library.html) 'local_image_provider_web.dart';
 
 /// Displays an image that was just picked from the device/gallery in a way that
 /// works on every platform, including Flutter web / PWA.
 ///
-/// On mobile/desktop the picked [XFile] has a real filesystem path, so we use
-/// `Image.file`. On the web there is no filesystem path — `dart:io` `File`
-/// throws at runtime — so we render the in-memory blob URL via `Image.network`.
+/// Uses in-memory bytes so we never rely on `dart:io` filesystem paths, which
+/// are unavailable on the web.
 class LocalImage extends StatelessWidget {
   const LocalImage({
     super.key,
@@ -26,18 +27,29 @@ class LocalImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      return Image.network(file.path, width: width, height: height, fit: fit);
-    }
-    return Image.file(File(file.path), width: width, height: height, fit: fit);
+    return FutureBuilder<List<int>>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return SizedBox(
+            width: width,
+            height: height ?? 120,
+            child: const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        return Image.memory(
+          Uint8List.fromList(snapshot.data!),
+          width: width,
+          height: height,
+          fit: fit,
+        );
+      },
+    );
   }
-}
-
-/// Cross-platform [ImageProvider] for a freshly picked [XFile]. Use this where
-/// an `ImageProvider` is required (e.g. `CircleAvatar.backgroundImage`).
-ImageProvider localImageProvider(XFile file) {
-  if (kIsWeb) {
-    return NetworkImage(file.path);
-  }
-  return FileImage(File(file.path));
 }
