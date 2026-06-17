@@ -352,8 +352,14 @@ class ActiveOrderState extends ChangeNotifier {
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
   
-  // Helper to get a specific order
-  ActiveOrderItem? getOrder(String? id) => _orders[id];
+  // Helper to get a specific order (tolerates # prefix / numeric id mismatches).
+  ActiveOrderItem? getOrder(String? id) {
+    if (id != null) {
+      final found = _findTrackedOrder(id);
+      if (found != null) return found;
+    }
+    return _primary;
+  }
 
   String? get orderId => _primaryOrderId ?? _primary?.orderId;
   set orderId(String? val) {
