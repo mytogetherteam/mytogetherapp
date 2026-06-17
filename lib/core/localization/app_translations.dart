@@ -409,7 +409,7 @@ class AppTranslations {
     'order_status.picked_up': 'Order picked up',
     'order_status.pickup_qr_title': 'Show this QR at the shop',
     'order_status.pickup_qr_subtitle':
-        'Show this QR at the shop, then tap Confirm Pickup after you receive your order.',
+        'Show this QR at the shop. The shop will scan it when you collect your order.',
     'order_status.pickup_fee': 'Pickup fee',
     'order_status.confirm_pickup': 'Confirm Pickup',
     'order_status.pickup_confirm_failed':

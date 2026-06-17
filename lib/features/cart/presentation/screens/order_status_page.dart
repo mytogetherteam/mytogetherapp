@@ -27,8 +27,6 @@ import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/pickup_order_qr_card.dart';
-import '../../../order/data/repositories/order_repository.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -62,7 +60,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   String? _lastInitedUrl;
 
   StreamSubscription? _orderSubscription;
-  bool _isConfirmingPickup = false;
 
   @override
   void initState() {
@@ -414,39 +411,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     ));
   }
 
-  Future<void> _confirmPickup() async {
-    final lastOrderNo = ActiveOrderState.instance.lastOrderNo;
-    if (lastOrderNo == null || lastOrderNo.isEmpty || _isConfirmingPickup) {
-      return;
-    }
-
-    setState(() => _isConfirmingPickup = true);
-    final data = await OrderRepository().confirmPickup(lastOrderNo: lastOrderNo);
-
-    if (!mounted) return;
-
-    if (data != null) {
-      data['orderId'] = ActiveOrderState.instance.orderId;
-      ActiveOrderState.instance.updateFromSocket(data);
-      setState(() {
-        _isConfirmingPickup = false;
-        _currentStatus = 4;
-        _backendStatus = 'PICKED_UP';
-      });
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _navigateToComplete();
-      });
-      return;
-    }
-
-    setState(() => _isConfirmingPickup = false);
-    AppDialog.showToast(
-      context,
-      context.tr('order_status.pickup_confirm_failed'),
-      isError: true,
-    );
-  }
-
   String _statusTitle(BuildContext context) {
     if (_currentStatus == -1) return context.tr('order_status.cancelled');
     final isPickup = ActiveOrderState.instance.isPickupFulfillment;
@@ -540,21 +504,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 PickupOrderQrCard(
                   orderId: state.orderId!,
                   lastOrderNo: state.lastOrderNo,
-                ),
-                const SizedBox(height: 16),
-                PrimaryGradientButton(
-                  onPressed: _isConfirmingPickup ? null : _confirmPickup,
-                  isLoading: _isConfirmingPickup,
-                  height: 52,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Text(
-                    context.tr('order_status.confirm_pickup'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 24),
               ],
