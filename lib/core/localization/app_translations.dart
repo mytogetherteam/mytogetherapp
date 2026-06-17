@@ -409,8 +409,11 @@ class AppTranslations {
     'order_status.picked_up': 'Order picked up',
     'order_status.pickup_qr_title': 'Show this QR at the shop',
     'order_status.pickup_qr_subtitle':
-        'The shop will scan this code to confirm your pickup.',
+        'Show this QR at the shop, then tap Confirm Pickup after you receive your order.',
     'order_status.pickup_fee': 'Pickup fee',
+    'order_status.confirm_pickup': 'Confirm Pickup',
+    'order_status.pickup_confirm_failed':
+        'Could not confirm pickup. Make sure the shop marked your order ready.',
     'order_status.processing': 'Processing your order',
     'order_status.qr_promptpay': 'QR Prompt Pay',
     'order_status.total_amount': 'Total Amount',
@@ -422,6 +425,8 @@ class AppTranslations {
     'order.status.payment_verified': 'Payment Verified',
     'order.status.confirmed': 'Confirmed',
     'order.status.cooking': 'Cooking',
+    'order.status.ready_for_pickup': 'Ready for Pickup',
+    'order.status.picked_up': 'Picked Up',
     'order.status.revised': 'Revised',
     'order.status.on_the_way': 'On the Way',
     'order.status.delivered': 'Delivered',
@@ -1221,6 +1226,9 @@ class AppTranslations {
     'order_status.pickup_qr_subtitle':
         'ဆိုင်က ဒီကုဒ်ကို scan လုပ်ပြီး ယူမှု အတည်ပြုပေးပါလိမ့်မယ်။',
     'order_status.pickup_fee': 'ယူမှု ကြေး',
+    'order_status.confirm_pickup': 'လာယူမှု အတည်ပြုမည်',
+    'order_status.pickup_confirm_failed':
+        'လာယူမှု အတည်ပြု၍ မရပါ။ ဆိုင်က အော်ဒါ အဆင်သင့်ဖြစ်ကြောင်း စစ်ဆေးပါ။',
     'order_status.processing': 'အော်ဒါလုပ်ဆောင်နေတယ်',
     'order_status.qr_promptpay': 'QR Prompt Pay',
     'order_status.total_amount': 'စုစုပေါင်းငွေ',
@@ -1232,6 +1240,8 @@ class AppTranslations {
     'order.status.payment_verified': 'ငွေပေးချေမှု အတည်ပြုပြီး',
     'order.status.confirmed': 'အတည်ပြုပြီး',
     'order.status.cooking': 'ချက်ပြုတ်နေတယ်',
+    'order.status.ready_for_pickup': 'ယူဖို့ အဆင်သင့်ဖြစ်ပြီ',
+    'order.status.picked_up': 'ယူပြီးပါပြီ',
     'order.status.revised': 'ပြန်လည်ပြင်ဆင်ပြီး',
     'order.status.on_the_way': 'လမ်းတွင် ပို့ဆောင်နေတယ်',
     'order.status.delivered': 'ပို့ဆောင်ပြီး',
@@ -2036,6 +2046,9 @@ class AppTranslations {
     'order_status.pickup_qr_subtitle':
         'ร้านจะสแกนรหัสนี้เพื่อยืนยันการรับอาหาร',
     'order_status.pickup_fee': 'ค่ารับที่ร้าน',
+    'order_status.confirm_pickup': 'ยืนยันการรับสินค้า',
+    'order_status.pickup_confirm_failed':
+        'ยืนยันการรับไม่สำเร็จ ตรวจสอบว่าร้านทำเครื่องหมายออร์เดอร์พร้อมแล้ว',
     'order_status.processing': 'กำลังดำเนินการคำสั่งซื้อ',
     'order_status.qr_promptpay': 'QR Prompt Pay',
     'order_status.total_amount': 'ยอดรวม',
@@ -2047,6 +2060,8 @@ class AppTranslations {
     'order.status.payment_verified': 'ยืนยันการชำระเงินแล้ว',
     'order.status.confirmed': 'ยืนยันแล้ว',
     'order.status.cooking': 'กำลังปรุง',
+    'order.status.ready_for_pickup': 'พร้อมรับที่ร้าน',
+    'order.status.picked_up': 'รับแล้ว',
     'order.status.revised': 'แก้ไขแล้ว',
     'order.status.on_the_way': 'กำลังจัดส่ง',
     'order.status.delivered': 'จัดส่งแล้ว',

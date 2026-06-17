@@ -76,6 +76,7 @@ class ActiveOrderItem {
   String? deliveryType;
   String? orderType;
   String? backendStatus;
+  String? lastOrderNo;
   String? riderVehicleNumber;
 
   bool get isPickupFulfillment {
@@ -129,6 +130,7 @@ class ActiveOrderItem {
     this.deliveryType,
     this.orderType,
     this.backendStatus,
+    this.lastOrderNo,
     this.riderVehicleNumber,
     this.shopId,
     this.shopName,
@@ -216,6 +218,7 @@ class ActiveOrderItem {
     'deliveryType': deliveryType,
     'orderType': orderType,
     'backendStatus': backendStatus,
+    'lastOrderNo': lastOrderNo,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -275,6 +278,7 @@ class ActiveOrderItem {
     deliveryType: json['deliveryType'],
     orderType: json['orderType'],
     backendStatus: json['backendStatus'],
+    lastOrderNo: json['lastOrderNo'],
   );
 }
 
@@ -399,6 +403,7 @@ class ActiveOrderState extends ChangeNotifier {
   bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
+  String? get lastOrderNo => _primary?.lastOrderNo;
   double? get totalAmount => _primary?.totalAmount;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
@@ -472,6 +477,7 @@ class ActiveOrderState extends ChangeNotifier {
     LatLng? restaurantLatLng,
     LatLng? userLocation,
     String? orderType,
+    String? lastOrderNo,
   }) {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
@@ -491,6 +497,7 @@ class ActiveOrderState extends ChangeNotifier {
       restaurantLatLng: restaurantLatLng,
       userLocation: userLocation,
       orderType: orderType,
+      lastOrderNo: lastOrderNo,
     );
     saveToPrefs();
     notifyListeners();
@@ -638,6 +645,9 @@ class ActiveOrderState extends ChangeNotifier {
     }
     if (data['orderType'] != null) {
       item.orderType = _parseSafeString(data['orderType']);
+    }
+    if (data['lastOrderNo'] != null) {
+      item.lastOrderNo = _parseSafeString(data['lastOrderNo']);
     }
 
     if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);

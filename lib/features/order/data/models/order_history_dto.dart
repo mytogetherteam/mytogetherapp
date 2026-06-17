@@ -111,7 +111,13 @@ class OrderHistoryDto {
     // The new backend (mapUserOrderListItem) doesn't emit `ongoing`; derive
     // it from `status` so the UI can still split "current" vs "past".
     final status = json['status'] as String? ?? 'PENDING';
-    const terminalStatuses = {'DELIVERED', 'CANCELED', 'CANCELLED', 'COMPLETED'};
+    const terminalStatuses = {
+      'DELIVERED',
+      'PICKED_UP',
+      'CANCELED',
+      'CANCELLED',
+      'COMPLETED',
+    };
     final ongoing = (json['ongoing'] as bool?) ?? !terminalStatuses.contains(status.toUpperCase());
 
     return OrderHistoryDto(

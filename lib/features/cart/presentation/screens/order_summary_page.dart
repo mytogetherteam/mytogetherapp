@@ -874,6 +874,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     final d = response.data;
 
                                     String? orderId;
+                                    String? lastOrderNo;
                                     int? responseUserId;
 
                                     if (d['data'] is Map) {
@@ -883,6 +884,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           (responseData['id'] ??
                                                   responseData['orderId'] ??
                                                   responseData['order_id'])
+                                              ?.toString();
+                                      lastOrderNo =
+                                          responseData['lastOrderNo']
                                               ?.toString();
                                       responseUserId =
                                           (responseData['userId'] ??
@@ -916,6 +920,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       orderType: _isDelivery
                                           ? 'DELIVERY'
                                           : 'PICK_UP',
+                                      lastOrderNo: lastOrderNo,
                                     );
                                     // Store real location data for Delivery Information display
                                     ActiveOrderState
