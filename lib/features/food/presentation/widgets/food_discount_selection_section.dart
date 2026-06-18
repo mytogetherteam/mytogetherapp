@@ -20,6 +20,8 @@ import '../../../home/presentation/widgets/view_all_icon_button.dart';
 class FoodDiscountSelectionSection extends StatefulWidget {
   const FoodDiscountSelectionSection({super.key});
 
+  static const int previewItemLimit = 8;
+
   @override
   State<FoodDiscountSelectionSection> createState() =>
       _FoodDiscountSelectionSectionState();
@@ -92,7 +94,7 @@ class _FoodDiscountSelectionSectionState
             lat: location.lat,
             lon: location.lon,
             percentage: section.discountPercent,
-            size: 10,
+            size: FoodDiscountSelectionSection.previewItemLimit,
             sectionTitle: section.hasTitle ? section.title : null,
             forceRefresh: true,
           )
@@ -131,6 +133,23 @@ class _FoodDiscountSelectionSectionState
     await _loadDeals(section);
   }
 
+  void _openDiscountDetail(String headerTitle) {
+    final section = _selected;
+    if (section == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TodayOverviewDetailPage(
+          feedType: 'hot-deals',
+          title: headerTitle,
+          discountPercentage: section.discountPercent,
+          discountSectionTitle: section.hasTitle ? section.title : null,
+        ),
+      ),
+    );
+  }
+
   String _sectionChipLabel(
     BuildContext context,
     HomeDiscountSectionDto section,
@@ -145,6 +164,10 @@ class _FoodDiscountSelectionSectionState
     );
   }
 
+  bool _hasMoreDeals(DiscountDealsDto deals) {
+    return deals.totalCount > FoodDiscountSelectionSection.previewItemLimit;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingConfig) return _buildSkeleton(context);
@@ -152,16 +175,21 @@ class _FoodDiscountSelectionSectionState
       return const SizedBox.shrink();
     }
 
-    final deals = (_deals?.items ?? []).take(10).toList();
+    final dealsDto = _deals;
+    final deals = (dealsDto?.items ?? [])
+        .take(FoodDiscountSelectionSection.previewItemLimit)
+        .toList();
     if (!_loadingDeals && deals.isEmpty) return const SizedBox.shrink();
 
-    final apiTitle = _deals?.sectionTitle.trim() ?? '';
+    final apiTitle = dealsDto?.sectionTitle.trim() ?? '';
     final headerTitle = apiTitle.isNotEmpty
         ? apiTitle
         : _sectionChipLabel(context, _selected!);
-    final maxPercent = (_deals?.maxDiscountPercentage ?? 0) > 0
-        ? _deals!.maxDiscountPercentage
+    final maxPercent = (dealsDto?.maxDiscountPercentage ?? 0) > 0
+        ? dealsDto!.maxDiscountPercentage
         : _selected!.discountPercent;
+    final showViewAll =
+        dealsDto != null && _hasMoreDeals(dealsDto) && !_loadingDeals;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,7 +197,6 @@ class _FoodDiscountSelectionSectionState
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
@@ -193,19 +220,10 @@ class _FoodDiscountSelectionSectionState
                   ],
                 ),
               ),
-              ViewAllIconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TodayOverviewDetailPage(
-                        feedType: 'hot-deals',
-                        title: headerTitle,
-                      ),
-                    ),
-                  );
-                },
-              ),
+              if (showViewAll)
+                ViewAllIconButton(
+                  onPressed: () => _openDiscountDetail(headerTitle),
+                ),
             ],
           ),
         ),
@@ -257,7 +275,6 @@ class _FoodDiscountSelectionSectionState
                   DiscountDealCard(deal: deals[index]),
             ),
           ),
-        const SizedBox(height: 8),
       ],
     );
   }

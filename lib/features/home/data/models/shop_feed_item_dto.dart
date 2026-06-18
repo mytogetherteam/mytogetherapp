@@ -214,11 +214,13 @@ class DiscountDealsDto {
   final int maxDiscountPercentage;
 
   final List<ShopFeedItemDto> items;
+  final int totalCount;
 
   DiscountDealsDto({
     required this.sectionTitle,
     required this.maxDiscountPercentage,
     required this.items,
+    this.totalCount = 0,
   });
 
   bool get isEmpty => items.isEmpty;
@@ -234,11 +236,13 @@ class DiscountDealsDto {
             .map((e) => ShopFeedItemDto.fromJson(e))
             .toList()
         : <ShopFeedItemDto>[];
+    final totalCount = (data['totalCount'] as num?)?.toInt();
     return DiscountDealsDto(
       sectionTitle: data['sectionTitle']?.toString() ?? '',
       maxDiscountPercentage:
           (data['maxDiscountPercentage'] as num?)?.toInt() ?? 0,
       items: items,
+      totalCount: totalCount ?? items.length,
     );
   }
 }

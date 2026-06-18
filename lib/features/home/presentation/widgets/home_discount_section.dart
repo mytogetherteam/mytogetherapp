@@ -72,7 +72,7 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
             lat: location.lat,
             lon: location.lon,
             percentage: active.discountPercent,
-            size: 10,
+            size: 8,
             // Pass the configured title verbatim (incl. any `{}` placeholder).
             // Omit it when null/empty so the backend uses its default title.
             sectionTitle: active.hasTitle ? active.title : null,
@@ -123,7 +123,9 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
           return const SizedBox.shrink();
         }
 
-        final deals = data.deals!.items.take(10).toList();
+        final deals = data.deals!.items
+            .take(8)
+            .toList();
         final apiTitle = data.deals!.sectionTitle.trim();
         final headerTitle = apiTitle.isNotEmpty
             ? apiTitle
@@ -131,6 +133,7 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
         final maxPercent = data.deals!.maxDiscountPercentage > 0
             ? data.deals!.maxDiscountPercentage
             : data.active!.discountPercent;
+        final showViewAll = data.deals!.totalCount > 8;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,19 +166,24 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
                       ],
                     ),
                   ),
-                  ViewAllIconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TodayOverviewDetailPage(
-                            feedType: 'hot-deals',
-                            title: headerTitle,
+                  if (showViewAll)
+                    ViewAllIconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TodayOverviewDetailPage(
+                              feedType: 'hot-deals',
+                              title: headerTitle,
+                              discountPercentage: data.active!.discountPercent,
+                              discountSectionTitle: data.active!.hasTitle
+                                  ? data.active!.title
+                                  : null,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),

@@ -186,17 +186,17 @@ class _FoodPageState extends State<FoodPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 28),
                               const FoodPromotionsCarousel(),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 28),
                               FoodDiscountSelectionSection(
                                 key: ValueKey('discount_$_refreshKey'),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 32),
                               CollectionsSection(
                                 key: ValueKey('collections_$_refreshKey'),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 32),
                               const FoodRestaurantsSection(),
                               const TrendingShopsSection(),
                               PopularBrandsSection(
