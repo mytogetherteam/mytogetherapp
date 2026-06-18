@@ -70,7 +70,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],

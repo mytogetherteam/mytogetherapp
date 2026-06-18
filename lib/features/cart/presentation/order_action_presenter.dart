@@ -154,7 +154,7 @@ class OrderActionPresenter {
 
       final navContext = App.navigatorKey.currentContext;
       final nav = App.navigatorKey.currentState;
-      if (navContext == null || nav == null) return;
+      if (navContext == null || !navContext.mounted || nav == null) return;
 
       switch (result) {
         case OrderActionDialogResult.uploadSlip:
@@ -234,7 +234,7 @@ class OrderActionPresenter {
     );
 
     final afterContext = App.navigatorKey.currentContext;
-    if (afterContext == null || !success) return;
+    if (afterContext == null || !afterContext.mounted || !success) return;
 
     Navigator.of(afterContext).pushReplacement(
       MaterialPageRoute(

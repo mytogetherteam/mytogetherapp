@@ -532,7 +532,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               PageRouteBuilder(
                                 opaque: false,
                                 transitionDuration: const Duration(milliseconds: 300),
-                                pageBuilder: (context, _, __) => NewsImageViewer(
+                                pageBuilder: (context, _, _) => NewsImageViewer(
                                   imageUrls: widget.item.imageUrls,
                                   initialIndex: 0,
                                   item: widget.item,
@@ -591,7 +591,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   PageRouteBuilder(
                                     opaque: false,
                                     transitionDuration: const Duration(milliseconds: 300),
-                                    pageBuilder: (context, _, __) => NewsImageViewer(
+                                    pageBuilder: (context, _, _) => NewsImageViewer(
                                       imageUrls: widget.item.imageUrls,
                                       initialIndex: index,
                                       item: widget.item,

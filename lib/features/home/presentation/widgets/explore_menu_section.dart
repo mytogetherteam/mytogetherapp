@@ -225,6 +225,9 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
               forceRestaurantNavigation: true,
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
+              deliveryEnabled: item.deliveryEnabled,
+              operatingHours: item.operatingHours,
+              restaurantStatus: item.restaurantStatus,
             );
           },
         ),

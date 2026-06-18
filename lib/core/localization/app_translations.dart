@@ -747,6 +747,31 @@ class AppTranslations {
     'restaurant.feature_vegetarian': 'Vegetarian Friendly',
     'restaurant.opens_today': 'Opens today at {time}',
     'restaurant.opens_on': 'Opens {day} at {time}',
+    'order.delivery_unavailable': 'Delivery unavailable',
+    'order.delivery_unavailable_banner':
+        'Delivery is unavailable right now. We\'re sorry for the inconvenience.',
+    'order.delivery_unavailable_sheet_title':
+        'This restaurant can\'t accept delivery orders right now',
+    'order.delivery_unavailable_sheet_body':
+        'The restaurant has paused delivery for now. Please check back later.',
+    'order.closed_banner_short': 'This restaurant is closed right now',
+    'order.closed_sheet_title': 'This restaurant is closed right now',
+    'order.closed_sheet_body':
+        'You can browse the menu, but orders can\'t be placed until the restaurant reopens.',
+    'order.menu_item_delivery_banner':
+        'Delivery is unavailable from this restaurant right now.',
+    'order.menu_item_closed_banner':
+        'This restaurant is closed. You can browse, but can\'t add items to your cart.',
+    'order.card_closed_opens': 'Closed · {opens}',
+    'order.add_to_cart_unavailable': 'Ordering unavailable',
+    'order.got_it': 'Got it',
+    'order.status_strip_delivery':
+        'Delivery unavailable · Sorry for the inconvenience',
+    'order.status_strip_closed': 'Closed · {opens}',
+    'order.status_strip_closed_short': 'Closed · Check back later',
+    'order.menu_browse_hint':
+        'You can browse the menu, but ordering is unavailable right now.',
+    'order.badge_delivery_off': 'No delivery',
     'time.minutes_ago': '{count}m ago',
     'time.hours_ago': '{count}h ago',
     'time.days_ago': '{count}d ago',
@@ -1575,6 +1600,31 @@ class AppTranslations {
     'restaurant.feature_vegetarian': 'သက်သတ်လွတ် ရရှိနိုင်',
     'restaurant.opens_today': 'ယနေ့ {time} တွင် ပြန်ဖွင့်မယ်',
     'restaurant.opens_on': '{day} {time} တွင် ပြန်ဖွင့်မယ်',
+    'order.delivery_unavailable': 'ပို့ဆောင်မှု မရရှိနိုင်ပါ',
+    'order.delivery_unavailable_banner':
+        'ပို့ဆောင်မှု ယခု မရရှိနိုင်ပါ။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
+    'order.delivery_unavailable_sheet_title':
+        'ဤစားသောက်ဆိုင်သည် ယခု ပို့ဆောင်မှု မလက်ခံနိုင်ပါ',
+    'order.delivery_unavailable_sheet_body':
+        'စားသောက်ဆိုင်က ပို့ဆောင်မှုကို ယာယီရပ်ထားပါတယ်။ နောက်မှ ပြန်စစ်ကြည့်ပါ။',
+    'order.closed_banner_short': 'ဤစားသောက်ဆိုင် ယခု ပိတ်ထားပါသည်',
+    'order.closed_sheet_title': 'ဤစားသောက်ဆိုင် ယခု ပိတ်ထားပါသည်',
+    'order.closed_sheet_body':
+        'ဆိုင်ပြန်ဖွင့်မှ order မှာယူနိုင်မှာ ဖြစ်ပါတယ်ဗျ',
+    'order.menu_item_delivery_banner':
+        'ဤစားသောက်ဆိုင်မှ ပို့ဆောင်မှု ယခု မရရှိနိုင်ပါ။',
+    'order.menu_item_closed_banner':
+        'ဤစားသောက်ဆိုင် ပိတ်ထားပါသည်။ ကြည့်နိုင်သော်လည်း ခြင်းတောင်းထဲ ထည့်၍ မရပါ။',
+    'order.card_closed_opens': 'ပိတ်ထား · {opens}',
+    'order.add_to_cart_unavailable': 'အော်ဒါ မလုပ်နိုင်ပါ',
+    'order.got_it': 'နားလည်ပါပြီ',
+    'order.status_strip_delivery':
+        'ပို့ဆောင်မှု မရရှိနိုင်ပါ · အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်',
+    'order.status_strip_closed': 'ပိတ်ထား · {opens}',
+    'order.status_strip_closed_short': 'ပိတ်ထား · နောက်မှ ပြန်စစ်ကြည့်ပါ',
+    'order.menu_browse_hint':
+        'ဆိုင်ပြန်ဖွင့်မှ order မှာယူနိုင်မှာ ဖြစ်ပါတယ်ဗျ',
+    'order.badge_delivery_off': 'ပို့ဆောင်မှု မရှိ',
     'time.minutes_ago': '{count} မိနစ်က',
     'time.hours_ago': '{count} နာရီက',
     'time.days_ago': '{count} ရက်က',
@@ -2406,6 +2456,31 @@ class AppTranslations {
     'restaurant.feature_vegetarian': 'มีอาหารมังสวิรัติ',
     'restaurant.opens_today': 'เปิดวันนี้เวลา {time}',
     'restaurant.opens_on': 'เปิด{day} เวลา {time}',
+    'order.delivery_unavailable': 'ไม่มีบริการจัดส่ง',
+    'order.delivery_unavailable_banner':
+        'ขณะนี้ไม่สามารถจัดส่งได้ ขออภัยในความไม่สะดวก',
+    'order.delivery_unavailable_sheet_title':
+        'ร้านนี้ยังไม่รับออเดอร์จัดส่งในขณะนี้',
+    'order.delivery_unavailable_sheet_body':
+        'ร้านหยุดรับออเดอร์จัดส่งชั่วคราว กรุณาลองใหม่ภายหลัง',
+    'order.closed_banner_short': 'ร้านนี้ปิดอยู่ในขณะนี้',
+    'order.closed_sheet_title': 'ร้านนี้ปิดอยู่ในขณะนี้',
+    'order.closed_sheet_body':
+        'คุณสามารถดูเมนูได้ แต่ยังสั่งอาหารไม่ได้จนกว่าร้านจะเปิด',
+    'order.menu_item_delivery_banner':
+        'ร้านนี้ยังไม่รับออเดอร์จัดส่งในขณะนี้',
+    'order.menu_item_closed_banner':
+        'ร้านปิดอยู่ คุณดูเมนูได้แต่ยังเพิ่มลงตะกร้าไม่ได้',
+    'order.card_closed_opens': 'ปิด · {opens}',
+    'order.add_to_cart_unavailable': 'สั่งไม่ได้ในขณะนี้',
+    'order.got_it': 'เข้าใจแล้ว',
+    'order.status_strip_delivery':
+        'ไม่มีบริการจัดส่ง · ขออภัยในความไม่สะดวก',
+    'order.status_strip_closed': 'ปิด · {opens}',
+    'order.status_strip_closed_short': 'ปิด · กรุณากลับมาใหม่ภายหลัง',
+    'order.menu_browse_hint':
+        'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้ในขณะนี้',
+    'order.badge_delivery_off': 'ไม่จัดส่ง',
     'time.minutes_ago': '{count} นาทีที่แล้ว',
     'time.hours_ago': '{count} ชม.ที่แล้ว',
     'time.days_ago': '{count} วันที่แล้ว',

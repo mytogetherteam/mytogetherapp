@@ -111,6 +111,9 @@ class _CollectionsSectionState extends State<CollectionsSection> {
       forceRestaurantNavigation: true,
       isAvailable: item.isAvailable,
       publishStatus: item.publishStatus,
+      deliveryEnabled: item.deliveryEnabled,
+      operatingHours: item.operatingHours,
+      restaurantStatus: item.restaurantStatus,
     );
   }
 

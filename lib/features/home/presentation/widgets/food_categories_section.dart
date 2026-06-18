@@ -4,10 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/home/data/models/master_category_dto.dart';
-import 'package:mytogetherapp/features/home/data/models/shop_dto.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 

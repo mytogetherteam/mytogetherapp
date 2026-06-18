@@ -153,6 +153,9 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
               forceRestaurantNavigation: true,
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
+              deliveryEnabled: item.deliveryEnabled,
+              operatingHours: item.operatingHours,
+              restaurantStatus: item.restaurantStatus,
             );
           },
         ),

@@ -1,4 +1,6 @@
 import '../../../../core/localization/locale_controller.dart';
+import '../shop_order_state_parser.dart';
+import 'shop_dto.dart' show OperatingHourDto;
 
 class TrendingItemDto {
   final int id;
@@ -25,6 +27,11 @@ class TrendingItemDto {
   final String? originalDeliveryFee;
   final bool isAvailable;
   final String publishStatus;
+  final bool deliveryEnabled;
+  final bool shopIsOpen;
+  final List<OperatingHourDto> operatingHours;
+
+  String get restaurantStatus => shopIsOpen ? 'Open' : 'Closed';
 
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
@@ -67,6 +74,9 @@ class TrendingItemDto {
     this.originalDeliveryFee,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
+    this.deliveryEnabled = true,
+    this.shopIsOpen = true,
+    this.operatingHours = const [],
   })  : _name = name,
         _shopName = shopName,
         _estimatedTime = estimatedTime;
@@ -89,6 +99,8 @@ class TrendingItemDto {
         json['shopNameMm'] as String? ?? shopMap?['nameMm'] as String?;
     final shopNameTh =
         json['shopNameTh'] as String? ?? shopMap?['nameTh'] as String?;
+
+    final orderState = ShopOrderStateFields.fromJson(json, shop: shopMap);
 
     final shopId = (json['shopId'] as num?)?.toInt() ??
         (shopMap?['id'] as num?)?.toInt() ??
@@ -148,6 +160,9 @@ class TrendingItemDto {
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       isAvailable: json['isAvailable'] as bool? ?? true,
       publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
+      deliveryEnabled: orderState.deliveryEnabled,
+      shopIsOpen: orderState.isOpen,
+      operatingHours: orderState.operatingHours,
     );
   }
 

@@ -13,7 +13,7 @@ import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
-import '../../../reviews/data/repositories/order_review_repository.dart';
+import '../../../reviews/data/repositories/shop_review_repository.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -100,35 +100,35 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  /// Submits the star rating (if one was picked) to the order-reviews API,
-  /// then clears the active order and returns home. The order id is captured
-  /// before clearing because clearOrder() wipes ActiveOrderState.
+  /// Submits the star rating (if one was picked) via the restaurant review API,
+  /// then clears the active order and returns home.
   Future<void> _onDone() async {
     if (_isSubmitting) return;
 
     final ratingValue = _rating;
-    final orderIdStr = ActiveOrderState.instance.orderId;
-    final orderId = int.tryParse(orderIdStr?.replaceAll('#', '') ?? '');
+    final shopId = int.tryParse(ActiveOrderState.instance.shopId ?? '');
 
-    if (ratingValue > 0 && orderId != null) {
+    if (ratingValue > 0 && shopId != null) {
       setState(() => _isSubmitting = true);
-      final result = await OrderReviewRepository.instance.create(
-        orderId: orderId,
-        rating: ratingValue.toDouble(),
-      );
+      var success = false;
+      try {
+        await ShopReviewRepository.instance.createOrUpdate(
+          shopId: shopId,
+          rating: ratingValue.toDouble(),
+        );
+        success = true;
+      } catch (_) {
+        success = false;
+      }
       if (!mounted) return;
       setState(() => _isSubmitting = false);
 
-      // alreadyReviewed is a benign outcome here — don't block the user.
-      final isBenign = result.success ||
-          result.errorCode == OrderReviewErrorCode.alreadyReviewed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isBenign
+            success
                 ? context.tr('order_complete.rating_thanks')
-                : (result.errorMessage ??
-                    context.tr('order_complete.rating_failed')),
+                : context.tr('order_complete.rating_failed'),
           ),
         ),
       );

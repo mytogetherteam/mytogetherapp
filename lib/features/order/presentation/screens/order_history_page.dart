@@ -4,6 +4,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/order/presentation/widgets/order_history_card.dart';
+import 'package:mytogetherapp/features/reviews/data/repositories/shop_review_repository.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
@@ -27,6 +28,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
   TabController? _tabController;
   List<OrderHistoryDto> _completedOrders = [];
   List<OrderHistoryDto> _cancelledOrders = [];
+  Map<int, double> _shopRatings = {};
 
   @override
   void initState() {
@@ -59,7 +61,40 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         _isLoading = false;
         _initTabController();
       });
+      await _loadShopRatings(results[0]);
     }
+  }
+
+  Future<void> _loadShopRatings(List<OrderHistoryDto> orders) async {
+    final shopIds = orders
+        .where((o) => o.shopId != null)
+        .map((o) => o.shopId!)
+        .toSet();
+    if (shopIds.isEmpty) {
+      if (mounted) setState(() => _shopRatings = {});
+      return;
+    }
+
+    final entries = await Future.wait(shopIds.map((id) async {
+      try {
+        final reviews = await ShopReviewRepository.instance.getMyReviews(
+          shopId: id,
+          size: 1,
+        );
+        if (reviews.isNotEmpty) {
+          return MapEntry(id, reviews.first.rating);
+        }
+      } catch (_) {}
+      return null;
+    }));
+
+    if (!mounted) return;
+    setState(() {
+      _shopRatings = {
+        for (final entry in entries)
+          if (entry != null) entry.key: entry.value,
+      };
+    });
   }
 
   void _initTabController() {
@@ -195,6 +230,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         itemBuilder: (context, index) {
           return OrderHistoryCard(
             order: orders[index],
+            shopRating: orders[index].shopId != null
+                ? _shopRatings[orders[index].shopId!]
+                : null,
             onReviewSubmitted: _loadData,
           );
         },
