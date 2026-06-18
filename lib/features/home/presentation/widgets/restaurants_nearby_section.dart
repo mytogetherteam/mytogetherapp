@@ -135,7 +135,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 240,
+              height: 256,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -158,7 +158,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
                     operatingHours: data.operatingHours,
                     status: data.status,
                     shopId: data.id,
-                    compact: true,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     onTap: () {
@@ -216,7 +215,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 240,
+          height: 256,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),

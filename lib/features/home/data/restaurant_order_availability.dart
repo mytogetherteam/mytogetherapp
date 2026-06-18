@@ -43,24 +43,25 @@ class RestaurantOrderAvailability {
   }) {
     final opening = OpeningStatus.fromHours(operatingHours);
 
-    if (!deliveryEnabled) {
+    final isOpen = opening.hasSchedule
+        ? opening.isOpen
+        : status.trim().toLowerCase() == 'open';
+
+    // Closed hours take precedence over delivery toggle when both block ordering.
+    if (!isOpen) {
       return RestaurantOrderAvailability(
-        reason: OrderBlockReason.deliveryDisabled,
-        deliveryEnabled: false,
+        reason: OrderBlockReason.closed,
+        deliveryEnabled: deliveryEnabled,
         openingStatus: opening,
         operatingHours: operatingHours,
         statusFallback: status,
       );
     }
 
-    final isOpen = opening.hasSchedule
-        ? opening.isOpen
-        : status.trim().toLowerCase() == 'open';
-
-    if (!isOpen) {
+    if (!deliveryEnabled) {
       return RestaurantOrderAvailability(
-        reason: OrderBlockReason.closed,
-        deliveryEnabled: true,
+        reason: OrderBlockReason.deliveryDisabled,
+        deliveryEnabled: false,
         openingStatus: opening,
         operatingHours: operatingHours,
         statusFallback: status,

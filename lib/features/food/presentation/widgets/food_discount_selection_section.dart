@@ -261,13 +261,57 @@ class _FoodDiscountSelectionSectionState
         ],
         const SizedBox(height: 12),
         if (_loadingDeals)
-          _buildDealsSkeleton()
-        else
           SizedBox(
-            height: 210,
+            height: 224,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: 20, right: 20),
+              padding: const EdgeInsets.only(left: 16, right: 16),
+              itemCount: 4,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, index) => SizedBox(
+                width: 130,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: const ImageSkeletonLoader(
+                        width: 130,
+                        height: 120,
+                        showLogo: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 60, height: 14),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 100, height: 12),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 90, height: 11),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 80, height: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 224,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 16, right: 16),
               itemCount: deals.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) =>
@@ -290,41 +334,52 @@ class _FoodDiscountSelectionSectionState
           ),
         ),
         const SizedBox(height: 12),
-        _buildDealsSkeleton(),
-      ],
-    );
-  }
-
-  Widget _buildDealsSkeleton() {
-    return SizedBox(
-      height: 210,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 20, right: 20),
-        itemCount: 4,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, _) => SizedBox(
-          width: 130,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: const ImageSkeletonLoader(
-                  width: 130,
-                  height: 120,
-                  showLogo: true,
-                ),
+        SizedBox(
+          height: 224,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 16, right: 16),
+            itemCount: 4,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (_, index) => SizedBox(
+              width: 130,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: const ImageSkeletonLoader(
+                      width: 130,
+                      height: 120,
+                      showLogo: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 60, height: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 100, height: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 90, height: 11),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 80, height: 10),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: const ImageSkeletonLoader(width: 60, height: 14),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
