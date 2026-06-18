@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
@@ -21,6 +22,10 @@ class LockScreenWidgetManager {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+    if (kIsWeb) {
+      _isInitialized = true;
+      return;
+    }
     
     if (Platform.isIOS) {
       try {
@@ -61,6 +66,7 @@ class LockScreenWidgetManager {
   }
 
   Future<void> showOrUpdateWidget(ActiveOrderItem order) async {
+    if (kIsWeb) return;
     if (!_isInitialized) await initialize();
 
     final statusText = _getStatusText(order);
@@ -127,6 +133,7 @@ class LockScreenWidgetManager {
   }
 
   Future<void> hideWidget() async {
+    if (kIsWeb) return;
     _lastStatusText = null;
     _lastProgress = null;
     _lastShopName = null;

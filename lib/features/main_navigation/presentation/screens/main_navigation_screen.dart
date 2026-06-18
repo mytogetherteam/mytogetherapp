@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -72,6 +73,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Future<void> _checkAndRequestPermissions() async {
+    if (kIsWeb) {
+      LocationService().getCurrentPosition(requestPermissionIfDenied: true);
+      return;
+    }
+
     final locationStatus = await Permission.location.status;
     final notificationStatus = await Permission.notification.status;
     

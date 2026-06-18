@@ -389,7 +389,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     // Camera needs explicit permission; gallery uses the system picker (incl.
     // iOS limited photo access) without a blocking pre-check.
-    if (source == ImageSource.camera) {
+    if (source == ImageSource.camera && !kIsWeb) {
       final cameraStatus = await Permission.camera.request();
       if (!mounted) return;
       if (!cameraStatus.isGranted) {
@@ -415,8 +415,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
       if (picked == null || !mounted) return;
 
-      final file = File(picked.path);
-      final sizeInBytes = await file.length();
+      final sizeInBytes = await picked.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
       if (sizeInMb > 5.0) {
@@ -451,7 +450,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         }
         return;
       }
-      setState(() => _receiptImage = file);
+      setState(() => _receiptImage = picked);
     } catch (_) {
       if (mounted) {
         AppDialog.showToast(
@@ -494,7 +493,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           PrimaryGradientButton(
             onPressed: () {
               Navigator.pop(context);
-              openAppSettings();
+              if (!kIsWeb) {
+                openAppSettings();
+              }
             },
             height: 42,
             width: 150,

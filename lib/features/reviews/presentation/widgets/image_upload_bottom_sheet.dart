@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -57,19 +58,20 @@ class ImageUploadBottomSheet {
                   onTap: () => Navigator.pop(context, ImageUploadAction.gallery),
                 ),
                 Divider(color: Colors.grey[200], height: 1, indent: 24, endIndent: 24),
-                
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  leading: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
-                  title: Text(
-                    context.tr('review.take_photo'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      color: Colors.black87,
+
+                if (!kIsWeb)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                    leading: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                    title: Text(
+                      context.tr('review.take_photo'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Colors.black87,
+                      ),
                     ),
+                    onTap: () => Navigator.pop(context, ImageUploadAction.camera),
                   ),
-                  onTap: () => Navigator.pop(context, ImageUploadAction.camera),
-                ),
                 
                 if (showRemove) ...[
                   Divider(color: Colors.grey[200], height: 1, indent: 24, endIndent: 24),
