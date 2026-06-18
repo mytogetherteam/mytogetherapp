@@ -318,6 +318,7 @@ class CartManager extends ChangeNotifier {
                nameTh: store.nameTh,
                distance: store.distance,
                time: store.time,
+               shopImageUrl: store.shopImageUrl,
                items: updatedItems,
                total: updatedItems.fold(0, (sum, item) => sum + item.total),
             );
@@ -355,6 +356,7 @@ class CartManager extends ChangeNotifier {
             nameTh: store.nameTh,
             distance: store.distance,
             time: store.time,
+            shopImageUrl: store.shopImageUrl,
             items: updatedItems,
             total: updatedItems.fold(0, (sum, item) => sum + item.total),
           );

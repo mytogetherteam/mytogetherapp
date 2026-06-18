@@ -65,6 +65,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   void initState() {
     super.initState();
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
+    _backendStatus = ActiveOrderState.instance.backendStatus;
     
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
@@ -112,6 +113,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         setState(() {
           // Map ActiveOrderState orderStatus (0-4) to local _currentStatus (1-4)
           _currentStatus = state.orderStatus.clamp(1, 4);
+          _backendStatus = state.backendStatus;
 
           // Trigger WebView init if status is 3 and we have a new URL
           if (_currentStatus == 3 && 
@@ -499,7 +501,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               if (state.isPickupFulfillment &&
                   state.isReadyForPickup &&
                   state.orderId != null) ...[
-                PickupOrderQrCard(orderId: state.orderId!),
+                PickupOrderQrCard(
+                  orderId: state.orderId!,
+                  lastOrderNo: state.lastOrderNo,
+                ),
                 const SizedBox(height: 24),
               ],
             ],
@@ -587,7 +592,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (state.estimatedTime != null && state.estimatedTime!.isNotEmpty)
+                    if (state.estimatedTime != null &&
+                        state.estimatedTime!.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -609,15 +615,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                       ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (!state.isPickupFulfillment ||
-                            state.displayDeliveryFee != null) ...[
+                    if (!state.isPickupFulfillment)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
                           Text(
-                            state.isPickupFulfillment
-                                ? context.tr('order_status.pickup_fee')
-                                : context.tr('order_status.delivery_fee'),
+                            context.tr('order_status.delivery_fee'),
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -634,8 +637,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             ),
                           ),
                         ],
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
@@ -914,13 +916,21 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ),
                               
                               _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
-                              const SizedBox(height: 8),
-                              _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                              if (!state.isPickupFulfillment) ...[
+                                const SizedBox(height: 8),
+                                _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                              ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
-                              _buildSummaryRow(context.tr('order_status.total_amount'), (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(), isBold: true),
+                              _buildSummaryRow(
+                                context.tr('order_status.total_amount'),
+                                state.isPickupFulfillment
+                                    ? (state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice())
+                                    : (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(),
+                                isBold: true,
+                              ),
                             ],
                           ),
                         ),

@@ -33,6 +33,7 @@ import '../../../../core/utils/web_file_download.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
+import '../../../reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -60,6 +61,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
+  final ImagePicker _imagePicker = ImagePicker();
 
   /// Guards against pushing the next screen more than once when several
   /// status updates (WebSocket + backend reconcile) land close together.
@@ -368,27 +370,30 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   }
 
   Future<void> _pickReceiptImage() async {
-    // The browser handles gallery access for web/PWA, so the native
-    // permission_handler checks (which throw on web) are skipped there.
-    if (!kIsWeb) {
-      PermissionStatus status;
-      if (await Permission.photos.isGranted ||
-          await Permission.storage.isGranted) {
-        status = PermissionStatus.granted;
-      } else {
-        final photosResult = await Permission.photos.request();
-        if (photosResult.isGranted) {
-          status = PermissionStatus.granted;
-        } else {
-          final storageResult = await Permission.storage.request();
-          status = storageResult;
-        }
-      }
+    if (_isUploading) return;
 
+    final action = await ImageUploadBottomSheet.show(
+      context,
+      showRemove: _receiptImage != null,
+    );
+    if (action == null || !mounted) return;
+
+    if (action == ImageUploadAction.remove) {
+      _removeReceiptImage();
+      return;
+    }
+
+    final source = action == ImageUploadAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+
+    // Camera needs explicit permission; gallery uses the system picker (incl.
+    // iOS limited photo access) without a blocking pre-check.
+    if (source == ImageSource.camera) {
+      final cameraStatus = await Permission.camera.request();
       if (!mounted) return;
-
-      if (!status.isGranted) {
-        if (status.isPermanentlyDenied) {
+      if (!cameraStatus.isGranted) {
+        if (cameraStatus.isPermanentlyDenied) {
           _showPermissionDialog();
         } else {
           AppDialog.showToast(
@@ -401,14 +406,17 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       }
     }
 
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 2048,
+      );
 
-    if (picked != null && mounted) {
-      final sizeInBytes = await picked.length();
+      if (picked == null || !mounted) return;
+
+      final file = File(picked.path);
+      final sizeInBytes = await file.length();
       final sizeInMb = sizeInBytes / (1024 * 1024);
 
       if (sizeInMb > 5.0) {
@@ -443,7 +451,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         }
         return;
       }
-      setState(() => _receiptImage = picked);
+      setState(() => _receiptImage = file);
+    } catch (_) {
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr('auth.could_not_pick_image'),
+          isError: true,
+        );
+      }
     }
   }
 
@@ -531,8 +547,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         final formData = FormData.fromMap({
           'paymentImage': await multipartFromXFile(
             _receiptImage!,
-            filenamePrefix:
-                'payment_${DateTime.now().millisecondsSinceEpoch}',
+            filenamePrefix: 'payment_${DateTime.now().millisecondsSinceEpoch}',
           ),
         });
 
@@ -999,82 +1014,89 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       isValue: false,
                     ),
                     const SizedBox(height: 10),
-                    _summaryRow(
-                      order?.deliveryType == 'NORMAL'
-                          ? context.tr('payment.est_delivery_fee')
-                          : context.tr('order_status.delivery_fee'),
-                      '',
-                      customValue:
-                          (order?.deliveryFee != null &&
-                              order!.deliveryFee! > 0)
-                          ? (order.deliveryType == 'NORMAL'
-                                ? GradientText(
-                                    '฿ ${order.deliveryFee!.toInt()}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  )
-                                : Text(
-                                    '฿ ${order.deliveryFee!.toInt()}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
-                                    ),
-                                  ))
-                          : (order?.deliveryType == 'NORMAL')
-                          ? Text(
-                              context.tr('payment.calculate_later'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black54,
-                              ),
-                            )
-                          : AnimatedBuilder(
-                              animation: _dotsAnimController,
-                              builder: (context, _) {
-                                final dots =
-                                    '.' *
-                                    ((_dotsAnimController.value * 4).floor() %
-                                        4);
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      context.tr('order_tracking.calculating'),
+                    if (order?.isPickupFulfillment != true) ...[
+                      _summaryRow(
+                        order?.deliveryType == 'NORMAL'
+                            ? context.tr('payment.est_delivery_fee')
+                            : context.tr('order_status.delivery_fee'),
+                        '',
+                        customValue:
+                            (order?.deliveryFee != null &&
+                                order!.deliveryFee! > 0)
+                            ? (order.deliveryType == 'NORMAL'
+                                  ? GradientText(
+                                      '฿ ${order.deliveryFee!.toInt()}',
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.primary,
                                       ),
-                                    ),
-                                    SizedBox(
-                                      width: 15,
-                                      child: Text(
-                                        dots,
+                                    )
+                                  : Text(
+                                      '฿ ${order.deliveryFee!.toInt()}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                      ),
+                                    ))
+                            : (order?.deliveryType == 'NORMAL')
+                            ? Text(
+                                context.tr('payment.calculate_later'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),
+                              )
+                            : AnimatedBuilder(
+                                animation: _dotsAnimController,
+                                builder: (context, _) {
+                                  final dots =
+                                      '.' *
+                                      ((_dotsAnimController.value * 4).floor() %
+                                          4);
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        context.tr(
+                                          'order_tracking.calculating',
+                                        ),
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.primary,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                      isValue: false,
-                    ),
-                    if (order?.deliveryType != 'NORMAL') ...[
+                                      SizedBox(
+                                        width: 15,
+                                        child: Text(
+                                          dots,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                        isValue: false,
+                      ),
+                    ],
+                    if (order?.isPickupFulfillment == true ||
+                        order?.deliveryType != 'NORMAL') ...[
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: _DottedDivider(color: Color(0xFFCCCCCC)),
                       ),
                       _summaryRow(
                         context.tr('cart.total'),
-                        '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
+                        order?.isPickupFulfillment == true
+                            ? '฿ ${widget.foodTotal.toStringAsFixed(0)}'
+                            : '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
                         isValue: true,
                       ),
                     ],
@@ -1293,7 +1315,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         const SizedBox(height: 14),
                         // Upload box
                         GestureDetector(
-                          onTap: _pickReceiptImage,
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _isUploading ? null : _pickReceiptImage,
                           child: Container(
                             width: double.infinity,
                             constraints: const BoxConstraints(minHeight: 160),

@@ -4,13 +4,24 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 /// Branded pickup QR shown when the shop marks the order ready for pickup.
-/// Payload is the raw order id so myshop's [OrderQrParser] can resolve it.
+/// Payload is the numeric order id so myshop's [OrderQrParser] can resolve it.
 class PickupOrderQrCard extends StatelessWidget {
   final String orderId;
+  final String? lastOrderNo;
 
-  const PickupOrderQrCard({super.key, required this.orderId});
+  const PickupOrderQrCard({
+    super.key,
+    required this.orderId,
+    this.lastOrderNo,
+  });
 
   String get _qrPayload => orderId.replaceAll('#', '').trim();
+
+  String get _displayOrderNo {
+    final ref = lastOrderNo?.trim();
+    if (ref != null && ref.isNotEmpty) return ref;
+    return orderId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +76,7 @@ class PickupOrderQrCard extends StatelessWidget {
                   color: Colors.black,
                   roundFactor: 0.5,
                 ),
+                background: Colors.white,
                 image: PrettyQrDecorationImage(
                   image: AssetImage('assets/images/app_icon_small.png'),
                   position: PrettyQrDecorationImagePosition.embedded,
@@ -74,7 +86,7 @@ class PickupOrderQrCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            orderId,
+            _displayOrderNo,
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,

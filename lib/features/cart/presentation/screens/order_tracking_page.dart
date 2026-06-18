@@ -1128,9 +1128,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 12),
 
-                          _buildDeliveryFeeRow(),
+                          if (!ActiveOrderState.instance.isPickupFulfillment)
+                            _buildDeliveryFeeRow(),
 
-                          const SizedBox(height: 12),
+                          if (!ActiveOrderState.instance.isPickupFulfillment)
+                            const SizedBox(height: 12),
 
                           _buildInfoRow(
                             label: context.tr('order_status.total_amount'),

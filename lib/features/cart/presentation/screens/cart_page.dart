@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../data/cart_manager.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
@@ -229,10 +230,13 @@ class _CartPageState extends State<CartPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(11),
-          child: Image.network(
-            shopImage,
+          child: CachedNetworkImage(
+            imageUrl: shopImage,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, __) => _buildImageStack(
+            width: 60,
+            height: 60,
+            placeholder: (_, __) => const ImageSkeletonLoader(width: 60, height: 60),
+            errorWidget: (_, _, __) => _buildImageStack(
               store.items.map((i) => i.imagePath).toList(),
             ),
           ),
