@@ -17,6 +17,8 @@ import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
+import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/price_formatter.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import 'revise_order_page.dart';
@@ -1000,6 +1002,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       isValue: false,
                     ),
                     const SizedBox(height: 10),
+                    _summaryRow(
+                      context.tr('order_status.tax'),
+                      order?.displayTaxAmount ??
+                          (order?.taxAmount ??
+                                  OrderTax.calculateTax(widget.foodTotal))
+                              .toFormattedPrice(),
+                      isValue: false,
+                    ),
+                    const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true) ...[
                       _summaryRow(
                         order?.deliveryType == 'NORMAL'
@@ -1078,9 +1089,16 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       ),
                       _summaryRow(
                         context.tr('cart.total'),
-                        order?.isPickupFulfillment == true
-                            ? '฿ ${widget.foodTotal.toStringAsFixed(0)}'
-                            : '฿ ${(widget.foodTotal + (order?.deliveryFee ?? widget.deliveryFee)).toStringAsFixed(0)}',
+                        order?.displayTotalAmount ??
+                            (order?.isPickupFulfillment == true
+                                ? OrderTax.calculateTotal(
+                                    itemSubtotal: widget.foodTotal,
+                                  ).toFormattedPrice()
+                                : OrderTax.calculateTotal(
+                                    itemSubtotal: widget.foodTotal,
+                                    deliveryFee:
+                                        order?.deliveryFee ?? widget.deliveryFee,
+                                  ).toFormattedPrice()),
                         isValue: true,
                       ),
                     ],

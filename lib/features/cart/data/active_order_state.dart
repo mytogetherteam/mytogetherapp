@@ -12,6 +12,7 @@ import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../order/data/repositories/order_repository.dart';
 import '../presentation/utils/revise_reason_parser.dart';
+import '../../../core/utils/order_tax.dart';
 
 class ActiveOrderItem {
   final String orderId;
@@ -24,6 +25,8 @@ class ActiveOrderItem {
   String? statusLabelMm;
   String? statusLabelTh;
   int orderStatus; // 0: Awaiting Confirmation, etc.
+  double? itemPrice;
+  double? taxAmount;
   double? totalAmount;
   String? paymentMethod;
   String? cancelReason;
@@ -68,6 +71,7 @@ class ActiveOrderItem {
   LatLng? restaurantLatLng;
   LatLng? userLocation;
   String? displayFoodPrice;
+  String? displayTaxAmount;
   String? displayDeliveryFee;
   String? displayTotalAmount;
   double? idleSolidProgress;
@@ -87,6 +91,35 @@ class ActiveOrderItem {
   bool get isReadyForPickup =>
       (backendStatus ?? '').toUpperCase() == 'READY_FOR_PICKUP';
 
+  /// Food subtotal before tax and delivery — prefers backend `itemPrice`.
+  double get resolvedItemSubtotal {
+    if (itemPrice != null && itemPrice! > 0) return itemPrice!;
+    if (orderItems.isNotEmpty) {
+      return orderItems.fold<double>(0, (sum, item) => sum + item.total);
+    }
+    final total = totalAmount ?? 0;
+    final delivery = deliveryFee ?? 0;
+    final tax = taxAmount ?? OrderTax.calculateTax(total - delivery);
+    final fromTotal = total - delivery - tax;
+    if (fromTotal > 0) return fromTotal;
+    return (total - delivery).clamp(0, double.infinity).toDouble();
+  }
+
+  double get resolvedTaxAmount {
+    if (taxAmount != null) return taxAmount!;
+    return OrderTax.calculateTax(resolvedItemSubtotal);
+  }
+
+  double resolvedGrandTotal({double fallbackDeliveryFee = 0}) {
+    if (totalAmount != null && totalAmount! > 0) return totalAmount!;
+    final delivery =
+        isPickupFulfillment ? 0.0 : (deliveryFee ?? fallbackDeliveryFee);
+    return OrderTax.calculateTotal(
+      itemSubtotal: resolvedItemSubtotal,
+      deliveryFee: delivery,
+    );
+  }
+
   ActiveOrderItem({
     required this.orderId,
     this.storeName,
@@ -98,6 +131,8 @@ class ActiveOrderItem {
     this.statusLabelMm,
     this.statusLabelTh,
     this.orderStatus = 0,
+    this.itemPrice,
+    this.taxAmount,
     this.totalAmount,
     this.paymentMethod,
     this.cancelReason,
@@ -122,6 +157,7 @@ class ActiveOrderItem {
     this.restaurantLatLng,
     this.userLocation,
     this.displayFoodPrice,
+    this.displayTaxAmount,
     this.displayDeliveryFee,
     this.displayTotalAmount,
     this.idleSolidProgress,
@@ -177,6 +213,8 @@ class ActiveOrderItem {
     'statusLabelMm': statusLabelMm,
     'statusLabelTh': statusLabelTh,
     'orderStatus': orderStatus,
+    'itemPrice': itemPrice,
+    'taxAmount': taxAmount,
     'totalAmount': totalAmount,
     'paymentMethod': paymentMethod,
     'cancelReason': cancelReason,
@@ -201,6 +239,7 @@ class ActiveOrderItem {
     'userLat': userLocation?.latitude,
     'userLng': userLocation?.longitude,
     'displayFoodPrice': displayFoodPrice,
+    'displayTaxAmount': displayTaxAmount,
     'displayDeliveryFee': displayDeliveryFee,
     'displayTotalAmount': displayTotalAmount,
     'idleSolidProgress': idleSolidProgress,
@@ -232,6 +271,8 @@ class ActiveOrderItem {
     statusLabelMm: json['statusLabelMm'],
     statusLabelTh: json['statusLabelTh'],
     orderStatus: json['orderStatus'] ?? 0,
+    itemPrice: json['itemPrice'],
+    taxAmount: json['taxAmount'],
     totalAmount: json['totalAmount'],
     paymentMethod: json['paymentMethod'],
     cancelReason: json['cancelReason'],
@@ -261,6 +302,7 @@ class ActiveOrderItem {
         ? LatLng(json['userLat'], json['userLng'])
         : null,
     displayFoodPrice: json['displayFoodPrice'],
+    displayTaxAmount: json['displayTaxAmount'],
     displayDeliveryFee: json['displayDeliveryFee'],
     displayTotalAmount: json['displayTotalAmount'],
     idleSolidProgress: json['idleSolidProgress'],
@@ -410,6 +452,8 @@ class ActiveOrderState extends ChangeNotifier {
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
   String? get lastOrderNo => _primary?.lastOrderNo;
+  double? get itemPrice => _primary?.itemPrice;
+  double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
@@ -460,6 +504,9 @@ class ActiveOrderState extends ChangeNotifier {
 
   String? get displayFoodPrice => _primary?.displayFoodPrice;
   set displayFoodPrice(String? val) { if (_primary != null) _primary!.displayFoodPrice = val; }
+
+  String? get displayTaxAmount => _primary?.displayTaxAmount;
+  set displayTaxAmount(String? val) { if (_primary != null) _primary!.displayTaxAmount = val; }
 
   String? get displayDeliveryFee => _primary?.displayDeliveryFee;
   set displayDeliveryFee(String? val) { if (_primary != null) _primary!.displayDeliveryFee = val; }
@@ -513,6 +560,9 @@ class ActiveOrderState extends ChangeNotifier {
     required double totalAmount,
     required String paymentMethod,
     required List<CartItem> items,
+    double? itemPrice,
+    double? taxAmount,
+    String? displayTaxAmount,
     int? paymentMethodId,
     String? paymentMethodImageUrl,
     String? orderId,
@@ -522,6 +572,9 @@ class ActiveOrderState extends ChangeNotifier {
     
     final item = _orders[targetId]!;
     item.totalAmount = totalAmount;
+    if (itemPrice != null) item.itemPrice = itemPrice;
+    if (taxAmount != null) item.taxAmount = taxAmount;
+    if (displayTaxAmount != null) item.displayTaxAmount = displayTaxAmount;
     item.paymentMethod = paymentMethod;
     item.paymentMethodId = paymentMethodId;
     item.paymentMethodImageUrl = paymentMethodImageUrl;
@@ -596,6 +649,9 @@ class ActiveOrderState extends ChangeNotifier {
     if (item == null) return;
 
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
+    if (data['itemPrice'] != null) item.itemPrice = _parseSafeDouble(data['itemPrice']);
+    if (data['taxAmount'] != null) item.taxAmount = _parseSafeDouble(data['taxAmount']);
+    if (data['totalAmount'] != null) item.totalAmount = _parseSafeDouble(data['totalAmount']);
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
     if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
 
@@ -669,8 +725,12 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     if (data['displayFoodPrice'] != null) item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
+    if (data['displayTaxAmount'] != null) item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
     if (data['displayDeliveryFee'] != null) item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
     if (data['displayTotalAmount'] != null) item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
+    if (item.displayFoodPrice == null && item.itemPrice != null) {
+      item.displayFoodPrice = '฿${item.itemPrice}';
+    }
 
     if (data['deliveryAddress'] != null) item.deliveryAddress = _parseSafeString(data['deliveryAddress']);
     if (data['restaurantAddress'] != null) item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
@@ -1159,6 +1219,9 @@ class ActiveOrderState extends ChangeNotifier {
           shopNameTh: o.shopNameTh,
           shopImageUrl: o.shopImageUrl,
           totalAmount: o.totalAmount,
+          itemPrice: o.itemPrice,
+          taxAmount: o.taxAmount,
+          displayTaxAmount: o.displayTaxAmount,
           displayTotalAmount: o.displayTotalAmount,
           deliveryFee: o.deliveryFee,
           displayDeliveryFee: o.displayDeliveryFee,

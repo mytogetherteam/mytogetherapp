@@ -29,13 +29,16 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
   late TextEditingController _noteController;
   late TextEditingController _postalController;
   late String _selectedType;
+  String? _nicknameError;
 
   final List<String> _types = ['HOME', 'WORK', 'OTHER'];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.location.locationName);
+    _nameController = TextEditingController(
+      text: widget.location.locationName ?? '',
+    );
     _buildingController = TextEditingController(text: widget.location.buildingName);
     _floorController = TextEditingController(text: widget.location.floor);
     _noteController = TextEditingController(text: widget.location.note);
@@ -125,7 +128,22 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               controller: _nameController,
               hint: context.tr('location.nickname_hint'),
               icon: PhosphorIcons.tag,
+              onChanged: (_) {
+                if (_nicknameError != null) {
+                  setState(() => _nicknameError = null);
+                }
+              },
             ),
+            if (_nicknameError != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _nicknameError!,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.red.shade700,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             _buildLabel(context.tr('location.type')),
             const SizedBox(height: 8),
@@ -171,13 +189,28 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             const SizedBox(height: 32),
             PrimaryGradientButton(
               onPressed: () {
+                final nickname = _nameController.text.trim();
+                if (nickname.isEmpty) {
+                  setState(() {
+                    _nicknameError = context.tr('location.nickname_required');
+                  });
+                  return;
+                }
                 final updated = widget.location.copyWith(
-                  locationName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null,
+                  locationName: nickname,
                   locationType: _selectedType,
-                  buildingName: _buildingController.text.trim().isNotEmpty ? _buildingController.text.trim() : null,
-                  floor: _floorController.text.trim().isNotEmpty ? _floorController.text.trim() : null,
-                  note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
-                  postalCode: _postalController.text.trim().isNotEmpty ? _postalController.text.trim() : null,
+                  buildingName: _buildingController.text.trim().isNotEmpty
+                      ? _buildingController.text.trim()
+                      : null,
+                  floor: _floorController.text.trim().isNotEmpty
+                      ? _floorController.text.trim()
+                      : null,
+                  note: _noteController.text.trim().isNotEmpty
+                      ? _noteController.text.trim()
+                      : null,
+                  postalCode: _postalController.text.trim().isNotEmpty
+                      ? _postalController.text.trim()
+                      : null,
                 );
                 Navigator.pop(context);
                 widget.onSave(updated);
@@ -217,17 +250,23 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
     required IconData icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: _nicknameError != null && identical(controller, _nameController)
+              ? Colors.red.shade300
+              : const Color(0xFFE2E8F0),
+        ),
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        onChanged: onChanged,
         style: GoogleFonts.poppins(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,

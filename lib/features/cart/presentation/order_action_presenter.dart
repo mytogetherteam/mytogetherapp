@@ -177,7 +177,7 @@ class OrderActionPresenter {
 
   static void _openAwaitingPayment(BuildContext context, ActiveOrderItem order) {
     final deliveryFee = order.deliveryFee ?? 0;
-    final foodTotal = (order.totalAmount ?? deliveryFee) - deliveryFee;
+    final foodTotal = order.resolvedItemSubtotal;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(

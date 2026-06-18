@@ -3,7 +3,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
-import '../../../../core/location/location_service.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
@@ -34,14 +33,11 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
   Future<List<Restaurant>> _load() async {
     if (!AuthService().isLoggedIn) return [];
     try {
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = LocationService().cachedPosition;
-      final lat =
-          activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-      final lon =
-          activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+      // Shop list is global; coordinates are only used for distance labels.
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       return await RestaurantRepository.instance
-          .getTrendingShops(lat: lat, lon: lon, size: 10)
+          .getTrendingShops(lat: coords.lat, lon: coords.lon, size: 10)
           .timeout(const Duration(seconds: 10));
     } catch (_) {
       return [];

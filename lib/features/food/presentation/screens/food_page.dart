@@ -43,13 +43,36 @@ class _FoodPageState extends State<FoodPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    UserLocationRepository.instance.addListener(_onLocationChanged);
+    UserLocationRepository.instance.getPrimaryLocation().then((_) {
+      _loadCoordinates();
+    });
   }
 
   @override
   void dispose() {
+    UserLocationRepository.instance.removeListener(_onLocationChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  double _lat = LocationService.defaultLat;
+  double _lon = LocationService.defaultLon;
+
+  Future<void> _loadCoordinates() async {
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+    if (!mounted) return;
+    setState(() {
+      _lat = coords.lat;
+      _lon = coords.lon;
+    });
+  }
+
+  /// Rebuild geo-scoped sections when the user picks a new delivery location.
+  void _onLocationChanged() {
+    _loadCoordinates();
   }
 
   void _onScroll() {
@@ -91,12 +114,8 @@ class _FoodPageState extends State<FoodPage> {
 
   @override
   Widget build(BuildContext context) {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = LocationService().cachedPosition;
-    final lat =
-        activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-    final lon =
-        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
+    final lat = _lat;
+    final lon = _lon;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     final double statusBarHeight = isIOS ? MediaQuery.of(context).padding.top : 0.0;
 
@@ -193,9 +212,7 @@ class _FoodPageState extends State<FoodPage> {
                                 key: ValueKey('discount_$_refreshKey'),
                               ),
                               const SizedBox(height: 32),
-                              CollectionsSection(
-                                key: ValueKey('collections_$_refreshKey'),
-                              ),
+                              const CollectionsSection(),
                               const SizedBox(height: 32),
                               const FoodRestaurantsSection(),
                               const TrendingShopsSection(),
@@ -204,6 +221,7 @@ class _FoodPageState extends State<FoodPage> {
                               ),
                               const SizedBox(height: 24),
                               FoodFeedSection(
+                                key: ValueKey('foryou_${lat}_$lon'),
                                 feedType: 'for-you',
                                 title: context.tr('food.for_you'),
                                 latitude: lat,
@@ -211,6 +229,7 @@ class _FoodPageState extends State<FoodPage> {
                                 layoutType: 2,
                               ),
                               ExploreMenuSection(
+                                key: ValueKey('explore_${lat}_$lon'),
                                 title: context.tr('food.explore_menu'),
                                 latitude: lat,
                                 longitude: lon,
@@ -227,7 +246,7 @@ class _FoodPageState extends State<FoodPage> {
               right: 0,
               child: FoodHeader(
                 isScrolled: _isScrolled,
-                onLocationChanged: _onRefresh,
+                onLocationChanged: _onLocationChanged,
               ),
             ),
             Positioned(

@@ -22,6 +22,8 @@ import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/price_formatter.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -52,6 +54,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   late AnimationController _lightProgressController;
   Timer? _idleSequenceTimer;
   late AnimationController _dotsAnimController;
+
+  /// When the user landed on this screen; used to soften the wait-time copy.
+  late final DateTime _waitingStartedAt;
+  Timer? _waitingHintTimer;
+  bool _showLongWaitHint = false;
 
   double? _routeDistanceKm;
   int? _routeDurationMins;
@@ -94,6 +101,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   void initState() {
     super.initState();
+    _waitingStartedAt = DateTime.now();
+    _waitingHintTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final longWait = DateTime.now().difference(_waitingStartedAt).inMinutes >= 5;
+      if (longWait != _showLongWaitHint) {
+        setState(() => _showLongWaitHint = longWait);
+      }
+    });
 
     // Solid idle trailing animation
     final initialProgress = ActiveOrderState.instance.idleSolidProgress ?? 0.0;
@@ -328,6 +343,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   @override
   void dispose() {
+    _waitingHintTimer?.cancel();
     _idleSequenceTimer?.cancel();
     _statusPollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -1121,8 +1137,21 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           _buildInfoRow(
                             label: context.tr('order_status.food_total'),
-                            value:
-                                '฿ ${widget.foodTotal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                            value: ActiveOrderState.instance.displayFoodPrice ??
+                                widget.foodTotal.toFormattedPrice(),
+                            valueColor: Colors.black,
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          _buildInfoRow(
+                            label: context.tr('order_status.tax'),
+                            value: ActiveOrderState.instance.displayTaxAmount ??
+                                (ActiveOrderState.instance.taxAmount ??
+                                        OrderTax.calculateTax(
+                                          widget.foodTotal.toDouble(),
+                                        ))
+                                    .toFormattedPrice(),
                             valueColor: Colors.black,
                           ),
 
@@ -1136,7 +1165,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           _buildInfoRow(
                             label: context.tr('order_status.total_amount'),
-                            value: '฿ ${widget.foodTotal.toInt()}',
+                            value: _checkoutTotalLabel(),
                             isGradientValue: true,
                           ),
 
@@ -1165,7 +1194,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                   ),
                                   const SizedBox(width: 8),
                                   GradientText(
-                                    context.tr('order_tracking.usually_takes'),
+                                    context.tr(
+                                      _showLongWaitHint
+                                          ? 'order_tracking.taking_longer'
+                                          : 'order_tracking.usually_takes',
+                                    ),
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -1203,6 +1236,36 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         ],
       ),
     );
+  }
+
+  String _checkoutTotalLabel() {
+    final state = ActiveOrderState.instance;
+    if (state.displayTotalAmount != null &&
+        state.displayTotalAmount!.isNotEmpty &&
+        !state.isPickupFulfillment &&
+        (_deliveryFee == null || _deliveryFee == 0)) {
+      // Before delivery fee is known, show food + tax from backend display if present.
+      final backendTotal = state.totalAmount;
+      if (backendTotal != null && backendTotal > 0) {
+        return backendTotal.toFormattedPrice();
+      }
+    }
+    if (state.displayTotalAmount != null &&
+        state.displayTotalAmount!.isNotEmpty &&
+        state.isPickupFulfillment) {
+      return state.displayTotalAmount!;
+    }
+
+    final food = widget.foodTotal.toDouble();
+    final delivery = state.isPickupFulfillment
+        ? 0.0
+        : (_deliveryFee ?? state.deliveryFee ?? 0);
+    final total = state.totalAmount ??
+        OrderTax.calculateTotal(itemSubtotal: food, deliveryFee: delivery);
+    if (!state.isPickupFulfillment && delivery <= 0) {
+      return OrderTax.calculateTotal(itemSubtotal: food).toFormattedPrice();
+    }
+    return total.toFormattedPrice();
   }
 
   Widget _buildInfoRow({

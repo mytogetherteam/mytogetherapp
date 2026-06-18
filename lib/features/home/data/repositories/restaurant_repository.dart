@@ -543,7 +543,8 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
   }) async {
-    final key = 'food-tab-$feedType-$page-$size';
+    final key =
+        'food-tab-$feedType-${lat.toStringAsFixed(3)}-${lon.toStringAsFixed(3)}-$page-$size';
     final now = DateTime.now();
     final cached = _feedCache[key];
     final cacheTime = _feedCacheTime[key];
@@ -657,6 +658,20 @@ class RestaurantRepository {
     } else {
       await _remoteDataSource.removeMenuFavorite(menuItemId);
     }
+  }
+
+  /// Clears only caches tied to the user's delivery coordinates (nearby shops,
+  /// geo food-tab feeds, discount deals). Does not touch banners, collections,
+  /// shop profiles, or other non-location data.
+  void clearNearbyCache() {
+    _cachedNearbyShops = null;
+    _lastCacheKey = null;
+    _lastFetchTime = null;
+    _feedCache.removeWhere((key, _) => key.startsWith('food-tab-'));
+    _feedCacheTime.removeWhere((key, _) => key.startsWith('food-tab-'));
+    _cachedDiscountDeals = null;
+    _discountDealsCacheKey = null;
+    _discountDealsLastFetch = null;
   }
 
   /// Clears the feed cache for a specific shop or all shops.

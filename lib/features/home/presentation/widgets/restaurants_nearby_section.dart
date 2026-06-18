@@ -9,6 +9,7 @@ import '../screens/restaurant_nearby_list_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -17,14 +18,26 @@ class RestaurantsNearbySection extends StatefulWidget {
   State<RestaurantsNearbySection> createState() => _RestaurantsNearbySectionState();
 }
 
-class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
+class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
+    with LocationRefreshMixin {
   Future<List<Restaurant>>? _restaurantsFuture;
   final Map<String, bool> _localFavorites = {};
 
   @override
   void initState() {
     super.initState();
-    _restaurantsFuture = _loadNearbyRestaurants();
+    _reloadRestaurants();
+  }
+
+  @override
+  void onActiveLocationChanged() {
+    _reloadRestaurants();
+  }
+
+  void _reloadRestaurants() {
+    setState(() {
+      _restaurantsFuture = _loadNearbyRestaurants();
+    });
   }
 
   Future<List<Restaurant>> _loadNearbyRestaurants() async {

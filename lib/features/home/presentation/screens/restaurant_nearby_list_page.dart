@@ -18,6 +18,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
+import '../../../../core/config/google_maps_config.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
@@ -51,8 +52,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   double _selectedRadius = 5.0;
 
   late final Dio _dio;
-  static const String _googleMapsApiKey =
-      'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
+  String get _googleMapsApiKey => GoogleMapsConfig.apiKey;
 
   @override
   void initState() {
@@ -60,6 +60,12 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     _dio = Dio();
     _fetchRestaurants();
     _initLocationService();
+    UserLocationRepository.instance.addListener(_onActiveLocationChanged);
+  }
+
+  void _onActiveLocationChanged() {
+    if (!mounted) return;
+    _fetchRestaurants();
   }
 
   Future<void> _initLocationService() async {
@@ -709,6 +715,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   @override
   void dispose() {
+    UserLocationRepository.instance.removeListener(_onActiveLocationChanged);
     _positionStreamSubscription?.cancel();
     _listScrollController.dispose();
     super.dispose();

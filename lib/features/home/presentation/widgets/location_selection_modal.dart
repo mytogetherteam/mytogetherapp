@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +10,6 @@ import '../../../../core/location/location_search_service.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../screens/location_search_page.dart';
-import 'package:flutter/foundation.dart';
 import 'location_skeleton_loader.dart';
 
 class LocationSelectionModal extends StatefulWidget {
@@ -24,40 +24,102 @@ class LocationSelectionModal extends StatefulWidget {
 class _LocationSelectionModalState extends State<LocationSelectionModal> {
   PlaceResult? _currentLocationResult;
   bool _isLoadingCurrent = true;
+  bool _hasPreciseGps = false;
   List<UserLocationModel> _apiLocations = [];
   bool _isLoadingApi = true;
   bool _isProcessing = false;
 
+  int get _savedCount =>
+      UserLocationRepository.instance.countSavedLocations(_apiLocations);
+
+  bool get _isAtLocationLimit =>
+      UserLocationRepository.instance.isAtLocationLimit(_apiLocations);
+
   @override
   void initState() {
     super.initState();
+    _hydrateFromActiveLocation();
     _loadCurrentLocation();
     _loadApiLocations();
-    UserLocationRepository.instance.addListener(_loadApiLocations);
+    UserLocationRepository.instance.addListener(_onRepositoryChanged);
   }
 
   @override
   void dispose() {
-    UserLocationRepository.instance.removeListener(_loadApiLocations);
+    UserLocationRepository.instance.removeListener(_onRepositoryChanged);
     super.dispose();
+  }
+
+  void _onRepositoryChanged() {
+    if (!mounted) return;
+    _hydrateFromActiveLocation();
+    setState(() {});
+  }
+
+  void _hydrateFromActiveLocation() {
+    final active = UserLocationRepository.instance.activeLocation;
+    if (!UserLocationRepository.instance.isSessionCurrentLocation ||
+        active?.latitude == null ||
+        active?.longitude == null) {
+      return;
+    }
+    _currentLocationResult = PlaceResult(
+      placeId: '',
+      name: context.tr('location.current'),
+      displayName: active!.address ?? active.locationName ?? '',
+      lat: active.latitude!,
+      lon: active.longitude!,
+    );
+    _hasPreciseGps = true;
+    _isLoadingCurrent = false;
   }
 
   Future<void> _loadCurrentLocation() async {
     try {
-      final pos = await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
+      LocationService().clearCache();
+      final pos = await LocationService().getCurrentPosition(
+        requestPermissionIfDenied: true,
+        forceRefresh: true,
+        highAccuracy: !kIsWeb,
+      );
+      final precise = LocationService().hasRealPosition &&
+          (pos.accuracy <= 0 || pos.accuracy <= 100);
+      if (!precise) {
+        if (mounted) {
+          setState(() {
+            _hasPreciseGps = false;
+            _isLoadingCurrent = false;
+          });
+        }
+        return;
+      }
       final result = await LocationSearchService.instance.reverseGeocode(
         pos.latitude,
         pos.longitude,
       );
       if (mounted) {
         setState(() {
-          _currentLocationResult = result;
+          _currentLocationResult = result ??
+              PlaceResult(
+                placeId: '',
+                name: context.tr('location.current'),
+                displayName:
+                    '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}',
+                lat: pos.latitude,
+                lon: pos.longitude,
+              );
+          _hasPreciseGps = true;
           _isLoadingCurrent = false;
         });
       }
     } catch (e) {
       debugPrint('CURRENT LOCATION ERROR: $e');
-      if (mounted) setState(() => _isLoadingCurrent = false);
+      if (mounted) {
+        setState(() {
+          _hasPreciseGps = false;
+          _isLoadingCurrent = false;
+        });
+      }
     }
   }
 
@@ -81,6 +143,36 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
     }
   }
 
+  /// Opens the saved-addresses page (search, manage, add via map picker).
+  Future<void> _onViewAddresses() async {
+    if (!mounted || _isProcessing) return;
+
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    Navigator.pop(context);
+    await rootNavigator.push<bool>(
+      MaterialPageRoute(builder: (_) => const LocationSearchPage()),
+    );
+  }
+
+  void _selectCurrentLocation() {
+    final place = _currentLocationResult;
+    if (!_hasPreciseGps || place == null) return;
+
+    final sessionLocation = UserLocationModel(
+      id: -1,
+      latitude: place.lat,
+      longitude: place.lon,
+      locationName: context.tr('location.current'),
+      address: place.displayName,
+      locationType: 'OTHER',
+      isPrimary: true,
+    );
+    UserLocationRepository.instance.setActiveLocation(sessionLocation);
+    setState(() {});
+    widget.onLocationSelected?.call(place);
+    Navigator.pop(context);
+  }
+
   Future<void> _handleSelectionChange(
     PlaceResult place, {
     int? existingId,
@@ -90,8 +182,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
 
     try {
       if (existingId != null) {
-        // Find existing model to preserve data
         final existing = _apiLocations.firstWhere((l) => l.id == existingId);
+        UserLocationRepository.instance.setActiveLocation(
+          existing.copyWith(isPrimary: true),
+        );
         if (!existing.isPrimary) {
           await UserLocationRepository.instance.updateLocation(
             existing.copyWith(isPrimary: true),
@@ -103,6 +197,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
             .where((l) => l.address == place.displayName)
             .firstOrNull;
         if (match != null) {
+          UserLocationRepository.instance.setActiveLocation(
+            match.copyWith(isPrimary: true),
+          );
           if (!match.isPrimary) {
             await UserLocationRepository.instance.updateLocation(
               match.copyWith(isPrimary: true),
@@ -121,17 +218,8 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
             }
             return;
           }
-          // Add as new primary
-          final newLoc = UserLocationModel(
-            id: 0,
-            latitude: place.lat,
-            longitude: place.lon,
-            locationName: place.name,
-            address: place.displayName,
-            locationType: 'OTHER',
-            isPrimary: true,
-          );
-          await UserLocationRepository.instance.addLocation(newLoc);
+          // New locations must go through the picker + details form.
+          return;
         }
       }
 
@@ -162,6 +250,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Container(
       constraints: BoxConstraints(maxHeight: screenHeight * 0.7),
@@ -234,16 +323,36 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                       else if (_apiLocations.isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              context.tr('location.saved_locations'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade600,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  context.tr('location.saved_locations'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Text(
+                                context.trArgs(
+                                  'location.slots_used',
+                                  {
+                                    'current': '$_savedCount',
+                                    'max':
+                                        '${UserLocationRepository.maxSavedLocations}',
+                                  },
+                                ),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: _isAtLocationLimit
+                                      ? Colors.orange.shade800
+                                      : Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         ..._apiLocations.map(
@@ -256,82 +365,61 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           endIndent: 20,
                         ),
                       ],
-
-                      const SizedBox(
-                        height: 80,
-                      ), // Extra space for fixed button
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
 
-          // Fixed small pill shape floating button at bottom center
-          Positioned(
-            bottom: 24,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LocationSearchPage(),
+              // Fixed footer — outside the scroll view so taps are never blocked.
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomInset),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isProcessing ? null : _onViewAddresses,
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
                       ),
-                    );
-                    if (result != null && mounted) {
-                      if (result is PlaceResult) {
-                        _handleSelectionChange(result);
-                      } else {
-                        if (!context.mounted) return;
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          PhosphorIconsFill.mapPinPlus,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          context.tr('location.add_new'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            PhosphorIcons.mapPin,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.tr('location.view_addresses'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
           if (_isProcessing)
             Positioned.fill(
@@ -351,25 +439,38 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   }
 
   Widget _buildCurrentLocationTile() {
-    return InkWell(
-      onTap: _currentLocationResult != null
-          ? () => _handleSelectionChange(_currentLocationResult!)
-          : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
+    final canSelect = _hasPreciseGps && _currentLocationResult != null;
+    final isSelected = UserLocationRepository.instance.isSessionCurrentLocation;
+    return Material(
+      color: isSelected
+          ? AppColors.primary.withValues(alpha: 0.06)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: canSelect ? _selectCurrentLocation : null,
+        child: Container(
+          decoration: isSelected
+              ? BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: AppColors.primary, width: 3),
+                  ),
+                )
+              : null,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: Row(
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.1)
+                    : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 PhosphorIcons.crosshairSimple,
                 size: 22,
-                color: Colors.grey.shade700,
+                color: isSelected ? AppColors.primary : Colors.grey.shade700,
               ),
             ),
             const SizedBox(width: 14),
@@ -377,13 +478,38 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    context.tr('location.current'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          context.tr('location.current'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            context.tr('location.selected'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   if (_isLoadingCurrent)
@@ -411,10 +537,26 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
           ],
         ),
       ),
+    ),
     );
   }
 
+  bool _isSavedLocationSelected(UserLocationModel location) {
+    if (UserLocationRepository.instance.isSessionCurrentLocation) {
+      return false;
+    }
+    final active = UserLocationRepository.instance.activeLocation;
+    if (active != null && active.id > 0) {
+      return active.id == location.id;
+    }
+    if (active != null && active.id <= 0) {
+      return false;
+    }
+    return location.isPrimary;
+  }
+
   Widget _buildSavedLocationTile(UserLocationModel location) {
+    final isSelected = _isSavedLocationSelected(location);
     return InkWell(
       onTap: () async {
         final place = PlaceResult(
@@ -434,7 +576,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: location.isPrimary
+                color: isSelected
                     ? AppColors.primary.withValues(alpha: 0.1)
                     : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
@@ -442,9 +584,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               child: Icon(
                 _getLocationIcon(location.locationType),
                 size: 22,
-                color: location.isPrimary
-                    ? AppColors.primary
-                    : Colors.grey.shade600,
+                color: isSelected ? AppColors.primary : Colors.grey.shade600,
               ),
             ),
             const SizedBox(width: 14),
@@ -468,7 +608,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (location.isPrimary)
+                      if (isSelected)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,

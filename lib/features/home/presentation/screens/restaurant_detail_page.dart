@@ -15,7 +15,7 @@ import '../../../wishlist/data/repositories/wishlist_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
-import '../../../../core/location/location_service.dart';
+import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
@@ -168,11 +168,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     // Also refresh the shop detail header (name, logo, rating etc.)
     Future(() async {
       try {
-        final pos = LocationService().cachedPosition;
+        final coords =
+            await UserLocationRepository.instance.resolveActiveCoordinates();
         final restaurant = await RestaurantRepository.instance.getShopById(
           shopId,
-          lat: pos?.latitude ?? LocationService.defaultLat,
-          lon: pos?.longitude ?? LocationService.defaultLon,
+          lat: coords.lat,
+          lon: coords.lon,
         );
         if (mounted) {
           setState(() {
@@ -300,8 +301,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       }
 
       // Also re-fetch the shop detail itself
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final updatedRestaurant = await RestaurantRepository.instance.getShopById(
         shopId,
+        lat: coords.lat,
+        lon: coords.lon,
       );
       if (mounted) {
         setState(() {

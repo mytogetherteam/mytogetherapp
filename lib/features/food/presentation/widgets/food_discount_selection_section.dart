@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/location/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../home/data/models/home_discount_section_dto.dart';
@@ -13,6 +12,7 @@ import '../../../home/presentation/screens/today_overview_detail_page.dart';
 import '../../../home/presentation/widgets/discount_deal_card.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../../home/presentation/widgets/view_all_icon_button.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 
 /// Food-tab discount rail driven by admin config from
 /// `GET /api/user/home-discount-section`, with selectable chips when more than
@@ -28,7 +28,7 @@ class FoodDiscountSelectionSection extends StatefulWidget {
 }
 
 class _FoodDiscountSelectionSectionState
-    extends State<FoodDiscountSelectionSection> {
+    extends State<FoodDiscountSelectionSection> with LocationRefreshMixin {
   bool _loadingConfig = true;
   bool _loadingDeals = false;
   List<HomeDiscountSectionDto> _activeSections = [];
@@ -39,6 +39,14 @@ class _FoodDiscountSelectionSectionState
   void initState() {
     super.initState();
     _loadConfig();
+  }
+
+  @override
+  void onActiveLocationChanged() {
+    final section = _selected;
+    if (section != null) {
+      _loadDeals(section);
+    }
   }
 
   Future<void> _loadConfig() async {
@@ -113,18 +121,9 @@ class _FoodDiscountSelectionSectionState
   }
 
   Future<_LatLng?> _resolveLocation() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final savedLat = activeLoc?.latitude;
-    final savedLon = activeLoc?.longitude;
-    if (savedLat != null && savedLon != null) {
-      return _LatLng(savedLat, savedLon);
-    }
-
-    final service = LocationService();
-    await service.getCurrentPosition();
-    final pos = service.cachedPosition;
-    if (pos == null) return null;
-    return _LatLng(pos.latitude, pos.longitude);
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+    return _LatLng(coords.lat, coords.lon);
   }
 
   Future<void> _onSectionSelected(HomeDiscountSectionDto section) async {

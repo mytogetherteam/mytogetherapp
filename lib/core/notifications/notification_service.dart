@@ -18,6 +18,10 @@ import '../../features/cart/presentation/screens/awaiting_payment_page.dart';
 import '../../features/cart/presentation/screens/order_status_page.dart';
 import '../../features/cart/presentation/screens/order_complete_page.dart';
 
+double _primaryFoodSubtotal(ActiveOrderState state) {
+  return state.getOrder(state.orderId)?.resolvedItemSubtotal ?? 0;
+}
+
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -315,21 +319,21 @@ class NotificationService {
                 nameTh: state.shopNameTh,
                 items: state.orderItems,
               ),
-              foodTotal: (state.totalAmount ?? 0).toInt(),
+              foodTotal: (_primaryFoodSubtotal(state)).round(),
             ),
           ));
         } else if (s == 1) {
           App.navigatorKey.currentState?.push(MaterialPageRoute(
             builder: (_) => AwaitingPaymentPage(
               orderId: state.orderId,
-              foodTotal: state.totalAmount ?? 0,
+              foodTotal: _primaryFoodSubtotal(state),
               deliveryFee: state.deliveryFee ?? 0,
             ),
           ));
         } else if (s == 2 || s == 3 || s == -1) {
           App.navigatorKey.currentState?.push(MaterialPageRoute(
             builder: (_) => OrderStatusPage(
-              foodTotal: state.totalAmount ?? 0,
+              foodTotal: _primaryFoodSubtotal(state),
               deliveryFee: state.deliveryFee ?? 0,
             ),
           ));

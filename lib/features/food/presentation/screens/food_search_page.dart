@@ -384,6 +384,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   }
 
   void _openRestaurant(SearchShopDto shop) {
+    _saveRecentSearch(shop.shop.name);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => _buildRestaurantDetail(shop)),
@@ -391,6 +392,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   }
 
   void _openMenuItem(SearchMenuItemPreviewDto item, SearchShopDto shop) {
+    _saveRecentSearch(item.name);
     Navigator.push(
       context,
       MaterialPageRoute(

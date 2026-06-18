@@ -10,6 +10,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
@@ -148,8 +149,15 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
       0,
       (sum, item) => sum + item.total,
     );
-    final foodPrice = (order?.totalAmount ?? foodFromItems) - deliveryFee;
-    final total = order?.totalAmount ?? (foodPrice + deliveryFee);
+    final foodPrice = order?.itemPrice ??
+        order?.resolvedItemSubtotal ??
+        (foodFromItems > 0 ? foodFromItems : 0);
+    final taxAmount = order?.taxAmount ?? OrderTax.calculateTax(foodPrice);
+    final total = order?.totalAmount ??
+        OrderTax.calculateTotal(
+          itemSubtotal: foodPrice,
+          deliveryFee: order?.isPickupFulfillment == true ? 0 : deliveryFee,
+        );
     final displayTotal =
         order?.displayTotalAmount ?? total.toFormattedPrice();
     
@@ -328,6 +336,12 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 context.tr('payment.food_price'),
                                 order?.displayFoodPrice ??
                                     foodPrice.toFormattedPrice(),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildSummaryRow(
+                                context.tr('order_status.tax'),
+                                order?.displayTaxAmount ??
+                                    taxAmount.toFormattedPrice(),
                               ),
                               const SizedBox(height: 12),
                               _buildDeliveryFeeRow(context, order, deliveryFee),

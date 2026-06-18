@@ -62,6 +62,22 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant ExploreMenuSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.latitude != widget.latitude ||
+        oldWidget.longitude != widget.longitude) {
+      setState(() {
+        _items.clear();
+        _currentPage = 0;
+        _hasMore = true;
+        _isInitialLoading = true;
+        _isLoadingMore = false;
+      });
+      _loadInitial();
+    }
+  }
+
   void _onScroll() {
     if (!widget.scrollController.hasClients) return;
     final position = widget.scrollController.position;
