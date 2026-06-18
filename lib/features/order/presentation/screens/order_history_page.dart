@@ -8,6 +8,8 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
+import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -86,13 +88,26 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        title: Text(
-          context.tr('orders.history'),
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/app_icon_small.png',
+              height: 28,
+            ),
+            const SizedBox(width: 12),
+            Transform.translate(
+              offset: const Offset(0, 4), // Nudge text down to align visually
+              child: Text(
+                context.tr('orders.history'),
+                style: GoogleFonts.poppins(
+                  color: Colors.black,
+                  fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
         actions: const [
           Padding(
@@ -104,14 +119,43 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             ? null
             : TabBar(
                 controller: _tabController,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: AppColors.primary,
+                indicator: const _GradientTabIndicator(
+                  height: 3.0,
+                  gradient: AppColors.primaryGradient,
+                ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                 tabs: [
-                  Tab(text: context.tr('orders.completed')),
-                  Tab(text: context.tr('orders.cancelled')),
+                  Tab(
+                    child: AnimatedBuilder(
+                      animation: _tabController!,
+                      builder: (context, _) {
+                        final isSelected = _tabController!.index == 0;
+                        return isSelected
+                            ? GradientText(context.tr('orders.completed'))
+                            : Text(
+                                context.tr('orders.completed'),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.grey, fontWeight: FontWeight.w600),
+                              );
+                      },
+                    ),
+                  ),
+                  Tab(
+                    child: AnimatedBuilder(
+                      animation: _tabController!,
+                      builder: (context, _) {
+                        final isSelected = _tabController!.index == 1;
+                        return isSelected
+                            ? GradientText(context.tr('orders.cancelled'))
+                            : Text(
+                                context.tr('orders.cancelled'),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.grey, fontWeight: FontWeight.w600),
+                              );
+                      },
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -305,5 +349,36 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         );
       },
     );
+  }
+}
+
+class _GradientTabIndicator extends Decoration {
+  final double height;
+  final Gradient gradient;
+
+  const _GradientTabIndicator({
+    this.height = 3.0,
+    required this.gradient,
+  });
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) {
+    return _GradientPainter(this, onChanged);
+  }
+}
+
+class _GradientPainter extends BoxPainter {
+  final _GradientTabIndicator decoration;
+
+  _GradientPainter(this.decoration, VoidCallback? onChanged) : super(onChanged);
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    if (configuration.size == null) return;
+    final Rect rect = Offset(
+            offset.dx, configuration.size!.height - decoration.height) &
+        Size(configuration.size!.width, decoration.height);
+    final Paint paint = Paint()..shader = decoration.gradient.createShader(rect);
+    canvas.drawRect(rect, paint);
   }
 }

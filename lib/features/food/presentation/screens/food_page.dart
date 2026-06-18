@@ -129,7 +129,7 @@ class _FoodPageState extends State<FoodPage> {
                                   Align(
                                     alignment: Alignment.bottomLeft,
                                     child: Padding(
-                                      padding: EdgeInsets.only(left: 24, bottom: isIOS ? 150 : 115),
+                                      padding: EdgeInsets.only(left: 24, bottom: isIOS ? 130 : 95),
                                       child: Text(
                                         context.tr('food.banner_slogan'),
                                         style: TextStyle(

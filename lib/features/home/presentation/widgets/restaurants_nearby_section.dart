@@ -166,7 +166,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
                 },
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
           ],
         );
       },
@@ -224,7 +224,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection> {
             ),
           ),
         ),
-        const SizedBox(height: 32),
       ],
     );
   }

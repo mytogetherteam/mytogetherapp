@@ -718,7 +718,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             PopularBrandsSection(
                               key: ValueKey('brands_$_refreshKey'),
                             ),
-                            const SizedBox(height: 24),
                             TodaysOverviewSection(
                               key: ValueKey('overview_$_refreshKey'),
                             ),
@@ -730,7 +729,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             TopPlacesNearbySection(
                               key: ValueKey('places_$_refreshKey'),
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 24),
                             TrendingNewsSection(
                               key: ValueKey('news_$_refreshKey'),
                             ),

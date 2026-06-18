@@ -182,6 +182,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
+          systemOverlayStyle: SystemUiOverlayStyle.light,
           toolbarHeight: 70,
           elevation: 0,
           flexibleSpace: Container(

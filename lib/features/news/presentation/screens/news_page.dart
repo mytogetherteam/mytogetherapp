@@ -6,6 +6,8 @@ import '../../data/repositories/news_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -108,8 +110,28 @@ class _NewsPageState extends State<NewsPage> {
               snap: true,
               pinned: false,
               toolbarHeight: 48,
-              title: Image.asset('assets/images/app_icon_small.png', height: 28),
-              centerTitle: true,
+              title: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/app_icon_small.png',
+                    height: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Transform.translate(
+                    offset: const Offset(0, 4),
+                    child: Text(
+                      context.tr('nav.news'),
+                      style: GoogleFonts.poppins(
+                        color: Colors.black,
+                        fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              centerTitle: false,
               actions: const [
                 Padding(
                   padding: EdgeInsets.only(right: 16.0),

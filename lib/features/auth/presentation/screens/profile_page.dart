@@ -21,6 +21,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
+import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -31,11 +32,13 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   String _appVersion = '';
+  String? _bgImageUrl;
 
   @override
   void initState() {
     super.initState();
     _initAppVersion();
+    _fetchBackgroundTheme();
   }
 
   Future<void> _initAppVersion() async {
@@ -45,6 +48,17 @@ class _ProfilePageState extends State<ProfilePage> {
         _appVersion = packageInfo.version;
       });
     }
+  }
+
+  Future<void> _fetchBackgroundTheme() async {
+    try {
+      final bgThemeData = await RestaurantRepository.instance.getBackgroundTheme();
+      if (mounted && bgThemeData != null) {
+        setState(() {
+          _bgImageUrl = bgThemeData['url'];
+        });
+      }
+    } catch (_) {}
   }
 
   String _getImageUrl(String? path) {
@@ -72,31 +86,19 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Container(
                     height: 120,
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, Color(0xFFF96232)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -size.width * 0.3,
-                          right: -size.width * 0.1,
-                          child: Container(
-                            width: size.width * 1.5,
-                            height: size.width * 1.5,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                width: 80,
-                              ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                          ? DecorationImage(
+                              image: CachedNetworkImageProvider(_bgImageUrl!),
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
+                            )
+                          : const DecorationImage(
+                              image: AssetImage('assets/images/top-bannner.jpg'),
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -119,6 +121,31 @@ class _ProfilePageState extends State<ProfilePage> {
                               size: 40, color: Colors.grey[400])
                           : null,
                     ),
+                  ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 16,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/app_icon_small.png',
+                        height: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Transform.translate(
+                        offset: const Offset(0, 4),
+                        child: Text(
+                          context.tr('nav.profile'),
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Positioned(
