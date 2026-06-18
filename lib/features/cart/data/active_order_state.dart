@@ -74,7 +74,18 @@ class ActiveOrderItem {
   bool hasNotifiedSlipRequest;
   bool isSlipRequested;
   String? deliveryType;
+  String? orderType;
+  String? backendStatus;
+  String? lastOrderNo;
   String? riderVehicleNumber;
+
+  bool get isPickupFulfillment {
+    final type = (orderType ?? '').toUpperCase();
+    return type == 'PICK_UP' || type == 'PICKUP';
+  }
+
+  bool get isReadyForPickup =>
+      (backendStatus ?? '').toUpperCase() == 'READY_FOR_PICKUP';
 
   ActiveOrderItem({
     required this.orderId,
@@ -117,6 +128,9 @@ class ActiveOrderItem {
     this.hasNotifiedSlipRequest = false,
     this.isSlipRequested = false,
     this.deliveryType,
+    this.orderType,
+    this.backendStatus,
+    this.lastOrderNo,
     this.riderVehicleNumber,
     this.shopId,
     this.shopName,
@@ -201,6 +215,10 @@ class ActiveOrderItem {
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
     'proofPhotoUrl': proofPhotoUrl,
+    'deliveryType': deliveryType,
+    'orderType': orderType,
+    'backendStatus': backendStatus,
+    'lastOrderNo': lastOrderNo,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
@@ -257,6 +275,10 @@ class ActiveOrderItem {
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
     proofPhotoUrl: json['proofPhotoUrl'],
+    deliveryType: json['deliveryType'],
+    orderType: json['orderType'],
+    backendStatus: json['backendStatus'],
+    lastOrderNo: json['lastOrderNo'],
   );
 }
 
@@ -330,8 +352,14 @@ class ActiveOrderState extends ChangeNotifier {
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
   
-  // Helper to get a specific order
-  ActiveOrderItem? getOrder(String? id) => _orders[id];
+  // Helper to get a specific order (tolerates # prefix / numeric id mismatches).
+  ActiveOrderItem? getOrder(String? id) {
+    if (id != null) {
+      final found = _findTrackedOrder(id);
+      if (found != null) return found;
+    }
+    return _primary;
+  }
 
   String? get orderId => _primaryOrderId ?? _primary?.orderId;
   set orderId(String? val) {
@@ -377,6 +405,11 @@ class ActiveOrderState extends ChangeNotifier {
   String? get statusLabel => _primary?.statusLabel;
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
+  bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
+  bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
+  String? get backendStatus => _primary?.backendStatus;
+  String? get orderType => _primary?.orderType;
+  String? get lastOrderNo => _primary?.lastOrderNo;
   double? get totalAmount => _primary?.totalAmount;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
@@ -449,6 +482,8 @@ class ActiveOrderState extends ChangeNotifier {
     String? userLocationName,
     LatLng? restaurantLatLng,
     LatLng? userLocation,
+    String? orderType,
+    String? lastOrderNo,
   }) {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
@@ -467,6 +502,8 @@ class ActiveOrderState extends ChangeNotifier {
       userLocationName: userLocationName,
       restaurantLatLng: restaurantLatLng,
       userLocation: userLocation,
+      orderType: orderType,
+      lastOrderNo: lastOrderNo,
     );
     saveToPrefs();
     notifyListeners();
@@ -611,6 +648,12 @@ class ActiveOrderState extends ChangeNotifier {
     
     if (data['deliveryType'] != null) {
       item.deliveryType = _parseSafeString(data['deliveryType']);
+    }
+    if (data['orderType'] != null) {
+      item.orderType = _parseSafeString(data['orderType']);
+    }
+    if (data['lastOrderNo'] != null) {
+      item.lastOrderNo = _parseSafeString(data['lastOrderNo']);
     }
 
     if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);
@@ -991,6 +1034,7 @@ class ActiveOrderState extends ChangeNotifier {
     String? reviseReason,
   }) {
     final upStatus = statusStr.toUpperCase();
+    item.backendStatus = upStatus;
     switch (upStatus) {
       case 'REVISED':
         // Shop sent the order back for revision. Keep it on the awaiting
@@ -1048,6 +1092,11 @@ class ActiveOrderState extends ChangeNotifier {
         item.showUploadSection = false;
         item.isPaymentChecking = false;
         break;
+      case 'READY_FOR_PICKUP':
+        item.orderStatus = 2;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
       case 'ON_THE_WAY':
       case 'DELIVERING':
       case 'SHIPPED':
@@ -1055,6 +1104,7 @@ class ActiveOrderState extends ChangeNotifier {
         break;
       case 'COMPLETED':
       case 'DELIVERED':
+      case 'PICKED_UP':
         item.orderStatus = 4;
         break;
       case 'CANCELED':

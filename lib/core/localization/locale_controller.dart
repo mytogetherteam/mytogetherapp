@@ -131,6 +131,8 @@ class LocaleController extends ChangeNotifier {
       'SHIPPED': 'order.status.on_the_way',
       'DELIVERED': 'order.status.delivered',
       'COMPLETED': 'order.status.delivered',
+      'READY_FOR_PICKUP': 'order.status.ready_for_pickup',
+      'PICKED_UP': 'order.status.picked_up',
       'CANCELED': 'order.status.canceled',
       'CANCELLED': 'order.status.canceled',
     };

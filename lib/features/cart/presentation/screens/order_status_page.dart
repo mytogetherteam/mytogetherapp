@@ -26,6 +26,7 @@ import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/pickup_order_qr_card.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -64,6 +65,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   void initState() {
     super.initState();
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
+    _backendStatus = ActiveOrderState.instance.backendStatus;
     
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
@@ -111,6 +113,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         setState(() {
           // Map ActiveOrderState orderStatus (0-4) to local _currentStatus (1-4)
           _currentStatus = state.orderStatus.clamp(1, 4);
+          _backendStatus = state.backendStatus;
 
           // Trigger WebView init if status is 3 and we have a new URL
           if (_currentStatus == 3 && 
@@ -410,6 +413,13 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   String _statusTitle(BuildContext context) {
     if (_currentStatus == -1) return context.tr('order_status.cancelled');
+    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
+    if (isPickup && ActiveOrderState.instance.isReadyForPickup) {
+      return context.tr('order_status.ready_for_pickup');
+    }
+    if (isPickup && _currentStatus == 4) {
+      return context.tr('order_status.picked_up');
+    }
     switch (_currentStatus) {
       case 1:
         return context.tr('order_status.checking_payment');
@@ -474,15 +484,29 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             const SizedBox(height: 8),
             if (_currentStatus != -1) ...[
               Text(
-                context.trArgs('order_status.estimate_arrival', {
-                  'time': state.estimatedTime ?? '09:45 PM',
-                }),
+                state.isPickupFulfillment
+                    ? (state.estimatedTime != null &&
+                            state.estimatedTime!.isNotEmpty
+                        ? '${context.tr('order_status.est_waiting_time')}: ${state.estimatedTime!}'
+                        : context.tr('order_status.preparing'))
+                    : context.trArgs('order_status.estimate_arrival', {
+                        'time': state.estimatedTime ?? '09:45 PM',
+                      }),
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
               // Progress Bar
               _buildProgressBar(),
               const SizedBox(height: 32),
+              if (state.isPickupFulfillment &&
+                  state.isReadyForPickup &&
+                  state.orderId != null) ...[
+                PickupOrderQrCard(
+                  orderId: state.orderId!,
+                  lastOrderNo: state.lastOrderNo,
+                ),
+                const SizedBox(height: 24),
+              ],
             ],
 
             // Map Embed (only if status >= 3)
@@ -492,8 +516,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 return FadeTransition(opacity: animation, child: SizeTransition(sizeFactor: animation, child: child));
               },
               child: (() {
-                if (_currentStatus < 3 || _currentStatus == -1) return const SizedBox.shrink(key: ValueKey('empty_map'));
-                
+                if (ActiveOrderState.instance.isPickupFulfillment ||
+                    _currentStatus < 3 ||
+                    _currentStatus == -1) {
+                  return const SizedBox.shrink(key: ValueKey('empty_map'));
+                }
+
                 final state = ActiveOrderState.instance;
                 final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
                 
@@ -564,7 +592,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (state.estimatedTime != null && state.estimatedTime!.isNotEmpty)
+                    if (state.estimatedTime != null &&
+                        state.estimatedTime!.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -586,27 +615,29 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                       ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          context.tr('order_status.delivery_fee'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[500],
-                            letterSpacing: 0.5,
+                    if (!state.isPickupFulfillment)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            context.tr('order_status.delivery_fee'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        GradientText(
-                          state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice(),
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          GradientText(
+                            state.displayDeliveryFee ??
+                                widget.deliveryFee.toFormattedPrice(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -885,13 +916,21 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ),
                               
                               _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
-                              const SizedBox(height: 8),
-                              _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                              if (!state.isPickupFulfillment) ...[
+                                const SizedBox(height: 8),
+                                _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                              ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
-                              _buildSummaryRow(context.tr('order_status.total_amount'), (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(), isBold: true),
+                              _buildSummaryRow(
+                                context.tr('order_status.total_amount'),
+                                state.isPickupFulfillment
+                                    ? (state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice())
+                                    : (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(),
+                                isBold: true,
+                              ),
                             ],
                           ),
                         ),
@@ -904,7 +943,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             const SizedBox(height: 16),
 
             // Delivery Info Card
-            if (_currentStatus != -1 && (_currentStatus >= 3 || (state.riderName != null && state.riderName!.isNotEmpty)))
+            if (!state.isPickupFulfillment &&
+                _currentStatus != -1 &&
+                (_currentStatus >= 3 ||
+                    (state.riderName != null && state.riderName!.isNotEmpty)))
               Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1402,6 +1444,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   }
 
   String _statusDescription(BuildContext context, String storeName) {
+    if (ActiveOrderState.instance.isPickupFulfillment) {
+      if (ActiveOrderState.instance.isReadyForPickup) {
+        return context.tr('order_status.pickup_qr_subtitle');
+      }
+      final key = switch (_currentStatus) {
+        1 => 'order_status.checking_payment_shop',
+        2 => 'order_status.preparing_shop',
+        _ => 'order_status.picked_up',
+      };
+      return context.trArgs(key, {'shop': storeName});
+    }
     final key = switch (_currentStatus) {
       1 => 'order_status.checking_payment_shop',
       2 => 'order_status.preparing_shop',

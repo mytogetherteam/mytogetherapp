@@ -1,4 +1,6 @@
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/utils/file_url_util.dart';
+import '../../../../core/utils/image_utils.dart';
 
 /// Request body for POST /api/mobile/cart/items
 class AddToCartRequest {
@@ -340,6 +342,9 @@ class CartDto {
         data['shopName'] as String? ??
         data['name'] as String? ??
         data['restaurantName'] as String?;
+    final shopMap = data['shop'] is Map
+        ? Map<String, dynamic>.from(data['shop'] as Map)
+        : null;
 
     return CartDto(
       shopId: data['shopId'] as int?,
@@ -347,7 +352,7 @@ class CartDto {
       shopNameEn: shopNameEn,
       shopNameMm: data['shopNameMm'] as String?,
       shopNameTh: data['shopNameTh'] as String?,
-      shopImageUrl: data['shopImageUrl'] as String? ?? data['imageUrl'] as String?,
+      shopImageUrl: _resolveShopImageUrl(data, shopMap),
       items: itemsJson
           .map((e) => CartItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -361,6 +366,29 @@ class CartDto {
 
   /// Total number of individual items (sum of quantities)
   int get totalQuantity => items.fold(0, (sum, i) => sum + i.quantity);
+
+  static String? _resolveShopImageUrl(
+    Map<String, dynamic> data,
+    Map<String, dynamic>? shopMap,
+  ) {
+    if (shopMap != null) {
+      final fromShop = ShopImageResolver.resolveShopAvatarFromJson(shopMap);
+      if (fromShop != null && fromShop.isNotEmpty) {
+        return FileUrlUtil.resolve(fromShop);
+      }
+    }
+
+    for (final raw in [
+      data['shopLogo'],
+      data['logoUrl'],
+      data['shopLogoUrl'],
+      data['shopImageUrl'],
+    ]) {
+      final resolved = FileUrlUtil.resolve(raw?.toString());
+      if (resolved.isNotEmpty) return resolved;
+    }
+    return null;
+  }
 
   Map<String, dynamic> toJson() => {
     'shopId': shopId,

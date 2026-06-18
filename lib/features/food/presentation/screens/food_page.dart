@@ -15,8 +15,8 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurant
 import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/popular_brands_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/together_deals_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/explore_menu_section.dart';
+import 'package:mytogetherapp/features/food/presentation/widgets/food_discount_selection_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_categories_section.dart';
 import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
@@ -189,12 +189,19 @@ class _FoodPageState extends State<FoodPage> {
                               const SizedBox(height: 20),
                               const FoodPromotionsCarousel(),
                               const SizedBox(height: 20),
+                              FoodDiscountSelectionSection(
+                                key: ValueKey('discount_$_refreshKey'),
+                              ),
+                              const SizedBox(height: 20),
+                              CollectionsSection(
+                                key: ValueKey('collections_$_refreshKey'),
+                              ),
+                              const SizedBox(height: 8),
                               const FoodRestaurantsSection(),
                               const TrendingShopsSection(),
                               PopularBrandsSection(
                                 title: context.tr('food.popular'),
                               ),
-                              const CollectionsSection(),
                               const SizedBox(height: 24),
                               FoodFeedSection(
                                 feedType: 'for-you',
@@ -202,9 +209,6 @@ class _FoodPageState extends State<FoodPage> {
                                 latitude: lat,
                                 longitude: lon,
                                 layoutType: 2,
-                              ),
-                              const TogetherDealsSection(
-                                useApiSectionTitle: true,
                               ),
                               ExploreMenuSection(
                                 title: context.tr('food.explore_menu'),

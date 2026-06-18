@@ -111,4 +111,54 @@ class OrderRepository {
     );
     return response.statusCode == 200 || response.statusCode == 201;
   }
+
+  /// Validates a pickup order without changing status.
+  /// Backend: POST /api/user/orders/pickup/check
+  Future<Map<String, dynamic>?> checkPickup({
+    required String lastOrderNo,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '${ApiClient.apiPrefix}/user/orders/pickup/check',
+        data: {'lastOrderNo': lastOrderNo},
+      );
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300 &&
+          response.data is Map) {
+        final body = Map<String, dynamic>.from(response.data as Map);
+        if (body['success'] == true) {
+          return body['data'] is Map
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : <String, dynamic>{};
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Confirms pickup, moving the order to PICKED_UP.
+  /// Backend: POST /api/user/orders/pickup
+  Future<Map<String, dynamic>?> confirmPickup({
+    required String lastOrderNo,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '${ApiClient.apiPrefix}/user/orders/pickup',
+        data: {'lastOrderNo': lastOrderNo},
+      );
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300 &&
+          response.data is Map) {
+        final body = Map<String, dynamic>.from(response.data as Map);
+        if (body['success'] == true) {
+          return body['data'] is Map
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : <String, dynamic>{};
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
 }
