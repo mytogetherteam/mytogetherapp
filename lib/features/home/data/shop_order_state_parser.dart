@@ -15,6 +15,32 @@ class ShopOrderStateFields {
 
   String get status => isOpen ? 'Open' : 'Closed';
 
+  /// True when the payload actually carries shop order fields (not UI defaults).
+  static bool jsonContainsOrderState(
+    Map<String, dynamic> json, {
+    Map<String, dynamic>? shop,
+  }) {
+    final nested = shop ?? (json['shop'] is Map ? json['shop'] as Map : null);
+
+    bool inMap(Map map, String key) => map.containsKey(key);
+
+    if (inMap(json, 'deliveryEnabled') ||
+        inMap(json, 'shopIsOpen') ||
+        inMap(json, 'isOpen') ||
+        inMap(json, 'operatingHours') ||
+        inMap(json, 'shopOperatingHours')) {
+      return true;
+    }
+
+    if (nested is Map) {
+      return inMap(nested, 'deliveryEnabled') ||
+          inMap(nested, 'isOpen') ||
+          inMap(nested, 'operatingHours');
+    }
+
+    return false;
+  }
+
   static ShopOrderStateFields fromJson(
     Map<String, dynamic> json, {
     Map<String, dynamic>? shop,

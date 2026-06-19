@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -7,9 +8,12 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
+import '../../../../core/location/location_display_util.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../../auth/data/session_location_store.dart';
 import '../screens/location_search_page.dart';
+import 'location_address_display.dart';
 import 'location_skeleton_loader.dart';
 
 class LocationSelectionModal extends StatefulWidget {
@@ -63,15 +67,28 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
         active?.longitude == null) {
       return;
     }
+    final resolved = active!;
     _currentLocationResult = PlaceResult(
       placeId: '',
       name: context.tr('location.current'),
-      displayName: active!.address ?? active.locationName ?? '',
-      lat: active.latitude!,
-      lon: active.longitude!,
+      displayName: LocationDisplayUtil.firstReadableAddress([
+            resolved.address,
+            resolved.addressTh,
+            resolved.locationName,
+          ]) ??
+          '',
+      lat: resolved.latitude!,
+      lon: resolved.longitude!,
     );
     _hasPreciseGps = true;
     _isLoadingCurrent = false;
+  }
+
+  bool _isGpsUsable(Position pos) {
+    if (!LocationService().hasRealPosition) return false;
+    // Web/browser GPS often reports coarse accuracy; still usable for delivery.
+    if (kIsWeb) return true;
+    return pos.accuracy <= 0 || pos.accuracy <= 100;
   }
 
   Future<void> _loadCurrentLocation() async {
@@ -82,9 +99,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
         forceRefresh: true,
         highAccuracy: !kIsWeb,
       );
-      final precise = LocationService().hasRealPosition &&
-          (pos.accuracy <= 0 || pos.accuracy <= 100);
-      if (!precise) {
+      if (!_isGpsUsable(pos)) {
         if (mounted) {
           setState(() {
             _hasPreciseGps = false;
@@ -97,17 +112,24 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
         pos.latitude,
         pos.longitude,
       );
+      final storedAddress = await SessionLocationStore.addressNear(
+        pos.latitude,
+        pos.longitude,
+      );
+      final resolvedAddress = LocationDisplayUtil.firstReadableAddress([
+        result?.displayName,
+        LocationService().currentAddress,
+        storedAddress,
+      ]);
       if (mounted) {
         setState(() {
-          _currentLocationResult = result ??
-              PlaceResult(
-                placeId: '',
-                name: context.tr('location.current'),
-                displayName:
-                    '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}',
-                lat: pos.latitude,
-                lon: pos.longitude,
-              );
+          _currentLocationResult = PlaceResult(
+            placeId: result?.placeId ?? '',
+            name: result?.name ?? context.tr('location.current'),
+            displayName: resolvedAddress ?? '',
+            lat: result?.lat ?? pos.latitude,
+            lon: result?.lon ?? pos.longitude,
+          );
           _hasPreciseGps = true;
           _isLoadingCurrent = false;
         });
@@ -167,6 +189,13 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       locationType: 'OTHER',
       isPrimary: true,
     );
+    if (place.displayName.trim().isNotEmpty) {
+      SessionLocationStore.save(
+        latitude: place.lat,
+        longitude: place.lon,
+        address: place.displayName.trim(),
+      );
+    }
     UserLocationRepository.instance.setActiveLocation(sessionLocation);
     setState(() {});
     widget.onLocationSelected?.call(place);
@@ -520,16 +549,34 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         color: Colors.grey.shade400,
                       ),
                     )
-                  else
+                  else if (_currentLocationResult == null)
                     Text(
-                      _currentLocationResult?.displayName ??
-                          context.tr('location.unavailable_short'),
+                      context.tr('location.unavailable_short'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade500,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    )
+                  else if (LocationDisplayUtil.readableAddress(
+                        _currentLocationResult?.displayName,
+                      ) ==
+                      null)
+                    Text(
+                      context.tr('location.pin_to_add_address'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.orange.shade700,
+                        height: 1.4,
+                      ),
+                      maxLines: 3,
+                    )
+                  else
+                    LocationAddressDisplay(
+                      address: _currentLocationResult?.displayName,
+                      latitude: _currentLocationResult?.lat,
+                      longitude: _currentLocationResult?.lon,
+                      showCoordinates: false,
+                      addressMaxLines: 3,
                     ),
                 ],
               ),

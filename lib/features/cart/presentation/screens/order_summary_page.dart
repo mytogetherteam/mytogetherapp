@@ -266,6 +266,50 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
+  /// Resolves the best available address text from the selected location.
+  String? _primaryLocationAddressText() {
+    final loc = _primaryLocation;
+    if (loc == null) return null;
+    for (final candidate in [
+      loc.address,
+      loc.addressTh,
+      loc.addressMm,
+      loc.locationName,
+    ]) {
+      final trimmed = candidate?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return null;
+  }
+
+  /// Address fields accepted by `CreateUserOrderDto` on the backend.
+  Map<String, dynamic> _orderLocationPayload() {
+    final loc = _primaryLocation;
+    if (loc == null) return {};
+
+    final payload = <String, dynamic>{};
+    final address = _primaryLocationAddressText();
+    if (address != null) payload['address'] = address;
+
+    final addressMm = loc.addressMm?.trim();
+    if (addressMm != null && addressMm.isNotEmpty) {
+      payload['addressMm'] = addressMm;
+    }
+
+    final buildingName = loc.buildingName?.trim();
+    if (buildingName != null && buildingName.isNotEmpty) {
+      payload['buildingName'] = buildingName;
+    }
+
+    final floor = loc.floor?.trim();
+    if (floor != null && floor.isNotEmpty) payload['floor'] = floor;
+
+    final note = loc.note?.trim();
+    if (note != null && note.isNotEmpty) payload['note'] = note;
+
+    return payload;
+  }
+
   void _showLocationModal() {
     showModalBottomSheet(
       context: context,
@@ -840,7 +884,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     // (UserOrdersController.create). Schema
                                     // matches CreateUserOrderDto: shopId,
                                     // orderType (DELIVERY|PICK_UP), lat, lon,
-                                    // paymentMethodId, items[].
+                                    // address fields, paymentMethodId, items[].
                                     final response = await ApiClient().dio.post(
                                       '${ApiClient.apiPrefix}/user/orders',
                                       data: {
@@ -861,6 +905,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           "lat": _primaryLocation!.latitude,
                                         if (_primaryLocation?.longitude != null)
                                           "lon": _primaryLocation!.longitude,
+                                        ..._orderLocationPayload(),
                                         "paymentMethodId":
                                             _resolvePaymentMethodId(
                                               _paymentTypes,
@@ -953,8 +998,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         _primaryLocation?.locationName ??
                                         _primaryLocation?.locationType;
                                     ActiveOrderState.instance.deliveryAddress =
-                                        _primaryLocation?.address ??
-                                        _primaryLocation?.addressTh;
+                                        _primaryLocationAddressText();
                                     ActiveOrderState.instance
                                         .saveToPrefs(); // persist new fields immediately
 

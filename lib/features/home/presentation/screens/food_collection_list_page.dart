@@ -5,6 +5,8 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
@@ -117,7 +119,14 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
 
   Future<void> _loadMoreData() async {
     if (_isLoadingMore || !_hasMore) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
     setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
+
     try {
       _currentPage++;
       final results = await _fetchPage(_currentPage);
@@ -132,12 +141,20 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
         }
         _isLoadingMore = false;
       });
+      PaginationScroll.maintainAfterPageAppend(
+        _scrollController,
+        wasNearEnd: wasNearEnd,
+      );
     } catch (_) {
       if (mounted) {
         setState(() {
           _isLoadingMore = false;
           _currentPage--;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     }
   }
@@ -269,17 +286,22 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
     );
   }
 
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
+
   Widget _buildList() {
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: _restaurants.length + 1 + (_hasMore ? 1 : 0),
+      itemCount: _restaurants.length + 1 + (_showPaginationFooter ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == 0) return _buildHeading();
         final dataIndex = index - 1;
         if (dataIndex == _restaurants.length) {
-          return _buildLoadMoreIndicator();
+          return PaginationListFooter(
+            isLoading: _isLoadingMore,
+            showEndMessage: !_hasMore,
+          );
         }
         final data = _restaurants[dataIndex];
         return RestaurantCard(
@@ -356,24 +378,6 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLoadMoreIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      child: Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.primary.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

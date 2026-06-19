@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'food_menu_item_card.dart';
@@ -121,7 +123,13 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore || _isInitialLoading) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(widget.scrollController);
     setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      widget.scrollController,
+      wasNearEnd: wasNearEnd,
+    );
 
     try {
       final nextPage = _currentPage + 1;
@@ -133,9 +141,17 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
         _hasMore = moreItems.length >= _pageSize;
         _isLoadingMore = false;
       });
+      PaginationScroll.maintainAfterPageAppend(
+        widget.scrollController,
+        wasNearEnd: wasNearEnd,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoadingMore = false);
+      PaginationScroll.maintainAfterPageAppend(
+        widget.scrollController,
+        wasNearEnd: wasNearEnd,
+      );
     }
   }
 
@@ -165,13 +181,24 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
       return _buildSkeleton();
     }
     if (_items.isEmpty) {
-      return _buildEndOfListMessage();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Center(
+          child: Text(
+            context.tr('food.end_of_list'),
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      );
     }
 
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
-    // Append a final row of skeletons while the next page is loading.
-    final placeholderCount =
-        _isLoadingMore ? crossAxisCount : 0;
+    final showFooter = _isLoadingMore || !_hasMore;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,11 +225,8 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
             mainAxisSpacing: 24,
             childAspectRatio: 0.85,
           ),
-          itemCount: _items.length + placeholderCount,
+          itemCount: _items.length,
           itemBuilder: (context, i) {
-            if (i >= _items.length) {
-              return const FoodMenuItemSkeleton();
-            }
             final item = _items[i];
             return FoodMenuItemCard(
               id: item.id.toString(),
@@ -231,26 +255,13 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
             );
           },
         ),
-        const SizedBox(height: 24),
-        if (!_hasMore) _buildEndOfListMessage(),
-      ],
-    );
-  }
-
-  Widget _buildEndOfListMessage() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 0, bottom: 20),
-      child: Center(
-        child: Text(
-          context.tr('food.end_of_list'),
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: Colors.grey[400],
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.5,
+        if (showFooter)
+          PaginationListFooter(
+            isLoading: _isLoadingMore,
+            showEndMessage: !_hasMore,
           ),
-        ),
-      ),
+        if (!showFooter) const SizedBox(height: 24),
+      ],
     );
   }
 

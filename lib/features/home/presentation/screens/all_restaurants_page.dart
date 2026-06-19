@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
@@ -132,9 +134,14 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   Future<void> _loadMoreData() async {
     if (_isLoadingMore || !_hasMore) return;
 
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
     setState(() {
       _isLoadingMore = true;
     });
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
 
     try {
       _currentPage++;
@@ -155,6 +162,10 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           }
           _isLoadingMore = false;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -162,6 +173,10 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           _isLoadingMore = false;
           _currentPage--; // Rollback page on error
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     }
   }
@@ -202,6 +217,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       }
     }
   }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   @override
   Widget build(BuildContext context) {
@@ -288,10 +305,14 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.only(top: 12, bottom: 16),
-                        itemCount: _restaurants.length + (_hasMore ? 1 : 0),
+                        itemCount:
+                            _restaurants.length + (_showPaginationFooter ? 1 : 0),
                         itemBuilder: (context, index) {
                           if (index == _restaurants.length) {
-                            return _buildLoadMoreIndicator();
+                            return PaginationListFooter(
+                              isLoading: _isLoadingMore,
+                              showEndMessage: !_hasMore,
+                            );
                           }
 
                           final data = _restaurants[index];
@@ -380,24 +401,6 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
             style: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLoadMoreIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.primary.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
       ),
     );
   }

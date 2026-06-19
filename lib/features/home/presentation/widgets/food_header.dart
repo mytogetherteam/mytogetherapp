@@ -179,7 +179,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  Icon(
+                                  const Icon(
                                     PhosphorIcons.caretDown,
                                     color: Colors.white,
                                     size: 16,

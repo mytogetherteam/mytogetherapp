@@ -568,6 +568,11 @@ class AppTranslations {
     'location.confirm_location': 'Confirm location',
     'location.map_picker_hint': 'Move the map to place the pin',
     'location.map_picker_title': 'Pick location',
+    'location.street_address': 'Street address',
+    'location.street_address_hint': 'House no., street, area…',
+    'location.street_address_required': 'Please enter your delivery address',
+    'location.pin_to_add_address':
+        'GPS found — open the map pin to add your street address',
     'location.pick_on_map': 'Pick on map',
     'location.resolving_address': 'Finding address...',
     'location.cannot_delete': 'Cannot Delete',
@@ -769,6 +774,10 @@ class AppTranslations {
         'Delivery unavailable · Sorry for the inconvenience',
     'order.status_strip_closed': 'Closed · {opens}',
     'order.status_strip_closed_short': 'Closed · Check back later',
+    'order.menu_browse_hint_delivery':
+        'Delivery is paused for now. You can browse the menu and order again soon.',
+    'order.menu_browse_hint_closed':
+        'You can browse the menu, but orders can\'t be placed until the restaurant reopens.',
     'order.menu_browse_hint':
         'You can browse the menu, but ordering is unavailable right now.',
     'order.badge_delivery_off': 'No delivery',
@@ -1287,22 +1296,22 @@ class AppTranslations {
     'order.status.on_the_way': 'လမ်းတွင် ပို့ဆောင်နေတယ်',
     'order.status.delivered': 'ပို့ဆောင်ပြီး',
     'order.status.canceled': 'ပယ်ဖျက်ပြီး',
-    'order_tracking.awaiting_confirmation': 'စားသောက်ဆိုင် အတည်ပြုချက် စောင့်နေတယ်',
+    'order_tracking.awaiting_confirmation': 'ဆိုင် အတည်ပြုချက် စောင့်နေတယ်',
     'order_tracking.calculating': 'တွက်ချက်နေတယ်',
     'order_tracking.cancel_confirm': 'ဤအော်ဒါကို ပယ်ဖျက်ရန် သေချာပါသလား?',
     'order_tracking.cancel_order': 'အော်ဒါပယ်ဖျက်မယ်',
     'order_tracking.cancel_title': 'အော်ဒါပယ်ဖျက်မလား?',
     'order_tracking.finding_route': 'လမ်းကြောင်း ရှာဖွေနေသည်...',
     'order_tracking.keep_order': 'အော်ဒါထားမယ်',
-    'order_tracking.restaurant_reviewing': 'စားသောက်ဆိုင်က အော်ဒါကို စစ်ဆေးပြီး ပို့ဆောင်သူ ခန့်နေတယ်။',
-    'order_tracking.usually_takes': 'ခဏလေးစောင့်ပါ — စားသောက်ဆိုင်နဲ့ အတည်ပြုနေပါတယ်။',
-    'order_tracking.taking_longer': 'ပုံမှန်ထက် နည်းနည်း ကြာနေပါတယ်။ စားသောက်ဆိုင်မှာ အော်ဒါအများကြီး ရှိနိုင်ပါတယ် — ခဏစောင့်ပေးပါ။',
+    'order_tracking.restaurant_reviewing': 'ဆိုင်က အော်ဒါကို စစ်ဆေးပြီး ပို့ဆောင်သူ ခန့်နေတယ်။',
+    'order_tracking.usually_takes': 'ခဏစောင့်ပါ — ဆိုင်နဲ့ အတည်ပြုနေပါတယ်။',
+    'order_tracking.taking_longer': 'ပုံမှန်ထက် နည်းနည်း ကြာနေပါတယ်။ ဆိုင်မှာ အော်ဒါများရှိနိုင်ပါတယ် — ခဏစောင့်ပေးပါ။',
     'active_order.awaiting_confirmation': 'အတည်ပြုချက် စောင့်နေတယ်',
     'active_order.awaiting_payment': 'ငွေပေးချေရန် စောင့်နေတယ်',
     'active_order.delivered': 'အော်ဒါပို့ဆောင်ပြီး!',
     'active_order.est_arrival': 'ရောက်ရှိမည့်အချိန် ခန့်မှန်း: {time}',
     'active_order.on_the_way': 'ပို့ဆောင်နေသည်...',
-    'active_order.preparing': 'စားသောက်ဆိုင် ပြင်ဆင်နေသည်...',
+    'active_order.preparing': 'ဆိုင် ပြင်ဆင်နေပါတယ်...',
     'active_order.processing': 'အော်ဒါလုပ်ဆောင်နေသည်...',
     'active_order.track': 'အော်ဒါခြေရာခံရန်',
     'active_order.verifying_payment': 'ငွေပေးချေမှု စစ်ဆေးနေသည်...',
@@ -1421,6 +1430,11 @@ class AppTranslations {
     'location.confirm_location': 'တည်နေရာအတည်ပြုမယ်',
     'location.map_picker_hint': 'မြေပုံကို ရွှေ့ပြီး ပင်မှတ်ချက်ထားပါ',
     'location.map_picker_title': 'တည်နေရာရွေးချယ်ပါ',
+    'location.street_address': 'လိပ်စာ',
+    'location.street_address_hint': 'အိမ်အမှတ်၊ လမ်း၊ ရပ်ကွက်…',
+    'location.street_address_required': 'ပို့ဆောင်ရမည့် လိပ်စာ ထည့်ပါ',
+    'location.pin_to_add_address':
+        'တည်နေရာ တွေ့ပြီး — လိပ်စာထည့်ရန် မြေပုံမှာ ပင်မှတ်ချက်ထားပါ',
     'location.pick_on_map': 'မြေပုံတွင် ရွေးချယ်ပါ',
     'location.resolving_address': 'လိပ်စာရှာဖွေနေသည်...',
     'location.cannot_delete': 'ဖျက်၍မရပါ',
@@ -1622,8 +1636,12 @@ class AppTranslations {
         'ပို့ဆောင်မှု မရရှိနိုင်ပါ · အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်',
     'order.status_strip_closed': 'ပိတ်ထား · {opens}',
     'order.status_strip_closed_short': 'ပိတ်ထား · နောက်မှ ပြန်စစ်ကြည့်ပါ',
-    'order.menu_browse_hint':
+    'order.menu_browse_hint_delivery':
+        'လောလောဆယ် ပို့ဆောင်မှု ပိတ်ထားပါတယ် · မကြာခင်ပြန်မှာယူနိုင်ပါမယ်',
+    'order.menu_browse_hint_closed':
         'ဆိုင်ပြန်ဖွင့်မှ order မှာယူနိုင်မှာ ဖြစ်ပါတယ်ဗျ',
+    'order.menu_browse_hint':
+        'ယခု မှာယူ၍ မရသေးပါ · မီနူးကိုသာ ကြည့်ရှုနိုင်ပါတယ်',
     'order.badge_delivery_off': 'ပို့ဆောင်မှု မရှိ',
     'time.minutes_ago': '{count} မိနစ်က',
     'time.hours_ago': '{count} နာရီက',
@@ -2279,6 +2297,11 @@ class AppTranslations {
     'location.confirm_location': 'ยืนยันตำแหน่ง',
     'location.map_picker_hint': 'เลื่อนแผนที่เพื่อวางหมุด',
     'location.map_picker_title': 'เลือกตำแหน่ง',
+    'location.street_address': 'ที่อยู่',
+    'location.street_address_hint': 'บ้านเลขที่ ถนน แขวง/ตำบล…',
+    'location.street_address_required': 'กรุณากรอกที่อยู่จัดส่ง',
+    'location.pin_to_add_address':
+        'พบตำแหน่ง GPS แล้ว — เปิดแผนที่เพื่อปักหมุดและกรอกที่อยู่',
     'location.pick_on_map': 'เลือกบนแผนที่',
     'location.resolving_address': 'กำลังค้นหาที่อยู่...',
     'location.cannot_delete': 'ลบไม่ได้',
@@ -2478,6 +2501,10 @@ class AppTranslations {
         'ไม่มีบริการจัดส่ง · ขออภัยในความไม่สะดวก',
     'order.status_strip_closed': 'ปิด · {opens}',
     'order.status_strip_closed_short': 'ปิด · กรุณากลับมาใหม่ภายหลัง',
+    'order.menu_browse_hint_delivery':
+        'ขณะนี้ร้านหยุดรับออเดอร์จัดส่งชั่วคราว · กลับมาสั่งใหม่ได้เร็ว ๆ นี้',
+    'order.menu_browse_hint_closed':
+        'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้จนกว่าร้านจะเปิด',
     'order.menu_browse_hint':
         'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้ในขณะนี้',
     'order.badge_delivery_off': 'ไม่จัดส่ง',

@@ -13,6 +13,8 @@ class ShopOrderStateCache extends ChangeNotifier {
   ShopOrderStateCache._();
   static final ShopOrderStateCache instance = ShopOrderStateCache._();
 
+  static const int _completeScheduleDays = 7;
+
   final Map<int, _ShopOrderEntry> _entries = {};
   final Set<int> _unavailableSheetShown = {};
   StreamSubscription<Map<String, dynamic>>? _wsSub;
@@ -39,12 +41,13 @@ class ShopOrderStateCache extends ChangeNotifier {
       status = event['isOpen'] == true ? 'Open' : 'Closed';
     }
 
-    _entries[shopId] = _ShopOrderEntry(
+    final operatingHours = existing?.operatingHours ?? const [];
+    rememberParts(
+      shopId,
       deliveryEnabled: deliveryEnabled,
-      operatingHours: existing?.operatingHours ?? const [],
-      status: status,
+      operatingHours: operatingHours,
+      status: _statusFromHoursOrFallback(operatingHours, status),
     );
-    notifyListeners();
   }
 
   void remember(Restaurant restaurant) {
@@ -64,14 +67,29 @@ class ShopOrderStateCache extends ChangeNotifier {
   }) {
     if (shopId <= 0) return;
     final existing = _entries[shopId];
+    final mergedHours = _pickRicherOperatingHours(
+      existing?.operatingHours ?? const [],
+      operatingHours,
+    );
+    final mergedDelivery = !deliveryEnabled
+        ? false
+        : (existing?.deliveryEnabled ?? deliveryEnabled);
+    final mergedStatus = _statusFromHoursOrFallback(
+      mergedHours,
+      status.isNotEmpty ? status : (existing?.status ?? 'Open'),
+    );
+
     _entries[shopId] = _ShopOrderEntry(
-      deliveryEnabled: deliveryEnabled,
-      operatingHours: operatingHours.isNotEmpty
-          ? operatingHours
-          : (existing?.operatingHours ?? const []),
-      status: status,
+      deliveryEnabled: mergedDelivery,
+      operatingHours: mergedHours,
+      status: mergedStatus,
     );
     notifyListeners();
+  }
+
+  bool hasCompleteOperatingHours(int shopId) {
+    final hours = _entries[shopId]?.operatingHours ?? const [];
+    return hours.length >= _completeScheduleDays;
   }
 
   bool hasShownUnavailableSheet(int shopId) =>
@@ -89,20 +107,41 @@ class ShopOrderStateCache extends ChangeNotifier {
     String status = 'Open',
   }) {
     final entry = _entries[shopId];
-    final mergedHours = entry != null && entry.operatingHours.isNotEmpty
-        ? entry.operatingHours
-        : operatingHours;
+    final mergedHours = _pickRicherOperatingHours(
+      entry?.operatingHours ?? const [],
+      operatingHours,
+    );
     final mergedDelivery = entry?.deliveryEnabled ?? deliveryEnabled;
-    final mergedStatus = entry != null &&
-            (entry.operatingHours.isNotEmpty || !entry.deliveryEnabled)
-        ? entry.status
-        : status;
+    final mergedStatus = _statusFromHoursOrFallback(
+      mergedHours,
+      entry?.status ?? status,
+    );
 
     return RestaurantOrderAvailability.fromParts(
       deliveryEnabled: mergedDelivery,
       operatingHours: mergedHours,
       status: mergedStatus,
     );
+  }
+
+  static List<OperatingHourDto> _pickRicherOperatingHours(
+    List<OperatingHourDto> existing,
+    List<OperatingHourDto> incoming,
+  ) {
+    if (existing.isEmpty) return incoming;
+    if (incoming.isEmpty) return existing;
+    return existing.length >= incoming.length ? existing : incoming;
+  }
+
+  static String _statusFromHoursOrFallback(
+    List<OperatingHourDto> hours,
+    String fallback,
+  ) {
+    final opening = OpeningStatus.fromHours(hours);
+    if (opening.hasSchedule) {
+      return opening.isOpen ? 'Open' : 'Closed';
+    }
+    return fallback;
   }
 
   @override

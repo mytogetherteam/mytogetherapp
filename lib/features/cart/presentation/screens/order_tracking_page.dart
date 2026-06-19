@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
@@ -367,14 +368,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (serviceEnabled &&
         permission != LocationPermission.denied &&
         permission != LocationPermission.deniedForever) {
-      // Use last-known position immediately (fast, no waiting)
-      try {
-        final last = await Geolocator.getLastKnownPosition();
-        if (last != null) {
-          userLoc = LatLng(last.latitude, last.longitude);
-          if (mounted) setState(() => _currentLocation = userLoc);
-        }
-      } catch (_) {}
+      // Last-known position is fast on mobile but unsupported on web.
+      if (!kIsWeb) {
+        try {
+          final last = await Geolocator.getLastKnownPosition();
+          if (last != null) {
+            userLoc = LatLng(last.latitude, last.longitude);
+            if (mounted) setState(() => _currentLocation = userLoc);
+          }
+        } catch (_) {}
+      }
 
       // Start continuous updates in background
       _positionStreamSubscription =
@@ -1171,29 +1174,28 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 28),
 
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    size: 16,
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.7,
-                                    ),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 16,
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.7,
                                   ),
-                                  const SizedBox(width: 8),
-                                  GradientText(
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GradientText(
                                     context.tr(
                                       _showLongWaitHint
                                           ? 'order_tracking.taking_longer'
@@ -1204,9 +1206,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
                                     ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
 

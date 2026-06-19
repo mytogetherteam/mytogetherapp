@@ -14,6 +14,34 @@ import '../../order/data/repositories/order_repository.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
 
+/// Normalizes `deliveryAddress` from API/WebSocket payloads. The backend
+/// returns a nested object (`address`, `addressMm`, `buildingName`, …) while
+/// older payloads may still be a plain string.
+String? parseDeliveryAddressValue(dynamic value) {
+  if (value == null) return null;
+  if (value is String) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    for (final key in ['address', 'addressMm', 'addressTh']) {
+      final candidate = map[key]?.toString().trim();
+      if (candidate != null && candidate.isNotEmpty) return candidate;
+    }
+    final building = map['buildingName']?.toString().trim();
+    final floor = map['floor']?.toString().trim();
+    if (building != null && building.isNotEmpty) {
+      if (floor != null && floor.isNotEmpty) return '$building, $floor';
+      return building;
+    }
+    final note = map['note']?.toString().trim();
+    if (note != null && note.isNotEmpty) return note;
+  }
+  final fallback = value.toString().trim();
+  return fallback.isEmpty ? null : fallback;
+}
+
 class ActiveOrderItem {
   final String orderId;
   String? storeName;
@@ -292,7 +320,7 @@ class ActiveOrderItem {
     riderPhone: json['riderPhone'],
     deliveryTrackingUrl: json['deliveryTrackingUrl'],
     shopPaymentQrUrl: json['shopPaymentQrUrl'],
-    deliveryAddress: json['deliveryAddress'],
+    deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
     restaurantAddress: json['restaurantAddress'],
     userLocationName: json['userLocationName'],
     restaurantLatLng: (json['restaurantLat'] != null && json['restaurantLng'] != null)
@@ -732,7 +760,11 @@ class ActiveOrderState extends ChangeNotifier {
       item.displayFoodPrice = '฿${item.itemPrice}';
     }
 
-    if (data['deliveryAddress'] != null) item.deliveryAddress = _parseSafeString(data['deliveryAddress']);
+    final parsedDeliveryAddress =
+        parseDeliveryAddressValue(data['deliveryAddress']);
+    if (parsedDeliveryAddress != null) {
+      item.deliveryAddress = parsedDeliveryAddress;
+    }
     if (data['restaurantAddress'] != null) item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
     if (data['userLocationName'] != null) item.userLocationName = _parseSafeString(data['userLocationName']);
 

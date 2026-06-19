@@ -58,9 +58,9 @@ class LocationService {
         return _useFallback();
       }
 
-      if (!forceRefresh) {
+      if (!forceRefresh && !kIsWeb) {
         final last = await Geolocator.getLastKnownPosition()
-            .timeout(Duration(seconds: kIsWeb ? 4 : 3));
+            .timeout(const Duration(seconds: 3));
         if (last != null && _isAcceptableAccuracy(last, highAccuracy)) {
           _storePosition(last, isFallback: false);
           await _reverseGeocode(last.latitude, last.longitude)

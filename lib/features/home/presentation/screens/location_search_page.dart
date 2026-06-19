@@ -8,9 +8,12 @@ import '../../../../core/config/google_maps_config.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
+import '../../../../core/location/location_display_util.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../../auth/data/session_location_store.dart';
 import '../widgets/location_skeleton_loader.dart';
+import '../widgets/location_address_display.dart';
 import '../widgets/location_details_sheet.dart';
 import 'location_picker_page.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -82,9 +85,25 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           ? await LocationSearchService.instance
               .reverseGeocode(pos.latitude, pos.longitude)
           : null;
+      final storedAddress = LocationService().hasRealPosition
+          ? await SessionLocationStore.addressNear(pos.latitude, pos.longitude)
+          : null;
+      final resolvedAddress = LocationDisplayUtil.firstReadableAddress([
+        result?.displayName,
+        LocationService().currentAddress,
+        storedAddress,
+      ]);
       if (mounted) {
         setState(() {
-          _currentLocationResult = result;
+          _currentLocationResult = LocationService().hasRealPosition
+              ? PlaceResult(
+                  placeId: result?.placeId ?? '',
+                  name: result?.name ?? context.tr('location.current'),
+                  displayName: resolvedAddress ?? '',
+                  lat: result?.lat ?? pos.latitude,
+                  lon: result?.lon ?? pos.longitude,
+                )
+              : null;
           _isLoadingCurrent = false;
         });
       }
@@ -669,12 +688,42 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 children: [
                   Text(context.tr('location.current'), style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 2),
-                  Text(
-                    _isLoadingCurrent ? context.tr('location.detecting') : (_currentLocationResult?.displayName ?? context.tr('location.unavailable')),
-                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  _isLoadingCurrent
+                      ? Text(
+                          context.tr('location.detecting'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        )
+                      : _currentLocationResult == null
+                          ? Text(
+                              context.tr('location.unavailable'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            )
+                          : LocationDisplayUtil.readableAddress(
+                                  _currentLocationResult?.displayName,
+                                ) ==
+                                null
+                              ? Text(
+                                  context.tr('location.pin_to_add_address'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade700,
+                                    height: 1.4,
+                                  ),
+                                  maxLines: 3,
+                                )
+                              : LocationAddressDisplay(
+                                  address: _currentLocationResult?.displayName,
+                                  latitude: _currentLocationResult?.lat,
+                                  longitude: _currentLocationResult?.lon,
+                                  showCoordinates: false,
+                                  addressMaxLines: 3,
+                                ),
                 ],
               ),
             ),

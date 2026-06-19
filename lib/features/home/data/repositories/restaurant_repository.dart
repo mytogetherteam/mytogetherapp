@@ -497,12 +497,27 @@ class RestaurantRepository {
     for (final restaurant in restaurants) {
       final shopId = int.tryParse(restaurant.id);
       if (shopId == null || shopId <= 0) continue;
-      if (restaurant.operatingHours.isNotEmpty) continue;
+
+      final hasCompleteSchedule =
+          restaurant.operatingHours.length >= 7 ||
+          ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId);
+
+      if (hasCompleteSchedule) {
+        ShopOrderStateCache.instance.rememberParts(
+          shopId,
+          deliveryEnabled: restaurant.deliveryEnabled,
+          operatingHours: restaurant.operatingHours,
+          status: restaurant.status,
+        );
+        continue;
+      }
 
       final stored = await ShopStorage.getShop(shopId);
       if (stored != null) {
         _applyShopProfileJsonToCache(shopId, stored);
-        continue;
+        if (ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId)) {
+          continue;
+        }
       }
       needsApi.add(shopId);
     }
