@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../auth/auth_interceptor.dart';
 import '../config/env_config.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
-import 'dart:io';
 
 class ApiClient {
   // ───────────────────────────────────────────────────────────────────────
@@ -110,10 +109,11 @@ class ApiClient {
     if (err.requestOptions.extra['isRetry'] == true) return false;
     return err.type != DioExceptionType.cancel &&
         err.type != DioExceptionType.badResponse &&
-        (err.error is SocketException ||
-            err.type == DioExceptionType.connectionTimeout ||
+        (err.type == DioExceptionType.connectionTimeout ||
             err.type == DioExceptionType.sendTimeout ||
-            err.type == DioExceptionType.receiveTimeout);
+            err.type == DioExceptionType.receiveTimeout ||
+            (!kIsWeb &&
+                err.type == DioExceptionType.connectionError));
   }
 
   Future<Response> _retry(RequestOptions requestOptions) {

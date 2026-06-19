@@ -34,7 +34,6 @@ class MapPickerAddressPanel extends StatelessWidget {
     final trimmed = addressController.text.trim();
     final canConfirm = canConfirmBase &&
         !isMapMoving &&
-        !isGeocoding &&
         !isSaving &&
         trimmed.isNotEmpty;
 
@@ -141,7 +140,7 @@ class MapPickerAddressPanel extends StatelessWidget {
           const SizedBox(height: 16),
           PrimaryGradientButton(
             onPressed: canConfirm ? onConfirm : null,
-            isLoading: (isGeocoding && !isMapMoving) || isSaving,
+            isLoading: isSaving,
             child: Text(
               context.tr('location.confirm_location'),
               style: GoogleFonts.poppins(

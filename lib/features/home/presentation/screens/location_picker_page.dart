@@ -1,25 +1,25 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/core/theme/app_map_theme.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../../core/config/google_maps_config.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_service.dart';
-import '../../../../core/location/location_display_util.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../auth/data/session_location_store.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../../auth/data/session_location_store.dart';
 import '../widgets/location_details_sheet.dart';
 import '../widgets/map_picker_address_panel.dart';
+import '../widgets/map_pin_geocode_controller.dart';
+import '../widgets/pinned_map_view.dart';
 
 /// Unified map + search + pin screen for adding a delivery location.
 class LocationPickerPage extends StatefulWidget {
@@ -30,37 +30,28 @@ class LocationPickerPage extends StatefulWidget {
 }
 
 class _LocationPickerPageState extends State<LocationPickerPage> {
-  final Completer<GoogleMapController> _mapController = Completer();
+  final GlobalKey<PinnedMapViewState> _mapKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  late final MapPinGeocodeController _geocode;
 
-  Timer? _geocodeDebounce;
   Timer? _searchDebounce;
-  int _geocodeGeneration = 0;
-
   LatLng? _selectedPosition;
-  LatLng? _cameraTarget;
-  LatLng? _lastGeocodedPosition;
-  PlaceResult? _selectedPlace;
   List<PlaceResult> _searchResults = [];
-  bool _isGeocoding = false;
   bool _isSearching = false;
   bool _isLoadingInitial = true;
+  bool _showMap = false;
   bool _isSaving = false;
-  bool _mapReady = false;
-  bool _isMapMoving = false;
   bool _showSearchResults = false;
-  bool _addressTouched = false;
-  String? _addressError;
 
   static const _pinLift = 36.0;
-  static const _idleDebounce = Duration(milliseconds: 500);
-  static const _minGeocodeDistanceMeters = 20.0;
 
   @override
   void initState() {
     super.initState();
+    _geocode = MapPinGeocodeController(
+      addressController: TextEditingController(),
+    );
     _searchFocus.addListener(() {
       if (!_searchFocus.hasFocus && _searchController.text.trim().isEmpty) {
         setState(() => _showSearchResults = false);
@@ -74,10 +65,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   @override
   void dispose() {
-    _geocodeDebounce?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
-    _addressController.dispose();
+    _geocode.addressController.dispose();
+    _geocode.dispose();
     _searchFocus.dispose();
     super.dispose();
   }
@@ -89,8 +80,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     try {
       final pos = await LocationService().getCurrentPosition(
         requestPermissionIfDenied: true,
-        forceRefresh: true,
-        highAccuracy: true,
+        forceRefresh: false,
+        highAccuracy: false,
       );
       if (LocationService().hasRealPosition) {
         lat = pos.latitude;
@@ -110,27 +101,26 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       }
     }
 
+    final resolvedLat = lat ?? LocationService.defaultLat;
+    final resolvedLon = lon ?? LocationService.defaultLon;
     if (!mounted) return;
+    final position = LatLng(resolvedLat, resolvedLon);
     setState(() {
-      _selectedPosition = LatLng(lat!, lon!);
-      _cameraTarget = LatLng(lat, lon);
+      _selectedPosition = position;
       _isLoadingInitial = false;
     });
-    _hydrateAddressField(lat, lon);
-  }
-
-  Future<void> _hydrateAddressField(double lat, double lon) async {
-    final stored = await SessionLocationStore.addressNear(lat, lon);
-    if (!mounted) return;
-    if (stored != null && stored.isNotEmpty && !_addressTouched) {
-      _addressController.text = stored;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showMap = true);
+    });
+    await _geocode.prefillFromCache(resolvedLat, resolvedLon);
+    if (_geocode.addressController.text.trim().isEmpty) {
+      await _geocode.lookupInitialPosition(position);
     }
   }
 
-  void _applyGeocodedAddress(String? rawAddress) {
-    final readable = LocationDisplayUtil.readableAddress(rawAddress);
-    if (readable == null || _addressTouched) return;
-    _addressController.text = readable;
+  void _onPinDropped(LatLng target) {
+    _selectedPosition = target;
+    _geocode.onPinDropped(target);
   }
 
   void _onSearchChanged(String query) {
@@ -151,11 +141,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     });
 
     _searchDebounce = Timer(const Duration(milliseconds: 400), () async {
-      final target = _cameraTarget ?? _selectedPosition;
       final results = await LocationSearchService.instance.searchPlaces(
         trimmed,
-        lat: target?.latitude,
-        lon: target?.longitude,
+        lat: _selectedPosition?.latitude,
+        lon: _selectedPosition?.longitude,
       );
       if (!mounted) return;
       setState(() {
@@ -170,7 +159,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     setState(() {
       _showSearchResults = false;
       _searchResults = [];
-      _isGeocoding = true;
     });
 
     PlaceResult resolved = place;
@@ -180,110 +168,24 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       if (details != null) resolved = details;
     }
 
-    if (resolved.lat == 0 && resolved.lon == 0) {
-      if (mounted) setState(() => _isGeocoding = false);
-      return;
-    }
+    if (resolved.lat == 0 && resolved.lon == 0) return;
 
     final target = LatLng(resolved.lat, resolved.lon);
-    final controller = await _mapController.future;
-    await controller.animateCamera(CameraUpdate.newLatLngZoom(target, 16));
+    await _mapKey.currentState?.animateTo(target);
 
     if (!mounted) return;
-    setState(() {
-      _selectedPosition = target;
-      _cameraTarget = target;
-      _lastGeocodedPosition = target;
-      _selectedPlace = resolved;
-      _isGeocoding = false;
-      _addressTouched = false;
-    });
-    _applyGeocodedAddress(resolved.displayName);
+    setState(() => _selectedPosition = target);
+
+    if (resolved.displayName.trim().isNotEmpty) {
+      _geocode.applySearchResult(resolved);
+    } else {
+      await _geocode.reverseGeocodeNow(target);
+    }
     _searchController.text = resolved.name;
-  }
-
-  void _onCameraMoveStarted() {
-    _geocodeDebounce?.cancel();
-    _addressTouched = false;
-    if (!_isMapMoving && mounted) {
-      setState(() => _isMapMoving = true);
-    }
-  }
-
-  void _onCameraMove(CameraPosition position) {
-    _cameraTarget = position.target;
-  }
-
-  void _onCameraIdle() {
-    if (!mounted) return;
-    if (_isMapMoving) {
-      setState(() => _isMapMoving = false);
-    }
-    _scheduleGeocodeAfterIdle();
-  }
-
-  double _distanceMeters(LatLng a, LatLng b) {
-    const earthRadiusMeters = 6371000.0;
-    final dLat = _toRad(b.latitude - a.latitude);
-    final dLon = _toRad(b.longitude - a.longitude);
-    final lat1 = _toRad(a.latitude);
-    final lat2 = _toRad(b.latitude);
-    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1) * math.cos(lat2) * math.sin(dLon / 2) * math.sin(dLon / 2);
-    return earthRadiusMeters * 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
-  }
-
-  double _toRad(double deg) => deg * math.pi / 180;
-
-  bool _shouldGeocode(LatLng target) {
-    if (_lastGeocodedPosition == null) return true;
-    return _distanceMeters(_lastGeocodedPosition!, target) >=
-        _minGeocodeDistanceMeters;
-  }
-
-  void _scheduleGeocodeAfterIdle({bool force = false}) {
-    _geocodeDebounce?.cancel();
-    _geocodeDebounce = Timer(_idleDebounce, () {
-      _reverseGeocodeCenter(force: force);
-    });
-  }
-
-  Future<void> _reverseGeocodeCenter({bool force = false}) async {
-    if (!_mapReady || _isMapMoving) return;
-
-    final target = _cameraTarget ?? _selectedPosition;
-    if (target == null || !mounted || _isMapMoving) return;
-    if (!force && !_shouldGeocode(target)) return;
-
-    final generation = ++_geocodeGeneration;
-
-    if (mounted) {
-      setState(() {
-        _isGeocoding = true;
-        _selectedPosition = target;
-      });
-    }
-
-    final place = await LocationSearchService.instance.reverseGeocode(
-      target.latitude,
-      target.longitude,
-    );
-
-    if (!mounted || generation != _geocodeGeneration || _isMapMoving) return;
-
-    setState(() {
-      _isGeocoding = false;
-      _lastGeocodedPosition = target;
-      if (place != null) {
-        _selectedPlace = place;
-        _applyGeocodedAddress(place.displayName);
-      }
-    });
   }
 
   Future<void> _goToMyLocation() async {
     try {
-      LocationService().clearCache();
       final pos = await LocationService().getCurrentPosition(
         requestPermissionIfDenied: true,
         forceRefresh: true,
@@ -299,17 +201,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return;
       }
       final target = LatLng(pos.latitude, pos.longitude);
-      final controller = await _mapController.future;
-      await controller.animateCamera(CameraUpdate.newLatLngZoom(target, 16));
+      await _mapKey.currentState?.animateTo(target);
       if (mounted) {
-        setState(() {
-          _selectedPosition = target;
-          _cameraTarget = target;
-          _lastGeocodedPosition = null;
-          _selectedPlace = null;
-          _addressTouched = false;
-        });
-        _scheduleGeocodeAfterIdle(force: true);
+        _selectedPosition = target;
+        await _geocode.reverseGeocodeNow(target);
       }
     } catch (_) {
       if (!mounted) return;
@@ -320,13 +215,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   Future<void> _confirm() async {
-    if (_isMapMoving || _isSaving || _selectedPosition == null) return;
+    if (_geocode.isMapMoving || _isSaving || _selectedPosition == null) return;
 
-    final address = _addressController.text.trim();
+    final address = _geocode.addressController.text.trim();
     if (address.isEmpty) {
-      setState(() {
-        _addressError = context.tr('location.street_address_required');
-      });
+      _geocode.setAddressRequiredError(
+        context.tr('location.street_address_required'),
+      );
       return;
     }
 
@@ -409,88 +304,37 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 Column(
                   children: [
                     Expanded(
-                      child: Stack(
-                        children: [
-                          GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target: _selectedPosition!,
-                              zoom: 16,
-                            ),
-                            padding: const EdgeInsets.only(
-                              top: 72,
-                              bottom: _pinLift,
-                            ),
-                            myLocationEnabled: !kIsWeb,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
-                            mapToolbarEnabled: false,
-                            style: AppMapTheme.defaultStyle,
-                            onMapCreated: (controller) {
-                              if (!_mapController.isCompleted) {
-                                _mapController.complete(controller);
-                              }
-                              _cameraTarget = _selectedPosition;
-                              if (mounted) setState(() => _mapReady = true);
-                              _scheduleGeocodeAfterIdle(force: true);
-                            },
-                            onCameraMoveStarted: _onCameraMoveStarted,
-                            onCameraMove: _onCameraMove,
-                            onCameraIdle: _onCameraIdle,
-                          ),
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                top: 36,
+                      child: _showMap
+                          ? PinnedMapView(
+                              key: _mapKey,
+                              initialPosition: _selectedPosition!,
+                              mapPadding: const EdgeInsets.only(
+                                top: 72,
                                 bottom: _pinLift,
                               ),
-                              child: Icon(
-                                PhosphorIconsFill.mapPin,
-                                size: 44,
-                                color: AppColors.primary,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black26,
-                                    blurRadius: 6,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
+                              onGoToMyLocation: _goToMyLocation,
+                              onCameraMoveStarted: _geocode.onCameraMoveStarted,
+                              onPinDropped: _onPinDropped,
+                            )
+                          : const ColoredBox(
+                              color: Color(0xFFF1F5F9),
+                              child: Center(
+                                child: CustomLoadingIndicator(size: 28),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: FloatingActionButton(
-                              mini: true,
-                              backgroundColor: Colors.white,
-                              elevation: 4,
-                              onPressed: _goToMyLocation,
-                              child: Icon(
-                                PhosphorIcons.crosshairSimple,
-                                color: AppColors.primary,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
-                    MapPickerAddressPanel(
-                      addressController: _addressController,
-                      isGeocoding: _isGeocoding,
-                      isMapMoving: _isMapMoving,
-                      isSaving: _isSaving,
-                      canConfirmBase: _selectedPosition != null,
-                      addressError: _addressError,
-                      onAddressChanged: () {
-                        setState(() {
-                          _addressTouched = true;
-                          if (_addressController.text.trim().isNotEmpty) {
-                            _addressError = null;
-                          }
-                        });
-                      },
-                      onConfirm: _confirm,
+                    ListenableBuilder(
+                      listenable: _geocode,
+                      builder: (context, _) => MapPickerAddressPanel(
+                        addressController: _geocode.addressController,
+                        isGeocoding: _geocode.isGeocoding,
+                        isMapMoving: _geocode.isMapMoving,
+                        isSaving: _isSaving,
+                        canConfirmBase: _selectedPosition != null,
+                        addressError: _geocode.addressError,
+                        onAddressChanged: _geocode.onAddressEdited,
+                        onConfirm: _confirm,
+                      ),
                     ),
                   ],
                 ),

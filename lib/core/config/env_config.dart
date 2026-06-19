@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class EnvConfig {
@@ -15,13 +14,11 @@ class EnvConfig {
 
   static String _localizeUrl(String url) {
     if (kIsWeb) return url;
-    try {
-      if (Platform.isAndroid) {
-        return url
-            .replaceAll('localhost', '10.0.2.2')
-            .replaceAll('127.0.0.1', '10.0.2.2');
-      }
-    } catch (_) {}
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return url
+          .replaceAll('localhost', '10.0.2.2')
+          .replaceAll('127.0.0.1', '10.0.2.2');
+    }
     return url;
   }
 

@@ -1,8 +1,7 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
-import 'package:flutter/material.dart';
 
 class LockScreenWidgetManager {
   static final LockScreenWidgetManager instance = LockScreenWidgetManager._internal();
@@ -19,10 +18,20 @@ class LockScreenWidgetManager {
   int? _lastProgress;
   String? _lastShopName;
 
+  bool get _isIOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  bool get _isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   Future<void> initialize() async {
     if (_isInitialized) return;
+    if (kIsWeb) {
+      _isInitialized = true;
+      return;
+    }
     
-    if (Platform.isIOS) {
+    if (_isIOS) {
       try {
         await _liveActivitiesPlugin.init(
           appGroupId: 'group.com.mytogetherapp.orders', // Update with actual group ID if needed
@@ -30,7 +39,7 @@ class LockScreenWidgetManager {
       } catch (e) {
         debugPrint('Live Activities init failed: $e');
       }
-    } else if (Platform.isAndroid) {
+    } else if (_isAndroid) {
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('@mipmap/launcher_icon');
       const InitializationSettings initializationSettings = InitializationSettings(
@@ -77,7 +86,7 @@ class LockScreenWidgetManager {
     _lastProgress = progress;
     _lastShopName = shopName;
 
-    if (Platform.isIOS) {
+    if (_isIOS) {
       final data = {
         'shopName': order.displayShopName,
         'statusText': statusText,
@@ -99,7 +108,7 @@ class LockScreenWidgetManager {
       } catch (e) {
         debugPrint('Live Activities update failed: $e');
       }
-    } else if (Platform.isAndroid) {
+    } else if (_isAndroid) {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
         'active_order_channel',
@@ -131,12 +140,12 @@ class LockScreenWidgetManager {
     _lastProgress = null;
     _lastShopName = null;
 
-    if (Platform.isIOS && _currentLiveActivityId != null) {
+    if (_isIOS && _currentLiveActivityId != null) {
       try {
         await _liveActivitiesPlugin.endActivity(_currentLiveActivityId!);
       } catch (_) {}
       _currentLiveActivityId = null;
-    } else if (Platform.isAndroid) {
+    } else if (_isAndroid) {
       await _flutterLocalNotificationsPlugin.cancel(id: _notificationId);
     }
   }

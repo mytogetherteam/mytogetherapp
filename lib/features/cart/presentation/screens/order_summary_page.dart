@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
@@ -329,8 +330,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: CartManager.instance,
+      listenable: Listenable.merge([
+        CartManager.instance,
+        ActiveOrderState.instance,
+      ]),
       builder: (context, _) {
+        final hasOngoingOrder = ActiveOrderState.instance.hasActiveOrder;
         // Find store in current state to ensure reactivity
         final currentStoreIdx = CartManager.instance.stores.indexWhere(
           (s) => s.nameKey == widget.store.nameKey,
@@ -846,13 +851,75 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
+                      if (hasOngoingOrder)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                  horizontal: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFEF4444),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsRegular.info,
+                                      size: 18,
+                                      color: Color(0xFFDC2626),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        context.tr('cart.ongoing_order_wait'),
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFFDC2626),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: PrimaryGradientButton(
-                          onPressed: (_isPlacingOrder || _isProcessing)
+                          onPressed: (_isPlacingOrder ||
+                                  _isProcessing ||
+                                  hasOngoingOrder)
                               ? null
                               : () async {
+                                  if (ActiveOrderState.instance.hasActiveOrder) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          context.tr('cart.ongoing_order_wait'),
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        backgroundColor: const Color(0xFF2563EB),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   setState(() => _isProcessing = true);
                                   final nav = Navigator.of(context);
 
@@ -880,6 +947,26 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   );
 
                                   try {
+                                    if (ActiveOrderState.instance.hasActiveOrder) {
+                                      operationCompleted = true;
+                                      if (mounted) {
+                                        setState(() {
+                                          _isPlacingOrder = false;
+                                          _isProcessing = false;
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              context.tr('cart.ongoing_order_wait'),
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                            backgroundColor: const Color(0xFF2563EB),
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
+
                                     // Call backend: POST /api/user/orders
                                     // (UserOrdersController.create). Schema
                                     // matches CreateUserOrderDto: shopId,

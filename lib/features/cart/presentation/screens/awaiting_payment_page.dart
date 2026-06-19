@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -9,9 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:gal/gal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import '../../../../core/media/image_bytes_saver.dart';
+import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
@@ -56,7 +57,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
-  File? _receiptImage;
+  PickedImage? _receiptImage;
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
@@ -92,8 +93,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     )..repeat();
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
-    if (Platform.isAndroid) {
-      const MethodChannel('secure_screen').invokeMethod('enable');
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        const MethodChannel('secure_screen').invokeMethod('enable');
+      } catch (_) {}
     }
 
     // When the shop has explicitly requested a new payment slip (Revise
@@ -191,8 +194,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     ActiveOrderState.instance.removeListener(_onStateUpdated);
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
-    if (Platform.isAndroid) {
-      const MethodChannel('secure_screen').invokeMethod('disable');
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        const MethodChannel('secure_screen').invokeMethod('disable');
+      } catch (_) {}
     }
     _orderSubscription?.cancel();
     super.dispose();
@@ -324,9 +329,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      await Gal.putImageBytes(
+      await saveImageBytes(
         Uint8List.fromList(pngBytes),
-        album: 'MyTogether',
         name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
       );
 
@@ -401,9 +405,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
       if (picked == null || !mounted) return;
 
-      final file = File(picked.path);
-      final sizeInBytes = await file.length();
-      final sizeInMb = sizeInBytes / (1024 * 1024);
+      final image = await PickedImage.fromXFile(picked);
+      final sizeInMb = image.sizeInMb;
 
       if (sizeInMb > 5.0) {
         if (mounted) {
@@ -437,7 +440,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         }
         return;
       }
-      setState(() => _receiptImage = file);
+      setState(() => _receiptImage = image);
     } catch (_) {
       if (mounted) {
         AppDialog.showToast(
@@ -522,20 +525,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (_isPaymentReviseOrder(order)) {
         await OrderRepository().revisePaymentImage(
           orderId: intId,
-          file: _receiptImage!,
+          image: _receiptImage!,
         );
       } else {
-        final extension = _receiptImage!.path.split('.').last.toLowerCase();
-        final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
-        final filename =
-            'payment_${DateTime.now().millisecondsSinceEpoch}.$extension';
-
         final formData = FormData.fromMap({
-          'paymentImage': await MultipartFile.fromFile(
-            _receiptImage!.path,
-            filename: filename,
-            contentType: DioMediaType.parse(mimeType),
-          ),
+          'paymentImage': _receiptImage!.toMultipartFile(),
         });
 
         await ApiClient().dio.patch(
@@ -834,8 +828,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: Image.file(
-            _receiptImage!,
+          child: Image.memory(
+            _receiptImage!.bytes,
             width: double.infinity,
             fit: BoxFit.cover,
           ),

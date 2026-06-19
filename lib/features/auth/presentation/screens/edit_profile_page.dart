@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -30,7 +30,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isSaving = false;
 
   final ImagePicker _picker = ImagePicker();
-  File? _pickedImage;
+  PickedImage? _pickedImage;
   String? _currentAvatarUrl;
 
   @override
@@ -63,7 +63,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         maxWidth: 1024,
       );
       if (picked != null) {
-        setState(() => _pickedImage = File(picked.path));
+        setState(
+          () => _pickedImage = null,
+        );
+        final image = await PickedImage.fromXFile(picked);
+        if (mounted) setState(() => _pickedImage = image);
       }
     } catch (e) {
       if (mounted) {
@@ -94,7 +98,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         username: _usernameController.text.trim(),
         phone: _phoneController.text.trim(),
         address: _addressController.text.trim(),
-        profilePhotoPath: _pickedImage?.path,
+        profilePhoto: _pickedImage,
       );
       if (mounted) {
         AppDialog.showToast(context, context.tr('auth.profile_updated'));
@@ -178,7 +182,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildAvatarPicker() {
     ImageProvider? avatarImage;
     if (_pickedImage != null) {
-      avatarImage = FileImage(_pickedImage!);
+      avatarImage = MemoryImage(_pickedImage!.bytes);
     } else if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
       avatarImage = CachedNetworkImageProvider(
         _resolveAvatarUrl(_currentAvatarUrl!),

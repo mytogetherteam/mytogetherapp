@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -45,51 +44,54 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize local notifications
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    await _localNotifications.initialize(
-      settings: initializationSettings,
-      onDidReceiveNotificationResponse: (details) {
-        _handleNotificationClick(null); // Simple navigation for now
-      },
-    );
+    if (!kIsWeb) {
+      // Initialize local notifications
+      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
+      const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+      await _localNotifications.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (details) {
+          _handleNotificationClick(null); // Simple navigation for now
+        },
+      );
 
-    // Create high importance channel for Android
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel_v2',
-      'High Importance Notifications',
-      description: 'This channel is used for important notifications.',
-      importance: Importance.high,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+      // Create high importance channel for Android
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel_v2',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.high,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
 
-    // Create warning channel for Android
-    const AndroidNotificationChannel warningChannel = AndroidNotificationChannel(
-      'high_importance_channel_warning',
-      'Warning Notifications',
-      description: 'This channel is used for warning notifications.',
-      importance: Importance.max,
-      sound: RawResourceAndroidNotificationSound('warning'),
-      playSound: true,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(warningChannel);
+      // Create warning channel for Android
+      const AndroidNotificationChannel warningChannel = AndroidNotificationChannel(
+        'high_importance_channel_warning',
+        'Warning Notifications',
+        description: 'This channel is used for warning notifications.',
+        importance: Importance.max,
+        sound: RawResourceAndroidNotificationSound('warning'),
+        playSound: true,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(warningChannel);
+    }
 
     // Permissions are now requested via MainNavigationScreen rationale modal
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    try {
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];
 
       // 0. Admin broadcast/announcement: pop the modal globally (any screen)
@@ -153,14 +155,13 @@ class NotificationService {
     }
 
     // Listen for token refreshes
-    try {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         if (AuthService().isLoggedIn) {
           _sendTokenToServer(newToken);
         }
       });
     } catch (e) {
-      debugPrint('FCM onTokenRefresh failed: $e');
+      debugPrint('FCM listener setup failed: $e');
     }
 
     _isInitialized = true;
@@ -235,12 +236,19 @@ class NotificationService {
 
   String get _devicePlatform {
     if (kIsWeb) return 'web';
-    if (Platform.isIOS) return 'ios';
-    if (Platform.isAndroid) return 'android';
-    return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.android:
+        return 'android';
+      default:
+        return 'web';
+    }
   }
 
   Future<void> showLocalNotification(RemoteMessage message) async {
+    if (kIsWeb) return;
+
     final String title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
     final String body = message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? 'You have a new message';
     
@@ -260,7 +268,7 @@ class NotificationService {
       additionalFlags: isWarning ? Int32List.fromList([4]) : null,
       showWhen: true,
     );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
       id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
       title: title,

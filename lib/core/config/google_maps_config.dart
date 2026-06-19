@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class GoogleMapsConfig {
   GoogleMapsConfig._();
 
-  static const String _fallbackKey = 'AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM';
+  static const String _fallbackKey = 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
 
   static String get apiKey {
     try {

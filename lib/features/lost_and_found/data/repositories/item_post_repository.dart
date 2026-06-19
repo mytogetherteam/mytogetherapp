@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
 import '../models/item_post_dto.dart';
@@ -108,7 +107,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<File> photos = const [],
+    List<PickedImage> photos = const [],
     List<int> removePhotoIds = const [],
   }) async {
     final formData = FormData.fromMap({
@@ -123,14 +122,11 @@ class ItemPostRepository {
     });
 
     for (var i = 0; i < photos.length; i++) {
-      final file = photos[i];
-      final extension = file.path.split('.').last.toLowerCase();
       formData.files.add(
         MapEntry(
           'photos',
-          await MultipartFile.fromFile(
-            file.path,
-            filename: 'photo_$i.$extension',
+          photos[i].toMultipartFile(
+            filenameOverride: 'photo_$i.${photos[i].extension}',
           ),
         ),
       );
@@ -158,7 +154,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<File> photos = const [],
+    List<PickedImage> photos = const [],
   }) async {
     final formData = FormData.fromMap({
       'description': description,
@@ -172,14 +168,11 @@ class ItemPostRepository {
     });
 
     for (var i = 0; i < photos.length; i++) {
-      final file = photos[i];
-      final extension = file.path.split('.').last.toLowerCase();
       formData.files.add(
         MapEntry(
           'photos',
-          await MultipartFile.fromFile(
-            file.path,
-            filename: 'photo_$i.$extension',
+          photos[i].toMultipartFile(
+            filenameOverride: 'photo_$i.${photos[i].extension}',
           ),
         ),
       );

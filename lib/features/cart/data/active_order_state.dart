@@ -421,6 +421,9 @@ class ActiveOrderState extends ChangeNotifier {
   // --- Properties & Backward Compatibility ---
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
+
+  /// Whether the user is allowed to start a brand-new checkout.
+  bool get canPlaceNewOrder => !hasActiveOrder;
   
   // Helper to get a specific order (tolerates # prefix / numeric id mismatches).
   ActiveOrderItem? getOrder(String? id) {
@@ -564,6 +567,11 @@ class ActiveOrderState extends ChangeNotifier {
     _purgeTerminalOrders();
 
     final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    final hasDifferentActiveOrder = activeOrdersList.any(
+      (o) => o.orderId != id,
+    );
+    if (hasDifferentActiveOrder) return;
+
     _primaryOrderId = id;
     _orders[id] = ActiveOrderItem(
       orderId: id,
