@@ -75,7 +75,7 @@ class _FoodHeaderState extends State<FoodHeader> {
   Future<void> _fallbackToCurrentLocation() async {
     try {
       final pos = await LocationService().getCurrentPosition(
-        requestPermissionIfDenied: true,
+        requestPermissionIfDenied: false,
         forceRefresh: true,
         highAccuracy: true,
       ).timeout(const Duration(seconds: 15));

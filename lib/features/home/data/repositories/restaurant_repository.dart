@@ -171,7 +171,13 @@ class RestaurantRepository {
         size: size,
       );
       return _prefetchAndReturn(
-        response.shops.map((dto) => _mapShopDtoToDomain(dto.shop)).toList(),
+        response.shops.map((dto) {
+          final shop = dto.shop;
+          final dist = (shop.latitude != null && shop.longitude != null)
+              ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
+              : null;
+          return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+        }).toList(),
       );
     }
 
@@ -347,6 +353,15 @@ class RestaurantRepository {
 
   double _deg2rad(double deg) => deg * (math.pi / 180.0);
 
+  /// Delivery ETA from straight-line distance (matches [ShopListItemDto.estimatedTime]).
+  String? _estimatedDeliveryTimeFromKm(double km) {
+    if (km <= 0) return null;
+    var minTime = (km * 2.0).round();
+    if (minTime < 1) minTime = 1;
+    final maxTime = minTime + 5;
+    return '$minTime-$maxTime min';
+  }
+
   Future<TrendingSectionDto> getTrendingItems({
     required double lat,
     required double lon,
@@ -394,6 +409,10 @@ class RestaurantRepository {
     double? distanceKmOverride,
   }) {
     final imagePath = dto.bannerImageUrl ?? '';
+    final effectiveDistanceKm = distanceKmOverride ?? dto.distance;
+    final deliveryTime = _estimatedDeliveryTimeFromKm(effectiveDistanceKm) ??
+        dto.estimatedTime ??
+        '20-30 mins';
 
     final restaurant = Restaurant(
       id: dto.id.toString(),
@@ -407,15 +426,14 @@ class RestaurantRepository {
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
-      distance:
-          '${(distanceKmOverride ?? dto.distance).toStringAsFixed(1)} km',
+      distance: '${effectiveDistanceKm.toStringAsFixed(1)} km',
       imagePath: _getImageUrl(imagePath),
       logoPath: _getImageUrl(
         (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: dto.estimatedTime ?? '20-30 mins',
+      deliveryTime: deliveryTime,
       deliveryFee: dto.displayDeliveryFee,
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',

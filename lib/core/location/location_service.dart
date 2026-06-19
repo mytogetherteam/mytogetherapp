@@ -15,6 +15,7 @@ class LocationService {
   Position? _cachedPosition;
   String? _currentAddress;
   bool _cachedIsFallback = false;
+  bool _locationPermissionPrompted = false;
 
   Position? get cachedPosition =>
       _cachedIsFallback ? null : _cachedPosition;
@@ -46,7 +47,8 @@ class LocationService {
       var permission = await Geolocator.checkPermission()
           .timeout(Duration(seconds: kIsWeb ? 5 : 4));
       if (permission == LocationPermission.denied) {
-        if (requestPermissionIfDenied) {
+        if (requestPermissionIfDenied && !_locationPermissionPrompted) {
+          _locationPermissionPrompted = true;
           permission = await Geolocator.requestPermission()
               .timeout(Duration(seconds: kIsWeb ? 10 : 8));
         } else {

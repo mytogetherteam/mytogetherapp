@@ -8,8 +8,14 @@ Future<bool> isWebNotificationGranted() async {
   return html.Notification.permission == 'granted';
 }
 
+bool _notificationPrompted = false;
+
 Future<bool> requestWebNotificationPermission() async {
   if (!_supported) return false;
+  if (html.Notification.permission == 'granted') return true;
+  if (html.Notification.permission == 'denied') return false;
+  if (_notificationPrompted) return false;
+  _notificationPrompted = true;
   final result = await html.Notification.requestPermission();
   return result == 'granted';
 }
