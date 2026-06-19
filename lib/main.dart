@@ -19,6 +19,8 @@ import 'app.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await NotificationService().initialize();
+  await NotificationService().showLocalNotification(message);
 }
 
 void main() async {
