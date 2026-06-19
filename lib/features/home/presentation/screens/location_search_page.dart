@@ -794,12 +794,17 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                         ),
                     ],
                   ),
-                  Text(
-                    location.address ?? '',
-                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  if (LocationDisplayUtil.readableAddress(location.address) !=
+                      null)
+                    Text(
+                      location.address!,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),

@@ -1113,20 +1113,31 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          state.userLocationName ?? context.tr('food.my_location'),
+                                          (state.deliveryAddress != null &&
+                                                  state.deliveryAddress!.isNotEmpty)
+                                              ? state.deliveryAddress!
+                                              : (state.userLocationName ??
+                                                  context.tr('food.my_location')),
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
                                           ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        if (state.deliveryAddress != null && state.deliveryAddress!.isNotEmpty)
+                                        if (state.userLocationName != null &&
+                                            state.userLocationName!.isNotEmpty &&
+                                            state.deliveryAddress != null &&
+                                            state.deliveryAddress!.isNotEmpty &&
+                                            state.userLocationName !=
+                                                state.deliveryAddress)
                                           Text(
-                                            state.deliveryAddress!,
+                                            state.userLocationName!,
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
                                               color: Colors.grey[500],
                                             ),
-                                            maxLines: 2,
+                                            maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                       ],

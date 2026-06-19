@@ -43,7 +43,21 @@ void main() async {
 
   try {
     debugPrint('[BOOT] Initializing Firebase...');
-    await Firebase.initializeApp();
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyDvyZGjQsgZuZ5VT3wmqAI0edN040x_FxM",
+          authDomain: "mytogether-daf3f.firebaseapp.com",
+          projectId: "mytogether-daf3f",
+          storageBucket: "mytogether-daf3f.firebasestorage.app",
+          messagingSenderId: "972280179999",
+          appId: "1:972280179999:web:2948e4ee866168ad69542a",
+          measurementId: "G-SQD3Q6S3C3",
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
     debugPrint('[BOOT] Firebase initialized successfully.');
   } catch (e) {
     debugPrint('[BOOT] Firebase initialization failed: $e');

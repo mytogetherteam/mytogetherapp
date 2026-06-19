@@ -3,8 +3,8 @@ import 'dart:math' as math;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Persists the session "current location" address locally until the backend
-/// accepts full address fields on saved locations.
+/// Persists the session "current location" street address locally for quick
+/// reuse when the user selects live GPS (not a saved backend location).
 class SessionLocationData {
   final double latitude;
   final double longitude;

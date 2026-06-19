@@ -78,31 +78,89 @@ class ApiClient {
           responseHeader: false,
           responseBody: true,
           error: false,
-          logPrint: (object) {
-            final logStr = object.toString();
-            const int chunkSize = 800;
-
-            if (logStr.length <= chunkSize) {
-              debugPrint('API_RESPONSE: $logStr');
-            } else {
-              debugPrint(
-                'API_RESPONSE: [Part 1] ${logStr.substring(0, chunkSize)}',
-              );
-              int part = 2;
-              for (int i = chunkSize; i < logStr.length; i += chunkSize) {
-                int end = (i + chunkSize < logStr.length)
-                    ? i + chunkSize
-                    : logStr.length;
-                debugPrint(
-                  'API_RESPONSE: [Part $part] ${logStr.substring(i, end)}',
-                );
-                part++;
-              }
-            }
-          },
+          logPrint: _debugLogApiResponse,
         ),
       );
     }
+  }
+
+  /// Logs API responses without splitting UTF-16 surrogate pairs or emitting
+  /// U+FFFD, which can crash Flutter DevTools when decoding log strings.
+  static void _debugLogApiResponse(Object object) {
+    final logStr = _sanitizeLogString(object.toString());
+    const int chunkSize = 800;
+    const int maxTotalLength = 4000;
+
+    final truncated = logStr.length > maxTotalLength
+        ? '${logStr.substring(0, _safeSubstringEnd(logStr, 0, maxTotalLength))}… [truncated ${logStr.length - maxTotalLength} chars]'
+        : logStr;
+
+    if (truncated.length <= chunkSize) {
+      debugPrint('API_RESPONSE: $truncated');
+      return;
+    }
+
+    var start = 0;
+    var part = 1;
+    while (start < truncated.length) {
+      final end = _safeSubstringEnd(
+        truncated,
+        start,
+        start + chunkSize,
+      );
+      debugPrint('API_RESPONSE: [Part $part] ${truncated.substring(start, end)}');
+      start = end;
+      part++;
+    }
+  }
+
+  /// Replaces characters that break Flutter's UTF-8 log decoder.
+  static String _sanitizeLogString(String value) {
+    final buffer = StringBuffer();
+    for (var i = 0; i < value.length; i++) {
+      final unit = value.codeUnitAt(i);
+      if (unit == 0xFFFD) {
+        buffer.write('?');
+        continue;
+      }
+      if (unit >= 0xD800 && unit <= 0xDBFF) {
+        if (i + 1 < value.length) {
+          final next = value.codeUnitAt(i + 1);
+          if (next >= 0xDC00 && next <= 0xDFFF) {
+            buffer.writeCharCode(unit);
+            buffer.writeCharCode(next);
+            i++;
+            continue;
+          }
+        }
+        buffer.write('?');
+        continue;
+      }
+      if (unit >= 0xDC00 && unit <= 0xDFFF) {
+        buffer.write('?');
+        continue;
+      }
+      buffer.writeCharCode(unit);
+    }
+    return buffer.toString();
+  }
+
+  /// Returns [end] adjusted so [value.substring(start, end)] is UTF-16 safe.
+  static int _safeSubstringEnd(String value, int start, int end) {
+    if (end >= value.length) return value.length;
+    if (end <= start) return start;
+
+    final before = value.codeUnitAt(end - 1);
+    if (before >= 0xD800 && before <= 0xDBFF) {
+      return (end + 1 <= value.length) ? end + 1 : end - 1;
+    }
+
+    final at = value.codeUnitAt(end);
+    if (at >= 0xDC00 && at <= 0xDFFF) {
+      return end - 1;
+    }
+
+    return end;
   }
 
   bool _shouldRetry(DioException err) {
