@@ -21,9 +21,10 @@
   <!-- PWA -->
   <meta name="theme-color" content="#ED3973">
 
-  <!-- iOS meta tags & icons -->
+  <!-- iOS meta tags & icons (aligned with myshop — no viewport-fit=cover) -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MyTogether">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -32,36 +33,65 @@
 
   <title>MyTogether</title>
   <link rel="manifest" href="manifest.json">
-  
-  
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
   <script>
-    window.initGoogleMapsApi = function () {
-      window.googleMapsApiReady = true;
+    // Lazy-load Maps so iOS PWA startup stays interactive (myshop does not
+    // load Maps in index.html). Places bridge calls ensureGoogleMapsLoaded().
+    window.ensureGoogleMapsLoaded = function () {
+      if (window.google && window.google.maps) {
+        window.googleMapsApiReady = true;
+        return Promise.resolve();
+      }
+      if (window._googleMapsLoadPromise) {
+        return window._googleMapsLoadPromise;
+      }
+      window._googleMapsLoadPromise = new Promise(function (resolve, reject) {
+        window.initGoogleMapsApi = function () {
+          window.googleMapsApiReady = true;
+          resolve();
+        };
+        var script = document.createElement('script');
+        script.async = true;
+        script.defer = true;
+        script.src =
+          'https://maps.googleapis.com/maps/api/js?key=AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU&libraries=places&callback=initGoogleMapsApi';
+        script.onerror = function () {
+          reject(new Error('Google Maps script failed to load'));
+        };
+        document.head.appendChild(script);
+      });
+      return window._googleMapsLoadPromise;
     };
   </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU&amp;libraries=places&amp;callback=initGoogleMapsApi"></script>
   <script src="maps_places_bridge.js"></script>
   <style id="splash-screen-style">
     html {
-      height: 100%
+      height: 100%;
+      overflow: hidden;
     }
 
     body {
       margin: 0;
       min-height: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
       background-color: #FFFFFF;
-          background-size: 100% 100%;
+      background-size: 100% 100%;
+    }
+
+    /* Splash must never intercept taps if Flutter forgets to remove it. */
+    #splash,
+    #splash-branding {
+      pointer-events: none;
+    }
+
+    flutter-view,
+    flt-glass-pane {
+      touch-action: manipulation;
     }
 
     .center {
@@ -116,6 +146,17 @@
       document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
+    window.addEventListener("flutter-first-frame", removeSplashFromWeb);
+    setTimeout(removeSplashFromWeb, 4000);
+  </script>
+  <script id="firebase-messaging-sw-script">
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('firebase-messaging-sw.js', {
+        scope: '/firebase-cloud-messaging-push-scope',
+      }).catch(function (err) {
+        console.warn('[FCM] Service worker registration failed:', err);
+      });
+    }
   </script>
 </head>
 <body>
@@ -124,12 +165,7 @@
       <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
       <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
   </picture>
-  
-  
-  
-  
-  
-  
+
   <script src="flutter_bootstrap.js" async=""></script>
 
 

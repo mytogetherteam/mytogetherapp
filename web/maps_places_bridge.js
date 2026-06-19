@@ -2,6 +2,13 @@
 (function () {
   function waitForGoogleMaps(maxAttempts, intervalMs) {
     return new Promise(function (resolve, reject) {
+      if (window.ensureGoogleMapsLoaded) {
+        window.ensureGoogleMapsLoaded().then(function () {
+          resolve();
+        }).catch(reject);
+        return;
+      }
+
       var attempts = 0;
       function check() {
         if (

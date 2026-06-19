@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,8 +32,10 @@ void main() async {
 
   bool hasSeenOnboarding = false;
 
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  debugPrint('[BOOT] Splash preserved.');
+  if (!kIsWeb) {
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+    debugPrint('[BOOT] Splash preserved.');
+  }
 
   try {
     debugPrint('[BOOT] Loading .env...');
@@ -96,39 +100,35 @@ void main() async {
     }
     // ─────────────────────────────────────────────────────────────────────
 
-    debugPrint('[BOOT] Initializing NotificationService (background)...');
-    try {
-      await NotificationService().initialize();
-    } catch (e) {
-      debugPrint('[BOOT] NotificationService initialization failed: $e');
-    }
     if (!kIsWeb) {
+      debugPrint('[BOOT] Initializing NotificationService (background)...');
+      try {
+        await NotificationService().initialize();
+      } catch (e) {
+        debugPrint('[BOOT] NotificationService initialization failed: $e');
+      }
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      debugPrint('[BOOT] NotificationService initialization triggered.');
+
+      debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
+      try {
+        await LockScreenWidgetManager.instance.initialize();
+      } catch (e) {
+        debugPrint('[BOOT] LockScreenWidgetManager initialization failed: $e');
+      }
+
+      debugPrint('[BOOT] Loading active order state...');
+      await ActiveOrderState.instance.loadFromPrefs();
+      debugPrint('[BOOT] Active order state loaded.');
+
+      if (AuthService().isLoggedIn) {
+        ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+      }
+
+      debugPrint('[BOOT] Syncing cart...');
+      CartManager.instance.syncWithApi();
+      debugPrint('[BOOT] Cart sync triggered.');
     }
-    debugPrint('[BOOT] NotificationService initialization triggered.');
-    
-    debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
-    try {
-      await LockScreenWidgetManager.instance.initialize();
-    } catch (e) {
-      debugPrint('[BOOT] LockScreenWidgetManager initialization failed: $e');
-    }
-
-    debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
-
-    debugPrint('[BOOT] Loading active order state...');
-    await ActiveOrderState.instance.loadFromPrefs();
-    debugPrint('[BOOT] Active order state loaded.');
-
-    // Seed active orders from the backend so ongoing orders survive cold
-    // starts / cleared prefs (WebSocket alone can't hydrate unknown orders).
-    if (AuthService().isLoggedIn) {
-      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
-    }
-
-    debugPrint('[BOOT] Syncing cart...');
-    CartManager.instance.syncWithApi();
-    debugPrint('[BOOT] Cart sync triggered.');
 
     debugPrint('[BOOT] Checking onboarding status...');
     hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
@@ -154,4 +154,22 @@ void main() async {
   debugPrint('[BOOT] Calling runApp()...');
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   debugPrint('[BOOT] runApp() called.');
+
+  if (kIsWeb) {
+    FlutterNativeSplash.remove();
+    unawaited(_finishWebBoot());
+  }
+}
+
+Future<void> _finishWebBoot() async {
+  try {
+    await NotificationService().initialize();
+    await ActiveOrderState.instance.loadFromPrefs();
+    if (AuthService().isLoggedIn) {
+      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+    }
+    CartManager.instance.syncWithApi();
+  } catch (e) {
+    debugPrint('[BOOT] Deferred web init failed: $e');
+  }
 }

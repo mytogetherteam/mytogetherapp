@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../data/onboarding_prefs.dart';
@@ -236,7 +237,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                 ),
               ),
-              Padding(
+              SafeArea(
+                top: false,
+                minimum: kIsWeb
+                    ? const EdgeInsets.only(bottom: 8)
+                    : EdgeInsets.zero,
+                child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -307,6 +313,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                     ),
                   ],
+                ),
                 ),
               ),
             ],

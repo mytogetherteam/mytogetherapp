@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -385,52 +386,54 @@ class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMix
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
 
-    // Physics ticker
-    _physicsTicker = createTicker((_) {
-      final now = DateTime.now();
-      final dt = now.difference(_lastTickTime).inMilliseconds / 1000.0;
-      _lastTickTime = now;
-      if (dt <= 0 || dt > 0.1) return;
+    // Physics + accelerometer are mobile-only. On web/PWA they run many
+    // setState calls per frame and make the login screen unresponsive.
+    if (!kIsWeb) {
+      _physicsTicker = createTicker((_) {
+        final now = DateTime.now();
+        final dt = now.difference(_lastTickTime).inMilliseconds / 1000.0;
+        _lastTickTime = now;
+        if (dt <= 0 || dt > 0.1) return;
 
-      const stiffness = 80.0;
-      const damping = 8.0;
+        const stiffness = 80.0;
+        const damping = 8.0;
 
-      final springForce = -_position * stiffness;
-      final dampForce = -_velocity * damping;
-      final acceleration = (springForce + dampForce) / _mass;
+        final springForce = -_position * stiffness;
+        final dampForce = -_velocity * damping;
+        final acceleration = (springForce + dampForce) / _mass;
 
-      setState(() {
-        _velocity += acceleration * dt;
-        _position += _velocity * dt;
+        setState(() {
+          _velocity += acceleration * dt;
+          _position += _velocity * dt;
 
-        if (_velocity.distance < 0.5 && _position.distance < 0.5) {
-          _velocity = Offset.zero;
-          _position = Offset.zero;
+          if (_velocity.distance < 0.5 && _position.distance < 0.5) {
+            _velocity = Offset.zero;
+            _position = Offset.zero;
+          }
+        });
+      })..start();
+
+      _accelSub = accelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 16),
+      ).listen((AccelerometerEvent event) {
+        final current = Offset(event.x, event.y);
+        final delta = current - _prevAccel;
+        _prevAccel = current;
+
+        final shakeMagnitude = delta.distance;
+        if (shakeMagnitude > 1.2) {
+          final impulseScale = (shakeMagnitude * 12.0).clamp(0.0, 120.0);
+          _velocity += Offset(
+            delta.dx * -impulseScale / _mass,
+            delta.dy * impulseScale / _mass,
+          );
+          final speed = _velocity.distance;
+          if (speed > 200) {
+            _velocity = _velocity / speed * 200;
+          }
         }
       });
-    })..start();
-
-    // Accelerometer — detect shake from sudden delta
-    _accelSub = accelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 16),
-    ).listen((AccelerometerEvent event) {
-      final current = Offset(event.x, event.y);
-      final delta = current - _prevAccel;
-      _prevAccel = current;
-
-      final shakeMagnitude = delta.distance;
-      if (shakeMagnitude > 1.2) {
-        final impulseScale = (shakeMagnitude * 12.0).clamp(0.0, 120.0);
-        _velocity += Offset(
-          delta.dx * -impulseScale / _mass,
-          delta.dy * impulseScale / _mass,
-        );
-        final speed = _velocity.distance;
-        if (speed > 200) {
-          _velocity = _velocity / speed * 200;
-        }
-      }
-    });
+    }
   }
 
   @override

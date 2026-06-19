@@ -13,6 +13,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+self.addEventListener('install', function () {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil(self.clients.claim());
+});
+
 messaging.onBackgroundMessage((payload) => {
   const title =
     payload.notification?.title || payload.data?.title || 'MyTogether';

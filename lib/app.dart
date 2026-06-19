@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/auth/auth_service.dart';
@@ -47,6 +48,23 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
+  Widget _buildHome() {
+    final child = !widget.hasSeenOnboarding
+        ? const OnboardingScreen()
+        : AuthService().isLoggedIn
+            ? const MainNavigationScreen()
+            : const AuthEntryPage();
+
+    if (kIsWeb) return child;
+
+    return UpgradeAlert(
+      showIgnore: false,
+      showLater: false,
+      upgrader: Upgrader(),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     debugPrint('Building App widget...');
@@ -73,17 +91,9 @@ class _AppState extends State<App> {
             navigatorObservers: [App.routeObserver],
             navigatorKey: App.navigatorKey,
             scaffoldMessengerKey: App.scaffoldMessengerKey,
-            // Auth-aware initial route
-            home: UpgradeAlert(
-              showIgnore: false,
-              showLater: false,
-              upgrader: Upgrader(),
-              child: !widget.hasSeenOnboarding
-                  ? const OnboardingScreen()
-                  : AuthService().isLoggedIn
-                      ? const MainNavigationScreen()
-                      : const AuthEntryPage(),
-            ),
+            // Auth-aware initial route. Skip UpgradeAlert on web — it can
+            // block taps while checking store metadata that PWA users cannot use.
+            home: _buildHome(),
             routes: {
               '/home': (context) => const MainNavigationScreen(),
               '/login': (context) => const LoginPage(),

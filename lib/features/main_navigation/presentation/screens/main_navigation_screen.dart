@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -37,6 +38,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      FlutterNativeSplash.remove();
+    }
     _rebuildScreens();
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
@@ -173,16 +177,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  /// Extra bottom inset so tab labels stay above the browser/PWA home indicator.
+  /// Extra bottom inset so tab labels stay above the iOS home indicator.
+  /// Uses SafeArea (like myshop) instead of a fixed +20px hack that can
+  /// misalign Flutter web hit-testing on iOS standalone PWAs.
   double _bottomNavInset(BuildContext context) {
     final media = MediaQuery.of(context);
     final safeBottom = media.viewPadding.bottom > 0
         ? media.viewPadding.bottom
         : media.padding.bottom;
-
-    if (kIsWeb) {
-      return safeBottom > 0 ? safeBottom + 6 : 20;
-    }
 
     if (Theme.of(context).platform == TargetPlatform.iOS) {
       return safeBottom * 0.5;
@@ -205,22 +207,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
       floatingActionButton: const StyledCartFab(),
-      bottomNavigationBar: Container(
-        height: _navBarContentHeight + _bottomNavInset(context),
-        padding: EdgeInsets.only(bottom: _bottomNavInset(context)),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          height: _navBarContentHeight + _bottomNavInset(context),
+          padding: EdgeInsets.only(bottom: _bottomNavInset(context)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
             _buildNavItem(
               0,
               PhosphorIcons.house,
@@ -252,6 +256,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               context.tr('nav.profile'),
             ),
           ],
+        ),
         ),
       ),
     );
