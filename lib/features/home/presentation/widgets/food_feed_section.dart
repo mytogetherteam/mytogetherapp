@@ -47,6 +47,17 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     _future = _fetch();
   }
 
+  @override
+  void didUpdateWidget(covariant FoodFeedSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.latitude != widget.latitude ||
+        oldWidget.longitude != widget.longitude) {
+      setState(() {
+        _future = _fetch();
+      });
+    }
+  }
+
   Future<ShopFeedSectionDto> _fetch() =>
       RestaurantRepository.instance.getFoodTabFeed(
         feedType: widget.feedType,
@@ -142,6 +153,9 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
               forceRestaurantNavigation: true,
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
+              deliveryEnabled: item.deliveryEnabled,
+              operatingHours: item.operatingHours,
+              restaurantStatus: item.restaurantStatus,
             );
           },
         ),

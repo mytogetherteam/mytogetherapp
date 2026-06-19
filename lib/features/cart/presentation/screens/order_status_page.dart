@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/order_tax.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
@@ -440,7 +441,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final storeName = state.displayShopName.isNotEmpty
         ? state.displayShopName
         : context.tr('common.restaurant');
-    final total = widget.foodTotal + widget.deliveryFee;
+    final taxAmount =
+        state.taxAmount ?? OrderTax.calculateTax(widget.foodTotal);
+    final delivery = state.deliveryFee ?? widget.deliveryFee;
+    final total = state.isPickupFulfillment
+        ? widget.foodTotal + taxAmount
+        : widget.foodTotal + taxAmount + delivery;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -916,6 +922,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ),
                               
                               _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
+                              const SizedBox(height: 8),
+                              _buildSummaryRow(
+                                context.tr('order_status.tax'),
+                                state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
+                              ),
                               if (!state.isPickupFulfillment) ...[
                                 const SizedBox(height: 8),
                                 _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
@@ -926,9 +937,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ),
                               _buildSummaryRow(
                                 context.tr('order_status.total_amount'),
-                                state.isPickupFulfillment
-                                    ? (state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice())
-                                    : (widget.foodTotal + (state.deliveryFee ?? widget.deliveryFee)).toFormattedPrice(),
+                                state.displayTotalAmount ?? total.toFormattedPrice(),
                                 isBold: true,
                               ),
                             ],

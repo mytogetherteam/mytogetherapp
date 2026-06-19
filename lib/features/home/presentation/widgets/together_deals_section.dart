@@ -194,7 +194,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
             const SizedBox(height: 12),
             // Horizontal scroll cards
             SizedBox(
-              height: 210,
+              height: 224,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(left: 20, right: 20),
@@ -235,7 +235,7 @@ class _TogetherDealsSectionState extends State<TogetherDealsSection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 210,
+          height: 224,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20, right: 20),

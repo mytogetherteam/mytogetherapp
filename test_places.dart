@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   final dio = Dio();
@@ -9,12 +10,12 @@ void main() async {
       'components': 'country:th',
       'language': 'en',
     });
-    print(response.data);
+    debugPrint(response.data.toString());
   } catch (e) {
     if (e is DioException) {
-      print(e.response?.data);
+      debugPrint(e.response?.data?.toString());
     } else {
-      print(e);
+      debugPrint(e.toString());
     }
   }
 }

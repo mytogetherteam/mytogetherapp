@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/image_skeleton_loader.dart';
@@ -10,10 +12,15 @@ import '../../../../core/utils/price_formatter.dart';
 import '../../../cart/data/cart_repository.dart';
 import '../../../cart/data/cart_manager.dart';
 import '../../../cart/data/models/cart_dto.dart';
+import '../../data/restaurant_data.dart';
+import '../../data/restaurant_order_availability.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../../auth/data/repositories/user_location_repository.dart';
+import '../widgets/order_unavailability_ui.dart';
 import '../../data/models/food_detail_dto.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
-import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -98,6 +105,22 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   final List<Map<String, dynamic>> _reviews = [];
 
   bool _isAddingToCart = false;
+  Restaurant? _shopContext;
+  Timer? _hoursRefreshTimer;
+  late final VoidCallback _orderStateListener;
+
+  RestaurantOrderAvailability? get _orderAvailability {
+    if (_shopContext != null) {
+      return RestaurantOrderAvailability.of(_shopContext!);
+    }
+    final shopId = int.tryParse(widget.restaurantId);
+    if (shopId != null && shopId > 0) {
+      return ShopOrderStateCache.instance.availabilityForShopIdOrDefault(shopId);
+    }
+    return null;
+  }
+
+  bool get _orderBlocked => _orderAvailability?.isBlocked ?? false;
 
   @override
   void initState() {
@@ -112,6 +135,48 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     _isFavorite = widget.isFavorite ?? false;
 
     _fetchFoodDetails();
+    _loadShopContext();
+
+    ShopOrderStateCache.instance.ensureListening();
+    _orderStateListener = () {
+      if (!mounted) return;
+      final shopId = int.tryParse(widget.restaurantId);
+      if (shopId == null) return;
+      if (_shopContext == null) return;
+      final cached = ShopOrderStateCache.instance.availabilityForShopIdOrDefault(
+        shopId,
+        deliveryEnabled: _shopContext!.deliveryEnabled,
+        operatingHours: _shopContext!.operatingHours,
+        status: _shopContext!.status,
+      );
+      setState(() {
+        _shopContext = _shopContext!.copyWith(
+          deliveryEnabled: cached.deliveryEnabled,
+          status: cached.statusFallback,
+        );
+      });
+    };
+    ShopOrderStateCache.instance.addListener(_orderStateListener);
+    _hoursRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _loadShopContext() async {
+    final shopId = int.tryParse(widget.restaurantId);
+    if (shopId == null || shopId <= 0) return;
+    try {
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
+      final restaurant = await RestaurantRepository.instance.getShopById(
+        shopId,
+        lat: coords.lat,
+        lon: coords.lon,
+      );
+      if (mounted) {
+        setState(() => _shopContext = restaurant);
+      }
+    } catch (_) {}
   }
 
   void _initializeSelections() {
@@ -244,6 +309,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   @override
   void dispose() {
     CartManager.instance.removeListener(_onCartChanged);
+    _hoursRefreshTimer?.cancel();
+    ShopOrderStateCache.instance.removeListener(_orderStateListener);
     _instructionsController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -359,6 +426,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_orderAvailability != null &&
+                            _orderAvailability!.isBlocked)
+                          MenuItemOrderBanner(
+                            message: _orderAvailability!
+                                .menuItemBannerText(context),
+                            reason: _orderAvailability!.reason,
+                          ),
                         const SizedBox(height: 0),
                         // Title
                         Text(
@@ -886,14 +960,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      gradient: _orderBlocked ? null : AppColors.primaryGradient,
+                      color: _orderBlocked ? const Color(0xFFB0B8C4) : null,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Material(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
                       child: InkWell(
-                        onTap: _isAddingToCart
+                        onTap: (_isAddingToCart || _orderBlocked)
                             ? null
                             : () async {
                                 if (_currentFood != null) {
@@ -968,6 +1043,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   }
 
                                   try {
+                                    await CartManager.instance.invalidateCache();
+                                    await CartManager.instance.syncWithApi();
+
                                     CartDto? result;
                                     if (widget.cartItemId != null) {
                                       // Find the names for the newly selected variant
@@ -1065,108 +1143,25 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       if (!context.mounted) return;
                                       _afterAddToCart();
                                     }
+                                  } on DioException catch (e) {
+                                    if (!context.mounted) return;
+                                    setState(() => _isAddingToCart = false);
+
+                                    final snackbar = SnackBar(
+                                      content: Text(
+                                        context.trArgs(
+                                          'menu.failed_add_cart',
+                                          {'error': dioErrorMessage(e)},
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(snackbar);
                                   } catch (e) {
                                     if (mounted) {
                                       setState(() {
                                         _isAddingToCart = false;
                                       });
-                                      final errorStr = e.toString();
-
-                                      // Handle Single Shop Rule Conflict (409)
-                                      if (errorStr.contains('Conflict') ||
-                                          errorStr.contains('409')) {
-                                        if (!context.mounted) return;
-                                        final bool? clearConfirmed =
-                                            await AppDialog.show<bool>(
-                                              context: context,
-                                              title: context.tr('menu.new_cart_title'),
-                                              content:
-                                                  context.tr('menu.new_cart_message'),
-                                              buttonText: context.tr('menu.clear_and_add'),
-                                              secondaryButtonText: context.tr('common.cancel'),
-                                            );
-
-                                        if (clearConfirmed == true && mounted) {
-                                          try {
-                                            await CartRepository.instance
-                                                .clearCart();
-                                            // Retry adding to cart
-                                            await CartRepository.instance
-                                                .addToCart(
-                                                  AddToCartRequest(
-                                                    menuItemId: menuItemId,
-                                                    quantity: _quantity,
-                                                    shopId: shopId,
-                                                    variantId:
-                                                        _selectedVariantId,
-                                                    specialInstructions:
-                                                        _instructionsController
-                                                            .text
-                                                            .trim()
-                                                            .isEmpty
-                                                        ? null
-                                                        : _instructionsController
-                                                              .text
-                                                              .trim(),
-                                                    optionIds:
-                                                        allOptionIds.isNotEmpty
-                                                        ? allOptionIds
-                                                        : null,
-                                                  ),
-                                                );
-                                            // Sync local state
-                                            await CartManager.instance
-                                                .invalidateCache();
-                                            await CartManager.instance
-                                                .syncWithApi();
-                                            if (mounted) {
-                                              setState(
-                                                () => _isAddingToCart = false,
-                                              );
-                                              if (!context.mounted) return;
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    context.tr('menu.cart_cleared_added'),
-                                                  ),
-                                                  backgroundColor:
-                                                      AppColors.primary,
-                                                ),
-                                              );
-                                              // Pop details page (or redirect
-                                              // via onItemAdded).
-                                              _afterAddToCart();
-                                            }
-                                          } catch (retryErr) {
-                                            if (mounted) {
-                                              setState(() {
-                                                _isAddingToCart = false;
-                                              });
-                                              if (!context.mounted) return;
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    context.trArgs(
-                                                      'menu.failed_retry',
-                                                      {'error': '$retryErr'},
-                                                    ),
-                                                  ),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        } else if (mounted) {
-                                          setState(
-                                            () => _isAddingToCart = false,
-                                          );
-                                        }
-                                        return;
-                                      }
 
                                       if (!context.mounted) return;
                                       ScaffoldMessenger.of(
@@ -1174,7 +1169,10 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            context.trArgs('menu.failed_add_cart', {'error': '$e'}),
+                                            context.trArgs(
+                                              'menu.failed_add_cart',
+                                              {'error': dioErrorMessage(e)},
+                                            ),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -1208,6 +1206,17 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                   child: CustomLoadingIndicator(
                                     size: 24,
                                     color: Colors.white,
+                                  ),
+                                )
+                              : _orderBlocked
+                              ? Center(
+                                  child: Text(
+                                    context.tr('order.add_to_cart_unavailable'),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 )
                               : Row(

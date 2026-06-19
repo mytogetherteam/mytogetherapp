@@ -13,6 +13,10 @@ import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
+import 'order_unavailability_ui.dart';
+import '../../data/models/shop_dto.dart' show OperatingHourDto;
+import '../../data/restaurant_order_availability.dart';
+import '../../data/shop_order_state_cache.dart';
 
 class FoodMenuItemCard extends StatefulWidget {
   final String id;
@@ -42,6 +46,13 @@ class FoodMenuItemCard extends StatefulWidget {
   // Real-time status fields
   final bool isAvailable;
   final String publishStatus;
+  final bool deliveryEnabled;
+  final List<OperatingHourDto> operatingHours;
+  final String restaurantStatus;
+  final RestaurantOrderAvailability? orderAvailability;
+  /// When true, skips the per-card closed/delivery status line (restaurant
+  /// detail page shows one strip + hint instead).
+  final bool suppressOrderStatusLine;
 
   const FoodMenuItemCard({
     super.key,
@@ -69,6 +80,11 @@ class FoodMenuItemCard extends StatefulWidget {
     this.targetMenuItemId,
     this.isAvailable = true,
     this.publishStatus = 'PUBLISHED',
+    this.deliveryEnabled = true,
+    this.operatingHours = const [],
+    this.restaurantStatus = 'Open',
+    this.orderAvailability,
+    this.suppressOrderStatusLine = false,
   });
 
   @override
@@ -130,6 +146,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
+    ShopOrderStateCache.instance.ensureListening();
+
     final bool isAsset = widget.imagePath.startsWith('assets/');
     final bool isNetworkImage = !isAsset && widget.imagePath.trim().isNotEmpty;
     
@@ -150,7 +168,30 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
 
     if (effectiveIsHidden) return const SizedBox.shrink();
 
-    return AnimatedBuilder(
+    return ListenableBuilder(
+      listenable: ShopOrderStateCache.instance,
+      builder: (context, _) {
+        final shopId = int.tryParse(widget.restaurantId) ?? 0;
+        final availability = widget.orderAvailability ??
+            (shopId > 0
+                ? ShopOrderStateCache.instance.availabilityForShopIdOrDefault(
+                    shopId,
+                    deliveryEnabled: widget.deliveryEnabled,
+                    operatingHours: widget.operatingHours,
+                    status: widget.restaurantStatus,
+                  )
+                : RestaurantOrderAvailability.fromParts(
+                    deliveryEnabled: widget.deliveryEnabled,
+                    operatingHours: widget.operatingHours,
+                    status: widget.restaurantStatus,
+                  ));
+        final bool orderBlocked = availability.isBlocked;
+        final showBadge = orderBlocked && !effectiveIsDisabled;
+        final hintLine = widget.suppressOrderStatusLine || showBadge
+            ? ''
+            : availability.menuCardHintLine(context);
+
+        return AnimatedBuilder(
       animation: Listenable.merge([_controller, _floatController]),
       builder: (context, _) {
         return FractionalTranslation(
@@ -159,6 +200,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
             scale: _scaleAnimation.value,
             child: _OutOfStockWrapper(
               isDisabled: effectiveIsDisabled,
+              orderBlocked: orderBlocked && !effectiveIsDisabled,
               child: GestureDetector(
                 onTap: effectiveIsDisabled
                     ? null
@@ -237,7 +279,9 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                       child: child,
                                     );
                                   },
-                                  child: Container(
+                                  child: UnavailableImageDim(
+                                    active: showBadge,
+                                    child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -253,8 +297,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),
                                                   errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
-                                                  fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                                  memCacheWidth: 600,
+                                                  fadeInDuration: Duration.zero, 
+                                                  fadeOutDuration: Duration.zero,
                                                 )
                                               : Image.asset(
                                                   widget.imagePath,
@@ -264,8 +308,17 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                                 )),
                                     ),
                                   ),
+                                  ),
                                 ),
                               ),
+                              if (showBadge)
+                                Positioned(
+                                  left: 8,
+                                  bottom: 8,
+                                  child: OrderStatusImageBadge(
+                                    reason: availability.reason,
+                                  ),
+                                ),
                               Positioned(
                                 top: 10,
                                 right: 10,
@@ -351,7 +404,11 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   ],
                                 ],
                               ),
-                              const SizedBox(height: 2),
+                              OrderBlockedMenuHint(
+                                text: hintLine,
+                                reason: availability.reason,
+                              ),
+                              if (hintLine.isNotEmpty) const SizedBox(height: 2),
                               if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
                                 Text(
                                   widget.restaurantName,
@@ -388,6 +445,8 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
               ),
             );
           },
+        );
+      },
     );
   }
 
@@ -401,47 +460,23 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
       );
     }
   }
-
-  Widget _buildFallbackImage() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.grey[400],
-              size: 32,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              context.tr('common.no_image'),
-              style: GoogleFonts.poppins(
-                color: Colors.grey[500],
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _OutOfStockWrapper extends StatelessWidget {
   final bool isDisabled;
+  final bool orderBlocked;
   final Widget child;
 
-  const _OutOfStockWrapper({required this.isDisabled, required this.child});
+  const _OutOfStockWrapper({
+    required this.isDisabled,
+    this.orderBlocked = false,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (!isDisabled) return child;
+    if (!isDisabled && !orderBlocked) return child;
+    if (orderBlocked && !isDisabled) return child;
     return Stack(
       children: [
         // Grayscale effect for the whole card when disabled

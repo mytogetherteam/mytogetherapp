@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:math';
+
+import '../config/google_maps_config.dart';
+import 'google_places_client.dart';
 
 /// Result from a Google Maps Places/Geocoding query.
 class PlaceResult {
@@ -38,6 +38,35 @@ class PlaceResult {
       lat: 0, // Needs Details API call later if selected
       lon: 0, 
       type: (json['types'] as List?)?.firstOrNull?.toString(),
+    );
+  }
+
+  /// Factory for Google Maps Places Text Search API results.
+  factory PlaceResult.fromGoogleTextSearch(
+    Map<String, dynamic> json, {
+    double? userLat,
+    double? userLon,
+  }) {
+    final geometry = json['geometry'] as Map<String, dynamic>? ?? {};
+    final location = geometry['location'] as Map<String, dynamic>? ?? {};
+    final lat = double.tryParse(location['lat']?.toString() ?? '') ?? 0;
+    final lon = double.tryParse(location['lng']?.toString() ?? '') ?? 0;
+    final name = json['name']?.toString() ?? '';
+    final address = json['formatted_address']?.toString() ?? name;
+
+    double? distance;
+    if (userLat != null && userLon != null) {
+      distance = _haversine(userLat, userLon, lat, lon);
+    }
+
+    return PlaceResult(
+      placeId: json['place_id']?.toString() ?? '',
+      name: name,
+      displayName: address,
+      lat: lat,
+      lon: lon,
+      type: (json['types'] as List?)?.firstOrNull?.toString(),
+      distanceKm: distance,
     );
   }
 
@@ -112,118 +141,26 @@ class PlaceResult {
   }
 }
 
-/// Service for searching places using the Google Maps APIs.
+/// Service for searching places using Google Maps (REST on mobile, JS SDK on web).
 class LocationSearchService {
   static final LocationSearchService instance = LocationSearchService._internal();
   LocationSearchService._internal();
 
-  static String get _apiKey {
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (key != null && key.isNotEmpty && key != 'YOUR_NEW_API_KEY_HERE') {
-      return key;
-    }
-    return 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
-  }
+  final GooglePlacesClient _client = GooglePlacesClient.instance;
 
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://maps.googleapis.com/maps/api',
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
-
-  /// Forward geocode: search for places by query using Google Places Autocomplete API.
-  Future<List<PlaceResult>> searchPlaces(String query, {double? lat, double? lon}) async {
-    if (query.trim().isEmpty) return [];
-
-    try {
-      final params = <String, dynamic>{
-        'input': query,
-        'key': _apiKey,
-        'components': 'country:th', // STRICTLY RESTRICT TO THAILAND
-        'language': 'en',
-      };
-
-      // Bias results towards user's current location if available
-      if (lat != null && lon != null) {
-        params['location'] = '$lat,$lon';
-        params['radius'] = 50000; // 50km radius bias
-      }
-
-      final response = await _dio.get('/place/autocomplete/json', queryParameters: params);
-
-      if (response.statusCode == 200 && response.data['status'] == 'OK') {
-        final predictions = response.data['predictions'] as List<dynamic>? ?? [];
-        
-        // We use Place API for search autocomplete. 
-        // Note: It doesn't return lat/lon natively, we'll map what we have.
-        // We could fetch details for each, but that is 1 API call per result (expensive).
-        return predictions
-            .map((e) => PlaceResult.fromGooglePlace(e as Map<String, dynamic>))
-            .toList();
-      } else {
-        debugPrint('PLACES API FAILED: ${response.data}');
-      }
-      return [];
-    } catch (e) {
-      debugPrint('PLACES API EXCEPTION: $e');
-      return [];
-    }
+  /// Forward geocode: search using Autocomplete + Text Search, then Geocoding fallback.
+  Future<List<PlaceResult>> searchPlaces(String query, {double? lat, double? lon}) {
+    if (!GoogleMapsConfig.placesSearchEnabled) return Future.value([]);
+    return _client.searchPlaces(query, lat: lat, lon: lon);
   }
 
   /// Pre-fetches the details (including lat/lon) for a specific place_id if it's missing them.
-  Future<PlaceResult?> getPlaceDetails(PlaceResult place) async {
-    if (place.lat != 0 && place.lon != 0) return place; // Already has coordinates
-    
-    try {
-      final response = await _dio.get('/place/details/json', queryParameters: {
-        'place_id': place.placeId,
-        'key': _apiKey,
-        'fields': 'geometry,name,formatted_address,type',
-      });
-
-      if (response.statusCode == 200 && response.data['status'] == 'OK') {
-        final result = response.data['result'] as Map<String, dynamic>;
-        final geometry = result['geometry'] as Map<String, dynamic>? ?? {};
-        final location = geometry['location'] as Map<String, dynamic>? ?? {};
-        
-        final lat = double.tryParse(location['lat']?.toString() ?? '') ?? 0;
-        final lon = double.tryParse(location['lng']?.toString() ?? '') ?? 0;
-
-        return PlaceResult(
-          placeId: place.placeId,
-          name: place.name, // Keep autocomplete's clean short name
-          displayName: place.displayName,
-          lat: lat,
-          lon: lon,
-          type: place.type,
-          distanceKm: place.distanceKm,
-        );
-      }
-    } catch (_) {}
-    return place;
+  Future<PlaceResult?> getPlaceDetails(PlaceResult place) {
+    return _client.getPlaceDetails(place);
   }
 
   /// Reverse geocode: get full address string and components from coordinates.
-  Future<PlaceResult?> reverseGeocode(double lat, double lon) async {
-    try {
-      final response = await _dio.get('/geocode/json', queryParameters: {
-        'latlng': '$lat,$lon',
-        'key': _apiKey,
-        'language': 'en',
-      });
-
-      if (response.statusCode == 200 && response.data['status'] == 'OK') {
-        final results = response.data['results'] as List<dynamic>? ?? [];
-        if (results.isNotEmpty) {
-           return PlaceResult.fromGoogleGeocode(results.first as Map<String, dynamic>, userLat: lat, userLon: lon);
-        }
-      } else {
-        debugPrint('REVERSE GEOCODE API FAILED: ${response.data}');
-      }
-      return null;
-    } catch (e) {
-      debugPrint('REVERSE GEOCODE EXCEPTION: $e');
-      return null;
-    }
+  Future<PlaceResult?> reverseGeocode(double lat, double lon) {
+    return _client.reverseGeocode(lat, lon);
   }
 }

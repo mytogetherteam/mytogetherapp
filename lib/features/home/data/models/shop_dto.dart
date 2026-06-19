@@ -116,6 +116,8 @@ class ShopListItemDto {
   final double distance;
   final String? address;
   final bool isOpen;
+  final bool deliveryEnabled;
+  final List<OperatingHourDto> operatingHours;
   final String? _estimatedTime;
   final bool isFavorite;
   final double? latitude;
@@ -182,6 +184,8 @@ class ShopListItemDto {
     required this.distance,
     this.address,
     required this.isOpen,
+    this.deliveryEnabled = true,
+    this.operatingHours = const [],
     String? estimatedTime,
     required this.isFavorite,
     this.latitude,
@@ -239,6 +243,10 @@ class ShopListItemDto {
       distance: (json['distanceKm'] ?? json['distance'] ?? 0.0).toDouble(),
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,
+      deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      operatingHours: (json['operatingHours'] as List? ?? [])
+          .map((e) => OperatingHourDto.fromJson(e))
+          .toList(),
       estimatedTime: json['estimatedTime']?.toString(),
       isFavorite: json['isFavorite'] ?? false,
       latitude: json['latitude'] != null
@@ -351,6 +359,7 @@ class ShopDetailDto {
   final double distance;
   final String? _estimatedTime;
   final bool isOpen;
+  final bool deliveryEnabled;
   final String? address;
   final String? addressMm;
   final String? addressTh;
@@ -426,6 +435,7 @@ class ShopDetailDto {
     required this.distance,
     String? estimatedTime,
     required this.isOpen,
+    this.deliveryEnabled = true,
     this.address,
     this.addressMm,
     this.addressTh,
@@ -472,6 +482,7 @@ class ShopDetailDto {
       distance: (json['distance'] ?? 0.0).toDouble(),
       estimatedTime: json['estimatedTime']?.toString(),
       isOpen: json['isOpen'] ?? false,
+      deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
       address: json['address']?.toString(),
       addressMm: json['addressMm']?.toString(),
       addressTh: json['addressTh']?.toString(),

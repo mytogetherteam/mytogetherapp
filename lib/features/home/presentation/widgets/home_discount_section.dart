@@ -3,13 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/location/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/models/home_discount_section_dto.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../screens/today_overview_detail_page.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 import 'discount_deal_card.dart';
 import 'image_skeleton_loader.dart';
 import 'view_all_icon_button.dart';
@@ -35,13 +35,26 @@ class HomeDiscountSection extends StatefulWidget {
   State<HomeDiscountSection> createState() => _HomeDiscountSectionState();
 }
 
-class _HomeDiscountSectionState extends State<HomeDiscountSection> {
+class _HomeDiscountSectionState extends State<HomeDiscountSection>
+    with LocationRefreshMixin {
   Future<_HomeDiscountData>? _future;
 
   @override
   void initState() {
     super.initState();
     _future = _load();
+  }
+
+  @override
+  void onActiveLocationChanged() {
+    _reload();
+  }
+
+  void _reload() {
+    if (!mounted) return;
+    setState(() {
+      _future = _load();
+    });
   }
 
   Future<_HomeDiscountData> _load() async {
@@ -72,7 +85,7 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
             lat: location.lat,
             lon: location.lon,
             percentage: active.discountPercent,
-            size: 10,
+            size: 8,
             // Pass the configured title verbatim (incl. any `{}` placeholder).
             // Omit it when null/empty so the backend uses its default title.
             sectionTitle: active.hasTitle ? active.title : null,
@@ -95,18 +108,9 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
   /// back to a real GPS fix. Returns null when no real location is available
   /// (the [LocationService] default/fallback position is intentionally ignored).
   Future<_LatLng?> _resolveLocation() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final savedLat = activeLoc?.latitude;
-    final savedLon = activeLoc?.longitude;
-    if (savedLat != null && savedLon != null) {
-      return _LatLng(savedLat, savedLon);
-    }
-
-    final service = LocationService();
-    await service.getCurrentPosition();
-    final pos = service.cachedPosition;
-    if (pos == null) return null; // No real GPS fix.
-    return _LatLng(pos.latitude, pos.longitude);
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+    return _LatLng(coords.lat, coords.lon);
   }
 
   @override
@@ -123,7 +127,9 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
           return const SizedBox.shrink();
         }
 
-        final deals = data.deals!.items.take(10).toList();
+        final deals = data.deals!.items
+            .take(8)
+            .toList();
         final apiTitle = data.deals!.sectionTitle.trim();
         final headerTitle = apiTitle.isNotEmpty
             ? apiTitle
@@ -131,6 +137,7 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
         final maxPercent = data.deals!.maxDiscountPercentage > 0
             ? data.deals!.maxDiscountPercentage
             : data.active!.discountPercent;
+        final showViewAll = data.deals!.totalCount > 8;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,28 +170,33 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
                       ],
                     ),
                   ),
-                  ViewAllIconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TodayOverviewDetailPage(
-                            feedType: 'hot-deals',
-                            title: headerTitle,
+                  if (showViewAll)
+                    ViewAllIconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TodayOverviewDetailPage(
+                              feedType: 'hot-deals',
+                              title: headerTitle,
+                              discountPercentage: data.active!.discountPercent,
+                              discountSectionTitle: data.active!.hasTitle
+                                  ? data.active!.title
+                                  : null,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 210,
+              height: 224,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: 20, right: 20),
+                padding: const EdgeInsets.only(left: 16, right: 16),
                 itemCount: deals.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) =>
@@ -211,10 +223,10 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 210,
+          height: 224,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 20, right: 20),
+            padding: const EdgeInsets.only(left: 16, right: 16),
             itemCount: 4,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (_, index) => SizedBox(
@@ -239,6 +251,16 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: const ImageSkeletonLoader(width: 100, height: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 90, height: 11),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 80, height: 10),
                   ),
                 ],
               ),

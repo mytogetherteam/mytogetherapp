@@ -146,7 +146,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
 
         return SizeTransition(
           sizeFactor: _slideCtrl,
-          axisAlignment: -1.0,
+          alignment: Alignment.bottomCenter,
           child: SlideTransition(
             position: _slideAnim,
             child: Container(
@@ -285,7 +285,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         context,
         MaterialPageRoute(
           builder: (_) => OrderStatusPage(
-            foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+            foodTotal: order.resolvedItemSubtotal,
             deliveryFee: order.deliveryFee ?? 0,
           ),
         ),
@@ -296,7 +296,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         MaterialPageRoute(
           builder: (_) => AwaitingPaymentPage(
             orderId: order.orderId,
-            foodTotal: (order.totalAmount ?? 0) - (order.deliveryFee ?? 0),
+            foodTotal: order.resolvedItemSubtotal,
             deliveryFee: order.deliveryFee ?? 0,
           ),
         ),
@@ -313,7 +313,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
               nameTh: order.shopNameTh,
               items: order.orderItems,
             ),
-            foodTotal: (order.totalAmount ?? 0).toInt(),
+            foodTotal: order.resolvedItemSubtotal.round(),
           ),
         ),
       );

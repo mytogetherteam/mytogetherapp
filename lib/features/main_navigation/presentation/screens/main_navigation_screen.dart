@@ -41,6 +41,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
     );
+    LocaleController.instance.addListener(_onLanguageChanged);
 
     // Global listener for order completion
     _lastStatus = ActiveOrderState.instance.orderStatus;
@@ -55,6 +56,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         _checkAndRequestPermissions();
       });
     });
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   /// Tab bodies are keyed by locale so a language change rebuilds copy, but
@@ -155,6 +162,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _onTabChangeRequested,
     );
     ActiveOrderState.instance.removeListener(_onOrderStateChanged);
+    LocaleController.instance.removeListener(_onLanguageChanged);
     super.dispose();
   }
 

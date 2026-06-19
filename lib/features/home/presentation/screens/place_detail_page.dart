@@ -198,7 +198,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                     fit: StackFit.expand,
                                     children: [
                                       ...previousChildren,
-                                      if (currentChild != null) currentChild,
+                                      ?currentChild,
                                     ],
                                   );
                                 },

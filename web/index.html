@@ -108,7 +108,13 @@
       document.body.style.background = "transparent";
     }
   </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM"></script>
+  <script>
+    window.initGoogleMapsApi = function () {
+      window.googleMapsApiReady = true;
+    };
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM&libraries=places&callback=initGoogleMapsApi" async defer></script>
+  <script src="maps_places_bridge.js"></script>
 </head>
 <body>
   <picture id="splash">

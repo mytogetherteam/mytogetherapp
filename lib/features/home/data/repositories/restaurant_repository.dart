@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import '../restaurant_data.dart';
@@ -17,6 +18,8 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
+import '../shop_order_state_cache.dart';
+import '../shop_storage.dart';
 
 class RestaurantRepository {
   static final RestaurantRepository instance = RestaurantRepository(
@@ -100,6 +103,7 @@ class RestaurantRepository {
         _lastCacheKey == cacheKey &&
         _lastFetchTime != null &&
         now.difference(_lastFetchTime!).inSeconds < 30) {
+      unawaited(_prefetchOrderStateForRestaurants(_cachedNearbyShops!));
       return _cachedNearbyShops!;
     }
 
@@ -140,6 +144,8 @@ class RestaurantRepository {
       _lastCacheKey = cacheKey;
       _lastFetchTime = now;
 
+      unawaited(_prefetchOrderStateForRestaurants(results));
+
       return results;
     } catch (e) {
       // If we have a recent in-memory cache, return it silently
@@ -164,9 +170,9 @@ class RestaurantRepository {
         page: page,
         size: size,
       );
-      return response.shops
-          .map((dto) => _mapShopDtoToDomain(dto.shop))
-          .toList();
+      return _prefetchAndReturn(
+        response.shops.map((dto) => _mapShopDtoToDomain(dto.shop)).toList(),
+      );
     }
 
     return getNearbyShops(
@@ -389,7 +395,7 @@ class RestaurantRepository {
   }) {
     final imagePath = dto.bannerImageUrl ?? '';
 
-    return Restaurant(
+    final restaurant = Restaurant(
       id: dto.id.toString(),
       name: dto.name,
       nameEn: dto.nameEn,
@@ -413,17 +419,20 @@ class RestaurantRepository {
       deliveryFee: dto.displayDeliveryFee,
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
+      operatingHours: dto.operatingHours,
+      deliveryEnabled: dto.deliveryEnabled,
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
       isFavorite: dto.isFavorite,
     );
+    return _published(restaurant);
   }
 
   Restaurant _mapShopDetailDtoToDomain(ShopDetailDto dto) {
     final imagePath = dto.bannerImageUrl ?? '';
 
-    return Restaurant(
+    final restaurant = Restaurant(
       id: dto.id.toString(),
       name: dto.name,
       nameEn: dto.nameEn,
@@ -444,6 +453,7 @@ class RestaurantRepository {
       ),
       deliveryTime: dto.estimatedTime ?? '20-30 mins',
       status: dto.isOpen ? 'Open' : 'Closed',
+      deliveryEnabled: dto.deliveryEnabled,
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),
@@ -465,6 +475,66 @@ class RestaurantRepository {
       isFavorite: dto.isFavorite,
       paymentTypes: dto.paymentTypes,
       paymentQrUrl: dto.paymentQrUrl,
+    );
+    return _published(restaurant);
+  }
+
+  Restaurant _published(Restaurant restaurant) {
+    ShopOrderStateCache.instance.ensureListening();
+    ShopOrderStateCache.instance.remember(restaurant);
+    return restaurant;
+  }
+
+  /// Loads operating hours / delivery state for list cards when the nearby
+  /// search response omits them. Updates [ShopOrderStateCache] so home + food
+  /// tab cards fade in sync without opening the detail page first.
+  Future<void> _prefetchOrderStateForRestaurants(
+    List<Restaurant> restaurants,
+  ) async {
+    ShopOrderStateCache.instance.ensureListening();
+    final needsApi = <int>[];
+
+    for (final restaurant in restaurants) {
+      final shopId = int.tryParse(restaurant.id);
+      if (shopId == null || shopId <= 0) continue;
+      if (restaurant.operatingHours.isNotEmpty) continue;
+
+      final stored = await ShopStorage.getShop(shopId);
+      if (stored != null) {
+        _applyShopProfileJsonToCache(shopId, stored);
+        continue;
+      }
+      needsApi.add(shopId);
+    }
+
+    await Future.wait(
+      needsApi.map((shopId) async {
+        try {
+          final dto = await SearchRepository.instance.getShopProfileById(shopId);
+          if (dto == null) return;
+          ShopOrderStateCache.instance.rememberParts(
+            shopId,
+            deliveryEnabled: dto.deliveryEnabled,
+            operatingHours: dto.operatingHours,
+            status: dto.isOpen ? 'Open' : 'Closed',
+          );
+        } catch (_) {}
+      }),
+    );
+  }
+
+  Future<List<Restaurant>> _prefetchAndReturn(List<Restaurant> restaurants) {
+    unawaited(_prefetchOrderStateForRestaurants(restaurants));
+    return Future.value(restaurants);
+  }
+
+  void _applyShopProfileJsonToCache(int shopId, Map<String, dynamic> json) {
+    final dto = ShopListItemDto.fromJson(json);
+    ShopOrderStateCache.instance.rememberParts(
+      shopId,
+      deliveryEnabled: dto.deliveryEnabled,
+      operatingHours: dto.operatingHours,
+      status: dto.isOpen ? 'Open' : 'Closed',
     );
   }
 
@@ -543,7 +613,8 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
   }) async {
-    final key = 'food-tab-$feedType-$page-$size';
+    final key =
+        'food-tab-$feedType-${lat.toStringAsFixed(3)}-${lon.toStringAsFixed(3)}-$page-$size';
     final now = DateTime.now();
     final cached = _feedCache[key];
     final cacheTime = _feedCacheTime[key];
@@ -657,6 +728,20 @@ class RestaurantRepository {
     } else {
       await _remoteDataSource.removeMenuFavorite(menuItemId);
     }
+  }
+
+  /// Clears only caches tied to the user's delivery coordinates (nearby shops,
+  /// geo food-tab feeds, discount deals). Does not touch banners, collections,
+  /// shop profiles, or other non-location data.
+  void clearNearbyCache() {
+    _cachedNearbyShops = null;
+    _lastCacheKey = null;
+    _lastFetchTime = null;
+    _feedCache.removeWhere((key, _) => key.startsWith('food-tab-'));
+    _feedCacheTime.removeWhere((key, _) => key.startsWith('food-tab-'));
+    _cachedDiscountDeals = null;
+    _discountDealsCacheKey = null;
+    _discountDealsLastFetch = null;
   }
 
   /// Clears the feed cache for a specific shop or all shops.

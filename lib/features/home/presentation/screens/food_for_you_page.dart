@@ -35,6 +35,7 @@ class _FoodForYouPageState extends State<FoodForYouPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
+          systemOverlayStyle: SystemUiOverlayStyle.light,
           elevation: 0,
           flexibleSpace: Container(
             decoration: const BoxDecoration(gradient: AppColors.primaryGradient),

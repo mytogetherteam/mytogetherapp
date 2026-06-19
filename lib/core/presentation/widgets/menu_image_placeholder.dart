@@ -12,11 +12,6 @@ class MenuImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine initials
-    final String initial = title.trim().isNotEmpty 
-        ? title.trim().substring(0, 1).toUpperCase() 
-        : 'M';
-
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -28,7 +23,7 @@ class MenuImagePlaceholder extends StatelessWidget {
             child: Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
-                ..scale(3.0)
+                ..scaleByDouble(3.0, 3.0, 3.0, 1.0)
                 ..rotateZ(0.3),
               child: Image.asset(
                 'assets/images/logo_white.png',

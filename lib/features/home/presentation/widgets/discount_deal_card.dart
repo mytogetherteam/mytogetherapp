@@ -138,6 +138,19 @@ class DiscountDealCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            if (deal.shopName.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Text(
+                deal.shopName,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             const SizedBox(height: 3),
             // Estimated time (delivery icon and fee intentionally omitted).
             Text(

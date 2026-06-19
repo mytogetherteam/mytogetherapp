@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/location/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../home/data/models/home_discount_section_dto.dart';
@@ -13,6 +12,7 @@ import '../../../home/presentation/screens/today_overview_detail_page.dart';
 import '../../../home/presentation/widgets/discount_deal_card.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../../home/presentation/widgets/view_all_icon_button.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 
 /// Food-tab discount rail driven by admin config from
 /// `GET /api/user/home-discount-section`, with selectable chips when more than
@@ -20,13 +20,15 @@ import '../../../home/presentation/widgets/view_all_icon_button.dart';
 class FoodDiscountSelectionSection extends StatefulWidget {
   const FoodDiscountSelectionSection({super.key});
 
+  static const int previewItemLimit = 8;
+
   @override
   State<FoodDiscountSelectionSection> createState() =>
       _FoodDiscountSelectionSectionState();
 }
 
 class _FoodDiscountSelectionSectionState
-    extends State<FoodDiscountSelectionSection> {
+    extends State<FoodDiscountSelectionSection> with LocationRefreshMixin {
   bool _loadingConfig = true;
   bool _loadingDeals = false;
   List<HomeDiscountSectionDto> _activeSections = [];
@@ -37,6 +39,14 @@ class _FoodDiscountSelectionSectionState
   void initState() {
     super.initState();
     _loadConfig();
+  }
+
+  @override
+  void onActiveLocationChanged() {
+    final section = _selected;
+    if (section != null) {
+      _loadDeals(section);
+    }
   }
 
   Future<void> _loadConfig() async {
@@ -92,7 +102,7 @@ class _FoodDiscountSelectionSectionState
             lat: location.lat,
             lon: location.lon,
             percentage: section.discountPercent,
-            size: 10,
+            size: FoodDiscountSelectionSection.previewItemLimit,
             sectionTitle: section.hasTitle ? section.title : null,
             forceRefresh: true,
           )
@@ -111,24 +121,32 @@ class _FoodDiscountSelectionSectionState
   }
 
   Future<_LatLng?> _resolveLocation() async {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final savedLat = activeLoc?.latitude;
-    final savedLon = activeLoc?.longitude;
-    if (savedLat != null && savedLon != null) {
-      return _LatLng(savedLat, savedLon);
-    }
-
-    final service = LocationService();
-    await service.getCurrentPosition();
-    final pos = service.cachedPosition;
-    if (pos == null) return null;
-    return _LatLng(pos.latitude, pos.longitude);
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+    return _LatLng(coords.lat, coords.lon);
   }
 
   Future<void> _onSectionSelected(HomeDiscountSectionDto section) async {
     if (_selected?.id == section.id) return;
     setState(() => _selected = section);
     await _loadDeals(section);
+  }
+
+  void _openDiscountDetail(String headerTitle) {
+    final section = _selected;
+    if (section == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TodayOverviewDetailPage(
+          feedType: 'hot-deals',
+          title: headerTitle,
+          discountPercentage: section.discountPercent,
+          discountSectionTitle: section.hasTitle ? section.title : null,
+        ),
+      ),
+    );
   }
 
   String _sectionChipLabel(
@@ -145,6 +163,10 @@ class _FoodDiscountSelectionSectionState
     );
   }
 
+  bool _hasMoreDeals(DiscountDealsDto deals) {
+    return deals.totalCount > FoodDiscountSelectionSection.previewItemLimit;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingConfig) return _buildSkeleton(context);
@@ -152,16 +174,21 @@ class _FoodDiscountSelectionSectionState
       return const SizedBox.shrink();
     }
 
-    final deals = (_deals?.items ?? []).take(10).toList();
+    final dealsDto = _deals;
+    final deals = (dealsDto?.items ?? [])
+        .take(FoodDiscountSelectionSection.previewItemLimit)
+        .toList();
     if (!_loadingDeals && deals.isEmpty) return const SizedBox.shrink();
 
-    final apiTitle = _deals?.sectionTitle.trim() ?? '';
+    final apiTitle = dealsDto?.sectionTitle.trim() ?? '';
     final headerTitle = apiTitle.isNotEmpty
         ? apiTitle
         : _sectionChipLabel(context, _selected!);
-    final maxPercent = (_deals?.maxDiscountPercentage ?? 0) > 0
-        ? _deals!.maxDiscountPercentage
+    final maxPercent = (dealsDto?.maxDiscountPercentage ?? 0) > 0
+        ? dealsDto!.maxDiscountPercentage
         : _selected!.discountPercent;
+    final showViewAll =
+        dealsDto != null && _hasMoreDeals(dealsDto) && !_loadingDeals;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,7 +196,6 @@ class _FoodDiscountSelectionSectionState
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
@@ -193,19 +219,10 @@ class _FoodDiscountSelectionSectionState
                   ],
                 ),
               ),
-              ViewAllIconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TodayOverviewDetailPage(
-                        feedType: 'hot-deals',
-                        title: headerTitle,
-                      ),
-                    ),
-                  );
-                },
-              ),
+              if (showViewAll)
+                ViewAllIconButton(
+                  onPressed: () => _openDiscountDetail(headerTitle),
+                ),
             ],
           ),
         ),
@@ -244,20 +261,63 @@ class _FoodDiscountSelectionSectionState
         ],
         const SizedBox(height: 12),
         if (_loadingDeals)
-          _buildDealsSkeleton()
-        else
           SizedBox(
-            height: 210,
+            height: 224,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: 20, right: 20),
+              padding: const EdgeInsets.only(left: 16, right: 16),
+              itemCount: 4,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, index) => SizedBox(
+                width: 130,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: const ImageSkeletonLoader(
+                        width: 130,
+                        height: 120,
+                        showLogo: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 60, height: 14),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 100, height: 12),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 90, height: 11),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const ImageSkeletonLoader(width: 80, height: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 224,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 16, right: 16),
               itemCount: deals.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) =>
                   DiscountDealCard(deal: deals[index]),
             ),
           ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -274,41 +334,52 @@ class _FoodDiscountSelectionSectionState
           ),
         ),
         const SizedBox(height: 12),
-        _buildDealsSkeleton(),
-      ],
-    );
-  }
-
-  Widget _buildDealsSkeleton() {
-    return SizedBox(
-      height: 210,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 20, right: 20),
-        itemCount: 4,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, _) => SizedBox(
-          width: 130,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: const ImageSkeletonLoader(
-                  width: 130,
-                  height: 120,
-                  showLogo: true,
-                ),
+        SizedBox(
+          height: 224,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 16, right: 16),
+            itemCount: 4,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (_, index) => SizedBox(
+              width: 130,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: const ImageSkeletonLoader(
+                      width: 130,
+                      height: 120,
+                      showLogo: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 60, height: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 100, height: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 90, height: 11),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: const ImageSkeletonLoader(width: 80, height: 10),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: const ImageSkeletonLoader(width: 60, height: 14),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

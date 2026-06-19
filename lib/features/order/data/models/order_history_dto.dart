@@ -50,6 +50,9 @@ class OrderHistoryDto {
   final List<OrderHistoryItemDto> items;
   final double? deliveryFee;
   final String? displayDeliveryFee;
+  final double? itemPrice;
+  final double? taxAmount;
+  final String? displayTaxAmount;
   final OrderReviewDto? orderReview;
 
   OrderHistoryDto({
@@ -71,6 +74,9 @@ class OrderHistoryDto {
     required this.items,
     this.deliveryFee,
     this.displayDeliveryFee,
+    this.itemPrice,
+    this.taxAmount,
+    this.displayTaxAmount,
     this.orderReview,
   }) : _shopName = shopName;
 
@@ -145,6 +151,9 @@ class OrderHistoryDto {
           [],
       deliveryFee: (json['deliveryFee'] as num?)?.toDouble(),
       displayDeliveryFee: json['displayDeliveryFee'] as String?,
+      itemPrice: (json['itemPrice'] as num?)?.toDouble(),
+      taxAmount: (json['taxAmount'] as num?)?.toDouble(),
+      displayTaxAmount: json['displayTaxAmount'] as String?,
       orderReview: json['orderReview'] is Map<String, dynamic>
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,

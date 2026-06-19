@@ -13,7 +13,7 @@ class LockScreenWidgetManager {
   final _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   
   String? _currentLiveActivityId;
-  int _notificationId = 8888;
+  final int _notificationId = 8888;
   bool _isInitialized = false;
 
   String? _lastStatusText;

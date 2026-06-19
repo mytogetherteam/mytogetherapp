@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/location/location_service.dart';
+import '../../../home/data/repositories/restaurant_repository.dart';
 import '../models/user_location_model.dart';
 
 class UserLocationRepository extends ChangeNotifier {
@@ -24,13 +25,18 @@ class UserLocationRepository extends ChangeNotifier {
 
   UserLocationModel? get activeLocation => _activeLocation;
 
+  /// True when the user picked live GPS for this session (not a saved address).
+  bool get isSessionCurrentLocation =>
+      _activeLocation?.id == -1;
+
   void setActiveLocation(UserLocationModel location) {
-    if (_activeLocation?.id == location.id && 
-        _activeLocation?.latitude == location.latitude && 
+    if (_activeLocation?.id == location.id &&
+        _activeLocation?.latitude == location.latitude &&
         _activeLocation?.longitude == location.longitude) {
       return;
     }
     _activeLocation = location;
+    RestaurantRepository.instance.clearNearbyCache();
     notifyListeners();
   }
 
@@ -61,7 +67,11 @@ class UserLocationRepository extends ChangeNotifier {
   }
 
   bool isAtLocationLimit(Iterable<UserLocationModel> locations) =>
-      locations.length >= maxSavedLocations;
+      countSavedLocations(locations) >= maxSavedLocations;
+
+  /// Only persisted backend addresses count toward the limit (not session GPS).
+  int countSavedLocations(Iterable<UserLocationModel> locations) =>
+      locations.where((l) => l.id > 0).length;
 
   Future<bool> canAddLocation() async {
     final locations = await getRawLocations();
@@ -92,6 +102,10 @@ class UserLocationRepository extends ChangeNotifier {
           saved = UserLocationModel.fromJson(rawData);
         }
         _cachedLocations = null; // Clear cache on mutation
+        if (saved.isPrimary) {
+          _activeLocation = saved;
+          RestaurantRepository.instance.clearNearbyCache();
+        }
         notifyListeners();
         return saved;
       }
@@ -117,6 +131,10 @@ class UserLocationRepository extends ChangeNotifier {
           updated = UserLocationModel.fromJson(rawData);
         }
         _cachedLocations = null; // Clear cache on mutation
+        if (updated.isPrimary) {
+          _activeLocation = updated;
+          RestaurantRepository.instance.clearNearbyCache();
+        }
         notifyListeners();
         return updated;
       }
@@ -139,33 +157,25 @@ class UserLocationRepository extends ChangeNotifier {
     }
   }
 
-  /// Single source of truth for the coordinates used by every "nearby" query
-  /// (home nearby rail, nearby map page, and food search). Resolution order:
-  ///   1. The user's saved primary/active location (loaded here if not yet in
-  ///      memory) so the result is deterministic regardless of which screen
-  ///      calls it first or whether [activeLocation] has been populated.
-  ///   2. The device GPS — cached position, otherwise a fresh fetch.
-  ///   3. The shared Bangkok default (returned by [LocationService] when GPS is
-  ///      unavailable).
-  ///
-  /// Centralizing this guarantees the three screens query from the same origin,
-  /// so distances and result lists stay consistent across them.
+  /// Single source of truth for coordinates used by nearby/explore feeds.
+  /// Uses the user's selected delivery location only — never silently falls
+  /// back to live device GPS (the user must tap "Current location" for that).
   Future<({double lat, double lon})> resolveActiveCoordinates() async {
     var active = _activeLocation;
     if (active?.latitude == null || active?.longitude == null) {
       try {
         active = await getPrimaryLocation();
       } catch (_) {
-        // Not logged in / network error — fall through to GPS/default.
+        // Not logged in / network error — fall through to default.
       }
     }
     if (active?.latitude != null && active?.longitude != null) {
       return (lat: active!.latitude!, lon: active.longitude!);
     }
-
-    final pos = LocationService().cachedPosition ??
-        await LocationService().getCurrentPosition();
-    return (lat: pos.latitude, lon: pos.longitude);
+    return (
+      lat: LocationService.defaultLat,
+      lon: LocationService.defaultLon,
+    );
   }
 
   Future<UserLocationModel?> getPrimaryLocation({bool forceRefresh = false}) async {

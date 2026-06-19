@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
-import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'setup_pin_page.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -115,6 +113,7 @@ class _RegisterPageState extends State<RegisterPage>
         },
       );
     } catch (e) {
+      if (!mounted) return;
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {
@@ -140,12 +139,14 @@ class _RegisterPageState extends State<RegisterPage>
       );
       await _verifyWithCredential(credential);
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       final msg = FirebaseErrorHandler.getMessage(context, e);
       AppDialog.showToast(context, msg, isError: true);
       setState(() {

@@ -131,6 +131,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                         forceRestaurantNavigation: true,
                         isAvailable: item.isAvailable,
                         publishStatus: item.publishStatus,
+                        deliveryEnabled: item.deliveryEnabled,
+                        operatingHours: item.operatingHours,
+                        restaurantStatus: item.restaurantStatus,
                       );
                     },
                     childCount: items.length,

@@ -153,6 +153,9 @@ class _ShopFeedSectionState extends State<ShopFeedSection> {
               onFavoriteToggle: () => _toggleFavorite(item),
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,
+              deliveryEnabled: item.deliveryEnabled,
+              operatingHours: item.operatingHours,
+              restaurantStatus: item.restaurantStatus,
             );
 
             return isTarget ? Container(key: _targetKey, child: card) : card;

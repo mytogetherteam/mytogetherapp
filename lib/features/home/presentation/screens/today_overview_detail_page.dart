@@ -20,7 +20,18 @@ class TodayOverviewDetailPage extends StatefulWidget {
   /// Optional title override; defaults to "Trending Near By".
   final String? title;
 
-  const TodayOverviewDetailPage({super.key, this.feedType, this.title});
+  /// When [feedType] is `hot-deals`, passed through to
+  /// `GET /api/user/menu-items/discount` (from home-discount-section config).
+  final int? discountPercentage;
+  final String? discountSectionTitle;
+
+  const TodayOverviewDetailPage({
+    super.key,
+    this.feedType,
+    this.title,
+    this.discountPercentage,
+    this.discountSectionTitle,
+  });
 
   @override
   State<TodayOverviewDetailPage> createState() => _TodayOverviewDetailPageState();
@@ -32,6 +43,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   bool _isLoading = false;
   int _currentPage = 0;
   bool _hasMore = true;
+  int _discountTotalCount = 0;
   final Map<String, bool> _localFavorites = {};
   static const int _pageSize = 20;
 
@@ -62,11 +74,16 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       _isLoading = true;
       _currentPage = 0;
       _hasMore = true;
+      _discountTotalCount = 0;
     });
     
     try {
       final items = await _fetchPage(0);
-      _hasMore = items.length >= _pageSize;
+      if (widget.feedType == 'hot-deals' && _discountTotalCount > 0) {
+        _hasMore = items.length < _discountTotalCount;
+      } else {
+        _hasMore = items.length >= _pageSize;
+      }
 
       if (mounted) {
         setState(() {
@@ -85,6 +102,22 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
     final pos = await LocationService().getCurrentPosition();
     final lat = activeLoc?.latitude ?? pos.latitude;
     final lon = activeLoc?.longitude ?? pos.longitude;
+
+    if (widget.feedType == 'hot-deals') {
+      final deals = await RestaurantRepository.instance.getDiscountDeals(
+        lat: lat,
+        lon: lon,
+        percentage: widget.discountPercentage ?? 50,
+        sectionTitle: widget.discountSectionTitle,
+        page: page + 1,
+        size: _pageSize,
+        forceRefresh: page == 0,
+      );
+      if (page == 0) {
+        _discountTotalCount = deals.totalCount;
+      }
+      return deals.items.map(_mapShopFeedToMenuItem).toList();
+    }
 
     if (widget.feedType != null) {
       final section = await RestaurantRepository.instance.getFoodTabFeed(
@@ -201,7 +234,11 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         setState(() {
           _items.addAll(moreItems);
           _currentPage = nextPage;
-          _hasMore = moreItems.length >= _pageSize;
+          if (widget.feedType == 'hot-deals' && _discountTotalCount > 0) {
+            _hasMore = _items.length < _discountTotalCount;
+          } else {
+            _hasMore = moreItems.length >= _pageSize;
+          }
           _isLoading = false;
         });
       }

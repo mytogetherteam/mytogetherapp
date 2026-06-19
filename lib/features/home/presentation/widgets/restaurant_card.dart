@@ -7,6 +7,10 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
+import 'order_unavailability_ui.dart';
+import '../../data/models/shop_dto.dart' show OperatingHourDto;
+import '../../data/restaurant_order_availability.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class RestaurantCard extends StatelessWidget {
@@ -28,6 +32,13 @@ class RestaurantCard extends StatelessWidget {
   final VoidCallback? onTap;
   final double? width;
   final EdgeInsetsGeometry? margin;
+  final bool deliveryEnabled;
+  final List<OperatingHourDto> operatingHours;
+  final String status;
+  final String? shopId;
+  /// Horizontal carousel cards use a fixed height — keep copy on the image
+  /// badge only to avoid overflow.
+  final bool compact;
 
   const RestaurantCard({
     super.key,
@@ -47,6 +58,11 @@ class RestaurantCard extends StatelessWidget {
     this.onTap,
     this.width,
     this.margin,
+    this.deliveryEnabled = true,
+    this.operatingHours = const [],
+    this.status = 'Open',
+    this.shopId,
+    this.compact = false,
   });
 
   /// Resolves an image path (asset path, absolute URL, or server-relative
@@ -61,6 +77,38 @@ class RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ShopOrderStateCache.instance.ensureListening();
+
+    return ListenableBuilder(
+      listenable: ShopOrderStateCache.instance,
+      builder: (context, _) {
+        final parsedShopId = int.tryParse(shopId ?? '') ?? 0;
+        final availability = parsedShopId > 0
+            ? ShopOrderStateCache.instance.availabilityForShopIdOrDefault(
+                parsedShopId,
+                deliveryEnabled: deliveryEnabled,
+                operatingHours: operatingHours,
+                status: status,
+              )
+            : RestaurantOrderAvailability.fromParts(
+                deliveryEnabled: deliveryEnabled,
+                operatingHours: operatingHours,
+                status: status,
+              );
+        return _buildCard(context, availability);
+      },
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context,
+    RestaurantOrderAvailability availability,
+  ) {
+    final blockedLine = availability.cardStatusLine(context);
+    final isBlocked = availability.isBlocked;
+    final showStatusLine = isBlocked && !compact && blockedLine.isNotEmpty;
+    const imageHeight = 160.0;
+
     final bool isAsset = imagePath.startsWith('assets/');
     final bool isNetworkImage = !isAsset && imagePath.trim().isNotEmpty;
     
@@ -76,36 +124,48 @@ class RestaurantCard extends StatelessWidget {
         margin: margin ?? const EdgeInsets.only(right: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Image with Favorite Button
           Stack(
             children: [
-              ClipRRect(
+              UnavailableImageDim(
+                active: isBlocked,
                 borderRadius: BorderRadius.circular(24),
-                child: (!isNetworkImage && !isAsset)
-                    ? _buildFallbackImage(context)
-                    : (isAsset
-                        ? Image.asset(
-                            imagePath,
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(context),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: networkUrl,
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const ImageSkeletonLoader(
-                              height: 160,
-                            ),
-                            errorWidget: (context, url, error) => _buildFallbackImage(context),
-                            fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                            memCacheWidth: 600,
-                          )),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: (!isNetworkImage && !isAsset)
+                      ? _buildFallbackImage(context, imageHeight)
+                      : (isAsset
+                          ? Image.asset(
+                              imagePath,
+                              height: imageHeight,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildFallbackImage(context, imageHeight),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: networkUrl,
+                              height: imageHeight,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => ImageSkeletonLoader(
+                                height: imageHeight,
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  _buildFallbackImage(context, imageHeight),
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                            )),
+                ),
               ),
-
+              if (isBlocked)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: OrderStatusImageBadge(reason: availability.reason),
+                ),
               Positioned(
                 top: 12,
                 right: 12,
@@ -143,7 +203,10 @@ class RestaurantCard extends StatelessWidget {
               Positioned(
                 left: 12,
                 bottom: 12,
-                child: _buildLogoBadge(context),
+                child: Opacity(
+                  opacity: isBlocked ? 0.55 : 1,
+                  child: _buildLogoBadge(context),
+                ),
               ),
             ],
           ),
@@ -152,20 +215,27 @@ class RestaurantCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 12),
-                // Restaurant Name
+                SizedBox(height: compact ? 8 : 12),
                 Text(
                   name,
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
+                    height: 1.2,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                if (showStatusLine)
+                  OrderBlockedStatusLine(
+                    text: blockedLine,
+                    reason: availability.reason,
+                    maxLines: 1,
+                  ),
+                SizedBox(height: showStatusLine ? 2 : 4),
                 // Metadata Row
                 Transform.translate(
                   offset: const Offset(-1.5, 0),
@@ -267,9 +337,9 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFallbackImage(BuildContext context) {
+  Widget _buildFallbackImage(BuildContext context, double height) {
     return Container(
-      height: 160,
+      height: height,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey[100],
@@ -295,6 +365,5 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 }
-
 
 
