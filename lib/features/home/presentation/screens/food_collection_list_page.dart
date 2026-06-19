@@ -7,7 +7,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
-import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -55,30 +54,21 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
     super.dispose();
   }
 
-  ({double lat, double lon}) _resolveLocation() {
-    final activeLoc = UserLocationRepository.instance.activeLocation;
-    final pos = LocationService().cachedPosition;
-    final lat =
-        activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
-    final lon =
-        activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
-    return (lat: lat, lon: lon);
-  }
-
-  Future<List<Restaurant>> _fetchPage(int page) {
-    final loc = _resolveLocation();
+  Future<List<Restaurant>> _fetchPage(int page) async {
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
     switch (widget.kind) {
       case FoodCollectionKind.trending:
         return RestaurantRepository.instance.getTrendingShops(
-          lat: loc.lat,
-          lon: loc.lon,
+          lat: coords.lat,
+          lon: coords.lon,
           page: page,
           size: _pageSize,
         );
       case FoodCollectionKind.popular:
         return RestaurantRepository.instance.getPopularShops(
-          lat: loc.lat,
-          lon: loc.lon,
+          lat: coords.lat,
+          lon: coords.lon,
           page: page,
           size: _pageSize,
         );

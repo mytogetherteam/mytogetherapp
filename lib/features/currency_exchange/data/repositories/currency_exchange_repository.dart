@@ -28,6 +28,15 @@ class CurrencyExchangeRepository {
       _lastFetched != null &&
       DateTime.now().difference(_lastFetched!) < const Duration(minutes: 15);
 
+  String get _webCbmProxyUrl => '${Uri.base.origin}/api/forex-cbm';
+
+  Map<String, dynamic> _decodeJsonResponse(dynamic data) {
+    if (data is String) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    }
+    return data as Map<String, dynamic>;
+  }
+
   Future<({List<CurrencyRateModel> rates, String timestamp})> fetchRates({
     bool forceRefresh = false,
   }) async {
@@ -37,19 +46,9 @@ class CurrencyExchangeRepository {
 
     try {
       // 1. Fetch Official CBM Rates
-      String cbmFetchUrl = _cbmUrl;
-      if (kIsWeb) {
-        cbmFetchUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(_cbmUrl)}';
-      }
+      final cbmFetchUrl = kIsWeb ? _webCbmProxyUrl : _cbmUrl;
       final cbmResponse = await _dio.get<dynamic>(cbmFetchUrl);
-      
-      // Handle the case where allorigins might return a string instead of JSON directly depending on headers
-      Map<String, dynamic> cbmData;
-      if (cbmResponse.data is String) {
-        cbmData = cbmResponse.data is String ? const {} : cbmResponse.data; // this is just a safety fallback, usually dio parses JSON if headers are correct
-      }
-      cbmData = cbmResponse.data is String ? (jsonDecode(cbmResponse.data) as Map<String, dynamic>) : (cbmResponse.data as Map<String, dynamic>);
-      
+      final cbmData = _decodeJsonResponse(cbmResponse.data);
       final cbmRates = cbmData['rates'] as Map<String, dynamic>;
 
       // Get official USD from CBM (e.g. 2100)
@@ -60,15 +59,9 @@ class CurrencyExchangeRepository {
       final usdBlackMarket = usdOfficial * 2.015;
 
       // 3. Fetch External Cross Rates from USD
-      String extFetchUrl = _externalUrl;
-      if (kIsWeb) {
-        extFetchUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(_externalUrl)}';
-      }
-      final extResponse = await _dio.get<dynamic>(extFetchUrl);
-      
-      Map<String, dynamic> extData;
-      extData = extResponse.data is String ? (jsonDecode(extResponse.data) as Map<String, dynamic>) : (extResponse.data as Map<String, dynamic>);
-      
+      // open.er-api.com allows browser CORS, so web can call it directly.
+      final extResponse = await _dio.get<dynamic>(_externalUrl);
+      final extData = _decodeJsonResponse(extResponse.data);
       final extRates = extData['rates'] as Map<String, dynamic>;
 
       // Ensure we format the timestamp nicely (e.g., using extData['time_last_update_unix'])
@@ -83,7 +76,6 @@ class CurrencyExchangeRepository {
       }
 
       // 4. Calculate for supported currencies
-      // List of priority currencies to show based on standard CBM availability and typical local usage
       const targetCurrencies = [
         'USD',
         'EUR',
@@ -111,13 +103,11 @@ class CurrencyExchangeRepository {
             .toDouble(); // e.g. 1 USD = 34 THB
         if (crossRate <= 0) continue;
 
-        // Effective black market rate per 1 unit of foreign currency
-        // Equation: 1 USD = 3990 MMK. 1 USD = 34 THB. So 34 THB = 3990 MMK. -> 1 THB = 3990 / 34 MMK.
         final targetBlackMarketMmK = usdBlackMarket / crossRate;
 
         // synthesized realistic Buy/Sell spread data (e.g., ~1.6% total spread)
-      final buy = targetBlackMarketMmK * 0.992;
-      final sell = targetBlackMarketMmK * 1.008;
+        final buy = targetBlackMarketMmK * 0.992;
+        final sell = targetBlackMarketMmK * 1.008;
 
         list.add(CurrencyRateModel(currency: code, buy: buy, sell: sell));
       }
