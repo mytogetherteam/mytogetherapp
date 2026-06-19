@@ -145,7 +145,7 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
                 ),
               ),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
         ],
       ),
     );

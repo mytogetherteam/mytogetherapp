@@ -47,7 +47,7 @@ class OrderSummaryPage extends StatefulWidget {
 
 class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isDelivery = true;
-  bool _isPriorityDelivery = true;
+  // bool _isPriorityDelivery = true; // TODO: re-enable with delivery options UI
   int? _selectedPaymentMethodId;
   Restaurant? _restaurant;
 
@@ -639,6 +639,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                               ),
+                              // TODO: re-enable priority / standard delivery selection
+                              /*
                               const SizedBox(height: 20),
                               const Divider(
                                 height: 1,
@@ -662,6 +664,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 time: '28 mins',
                                 hasPromo: false,
                               ),
+                              */
                             ] else ...[
                               // Pickup Information
                               _buildPickupInformation(),
@@ -1439,6 +1442,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
+  // TODO: re-enable with priority / standard delivery selection UI above
+  /*
   Widget _buildDeliveryOption({
     required String title,
     required bool isPriority,
@@ -1582,6 +1587,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
     );
   }
+  */
 
   Widget _buildStoreLogo(String restaurantId) {
     final logoPath =

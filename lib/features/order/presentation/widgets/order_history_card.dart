@@ -13,6 +13,8 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
 import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
 import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
+import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
 
 class OrderHistoryCard extends StatefulWidget {
@@ -202,19 +204,10 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           margin: EdgeInsets.only(right: isLast ? 0 : 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: Colors.grey[100],
           ),
           child: ClipRRect(
-             borderRadius: BorderRadius.circular(8),
-             child: item.menuItemImageUrl != null && item.menuItemImageUrl!.isNotEmpty
-                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                    imageUrl: _getImageUrl(item.menuItemImageUrl),
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Colors.grey[100]),
-                    errorWidget: (context, url, error) =>
-                        Container(color: Colors.grey[200]),
-                  )
-                : Container(color: Colors.grey[200]),
+            borderRadius: BorderRadius.circular(8),
+            child: _buildItemThumbnail(item),
           ),
         );
 
@@ -248,6 +241,28 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     }
 
     return thumbs;
+  }
+
+  Widget _buildItemThumbnail(OrderHistoryItemDto item) {
+    final imageUrl = item.menuItemImageUrl;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return MenuImagePlaceholder(title: item.menuItemName);
+    }
+
+    return CachedNetworkImage(
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
+      imageUrl: _getImageUrl(imageUrl),
+      fit: BoxFit.cover,
+      width: 60,
+      height: 60,
+      placeholder: (context, url) => const ImageSkeletonLoader(
+        width: 60,
+        height: 60,
+      ),
+      errorWidget: (context, url, error) =>
+          MenuImagePlaceholder(title: item.menuItemName),
+    );
   }
 
   Widget _buildBottomRow(BuildContext context) {
