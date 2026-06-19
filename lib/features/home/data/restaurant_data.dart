@@ -42,6 +42,9 @@ class Restaurant {
   final String? googleMapsLink;
   final List<OperatingHourDto> operatingHours;
 
+  /// Whether the merchant has delivery enabled (myshop toggle).
+  final bool deliveryEnabled;
+
   // Amenities / features
   final bool hasParking;
   final bool hasWifi;
@@ -96,6 +99,7 @@ class Restaurant {
     this.email,
     this.googleMapsLink,
     this.operatingHours = const [],
+    this.deliveryEnabled = true,
     this.hasParking = false,
     this.hasWifi = false,
     this.isHalal = false,
@@ -143,6 +147,7 @@ class Restaurant {
     String? email,
     String? googleMapsLink,
     List<OperatingHourDto>? operatingHours,
+    bool? deliveryEnabled,
   }) {
     return Restaurant(
       id: id ?? this.id,
@@ -180,6 +185,7 @@ class Restaurant {
       email: email ?? this.email,
       googleMapsLink: googleMapsLink ?? this.googleMapsLink,
       operatingHours: operatingHours ?? this.operatingHours,
+      deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
     );
   }
 }

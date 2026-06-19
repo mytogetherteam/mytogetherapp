@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/config/google_maps_config.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
@@ -10,6 +12,7 @@ import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../widgets/location_skeleton_loader.dart';
 import '../widgets/location_details_sheet.dart';
+import 'location_picker_page.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
@@ -33,20 +36,11 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   bool _isLoadingApi = true;
   bool _isProcessingApi = false;
   bool _hasChanges = false;
+  double? _currentLat;
+  double? _currentLon;
 
   bool get _isAtLocationLimit =>
       UserLocationRepository.instance.isAtLocationLimit(_apiLocations);
-
-  void _showLocationLimitSnack() {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('location.limit_message')),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
 
   void _showLocationErrorSnack(Object error, String fallback) {
     if (!mounted) return;
@@ -64,7 +58,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   @override
   void initState() {
     super.initState();
-    _searchFocus.requestFocus();
+    if (GoogleMapsConfig.placesSearchEnabled) {
+      _searchFocus.requestFocus();
+    }
     _loadCurrentLocation();
     _loadApiLocations();
     UserLocationRepository.instance.addListener(_loadApiLocations);
@@ -72,8 +68,20 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
   Future<void> _loadCurrentLocation() async {
     try {
-      final pos = await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
-      final result = await LocationSearchService.instance.reverseGeocode(pos.latitude, pos.longitude);
+      LocationService().clearCache();
+      final pos = await LocationService().getCurrentPosition(
+        requestPermissionIfDenied: true,
+        forceRefresh: true,
+        highAccuracy: !kIsWeb,
+      );
+      if (LocationService().hasRealPosition) {
+        _currentLat = pos.latitude;
+        _currentLon = pos.longitude;
+      }
+      final result = LocationService().hasRealPosition
+          ? await LocationSearchService.instance
+              .reverseGeocode(pos.latitude, pos.longitude)
+          : null;
       if (mounted) {
         setState(() {
           _currentLocationResult = result;
@@ -112,46 +120,90 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     }
     setState(() => _isSearching = true);
     _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final lat = LocationService().lat;
-      final lon = LocationService().lon;
-      final results = await LocationSearchService.instance.searchPlaces(query, lat: lat, lon: lon);
+      final lat = _currentLat ??
+          (LocationService().hasRealPosition ? LocationService().lat : null);
+      final lon = _currentLon ??
+          (LocationService().hasRealPosition ? LocationService().lon : null);
+      final savedMatches = _matchSavedLocations(query);
+      final googleResults =
+          await LocationSearchService.instance.searchPlaces(query, lat: lat, lon: lon);
       if (mounted) {
         setState(() {
-          _searchResults = results;
+          _searchResults = _mergeSearchResults(savedMatches, googleResults);
           _isSearching = false;
         });
       }
     });
   }
 
-  Future<void> _saveNewLocation(PlaceResult place) async {
+  List<PlaceResult> _matchSavedLocations(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return [];
+
+    return _apiLocations
+        .where((loc) {
+          final name = (loc.locationName ?? '').toLowerCase();
+          final addr = (loc.address ?? '').toLowerCase();
+          return name.contains(q) || addr.contains(q);
+        })
+        .map(
+          (loc) => PlaceResult(
+            placeId: 'saved-${loc.id}',
+            name: loc.locationName ?? loc.address ?? context.tr('location.saved'),
+            displayName: loc.address ?? loc.locationName ?? '',
+            lat: loc.latitude ?? 0,
+            lon: loc.longitude ?? 0,
+          ),
+        )
+        .toList();
+  }
+
+  List<PlaceResult> _mergeSearchResults(
+    List<PlaceResult> saved,
+    List<PlaceResult> google,
+  ) {
+    if (saved.isEmpty) return google;
+    final savedIds = saved.map((p) => p.placeId).toSet();
+    final merged = [...saved];
+    for (final place in google) {
+      if (!savedIds.contains(place.placeId)) {
+        merged.add(place);
+      }
+    }
+    return merged;
+  }
+
+  Future<void> _confirmNewPlace(PlaceResult place) async {
     if (_isProcessingApi) return;
+
     if (_isAtLocationLimit) {
-      _showLocationLimitSnack();
+      _showLimitSnack();
       return;
     }
 
     try {
       setState(() => _isProcessingApi = true);
-      // Get details (lat/lon) if missing
-      final fullPlace = (place.lat == 0 || place.lon == 0) 
+      final fullPlace = (place.lat == 0 || place.lon == 0)
           ? await LocationSearchService.instance.getPlaceDetails(place)
           : place;
-      
-      setState(() => _isProcessingApi = false);
 
-      if (fullPlace == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('location.place_details_failed')), backgroundColor: Colors.red),
-        );
+      if (fullPlace == null || (fullPlace.lat == 0 && fullPlace.lon == 0)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.tr('location.place_details_failed')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
       if (!mounted) return;
 
-      final initialModel = UserLocationModel(
+      final draft = UserLocationModel(
         id: 0,
-        latitude: fullPlace!.lat,
+        latitude: fullPlace.lat,
         longitude: fullPlace.lon,
         locationName: fullPlace.name,
         address: fullPlace.displayName,
@@ -159,93 +211,78 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         isPrimary: true,
       );
 
-      // Open details sheet before saving
-      showModalBottomSheet(
+      setState(() => _isProcessingApi = false);
+
+      await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (ctx) => LocationDetailsSheet(
-          location: initialModel,
-          onSave: (UserLocationModel finalModel) async {
-            setState(() => _isProcessingApi = true);
-            try {
-              await UserLocationRepository.instance.addLocation(finalModel);
-              _hasChanges = true;
-              if (mounted) {
-                _searchController.clear();
-                setState(() => _searchResults = []);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(context.tr('location.saved_success')), backgroundColor: AppColors.primary),
-                );
-              }
-            } catch (e) {
-              if (!mounted) return;
-              _showLocationErrorSnack(
-                e,
-                context.tr('location.save_failed'),
-              );
-            } finally {
-              if (mounted) setState(() => _isProcessingApi = false);
-            }
-          },
+          location: draft,
+          isEdit: false,
+          onSave: (updated) => _persistNewLocation(updated),
         ),
       );
     } catch (e) {
       if (mounted) {
-        setState(() => _isProcessingApi = false);
-        _showLocationErrorSnack(e, context.tr('location.load_place_failed'));
+        _showLocationErrorSnack(e, context.tr('location.save_failed'));
       }
+    } finally {
+      if (mounted) setState(() => _isProcessingApi = false);
     }
   }
 
-  /// Opens the location form in "create" mode without requiring the user to
-  /// first pick a place from search. Seeds coordinates from the detected
-  /// current location / last known GPS fix when available so the saved
-  /// location still has usable coordinates.
-  void _createNewLocation() {
+  Future<void> _persistNewLocation(UserLocationModel model) async {
+    if (_isProcessingApi) return;
+
+    try {
+      setState(() => _isProcessingApi = true);
+      final saved = await UserLocationRepository.instance.addLocation(model);
+      UserLocationRepository.instance.setActiveLocation(saved);
+      _hasChanges = true;
+      if (mounted) {
+        _searchController.clear();
+        setState(() => _searchResults = []);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('location.saved_success')),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showLocationErrorSnack(e, context.tr('location.save_failed'));
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingApi = false);
+    }
+  }
+
+  Future<void> _openMapPicker() async {
     if (_isAtLocationLimit) {
-      _showLocationLimitSnack();
+      _showLimitSnack();
       return;
     }
+    if (_isProcessingApi) return;
 
-    final current = _currentLocationResult;
-    final initialModel = UserLocationModel(
-      id: 0,
-      latitude: current?.lat ?? LocationService().lat,
-      longitude: current?.lon ?? LocationService().lon,
-      locationName: null,
-      address: current?.displayName,
-      locationType: 'OTHER',
-      // First-ever location becomes the primary one.
-      isPrimary: _apiLocations.isEmpty,
+    final saved = await Navigator.push<UserLocationModel>(
+      context,
+      MaterialPageRoute(builder: (_) => const LocationPickerPage()),
     );
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => LocationDetailsSheet(
-        location: initialModel,
-        onSave: (UserLocationModel finalModel) async {
-          setState(() => _isProcessingApi = true);
-          try {
-            await UserLocationRepository.instance.addLocation(finalModel);
-            _hasChanges = true;
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.tr('location.created_success')), backgroundColor: AppColors.primary),
-              );
-            }
-          } catch (e) {
-            if (!mounted) return;
-            _showLocationErrorSnack(
-              e,
-              context.tr('location.create_failed'),
-            );
-          } finally {
-            if (mounted) setState(() => _isProcessingApi = false);
-          }
-        },
+    if (saved != null && mounted) {
+      _hasChanges = true;
+      await _loadApiLocations();
+    }
+  }
+
+  void _showLimitSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.tr('location.limit_full_hint')),
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 5),
       ),
     );
   }
@@ -323,19 +360,24 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildSearchBar(),
+            _buildTopBar(),
             Expanded(
               child: Stack(
                 children: [
-                  _searchController.text.trim().isNotEmpty
+                  GoogleMapsConfig.placesSearchEnabled &&
+                          _searchController.text.trim().isNotEmpty
                       ? _buildSearchResults()
                       : _buildMainList(),
                       
                   if (_isProcessingApi)
-                    Container(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      child: const Center(
-                        child: CustomLoadingIndicator(size: 30),
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(
+                        minHeight: 2,
+                        color: AppColors.primary,
+                        backgroundColor: Color(0xFFF1F5F9),
                       ),
                     ),
                 ],
@@ -345,6 +387,51 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildTopBar() {
+    if (!GoogleMapsConfig.placesSearchEnabled) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: () => Navigator.pop(context, _hasChanges),
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            ),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                PhosphorIconsFill.mapPin,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                context.tr('location.saved_locations'),
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return _buildSearchBar();
   }
 
   Widget _buildSearchBar() {
@@ -373,7 +460,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(
+                  color: const Color(0xFFE2E8F0),
+                ),
               ),
               child: TextField(
                 controller: _searchController,
@@ -443,46 +532,116 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   }
 
   Widget _buildSavedLocationsHeader() {
+    final count = _apiLocations.length;
+    final max = UserLocationRepository.maxSavedLocations;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              context.tr('location.saved_locations'),
-              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
-            ),
-          ),
-          if (_isAtLocationLimit)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                context.trArgs('location.saved_count', {'current': '3', 'max': '3'}),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr('location.saved_locations'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+              Text(
+                context.trArgs(
+                  'location.slots_used',
+                  {'current': '$count', 'max': '$max'},
+                ),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade500,
+                  color: _isAtLocationLimit
+                      ? Colors.orange.shade800
+                      : Colors.grey.shade500,
                 ),
               ),
-            )
-          else
-            TextButton.icon(
-              onPressed: _createNewLocation,
-              icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-              label: Text(
-                context.tr('location.add_new_short'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+            ],
+          ),
+          if (_isAtLocationLimit) ...[
+            const SizedBox(height: 10),
+            _buildLimitBanner(),
+          ] else ...[
+            const SizedBox(height: 10),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _isProcessingApi ? null : _openMapPicker,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                    ),
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        PhosphorIconsFill.mapPinPlus,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('location.add_new_short'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLimitBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 20, color: Colors.orange.shade800),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.tr('location.limit_full_hint'),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                height: 1.45,
+                color: Colors.orange.shade900,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -629,8 +788,24 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   }
 
   Widget _buildPlaceTile(PlaceResult place) {
+    final isSaved = place.placeId.startsWith('saved-');
     return InkWell(
-      onTap: () => _saveNewLocation(place),
+      onTap: () {
+        if (isSaved) {
+          final id = int.tryParse(place.placeId.replaceFirst('saved-', ''));
+          final loc = id != null
+              ? _apiLocations.where((l) => l.id == id).firstOrNull
+              : null;
+          if (loc != null) {
+            UserLocationRepository.instance.setActiveLocation(loc);
+            if (!loc.isPrimary) {
+              _updateLocation(loc, setPrimary: true);
+            }
+          }
+          return;
+        }
+        _confirmNewPlace(place);
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -652,7 +827,11 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 ],
               ),
             ),
-            const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20),
+            Icon(
+              isSaved ? PhosphorIcons.checkCircle : Icons.add_circle_outline,
+              color: AppColors.primary,
+              size: 20,
+            ),
           ],
         ),
       ),

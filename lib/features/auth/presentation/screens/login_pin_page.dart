@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/utils/firebase_error_handler.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';

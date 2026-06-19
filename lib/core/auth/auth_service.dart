@@ -7,7 +7,6 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
-import '../location/location_service.dart';
 import 'jwt_utils.dart';
 
 class AuthService {
@@ -223,7 +222,7 @@ class AuthService {
           final data = responseData['data'];
           newToken = data['token'] as String? ?? data['accessToken'] as String? ?? '';
           final newRefreshToken = data['refreshToken'] as String?;
-          if (newToken != null && newToken.isNotEmpty) {
+          if (newToken.isNotEmpty) {
             await updateTokens(newToken, newRefreshToken);
           } else {
             newToken = null;

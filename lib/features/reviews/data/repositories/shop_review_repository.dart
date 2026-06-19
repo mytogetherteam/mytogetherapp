@@ -32,6 +32,28 @@ class ShopReviewRepository {
     return ShopReviewDto.fromJson(_unwrap(response.data));
   }
 
+  /// Creates a shop review, or updates the existing one if the user already
+  /// reviewed this restaurant (409). Used when mirroring order-history reviews
+  /// to the shop review feed that MyShop reads.
+  Future<void> createOrUpdate({
+    required int shopId,
+    required double rating,
+    String? comment,
+  }) async {
+    try {
+      await create(shopId: shopId, rating: rating, comment: comment);
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 409) rethrow;
+      final existing = await getMyReviews(shopId: shopId, page: 1, size: 1);
+      if (existing.isEmpty) rethrow;
+      await update(
+        reviewId: existing.first.id,
+        rating: rating,
+        comment: comment,
+      );
+    }
+  }
+
   Future<List<ShopReviewDto>> getMyReviews({
     int? shopId,
     int page = 1,
@@ -45,13 +67,7 @@ class ShopReviewRepository {
         'shopId': ?shopId,
       },
     );
-    final body = response.data;
-    final List<dynamic> list = body is Map
-        ? (body['data'] as List<dynamic>? ?? const [])
-        : (body is List ? body : const []);
-    return list
-        .map((e) => ShopReviewDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return _parseReviewList(response.data);
   }
 
   /// Fetches a single review owned by the current user.
@@ -101,5 +117,21 @@ class ShopReviewRepository {
       return body;
     }
     return <String, dynamic>{};
+  }
+
+  List<ShopReviewDto> _parseReviewList(dynamic body) {
+    if (body is! Map) return [];
+    final data = body['data'];
+    final List<dynamic> list;
+    if (data is Map && data['content'] is List) {
+      list = data['content'] as List;
+    } else if (data is List) {
+      list = data;
+    } else {
+      list = const [];
+    }
+    return list
+        .map((e) => ShopReviewDto.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

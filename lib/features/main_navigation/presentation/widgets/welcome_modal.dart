@@ -19,8 +19,8 @@ class WelcomeModal extends StatelessWidget {
     final hasSeen = prefs.getBool(_prefsKey) ?? false;
 
     if (!hasSeen) {
-      if (!context.mounted) return;
       await prefs.setBool(_prefsKey, true);
+      if (!context.mounted) return;
 
       showGeneralDialog(
         context: context,
@@ -74,7 +74,7 @@ class WelcomeModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -98,7 +98,7 @@ class WelcomeModal extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       height: 1.5,
                     ),
                   ),
@@ -197,7 +197,7 @@ class WelcomeModal extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(

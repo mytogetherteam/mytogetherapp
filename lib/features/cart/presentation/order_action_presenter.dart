@@ -154,7 +154,7 @@ class OrderActionPresenter {
 
       final navContext = App.navigatorKey.currentContext;
       final nav = App.navigatorKey.currentState;
-      if (navContext == null || nav == null) return;
+      if (navContext == null || !navContext.mounted || nav == null) return;
 
       switch (result) {
         case OrderActionDialogResult.uploadSlip:
@@ -177,7 +177,7 @@ class OrderActionPresenter {
 
   static void _openAwaitingPayment(BuildContext context, ActiveOrderItem order) {
     final deliveryFee = order.deliveryFee ?? 0;
-    final foodTotal = (order.totalAmount ?? deliveryFee) - deliveryFee;
+    final foodTotal = order.resolvedItemSubtotal;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(
@@ -234,7 +234,7 @@ class OrderActionPresenter {
     );
 
     final afterContext = App.navigatorKey.currentContext;
-    if (afterContext == null || !success) return;
+    if (afterContext == null || !afterContext.mounted || !success) return;
 
     Navigator.of(afterContext).pushReplacement(
       MaterialPageRoute(

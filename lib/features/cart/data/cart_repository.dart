@@ -12,6 +12,21 @@ class CartRepository {
 
   final ApiClient _apiClient = ApiClient();
 
+  /// True when the backend rejected an add because another shop's cart has items.
+  static bool isShopConflict(Object error) {
+    if (error is! DioException || error.response?.statusCode != 409) {
+      return false;
+    }
+    final data = error.response?.data;
+    if (data is Map) {
+      final code = data['code']?.toString();
+      if (code == 'CART_SHOP_CONFLICT') return true;
+      final message = data['message']?.toString() ?? '';
+      return message.toLowerCase().contains('another shop');
+    }
+    return true;
+  }
+
   /// Adds an item to the cart.
   /// Returns the updated [CartDto].
   Future<CartDto> addToCart(AddToCartRequest request) async {
@@ -22,8 +37,8 @@ class CartRepository {
         data: payload,
       );
       return CartDto.fromJson(response.data['data'] as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw _handleDioError(e, 'add to cart');
+    } on DioException {
+      rethrow;
     } catch (e) {
       throw Exception('Failed to add to cart: $e');
     }
@@ -101,20 +116,6 @@ class CartRepository {
     } catch (_) {
       return [];
     }
-  }
-
-  Exception _handleDioError(DioException e, String operation) {
-    if (e.response != null) {
-      final data = e.response!.data;
-      final statusCode = e.response!.statusCode;
-      if (data is Map) {
-        if (data.containsKey('message')) return Exception(data['message']);
-        if (data.containsKey('error')) return Exception(data['error']);
-        if (data.containsKey('code')) return Exception('${data['code']}: ${data['path']}');
-      }
-      return Exception('Server Error ($statusCode): ${e.response!.data}');
-    }
-    return Exception('Network Error: ${e.message}');
   }
 
   void _assertSuccess(int? statusCode, String operation) {

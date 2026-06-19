@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/category_card.dart';
 import '../widgets/home_discount_section.dart';
 import '../widgets/todays_overview_section.dart';
@@ -22,11 +20,9 @@ import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
-import 'package:mytogetherapp/features/notifications/presentation/screens/notifications_page.dart';
 import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
-import 'package:mytogetherapp/features/lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
@@ -59,7 +55,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String? _bgImageUrl;
   String? _bgThemeName;
   int _refreshKey = 0;
-  int _lostFoundCount = 0;
   DateTime? _lastResumeRefreshAt;
   Timer? _titleTimer;
   bool _showThemeNameInAppBar = false;
@@ -106,18 +101,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NotificationRepository().getUnreadCount();
     AnnouncementRepository().getUnreadCount();
     _fetchBanners();
-    _fetchLostFoundCount();
-  }
-
-  Future<void> _fetchLostFoundCount() async {
-    try {
-      final feed = await ItemPostRepository.instance.fetchFeed(size: 1);
-      if (mounted) {
-        setState(() => _lostFoundCount = feed.totalElements);
-      }
-    } catch (_) {
-      // Leave count at 0 (badge hidden) on failure.
-    }
   }
 
   Future<void> _fetchBanners() async {
@@ -382,7 +365,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     _refreshKey++;
                   });
                   await _fetchBanners();
-                  await _fetchLostFoundCount();
                 },
                 color: AppColors.primary,
                 displacement: MediaQuery.of(context).padding.top + 60,

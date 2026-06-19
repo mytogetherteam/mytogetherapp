@@ -226,7 +226,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             item['description'],
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               height: 1.5,
                             ),
                           ),
@@ -252,7 +252,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           decoration: BoxDecoration(
                             color: _currentPage == index
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.4),
+                                : Colors.white.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -299,7 +299,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 );
                               },
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.2),
+                                backgroundColor: Colors.white.withValues(alpha: 0.2),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.all(16),
                               ),

@@ -3,9 +3,10 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'lost_item_card.dart';
 import 'view_all_icon_button.dart';
-import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/data/repositories/item_post_repository.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 import '../../../../features/news/data/models/news_item.dart';
 import '../../../../features/news/presentation/screens/news_detail_page.dart';
 
@@ -16,7 +17,8 @@ class LostItemsNearbySection extends StatefulWidget {
   State<LostItemsNearbySection> createState() => _LostItemsNearbySectionState();
 }
 
-class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
+class _LostItemsNearbySectionState extends State<LostItemsNearbySection>
+    with LocationRefreshMixin {
   final PageController _pageController = PageController();
   List<NewsItem> _items = [];
   bool _isLoading = true;
@@ -28,6 +30,11 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
   }
 
   @override
+  void onActiveLocationChanged() {
+    _loadNearby();
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -35,10 +42,11 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection> {
 
   Future<void> _loadNearby() async {
     try {
-      final pos = await LocationService().getCurrentPosition();
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final feed = await ItemPostRepository.instance.fetchNearby(
-        latitude: pos.latitude,
-        longitude: pos.longitude,
+        latitude: coords.lat,
+        longitude: coords.lon,
         page: 1,
         size: 10,
       );

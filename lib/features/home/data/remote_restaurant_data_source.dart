@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
@@ -74,10 +75,10 @@ class RemoteRestaurantDataSource {
         }
       }
     } catch (e) {
-      print('getBackgroundTheme error: $e');
+      debugPrint('getBackgroundTheme error: $e');
       if (e is DioException) {
-        print('Response data: ${e.response?.data}');
-        print('Status code: ${e.response?.statusCode}');
+        debugPrint('Response data: ${e.response?.data}');
+        debugPrint('Status code: ${e.response?.statusCode}');
       }
     }
     return null;

@@ -13,6 +13,7 @@ import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
@@ -327,6 +328,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     (sum, item) => sum + (item.price * item.quantity),
                   )
                   .toInt();
+
+        final foodSubtotal = totalStorePrice.toDouble();
+        final taxAmount = OrderTax.calculateTax(foodSubtotal);
+        final checkoutTotal = OrderTax.calculateTotal(itemSubtotal: foodSubtotal);
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -747,37 +752,51 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ),
                         ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 28, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        padding: const EdgeInsets.fromLTRB(20, 12, 28, 4),
+                        child: Column(
                           children: [
-                            Text(
-                              context.tr('cart.total'),
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF64748B),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            _buildCheckoutPriceRow(
+                              context.tr('order_status.food_total'),
+                              foodSubtotal.toFormattedPrice(),
                             ),
+                            const SizedBox(height: 6),
+                            _buildCheckoutPriceRow(
+                              context.tr('order_status.tax'),
+                              taxAmount.toFormattedPrice(),
+                            ),
+                            const SizedBox(height: 8),
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                GradientText(
-                                  totalStorePrice.toFormattedPrice(),
+                                Text(
+                                  context.tr('cart.total'),
                                   style: GoogleFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF64748B),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                if (_isDelivery)
-                                  GradientText(
-                                    context.tr('cart.plus_delivery_fee'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    GradientText(
+                                      checkoutTotal.toFormattedPrice(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
+                                    if (_isDelivery)
+                                      GradientText(
+                                        context.tr('cart.plus_delivery_fee'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ],
                             ),
                           ],
@@ -876,9 +895,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     String? orderId;
                                     String? lastOrderNo;
                                     int? responseUserId;
+                                    Map<String, dynamic>? responseData;
 
                                     if (d['data'] is Map) {
-                                      final responseData =
+                                      responseData =
                                           d['data'] as Map<String, dynamic>;
                                       orderId =
                                           (responseData['id'] ??
@@ -976,8 +996,30 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           _selectedPaymentMethodId,
                                         );
                                     if (!context.mounted) return;
+
+                                    final backendItemPrice =
+                                        (responseData?['itemPrice'] as num?)
+                                            ?.toDouble() ??
+                                        foodTotal.toDouble();
+                                    final backendTaxAmount =
+                                        (responseData?['taxAmount'] as num?)
+                                            ?.toDouble() ??
+                                        OrderTax.calculateTax(backendItemPrice);
+                                    final backendTotalAmount =
+                                        (responseData?['totalAmount'] as num?)
+                                            ?.toDouble() ??
+                                        OrderTax.calculateTotal(
+                                          itemSubtotal: backendItemPrice,
+                                        );
+                                    final backendDisplayTax =
+                                        responseData?['displayTaxAmount']
+                                            ?.toString();
+
                                     ActiveOrderState.instance.setOrderDetails(
-                                      totalAmount: foodTotal.toDouble(),
+                                      totalAmount: backendTotalAmount,
+                                      itemPrice: backendItemPrice,
+                                      taxAmount: backendTaxAmount,
+                                      displayTaxAmount: backendDisplayTax,
                                       paymentMethod:
                                           _selectedPaymentType?.displayName ??
                                           context.tr('cart.payment'),
@@ -987,6 +1029,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       items: List.from(storeItems),
                                       orderId: orderId,
                                     );
+
+                                    if (responseData != null && orderId != null) {
+                                      ActiveOrderState.instance.updateFromSocket({
+                                        ...responseData,
+                                        'orderId': orderId,
+                                      });
+                                    }
 
                                     // 4. Clear cart for this store (via API sync)
                                     await CartManager.instance.removeStore(
@@ -1002,7 +1051,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         builder: (context) => OrderTrackingPage(
                                           store: widget.store,
                                           restaurant: _restaurant,
-                                          foodTotal: foodTotal,
+                                          foodTotal: backendItemPrice.round(),
                                         ),
                                       ),
                                     );
@@ -1445,6 +1494,30 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           child: Icon(icon, size: 18, color: Colors.black),
         ),
       ),
+    );
+  }
+
+  Widget _buildCheckoutPriceRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF94A3B8),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF64748B),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 

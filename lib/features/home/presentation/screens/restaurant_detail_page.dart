@@ -15,7 +15,7 @@ import '../../../wishlist/data/repositories/wishlist_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
-import '../../../../core/location/location_service.dart';
+import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
@@ -25,6 +25,10 @@ import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
+import '../widgets/order_unavailability_ui.dart';
+import '../widgets/restaurant_open_status.dart';
+import '../../data/restaurant_order_availability.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../cart/data/active_order_state.dart';
@@ -89,6 +93,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   late final VoidCallback _wsReconnectListener;
   bool _wsReady = false;
   Timer? _refreshDebounce;
+  Timer? _hoursRefreshTimer;
+  bool _hasShownUnavailableSheet = false;
+  late final VoidCallback _orderStateListener;
 
   Restaurant? _currentRestaurant;
 
@@ -168,11 +175,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     // Also refresh the shop detail header (name, logo, rating etc.)
     Future(() async {
       try {
-        final pos = LocationService().cachedPosition;
+        final coords =
+            await UserLocationRepository.instance.resolveActiveCoordinates();
         final restaurant = await RestaurantRepository.instance.getShopById(
           shopId,
-          lat: pos?.latitude ?? LocationService.defaultLat,
-          lon: pos?.longitude ?? LocationService.defaultLon,
+          lat: coords.lat,
+          lon: coords.lon,
         );
         if (mounted) {
           setState(() {
@@ -201,6 +209,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                 ? repo.isShopSaved(shopId)
                 : restaurant.isFavorite;
           });
+          _maybeShowUnavailableSheet();
         }
       } catch (_) {}
     });
@@ -239,9 +248,69 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         debugPrint(
           ' [RestaurantDetailPage] Real-time shop-profile update detected. Refreshing header...',
         );
+        setState(() {
+          if (_currentRestaurant != null) {
+            var updated = _currentRestaurant!;
+            if (event.containsKey('deliveryEnabled')) {
+              updated = updated.copyWith(
+                deliveryEnabled: event['deliveryEnabled'] == true,
+              );
+            }
+            if (event.containsKey('isOpen')) {
+              updated = updated.copyWith(
+                status: event['isOpen'] == true ? 'Open' : 'Closed',
+              );
+            }
+            _currentRestaurant = updated;
+            ShopOrderStateCache.instance.remember(updated);
+          }
+        });
         _scheduleRefresh(silent: true);
       }
     });
+
+    ShopOrderStateCache.instance.ensureListening();
+    _orderStateListener = () {
+      if (!mounted || _currentRestaurant == null) return;
+      final shopId = int.tryParse(widget.id);
+      if (shopId == null) return;
+      final availability =
+          ShopOrderStateCache.instance.availabilityForShopIdOrDefault(
+        shopId,
+        deliveryEnabled: _currentRestaurant!.deliveryEnabled,
+        operatingHours: _currentRestaurant!.operatingHours,
+        status: _currentRestaurant!.status,
+      );
+      setState(() {
+        _currentRestaurant = _currentRestaurant!.copyWith(
+          deliveryEnabled: availability.deliveryEnabled,
+          status: availability.statusFallback,
+        );
+      });
+    };
+    ShopOrderStateCache.instance.addListener(_orderStateListener);
+    _hoursRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _maybeShowUnavailableSheet() {
+    final restaurant = _currentRestaurant;
+    if (restaurant == null || !mounted) return;
+    final availability = RestaurantOrderAvailability.of(restaurant);
+    OrderUnavailableBottomSheet.showIfNeeded(
+      context,
+      availability: availability,
+      shopId: int.tryParse(widget.id),
+      alreadyShown: () => _hasShownUnavailableSheet,
+      markShown: () => _hasShownUnavailableSheet = true,
+    );
+  }
+
+  RestaurantOrderAvailability? get _orderAvailability {
+    final restaurant = _currentRestaurant;
+    if (restaurant == null) return null;
+    return RestaurantOrderAvailability.of(restaurant);
   }
 
   /// Coalesce bursty WS/reconnect events into a single refresh.
@@ -300,8 +369,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       }
 
       // Also re-fetch the shop detail itself
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final updatedRestaurant = await RestaurantRepository.instance.getShopById(
         shopId,
+        lat: coords.lat,
+        lon: coords.lon,
       );
       if (mounted) {
         setState(() {
@@ -455,6 +528,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     _menuUpdateSubscription?.cancel();
     _shopProfileUpdateSubscription?.cancel();
     _refreshDebounce?.cancel();
+    _hoursRefreshTimer?.cancel();
+    ShopOrderStateCache.instance.removeListener(_orderStateListener);
     WebSocketService().connectionStatus.removeListener(_wsReconnectListener);
     _scrollController.dispose();
     // Clear shop context
@@ -830,31 +905,49 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                 }
                 if (opacity <= 0) return const SizedBox.shrink();
 
+                final showStrip = _orderAvailability?.isBlocked ?? false;
+                const stripBlockHeight = 44.0;
+                final blockTop = showStrip
+                    ? cardTop - stripBlockHeight - 6
+                    : cardTop;
+
                 return Positioned(
-                  top: cardTop,
-                  left: 15,
-                  right: 15,
+                  top: blockTop,
+                  left: 0,
+                  right: 0,
                   child: Opacity(
                     opacity: opacity,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: BackdropFilter(
-                        filter: ColorFilter.mode(
-                          Colors.white.withValues(alpha: 0.7),
-                          BlendMode.srcOver,
-                        ),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                width: 1,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showStrip && _orderAvailability != null)
+                          RestaurantOrderStatusStrip(
+                            message: _orderAvailability!
+                                .statusStripText(context),
+                            reason: _orderAvailability!.reason,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: BackdropFilter(
+                              filter: ColorFilter.mode(
+                                Colors.white.withValues(alpha: 0.7),
+                                BlendMode.srcOver,
                               ),
-                            ),
-                            child: Row(
-                              children: [
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
                                 // Logo Container
                                 Container(
                                   width: 70,
@@ -1009,22 +1102,36 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
-                                          Text(
-                                            '  •  ',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
+                                          if (!(_orderAvailability?.isBlocked ??
+                                              false)) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                            context.localizedStatus(
-                                              _currentRestaurant?.status ?? '',
+                                            Text(
+                                              _currentRestaurant != null
+                                                  ? RestaurantOpenStatus.of(
+                                                      context,
+                                                      _currentRestaurant!,
+                                                    ).text
+                                                  : context.localizedStatus(
+                                                      _currentRestaurant?.status ??
+                                                          '',
+                                                    ),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: _currentRestaurant != null
+                                                    ? RestaurantOpenStatus.of(
+                                                        context,
+                                                        _currentRestaurant!,
+                                                      ).color
+                                                    : const Color(0xFF10B981),
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: const Color(0xFF10B981),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                          ],
                                         ],
                                       ),
                                     ],
@@ -1035,8 +1142,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                           ),
                         ),
                       ),
+                        ),
+                      ],
                     ),
-                  );
+                  ),
+                );
               },
             ),
 
@@ -1391,6 +1501,26 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     final groups = _buildCategoryGroups();
     final slivers = <Widget>[];
+
+    if (_orderAvailability?.isBlocked ?? false) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              context.tr('order.menu_browse_hint'),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     for (final group in groups) {
       if (group.title != null && group.title!.isNotEmpty) {
         slivers.add(
@@ -1497,6 +1627,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           onFavoriteToggle: () => _toggleFavorite(item),
           isAvailable: item.isAvailable,
           publishStatus: item.publishStatus,
+          orderAvailability: _orderAvailability,
           isHighlighted: isTarget,
         );
         return isTarget ? Container(key: _targetMenuKey, child: card) : card;

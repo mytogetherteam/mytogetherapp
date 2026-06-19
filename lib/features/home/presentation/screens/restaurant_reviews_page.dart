@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -23,14 +25,70 @@ class RestaurantReviewsPage extends StatefulWidget {
   State<RestaurantReviewsPage> createState() => _RestaurantReviewsPageState();
 }
 
-class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
+class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
+    with WidgetsBindingObserver {
+  static const Duration _pollInterval = Duration(seconds: 45);
+
   late Future<List<ShopReviewDto>> _reviewsFuture;
   late Future<ShopReviewSummaryDto> _summaryFuture;
+  Timer? _pollTimer;
+  ShopReviewSummaryDto? _cachedSummary;
+  List<ShopReviewDto> _cachedReviews = const [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _pollForUpdates();
+      _startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _pollForUpdates());
+  }
+
+  Future<void> _pollForUpdates() async {
+    if (!mounted) return;
+    try {
+      final summary =
+          await RestaurantRepository.instance.getShopReviewSummary(widget.shopId);
+      final reviews =
+          await RestaurantRepository.instance.getShopReviews(widget.shopId);
+      if (!mounted) return;
+
+      final countChanged =
+          summary.totalCount != (_cachedSummary?.totalCount ?? -1);
+      final listChanged = reviews.isNotEmpty &&
+          (_cachedReviews.isEmpty || reviews.first.id != _cachedReviews.first.id);
+
+      if (countChanged || listChanged) {
+        setState(() {
+          _cachedSummary = summary;
+          _cachedReviews = reviews;
+          _summaryFuture = Future.value(summary);
+          _reviewsFuture = Future.value(reviews);
+        });
+      }
+    } catch (_) {}
   }
 
   void _loadData() {
@@ -40,6 +98,12 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage> {
     _summaryFuture = RestaurantRepository.instance.getShopReviewSummary(
       widget.shopId,
     );
+    _reviewsFuture.then((reviews) {
+      if (mounted) setState(() => _cachedReviews = reviews);
+    });
+    _summaryFuture.then((summary) {
+      if (mounted) setState(() => _cachedSummary = summary);
+    });
   }
 
   Future<void> _writeReview() async {

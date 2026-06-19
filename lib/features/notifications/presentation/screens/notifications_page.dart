@@ -139,22 +139,6 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     );
   }
 
-  Future<void> _deleteNotification(NotificationModel notification) async {
-    final removed = notification;
-    final index = _notifications.indexOf(notification);
-    setState(() => _notifications.remove(notification));
-
-    final ok = await _repository.deleteNotification(notification.id);
-    if (!ok && mounted) {
-      setState(() => _notifications.insert(index, removed));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('notification.delete_failed'))),
-      );
-    } else {
-      _repository.getUnreadCount();
-    }
-  }
-
   Future<void> _markAllAsRead() async {
     // Snapshot for rollback, then optimistically flip every unread item to read
     // so all rows animate (swipe-left) at once and the badge clears instantly.

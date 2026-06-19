@@ -23,138 +23,103 @@ class FoodHeader extends StatefulWidget {
 }
 
 class _FoodHeaderState extends State<FoodHeader> {
-  UserLocationModel? _primaryLocation;
+  UserLocationModel? _displayLocation;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPrimaryLocation();
-    UserLocationRepository.instance.addListener(_loadPrimaryLocation);
+    _syncDisplayLocation();
+    UserLocationRepository.instance.addListener(_syncDisplayLocation);
   }
 
-  Future<void> _loadPrimaryLocation() async {
+  @override
+  void dispose() {
+    UserLocationRepository.instance.removeListener(_syncDisplayLocation);
+    super.dispose();
+  }
+
+  /// Header always reflects [UserLocationRepository.activeLocation] first so
+  /// a session "Current location" selection is not overwritten by saved names.
+  Future<void> _syncDisplayLocation() async {
     if (!mounted) return;
 
-    // 1. Try Cache first for instant UI response
-    final cachedAddr = LocationService().currentAddress;
-    final cachedPos = LocationService().cachedPosition;
-    
-    if (cachedAddr != null && cachedPos != null) {
-      if (mounted) {
-        final loc = UserLocationModel(
-          id: -1, // Temporary flag for cached
-          latitude: cachedPos.latitude,
-          longitude: cachedPos.longitude,
-          locationName: cachedAddr.split(',').first,
-          address: cachedAddr,
-          locationType: 'OTHER',
-          isPrimary: false,
-        );
-        setState(() {
-          _primaryLocation = loc;
-          _isLoading = false;
-        });
-        UserLocationRepository.instance.setActiveLocation(loc);
-      }
-    } else {
-      if (mounted) setState(() => _isLoading = true);
+    final active = UserLocationRepository.instance.activeLocation;
+    if (active != null) {
+      setState(() {
+        _displayLocation = active;
+        _isLoading = false;
+      });
+      return;
     }
+
+    setState(() => _isLoading = true);
 
     try {
-      // We wrap the API call to ensure it doesn't hang the whole process indefinitely
-      final loc = await UserLocationRepository.instance.getPrimaryLocation().timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => throw Exception('Primary location API timeout'),
-      );
-      
-      if (loc != null) {
-        if (mounted) {
-          setState(() {
-            _primaryLocation = loc;
-            _isLoading = false;
-          });
-          UserLocationRepository.instance.setActiveLocation(loc);
-        }
-        return; // Success, we have the official primary
+      final loc = await UserLocationRepository.instance
+          .getPrimaryLocation()
+          .timeout(const Duration(seconds: 8));
+      if (loc != null && mounted) {
+        UserLocationRepository.instance.setActiveLocation(loc);
+        setState(() {
+          _displayLocation = loc;
+          _isLoading = false;
+        });
+        return;
       }
-    } catch (e) {
-      // API error or timeout, fall through to GPS fallback
-    }
+    } catch (_) {}
 
-    // 2. If no primary found in API (or API failed), trigger robust fallback
     await _fallbackToCurrentLocation();
   }
 
   Future<void> _fallbackToCurrentLocation() async {
     try {
-      final pos = await LocationService().getCurrentPosition().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw Exception('GPS detection timed out'),
-      );
-      final place = await LocationSearchService.instance.reverseGeocode(pos.latitude, pos.longitude).timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => throw Exception('Geocoding timed out'),
-      );
-      
-      if (place != null) {
-        final newLoc = UserLocationModel(
-          id: 0,
+      final pos = await LocationService().getCurrentPosition(
+        requestPermissionIfDenied: true,
+        forceRefresh: true,
+        highAccuracy: true,
+      ).timeout(const Duration(seconds: 15));
+      if (!LocationService().hasRealPosition) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+      final place = await LocationSearchService.instance
+          .reverseGeocode(pos.latitude, pos.longitude)
+          .timeout(const Duration(seconds: 8));
+
+      if (place != null && mounted) {
+        final sessionLoc = UserLocationModel(
+          id: -1,
           latitude: place.lat,
           longitude: place.lon,
-          locationName: place.name,
+          locationName: context.tr('location.current'),
           address: place.displayName,
           locationType: 'OTHER',
           isPrimary: true,
         );
-        
-        // Update UI immediately with detected location
-        if (mounted) {
-          setState(() {
-            _primaryLocation = newLoc;
-            _isLoading = false;
-          });
-          UserLocationRepository.instance.setActiveLocation(newLoc);
-        }
-
-        try {
-          final savedLoc = await UserLocationRepository.instance.addLocation(newLoc).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => throw Exception('Add location API timeout'),
-          );
-          if (mounted) {
-            setState(() => _primaryLocation = savedLoc);
-            UserLocationRepository.instance.setActiveLocation(savedLoc);
-          }
-        } catch (e) {
-          // Keep showing the detected location; explain why save failed.
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  UserLocationRepository.errorMessage(
-                    e,
-                    fallback: context.tr('location.save_failed'),
-                  ),
-                ),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-        }
-      } else {
-        if (mounted) setState(() => _isLoading = false);
+        setState(() {
+          _displayLocation = sessionLoc;
+          _isLoading = false;
+        });
+        UserLocationRepository.instance.setActiveLocation(sessionLoc);
+      } else if (mounted) {
+        setState(() => _isLoading = false);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    UserLocationRepository.instance.removeListener(_loadPrimaryLocation);
-    super.dispose();
+  String _headerLabel(BuildContext context) {
+    if (_displayLocation == null) {
+      return context.tr('food.set_location');
+    }
+    if (UserLocationRepository.instance.isSessionCurrentLocation) {
+      return context.tr('location.current');
+    }
+    return _displayLocation!.locationName ??
+        _displayLocation!.address ??
+        context.tr('food.my_location');
   }
 
   @override
@@ -184,7 +149,6 @@ class _FoodHeaderState extends State<FoodHeader> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Location selector (tappable)
               Expanded(
                 child: GestureDetector(
                   onTap: () => _showLocationModal(context),
@@ -198,32 +162,30 @@ class _FoodHeaderState extends State<FoodHeader> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _isLoading
-                          ? const LocationSkeletonLoader()
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    _primaryLocation != null
-                                        ? (_primaryLocation!.locationName ?? _primaryLocation!.address ?? context.tr('food.my_location'))
-                                        : context.tr('food.set_location'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                            ? const LocationSkeletonLoader()
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _headerLabel(context),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  PhosphorIcons.caretDown,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    PhosphorIcons.caretDown,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
@@ -240,7 +202,9 @@ class _FoodHeaderState extends State<FoodHeader> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const FoodSearchPage()),
+                            MaterialPageRoute(
+                              builder: (_) => const FoodSearchPage(),
+                            ),
                           );
                         },
                         child: Container(
@@ -275,8 +239,10 @@ class _FoodHeaderState extends State<FoodHeader> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => LocationSelectionModal(
-        onLocationSelected: (place) {
-          _loadPrimaryLocation();
+        onLocationSelected: (_) {
+          if (mounted) {
+            _syncDisplayLocation();
+          }
           widget.onLocationChanged?.call();
         },
       ),

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
-import 'package:qr/qr.dart';
 
 /// Generates `assets/examples/pickup_qr_example.png` using the same settings
 /// as [PickupOrderQrCard]. Run:

@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'core/auth/auth_service.dart';
 import 'core/network/api_client.dart';
 import 'core/localization/locale_controller.dart';
-import 'core/location/location_service.dart';
 import 'features/cart/data/active_order_state.dart';
 import 'features/cart/data/cart_manager.dart';
 import 'package:firebase_core/firebase_core.dart';

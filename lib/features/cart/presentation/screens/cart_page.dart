@@ -235,8 +235,8 @@ class _CartPageState extends State<CartPage> {
             fit: BoxFit.cover,
             width: 60,
             height: 60,
-            placeholder: (_, __) => const ImageSkeletonLoader(width: 60, height: 60),
-            errorWidget: (_, _, __) => _buildImageStack(
+            placeholder: (_, _) => const ImageSkeletonLoader(width: 60, height: 60),
+            errorWidget: (_, _, _) => _buildImageStack(
               store.items.map((i) => i.imagePath).toList(),
             ),
           ),

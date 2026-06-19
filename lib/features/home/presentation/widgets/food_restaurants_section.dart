@@ -8,7 +8,8 @@ import '../screens/restaurant_detail_page.dart';
 import '../screens/all_restaurants_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../../../../core/location/location_service.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 
 class FoodRestaurantsSection extends StatefulWidget {
   const FoodRestaurantsSection({super.key});
@@ -17,24 +18,35 @@ class FoodRestaurantsSection extends StatefulWidget {
   State<FoodRestaurantsSection> createState() => _FoodRestaurantsSectionState();
 }
 
-class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
+class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
+    with LocationRefreshMixin {
   Future<List<Restaurant>>? _restaurantsFuture;
   final Map<String, bool> _localFavorites = {};
 
   @override
   void initState() {
     super.initState();
-    _restaurantsFuture = _loadRestaurants();
+    _reloadRestaurants();
+  }
+
+  @override
+  void onActiveLocationChanged() {
+    _reloadRestaurants();
+  }
+
+  void _reloadRestaurants() {
+    setState(() {
+      _restaurantsFuture = _loadRestaurants();
+    });
   }
 
   Future<List<Restaurant>> _loadRestaurants() async {
     try {
-      final pos = LocationService().cachedPosition;
-      final lat = pos?.latitude ?? LocationService.defaultLat;
-      final lon = pos?.longitude ?? LocationService.defaultLon;
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
 
       return await RestaurantRepository.instance
-          .getNearbyShops(lat: lat, lon: lon, radius: 20.0)
+          .getNearbyShops(lat: coords.lat, lon: coords.lon, radius: 20.0)
           .timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint('FoodRestaurantsSection: API error: $e');
@@ -130,6 +142,10 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection> {
                     deliveryTime: data.deliveryTime,
                     deliveryFee: data.deliveryFee,
                     originalDeliveryFee: data.originalDeliveryFee,
+                    deliveryEnabled: data.deliveryEnabled,
+                    operatingHours: data.operatingHours,
+                    status: data.status,
+                    shopId: data.id,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     width: double.infinity,

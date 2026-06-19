@@ -8,7 +8,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
-import '../../../../core/location/location_service.dart';
+import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -41,14 +41,23 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
     final id = int.tryParse(widget.restaurant.id);
     if (id == null) return;
     try {
-      final pos = LocationService().cachedPosition;
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final full = await RestaurantRepository.instance.getShopById(
         id,
-        lat: pos?.latitude ?? LocationService.defaultLat,
-        lon: pos?.longitude ?? LocationService.defaultLon,
+        lat: coords.lat,
+        lon: coords.lon,
       );
       if (mounted) {
-        setState(() => restaurant = full);
+        setState(() {
+          // Keep list/card distance when the fetch can't improve it.
+          final seededDistance = widget.restaurant.distance;
+          restaurant = full.copyWith(
+            distance: (full.distance == '0.0 km' || full.distance.isEmpty)
+                ? seededDistance
+                : full.distance,
+          );
+        });
       }
     } catch (_) {
       // Keep the seed data on failure; payment section still self-loads.

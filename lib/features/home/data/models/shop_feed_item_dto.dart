@@ -1,5 +1,8 @@
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../shop_order_state_parser.dart';
+import '../shop_order_state_cache.dart';
+import 'shop_dto.dart' show OperatingHourDto;
 import 'trending_item_dto.dart';
 
 /// A single food item returned by any of the 5 shop feed endpoints
@@ -34,6 +37,11 @@ class ShopFeedItemDto {
   // sections on the restaurant detail page). Null for feeds that don't carry it.
   final int? categoryId;
   final String? categoryName;
+  final bool deliveryEnabled;
+  final bool shopIsOpen;
+  final List<OperatingHourDto> operatingHours;
+
+  String get restaurantStatus => shopIsOpen ? 'Open' : 'Closed';
 
   /// Resolved live against the active language so a language switch updates
   /// already-loaded items without a refetch.
@@ -80,11 +88,27 @@ class ShopFeedItemDto {
     this.publishStatus = 'PUBLISHED',
     this.categoryId,
     this.categoryName,
+    this.deliveryEnabled = true,
+    this.shopIsOpen = true,
+    this.operatingHours = const [],
   })  : _name = name,
         _shopName = shopName,
         _estimatedTime = estimatedTime;
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
+    final orderState = ShopOrderStateFields.fromJson(json);
+    final shopId = int.tryParse(json['shopId'].toString()) ?? 0;
+
+    if (shopId > 0) {
+      ShopOrderStateCache.instance.ensureListening();
+      ShopOrderStateCache.instance.rememberParts(
+        shopId,
+        deliveryEnabled: orderState.deliveryEnabled,
+        operatingHours: orderState.operatingHours,
+        status: orderState.status,
+      );
+    }
+
     return ShopFeedItemDto(
       id: int.tryParse(json['id'].toString()) ?? 0,
       name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
@@ -116,6 +140,9 @@ class ShopFeedItemDto {
           ? int.tryParse((json['menuCategoryId'] ?? json['categoryId']).toString())
           : null,
       categoryName: (json['menuCategoryName'] ?? json['categoryName']) as String?,
+      deliveryEnabled: orderState.deliveryEnabled,
+      shopIsOpen: orderState.isOpen,
+      operatingHours: orderState.operatingHours,
     );
   }
 
@@ -170,6 +197,9 @@ class ShopFeedItemDto {
       originalDeliveryFee: item.originalDeliveryFee,
       isAvailable: item.isAvailable,
       publishStatus: item.publishStatus,
+      deliveryEnabled: item.deliveryEnabled,
+      shopIsOpen: item.shopIsOpen,
+      operatingHours: item.operatingHours,
     );
   }
 }
@@ -214,11 +244,13 @@ class DiscountDealsDto {
   final int maxDiscountPercentage;
 
   final List<ShopFeedItemDto> items;
+  final int totalCount;
 
   DiscountDealsDto({
     required this.sectionTitle,
     required this.maxDiscountPercentage,
     required this.items,
+    this.totalCount = 0,
   });
 
   bool get isEmpty => items.isEmpty;
@@ -234,11 +266,13 @@ class DiscountDealsDto {
             .map((e) => ShopFeedItemDto.fromJson(e))
             .toList()
         : <ShopFeedItemDto>[];
+    final totalCount = (data['totalCount'] as num?)?.toInt();
     return DiscountDealsDto(
       sectionTitle: data['sectionTitle']?.toString() ?? '',
       maxDiscountPercentage:
           (data['maxDiscountPercentage'] as num?)?.toInt() ?? 0,
       items: items,
+      totalCount: totalCount ?? items.length,
     );
   }
 }

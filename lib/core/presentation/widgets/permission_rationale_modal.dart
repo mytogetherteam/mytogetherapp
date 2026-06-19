@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../localization/app_translations.dart';
-import '../../theme/app_colors.dart';
 import 'primary_gradient_button.dart';
 
 class PermissionRationaleModal extends StatelessWidget {

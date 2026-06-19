@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../../../core/location/location_refresh_mixin.dart';
 import 'place_card.dart';
 import 'view_all_icon_button.dart';
 import '../../data/models/place_dto.dart';
@@ -17,7 +18,8 @@ class TopPlacesNearbySection extends StatefulWidget {
   State<TopPlacesNearbySection> createState() => _TopPlacesNearbySectionState();
 }
 
-class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
+class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
+    with LocationRefreshMixin {
   List<PlaceDto> _places = [];
   bool _isLoading = true;
 
@@ -27,15 +29,21 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection> {
     _loadPlaces();
   }
 
+  @override
+  void onActiveLocationChanged() {
+    _loadPlaces();
+  }
+
   Future<void> _loadPlaces() async {
     try {
       await WishlistRepository.instance.loadAll();
-      final pos = await LocationService().getCurrentPosition();
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final feed = await PlacesRepository.instance.fetchPlaces(
         page: 1,
         size: 10,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
+        latitude: coords.lat,
+        longitude: coords.lon,
       );
       if (mounted) {
         setState(() {
