@@ -11,6 +11,8 @@ import '../../../../core/location/location_service.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/empty_state_view.dart';
+import '../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 
 class TodayOverviewDetailPage extends StatefulWidget {
   /// When provided, the page paginates this shop-feed type (e.g. `hot-deals`)
@@ -40,7 +42,8 @@ class TodayOverviewDetailPage extends StatefulWidget {
 class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   final ScrollController _scrollController = ScrollController();
   final List<MenuItemDto> _items = [];
-  bool _isLoading = false;
+  bool _isInitialLoading = false;
+  bool _isLoadingMore = false;
   int _currentPage = 0;
   bool _hasMore = true;
   int _discountTotalCount = 0;
@@ -61,8 +64,10 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 && 
-        !_isLoading && 
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        !_isInitialLoading &&
         _hasMore) {
       _loadMoreData();
     }
@@ -71,7 +76,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   Future<void> _loadInitialData() async {
     if (!mounted) return;
     setState(() {
-      _isLoading = true;
+      _isInitialLoading = true;
       _currentPage = 0;
       _hasMore = true;
       _discountTotalCount = 0;
@@ -89,11 +94,11 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         setState(() {
           _items.clear();
           _items.addAll(items);
-          _isLoading = false;
+          _isInitialLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isInitialLoading = false);
     }
   }
 
@@ -223,8 +228,14 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   }
 
   Future<void> _loadMoreData() async {
-    if (_isLoading || !_hasMore) return;
-    setState(() => _isLoading = true);
+    if (_isLoadingMore || _isInitialLoading || !_hasMore) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+    setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
     
     try {
       final nextPage = _currentPage + 1;
@@ -239,13 +250,25 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
           } else {
             _hasMore = moreItems.length >= _pageSize;
           }
-          _isLoading = false;
+          _isLoadingMore = false;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
     }
   }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +306,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         color: AppColors.primary,
-        child: _items.isEmpty && _isLoading
+        child: _items.isEmpty && _isInitialLoading
             ? GridView.builder(
                 padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 48.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -307,44 +330,63 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
                   ),
                 ],
               )
-            : GridView.builder(
+            : CustomScrollView(
                 controller: _scrollController,
-                padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 48.0),
                 physics: const AlwaysScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: _items.length + (_isLoading && _hasMore ? 2 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= _items.length) {
-                    return const FoodMenuItemSkeleton();
-                  }
-                  final item = _items[index];
-                  return FoodMenuItemCard(
-                    id: item.id,
-                    restaurantId: item.restaurantId,
-                    title: item.title,
-                    price: item.price,
-                    currency: item.currency,
-                    imagePath: item.imagePath,
-                    restaurantName: item.restaurantName,
-                    isFavorite: _localFavorites[item.id] ?? item.isFavorite,
-                    displayPrice: item.displayPrice,
-                    rating: item.rating,
-                    reviewCount: item.reviewCount,
-                    distanceKm: item.distanceKm,
-                    estimatedTime: item.estimatedTime,
-                    deliveryFee: item.deliveryFee,
-                    originalDeliveryFee: item.originalDeliveryFee,
-                    onFavoriteToggle: () => _toggleFavorite(item),
-                    forceRestaurantNavigation: true,
-                    isAvailable: item.isAvailable,
-                    publishStatus: item.publishStatus,
-                  );
-                },
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.only(
+                      left: 16.0,
+                      right: 16.0,
+                      top: 16.0,
+                      bottom: 16.0,
+                    ),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 24,
+                        childAspectRatio: 0.85,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final item = _items[index];
+                          return FoodMenuItemCard(
+                            id: item.id,
+                            restaurantId: item.restaurantId,
+                            title: item.title,
+                            price: item.price,
+                            currency: item.currency,
+                            imagePath: item.imagePath,
+                            restaurantName: item.restaurantName,
+                            isFavorite:
+                                _localFavorites[item.id] ?? item.isFavorite,
+                            displayPrice: item.displayPrice,
+                            rating: item.rating,
+                            reviewCount: item.reviewCount,
+                            distanceKm: item.distanceKm,
+                            estimatedTime: item.estimatedTime,
+                            deliveryFee: item.deliveryFee,
+                            originalDeliveryFee: item.originalDeliveryFee,
+                            onFavoriteToggle: () => _toggleFavorite(item),
+                            forceRestaurantNavigation: true,
+                            isAvailable: item.isAvailable,
+                            publishStatus: item.publishStatus,
+                          );
+                        },
+                        childCount: _items.length,
+                      ),
+                    ),
+                  ),
+                  if (_showPaginationFooter)
+                    SliverToBoxAdapter(
+                      child: PaginationListFooter(
+                        isLoading: _isLoadingMore,
+                        showEndMessage: !_hasMore,
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                ],
               ),
       ),
     );

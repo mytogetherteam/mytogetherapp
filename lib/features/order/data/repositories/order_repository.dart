@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/utils/multipart_helper.dart';
 import '../models/order_history_dto.dart';
@@ -37,10 +37,7 @@ class OrderRepository {
     int size = 50,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'size': size,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'size': size};
       if (statuses != null && statuses.isNotEmpty) {
         queryParams['status'] = statuses.join(',');
       }
@@ -55,8 +52,7 @@ class OrderRepository {
         final body = response.data;
         // Envelope shape: { success, data: [...], meta }
         final rawData = body is Map ? body['data'] : body;
-        final List<dynamic> list =
-            rawData is List ? rawData : <dynamic>[];
+        final List<dynamic> list = rawData is List ? rawData : <dynamic>[];
         return list
             .map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
             .toList();
@@ -91,13 +87,10 @@ class OrderRepository {
   /// moves the order to AWAITING_APPROVAL (same effect as the /payment route).
   Future<bool> revisePaymentImage({
     required int orderId,
-    required XFile file,
+    required PickedImage image,
   }) async {
     final formData = FormData.fromMap({
-      'paymentImage': await multipartFromXFile(
-        file,
-        filenamePrefix: 'payment_${DateTime.now().millisecondsSinceEpoch}',
-      ),
+      'paymentImage': image.toMultipartFile(),
     });
 
     final response = await _apiClient.dio.patch(

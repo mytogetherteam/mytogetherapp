@@ -14,6 +14,34 @@ import '../../order/data/repositories/order_repository.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
 
+/// Normalizes `deliveryAddress` from API/WebSocket payloads. The backend
+/// returns a nested object (`address`, `addressMm`, `buildingName`, …) while
+/// older payloads may still be a plain string.
+String? parseDeliveryAddressValue(dynamic value) {
+  if (value == null) return null;
+  if (value is String) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    for (final key in ['address', 'addressMm', 'addressTh']) {
+      final candidate = map[key]?.toString().trim();
+      if (candidate != null && candidate.isNotEmpty) return candidate;
+    }
+    final building = map['buildingName']?.toString().trim();
+    final floor = map['floor']?.toString().trim();
+    if (building != null && building.isNotEmpty) {
+      if (floor != null && floor.isNotEmpty) return '$building, $floor';
+      return building;
+    }
+    final note = map['note']?.toString().trim();
+    if (note != null && note.isNotEmpty) return note;
+  }
+  final fallback = value.toString().trim();
+  return fallback.isEmpty ? null : fallback;
+}
+
 class ActiveOrderItem {
   final String orderId;
   String? storeName;
@@ -290,9 +318,9 @@ class ActiveOrderItem {
     deliveryFee: json['deliveryFee'],
     riderName: json['riderName'],
     riderPhone: json['riderPhone'],
-    deliveryTrackingUrl: json['deliveryTrackingUrl'],
+    deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
     shopPaymentQrUrl: json['shopPaymentQrUrl'],
-    deliveryAddress: json['deliveryAddress'],
+    deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
     restaurantAddress: json['restaurantAddress'],
     userLocationName: json['userLocationName'],
     restaurantLatLng: (json['restaurantLat'] != null && json['restaurantLng'] != null)
@@ -393,6 +421,9 @@ class ActiveOrderState extends ChangeNotifier {
   // --- Properties & Backward Compatibility ---
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
+
+  /// Whether the user is allowed to start a brand-new checkout.
+  bool get canPlaceNewOrder => !hasActiveOrder;
   
   // Helper to get a specific order (tolerates # prefix / numeric id mismatches).
   ActiveOrderItem? getOrder(String? id) {
@@ -536,6 +567,11 @@ class ActiveOrderState extends ChangeNotifier {
     _purgeTerminalOrders();
 
     final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    final hasDifferentActiveOrder = activeOrdersList.any(
+      (o) => o.orderId != id,
+    );
+    if (hasDifferentActiveOrder) return;
+
     _primaryOrderId = id;
     _orders[id] = ActiveOrderItem(
       orderId: id,
@@ -671,8 +707,15 @@ class ActiveOrderState extends ChangeNotifier {
       item.estimatedTime = "${data['waitingTimeMinutes']} mins";
     }
 
-    final trackingUrl = _parseSafeString(data['deliveryTrackingUrl']);
-    if (trackingUrl != null && _isValidUrl(trackingUrl)) item.deliveryTrackingUrl = trackingUrl;
+    var trackingUrl = _parseSafeString(data['deliveryTrackingUrl'] ?? data['trackingUrl']);
+    if (trackingUrl != null && trackingUrl.isNotEmpty) {
+      if (!trackingUrl.startsWith('http://') && !trackingUrl.startsWith('https://')) {
+        trackingUrl = 'https://$trackingUrl';
+      }
+      if (_isValidUrl(trackingUrl)) {
+        item.deliveryTrackingUrl = trackingUrl;
+      }
+    }
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
@@ -732,7 +775,11 @@ class ActiveOrderState extends ChangeNotifier {
       item.displayFoodPrice = '฿${item.itemPrice}';
     }
 
-    if (data['deliveryAddress'] != null) item.deliveryAddress = _parseSafeString(data['deliveryAddress']);
+    final parsedDeliveryAddress =
+        parseDeliveryAddressValue(data['deliveryAddress']);
+    if (parsedDeliveryAddress != null) {
+      item.deliveryAddress = parsedDeliveryAddress;
+    }
     if (data['restaurantAddress'] != null) item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
     if (data['userLocationName'] != null) item.userLocationName = _parseSafeString(data['userLocationName']);
 
@@ -968,6 +1015,9 @@ class ActiveOrderState extends ChangeNotifier {
 
   bool _isValidUrl(String url) {
     if (url.isEmpty) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
     final uri = Uri.tryParse(url);
     return uri != null && uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
   }

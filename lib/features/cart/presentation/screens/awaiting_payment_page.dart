@@ -9,9 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:gal/gal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import '../../../../core/media/image_bytes_saver.dart';
+import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
@@ -59,7 +60,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
-  XFile? _receiptImage;
+  PickedImage? _receiptImage;
   bool _isUploading = false;
   bool _isCancelling = false;
   StreamSubscription? _orderSubscription;
@@ -96,7 +97,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     // Prevent screenshots/screen recording on this sensitive payment page
     AwaitingPaymentPage.isCurrentlyVisible = true;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      const MethodChannel('secure_screen').invokeMethod('enable');
+      try {
+        const MethodChannel('secure_screen').invokeMethod('enable');
+      } catch (_) {}
     }
 
     // When the shop has explicitly requested a new payment slip (Revise
@@ -196,7 +199,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     AwaitingPaymentPage.isCurrentlyVisible = false;
     // Re-enable screenshots when leaving payment page
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      const MethodChannel('secure_screen').invokeMethod('disable');
+      try {
+        const MethodChannel('secure_screen').invokeMethod('disable');
+      } catch (_) {}
     }
     _orderSubscription?.cancel();
     super.dispose();
@@ -333,18 +338,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      if (kIsWeb) {
-        await downloadBytes(
-          Uint8List.fromList(pngBytes),
-          'qr_${DateTime.now().millisecondsSinceEpoch}.png',
-        );
-      } else {
-        await Gal.putImageBytes(
-          Uint8List.fromList(pngBytes),
-          album: 'MyTogether',
-          name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
-        );
-      }
+      await saveImageBytes(
+        Uint8List.fromList(pngBytes),
+        name: 'qr_${DateTime.now().millisecondsSinceEpoch}',
+      );
 
       if (mounted) {
         AppDialog.showToast(context, context.tr('payment.image_saved'));
@@ -417,8 +414,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
       if (picked == null || !mounted) return;
 
-      final sizeInBytes = await picked.length();
-      final sizeInMb = sizeInBytes / (1024 * 1024);
+      final image = await PickedImage.fromXFile(picked);
+      final sizeInMb = image.sizeInMb;
 
       if (sizeInMb > 5.0) {
         if (mounted) {
@@ -452,7 +449,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         }
         return;
       }
-      setState(() => _receiptImage = picked);
+      setState(() => _receiptImage = image);
     } catch (_) {
       if (mounted) {
         AppDialog.showToast(
@@ -544,14 +541,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       if (_isPaymentReviseOrder(order)) {
         await OrderRepository().revisePaymentImage(
           orderId: intId,
-          file: _receiptImage!,
+          image: _receiptImage!,
         );
       } else {
         final formData = FormData.fromMap({
-          'paymentImage': await multipartFromXFile(
-            _receiptImage!,
-            filenamePrefix: 'payment_${DateTime.now().millisecondsSinceEpoch}',
-          ),
+          'paymentImage': _receiptImage!.toMultipartFile(),
         });
 
         await ApiClient().dio.patch(
@@ -853,7 +847,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: LocalImage(file: _receiptImage!, width: double.infinity),
+          child: Image.memory(
+            _receiptImage!.bytes,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
         ),
         // Change (re-pick) and remove actions so the user can fix a wrongly
         // selected slip before submitting.
@@ -1114,7 +1112,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 : OrderTax.calculateTotal(
                                     itemSubtotal: widget.foodTotal,
                                     deliveryFee:
-                                        order?.deliveryFee ?? widget.deliveryFee,
+                                        order?.deliveryFee ??
+                                        widget.deliveryFee,
                                   ).toFormattedPrice()),
                         isValue: true,
                       ),

@@ -43,6 +43,15 @@
   
   
   
+  
+  
+  <script>
+    window.initGoogleMapsApi = function () {
+      window.googleMapsApiReady = true;
+    };
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU&amp;libraries=places&amp;callback=initGoogleMapsApi" async="" defer=""></script>
+  <script src="maps_places_bridge.js"></script>
   <style id="splash-screen-style">
     html {
       height: 100%
@@ -108,13 +117,6 @@
       document.body.style.background = "transparent";
     }
   </script>
-  <script>
-    window.initGoogleMapsApi = function () {
-      window.googleMapsApiReady = true;
-    };
-  </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeKocCUJZ7ocLBB8ZelixW2Cr1tMiwapM&libraries=places&callback=initGoogleMapsApi" async defer></script>
-  <script src="maps_places_bridge.js"></script>
 </head>
 <body>
   <picture id="splash">
@@ -122,6 +124,7 @@
       <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
       <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
   </picture>
+  
   
   
   

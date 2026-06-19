@@ -1,7 +1,10 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import '../config/google_maps_config.dart';
 import 'google_places_client.dart';
+import 'nominatim_geocoder.dart';
 
 /// Result from a Google Maps Places/Geocoding query.
 class PlaceResult {
@@ -160,7 +163,50 @@ class LocationSearchService {
   }
 
   /// Reverse geocode: get full address string and components from coordinates.
-  Future<PlaceResult?> reverseGeocode(double lat, double lon) {
-    return _client.reverseGeocode(lat, lon);
+  /// On web, Nominatim is tried first (fast, no billing). Google is the fallback.
+  Future<PlaceResult?> reverseGeocode(double lat, double lon) async {
+    if (kIsWeb) {
+      return _reverseGeocodeWebFirst(lat, lon);
+    }
+    return _reverseGeocodeGoogleFirst(lat, lon);
+  }
+
+  Future<PlaceResult?> _reverseGeocodeWebFirst(double lat, double lon) async {
+    try {
+      final nominatim = await NominatimGeocoder.reverseGeocode(lat, lon)
+          .timeout(const Duration(seconds: 6));
+      if (nominatim != null && nominatim.displayName.trim().isNotEmpty) {
+        return nominatim;
+      }
+    } catch (_) {}
+
+    try {
+      final google = await _client
+          .reverseGeocode(lat, lon)
+          .timeout(const Duration(seconds: 4));
+      if (google != null && google.displayName.trim().isNotEmpty) {
+        return google;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<PlaceResult?> _reverseGeocodeGoogleFirst(double lat, double lon) async {
+    try {
+      final google = await _client
+          .reverseGeocode(lat, lon)
+          .timeout(const Duration(seconds: 4));
+      if (google != null && google.displayName.trim().isNotEmpty) {
+        return google;
+      }
+    } catch (_) {}
+
+    try {
+      return await NominatimGeocoder.reverseGeocode(lat, lon)
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {
+      return null;
+    }
   }
 }

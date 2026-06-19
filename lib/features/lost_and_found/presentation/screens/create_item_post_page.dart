@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -30,7 +31,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
 
   String _type = 'LOST';
   bool _isSubmitting = false;
-  final List<XFile> _photos = [];
+  final List<PickedImage> _photos = [];
   // Existing (already-uploaded) photos when editing, and ids to remove.
   final List<ItemPostPhotoDto> _existingPhotos = [];
   final List<int> _removePhotoIds = [];
@@ -80,7 +81,11 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
 
   Future<void> _pickPhotos() async {
     if (_totalPhotoCount >= 10) {
-      AppDialog.showToast(context, context.tr('lost.max_photos'), isError: true);
+      AppDialog.showToast(
+        context,
+        context.tr('lost.max_photos'),
+        isError: true,
+      );
       return;
     }
 
@@ -96,7 +101,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
         final picked = await _picker.pickMultiImage(imageQuality: 85);
         for (final file in picked) {
           if (_totalPhotoCount >= 10) break;
-          _photos.add(file);
+          _photos.add(await PickedImage.fromXFile(file));
         }
       } else {
         final picked = await _picker.pickImage(
@@ -104,7 +109,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
           imageQuality: 85,
         );
         if (picked != null && _totalPhotoCount < 10) {
-          _photos.add(picked);
+          _photos.add(await PickedImage.fromXFile(picked));
         }
       }
       setState(() {});
@@ -298,7 +303,9 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _photoThumb(
-                          child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                          child: CachedNetworkImage(
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
                             imageUrl: _existingPhotos[index].url,
                             width: 90,
                             height: 90,
@@ -311,8 +318,8 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _photoThumb(
-                          child: LocalImage(
-                            file: _photos[index],
+                          child: Image.memory(
+                            _photos[index].bytes,
                             width: 90,
                             height: 90,
                           ),
@@ -341,4 +348,3 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
     );
   }
 }
-

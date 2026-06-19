@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,6 +19,8 @@ import 'app.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await NotificationService().initialize();
+  await NotificationService().showLocalNotification(message);
 }
 
 void main() async {
@@ -80,12 +83,22 @@ void main() async {
     // ─────────────────────────────────────────────────────────────────────
 
     debugPrint('[BOOT] Initializing NotificationService (background)...');
-    NotificationService().initialize();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    try {
+      await NotificationService().initialize();
+    } catch (e) {
+      debugPrint('[BOOT] NotificationService initialization failed: $e');
+    }
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    }
     debugPrint('[BOOT] NotificationService initialization triggered.');
     
     debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
-    LockScreenWidgetManager.instance.initialize();
+    try {
+      await LockScreenWidgetManager.instance.initialize();
+    } catch (e) {
+      debugPrint('[BOOT] LockScreenWidgetManager initialization failed: $e');
+    }
 
     debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
 

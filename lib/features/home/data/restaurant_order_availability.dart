@@ -194,4 +194,16 @@ class RestaurantOrderAvailability {
     }
   }
 
+  /// Small grey hint above the menu when ordering is blocked.
+  String menuBrowseHint(BuildContext context) {
+    switch (reason) {
+      case OrderBlockReason.none:
+        return '';
+      case OrderBlockReason.deliveryDisabled:
+        return context.tr('order.menu_browse_hint_delivery');
+      case OrderBlockReason.closed:
+        return context.tr('order.menu_browse_hint_closed');
+    }
+  }
+
 }

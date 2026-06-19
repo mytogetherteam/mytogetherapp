@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'models/auth_models.dart';
 import 'models/user_location_model.dart';
 import '../../../core/network/api_client.dart';
@@ -73,12 +73,20 @@ class AuthRemoteDataSource {
   }
 
   Future<bool> checkPhoneExists(String phone) async {
-    final response = await _dio.post(
-      '${ApiClient.apiPrefix}/user/auth/check-phone',
-      data: {'phone': phone},
-    );
-    final data = response.data['data'];
-    return data['exists'] == true;
+    try {
+      final response = await _dio
+          .post(
+            '${ApiClient.apiPrefix}/user/auth/check-phone',
+            data: {'phone': phone},
+          )
+          .timeout(const Duration(seconds: 8));
+      final data = response.data['data'];
+      return data['exists'] == true;
+    } catch (_) {
+      // If endpoint is unreachable or times out, assume phone does not exist
+      // and let Firebase OTP proceed. Firebase will fail itself if there is a real problem.
+      return false;
+    }
   }
 
   Future<void> logout() async {
@@ -116,19 +124,19 @@ class AuthRemoteDataSource {
     String? username,
     String? phone,
     String? address,
-    XFile? profilePhoto,
+    PickedImage? profilePhoto,
   }) async {
     final Response response;
     if (profilePhoto != null) {
-      final filenamePrefix =
-          'profile_${DateTime.now().millisecondsSinceEpoch}';
       final formData = FormData.fromMap({
         'name': ?name,
         'username': ?username,
         'phone': ?phone,
         'address': ?address,
-        'profilePhoto':
-            await multipartFromXFile(profilePhoto, filenamePrefix: filenamePrefix),
+        'profilePhoto': profilePhoto.toMultipartFile(
+          filenameOverride:
+              'profile_${DateTime.now().millisecondsSinceEpoch}.${profilePhoto.extension}',
+        ),
       });
       response = await _dio.put(
         '${ApiClient.apiPrefix}/user/profile',
@@ -152,16 +160,17 @@ class AuthRemoteDataSource {
   /// Uploads only a new profile photo via `PUT /api/user/profile` (multipart
   /// `profilePhoto` field). Returns the updated profile with its fresh
   /// `avatarUrl`.
-  Future<UserModel> uploadAvatar(XFile photo) {
-    return updateUserProfile(profilePhoto: photo);
+  Future<UserModel> uploadAvatar(PickedImage image) {
+    return updateUserProfile(profilePhoto: image);
   }
 
   Future<List<UserLocationModel>> getUserLocations() async {
     try {
       final response = await _dio.get('${ApiClient.apiPrefix}/user/locations');
       final raw = response.data;
-      final List<dynamic> data =
-          (raw is Map && raw['data'] is List) ? (raw['data'] as List) : (raw is List ? raw : <dynamic>[]);
+      final List<dynamic> data = (raw is Map && raw['data'] is List)
+          ? (raw['data'] as List)
+          : (raw is List ? raw : <dynamic>[]);
       return data
           .map((e) => UserLocationModel.fromJson(e as Map<String, dynamic>))
           .toList();

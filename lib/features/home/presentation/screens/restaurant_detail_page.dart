@@ -1508,7 +1508,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              context.tr('order.menu_browse_hint'),
+              _orderAvailability!.menuBrowseHint(context),
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,

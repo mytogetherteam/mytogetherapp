@@ -30,11 +30,14 @@ class AppTranslations {
   static const Map<String, String> _en = {
     // Onboarding
     'onboarding.food_title': 'Don\'t overthink it... \n Just eat!',
-    'onboarding.food_desc': 'Order your favorite Myanmar dishes right now. The more you look, the hungrier you get... satisfy your cravings today! 🤤',
+    'onboarding.food_desc':
+        'Order your favorite Myanmar dishes right now. The more you look, the hungrier you get... satisfy your cravings today! 🤤',
     'onboarding.community_title': 'Read the news,\nFind your items 👀',
-    'onboarding.community_desc': 'Don\'t miss out on Myanmar news in Thailand. Easily find and share lost & found items with the community.',
+    'onboarding.community_desc':
+        'Don\'t miss out on Myanmar news in Thailand. Easily find and share lost & found items with the community.',
     'onboarding.services_title': 'Everything you need \n is here ✨',
-    'onboarding.services_desc': 'Need exchange rates? Visa information? Easily find all the essential information you need right here.',
+    'onboarding.services_desc':
+        'Need exchange rates? Visa information? Easily find all the essential information you need right here.',
     'onboarding.get_started': 'Let\'s Get Started',
     'onboarding.skip': 'Skip for now',
 
@@ -230,7 +233,8 @@ class AppTranslations {
     'cart.select_shop': 'Select Shop',
     'cart.empty': 'Your cart is empty',
     'cart.remove_shop': 'Remove Shop',
-    'cart.remove_shop_confirm': 'Are you sure you want to remove this shop and all its items from your cart?',
+    'cart.remove_shop_confirm':
+        'Are you sure you want to remove this shop and all its items from your cart?',
     'cart.item': '{count} item',
     'cart.items': '{count} items',
     'cart.from': 'From',
@@ -253,13 +257,17 @@ class AppTranslations {
     'cart.total': 'Total',
     'cart.payment': 'Payment',
     'cart.place_order': 'Place Order',
+    'cart.ongoing_order_wait':
+        'You have an ongoing order. Please wait until it completes.',
     'cart.pickup_note_title': 'This is a pickup',
-    'cart.pickup_note_body': 'Remember to collect your food at the restaurant when it is ready!',
+    'cart.pickup_note_body':
+        'Remember to collect your food at the restaurant when it is ready!',
     'cart.promotion': 'Promotion',
     'cart.est_delivery_fee': 'Estimated Delivery Fee  •  ',
     'cart.est_time': 'Estimated Time  •  ',
     'cart.remove_item': 'Remove Item',
-    'cart.remove_item_confirm': 'Are you sure you want to remove {name} from your order?',
+    'cart.remove_item_confirm':
+        'Are you sure you want to remove {name} from your order?',
 
     // Orders
     'orders.history': 'Order History',
@@ -269,12 +277,14 @@ class AppTranslations {
     'orders.no_cancelled': 'No Cancelled Orders',
     'orders.no_orders': 'No order yet!',
     'orders.start_ordering': 'Start Ordering',
-    'orders.start_ordering_desc': 'Discover delicious food near you and place your first order now!',
+    'orders.start_ordering_desc':
+        'Discover delicious food near you and place your first order now!',
     'orders.in_progress': 'In Progress',
     'orders.reorder': 'Re-order',
     'orders.buy_again': 'Buy Again',
     'orders.reorder_added': 'Items added to your cart',
-    'orders.reorder_some_unavailable': 'Some items are no longer available and were skipped',
+    'orders.reorder_some_unavailable':
+        'Some items are no longer available and were skipped',
     'orders.reorder_failed': 'Could not re-order. Items may be unavailable.',
     'orders.how_was_order': 'How was your order?',
     'orders.my_rating': 'My rating {score}/5',
@@ -318,7 +328,8 @@ class AppTranslations {
     'common.retry': 'Retry',
     'common.sign_up': 'Sign Up Now',
     'common.no_data_title': 'Nothing here yet',
-    'common.no_data_sub': 'There\'s no data to show right now. Please check back later.',
+    'common.no_data_sub':
+        'There\'s no data to show right now. Please check back later.',
     'delete.access_revoked_title': 'Access will be revoked',
     'delete.agree_required': 'Please check the agreement box to continue.',
     'delete.agreement_primary':
@@ -327,10 +338,12 @@ class AppTranslations {
     'delete.balance_title': 'Balance will be lost',
     'delete.before_title': 'Before you delete',
     'delete.cannot_undo_title': 'Cannot be undone',
-    'delete.confirm_checkbox': 'I understand and agree to permanently delete my account.',
+    'delete.confirm_checkbox':
+        'I understand and agree to permanently delete my account.',
     'delete.confirm_identity': 'Confirm your identity',
     'delete.continue_button': 'Continue',
-    'delete.logged_out': 'You will be immediately logged out and access revoked',
+    'delete.logged_out':
+        'You will be immediately logged out and access revoked',
     'delete.orders_lost': 'Your orders history will be permanently deleted',
     'delete.orders_title': 'Orders will be lost',
     'delete.password_min_length': 'Password must be at least 6 characters',
@@ -372,16 +385,19 @@ class AppTranslations {
     'menu.cart_cleared_added': 'Cart cleared and item added',
     'menu.clear_and_add': 'Clear and Add',
     'menu.customer_reviews': 'Customer Reviews ({count})',
-    'menu.default_description': 'Authentic flavors made with fresh ingredients. A perfect companion to your meal.',
+    'menu.default_description':
+        'Authentic flavors made with fresh ingredients. A perfect companion to your meal.',
     'menu.failed_add_cart': 'Failed to add to cart: {error}',
     'menu.invalid_item_shop': 'Invalid item or shop ID',
-    'menu.new_cart_message': 'Your cart contains items from a different shop. Would you like to clear the existing cart and add this item?',
+    'menu.new_cart_message':
+        'Your cart contains items from a different shop. Would you like to clear the existing cart and add this item?',
     'menu.new_cart_title': 'New Cart?',
     'menu.recommended_with': 'Recommended with this',
     'menu.select_option_for': 'Please select an option for {name}',
     'menu.select_variant': 'Please select a variant',
     'menu.special_instructions': 'Special Instructions',
-    'menu.special_instructions_hint': 'Any special requests? (e.g., no onions, extra spicy)',
+    'menu.special_instructions_hint':
+        'Any special requests? (e.g., no onions, extra spicy)',
     'menu.variants': 'Variants',
     'news.add_comment': 'Add a comment...',
     'news.comments': 'Comments',
@@ -436,14 +452,18 @@ class AppTranslations {
     'order.status.canceled': 'Canceled',
     'order_tracking.awaiting_confirmation': 'Awaiting Restaurant Confirmation',
     'order_tracking.calculating': 'Calculating',
-    'order_tracking.cancel_confirm': 'Are you sure you want to cancel this order?',
+    'order_tracking.cancel_confirm':
+        'Are you sure you want to cancel this order?',
     'order_tracking.cancel_order': 'Cancel order',
     'order_tracking.cancel_title': 'Cancel Order?',
     'order_tracking.finding_route': 'Finding route...',
     'order_tracking.keep_order': 'Keep Order',
-    'order_tracking.restaurant_reviewing': 'The restaurant is reviewing your order and arranging a delivery rider.',
-    'order_tracking.usually_takes': 'Please wait a little while — we\'re confirming with the restaurant.',
-    'order_tracking.taking_longer': 'This is taking a bit longer than usual. The restaurant may be busy — hang tight.',
+    'order_tracking.restaurant_reviewing':
+        'The restaurant is reviewing your order and arranging a delivery rider.',
+    'order_tracking.usually_takes':
+        'Please wait a little while — we\'re confirming with the restaurant.',
+    'order_tracking.taking_longer':
+        'This is taking a bit longer than usual. The restaurant may be busy — hang tight.',
     'active_order.awaiting_confirmation': 'Awaiting Confirmation',
     'active_order.awaiting_payment': 'Awaiting Payment',
     'active_order.delivered': 'Order Delivered!',
@@ -468,22 +488,27 @@ class AppTranslations {
     'currency.as_of': 'As of {time}',
     'currency.buy': 'Buy',
     'currency.latest_rate': 'Latest Rate',
-    'currency.load_failed': 'Failed to load exchange rates. Please check your connection.',
-    'currency.rates_disclaimer': 'These rates are approximate street prices for informational purposes only.',
+    'currency.load_failed':
+        'Failed to load exchange rates. Please check your connection.',
+    'currency.rates_disclaimer':
+        'These rates are approximate street prices for informational purposes only.',
     'currency.sell': 'Sell',
     'currency.welcome': 'Welcome',
-    'order_cancel.message': 'Your order has been cancelled by the shop. We apologize for the inconvenience.',
+    'order_cancel.message':
+        'Your order has been cancelled by the shop. We apologize for the inconvenience.',
     'order_cancel.reason_title': 'Cancellation Reason',
     'order_cancel.sorry': "We're sorry!",
     'order_cancel.view_restaurant': 'View Restaurant',
     'order_cancel_user.title': 'Order cancelled',
-    'order_cancel_user.message': 'Your order has been cancelled. We\'re sorry for any inconvenience this may have caused, and we hope to serve you again soon.',
+    'order_cancel_user.message':
+        'Your order has been cancelled. We\'re sorry for any inconvenience this may have caused, and we hope to serve you again soon.',
     'order_cancel_user.action': 'View cancelled orders',
     'order_complete.arrived_at': 'Arrived at: {time}',
     'order_complete.done': 'Done',
     'order_complete.items_placeholder': 'Items ordered will be displayed here.',
     'order_complete.rate_experience': 'Rate Your Experience at {shop}',
-    'order_complete.rate_subtitle': 'Your feedback helps improve food quality and delivery service.',
+    'order_complete.rate_subtitle':
+        'Your feedback helps improve food quality and delivery service.',
     'order_complete.title': 'Order Completed',
     'order_complete.rating_thanks': 'Thanks for your rating!',
     'order_complete.rating_failed': 'Could not submit rating.',
@@ -501,25 +526,31 @@ class AppTranslations {
     'payment.est_delivery_fee': 'Est. Delivery Fee',
     'payment.est_waiting_time': 'Estimated Waiting Time',
     'payment.food_price': 'Food Price',
-    'payment.gallery_denied': 'Permission to access your gallery is permanently denied. Please enable it in your device settings.',
+    'payment.gallery_denied':
+        'Permission to access your gallery is permanently denied. Please enable it in your device settings.',
     'payment.gallery_permission': 'Gallery Permission',
-    'payment.gallery_required': 'Gallery permission required to upload receipt.',
+    'payment.gallery_required':
+        'Gallery permission required to upload receipt.',
     'payment.image_saved': 'Payment image saved to gallery!',
     'payment.image_too_large': 'Image Too Large',
-    'payment.image_too_large_msg': 'The selected image is {size}MB, which exceeds the 5MB limit. Please choose a smaller image or compress it.',
+    'payment.image_too_large_msg':
+        'The selected image is {size}MB, which exceeds the 5MB limit. Please choose a smaller image or compress it.',
     'payment.no_phone': 'No Phone',
     'payment.open_settings': 'Open Settings',
     'payment.order_id_not_found': 'Order ID not found. Please try again.',
-    'payment.receipt_requested': 'The restaurant requested a new receipt. Please upload clearly.',
+    'payment.receipt_requested':
+        'The restaurant requested a new receipt. Please upload clearly.',
     'payment.reupload_reason_title': 'Reason from restaurant',
     'payment.remove_image': 'Remove image',
     'payment.change_image': 'Change image',
-    'payment.receipt_visible_hint': 'Ensure the transaction date, amount and time are clearly visible.',
+    'payment.receipt_visible_hint':
+        'Ensure the transaction date, amount and time are clearly visible.',
     'payment.delivery_fee_badge_estimate': 'Estimate',
     'payment.delivery_fee_badge_confirmed': 'Delivery fee',
     'payment.save_failed': 'Failed to save image. Please try again.',
     'payment.save_qr': 'Save QR Code',
-    'payment.separate_delivery_note': 'The shop will arrange a separate delivery service for you. Please pay for the food now; the delivery fee will be paid directly to the rider later.',
+    'payment.separate_delivery_note':
+        'The shop will arrange a separate delivery service for you. Please pay for the food now; the delivery fee will be paid directly to the rider later.',
     'payment.submit_receipt': 'Submit Receipt',
     'payment.summary': 'PAYMENT SUMMARY',
     'payment.tap_to_upload': 'Tap to upload',
@@ -529,7 +560,8 @@ class AppTranslations {
     'payment.upload_receipt': 'Upload Receipt',
     'payment.vehicle_no': 'Vehicle No: {number}',
     'payment.verifying': 'Verifying Payment',
-    'payment.verifying_desc': 'We are currently verifying your payment receipt. This usually takes a few minutes.',
+    'payment.verifying_desc':
+        'We are currently verifying your payment receipt. This usually takes a few minutes.',
     'restaurant.add_more_no_fee': 'Add More Items — No Extra Delivery Fee.',
     'restaurant.basket': 'Basket • {count} {items}',
     'restaurant.chat': 'Promotion',
@@ -566,21 +598,33 @@ class AppTranslations {
     'common.just_now': 'Just now',
     'location.add_new_short': 'Add New',
     'location.confirm_location': 'Confirm location',
-    'location.map_picker_hint': 'Move the map to place the pin',
+    'location.map_picker_hint':
+        'Move the map and release to look up the address',
     'location.map_picker_title': 'Pick location',
+    'location.street_address': 'Street address',
+    'location.street_address_hint': 'House no., street, area…',
+    'location.street_address_required': 'Please enter your delivery address',
+    'location.pin_to_add_address':
+        'GPS found — open the map pin to add your street address',
     'location.pick_on_map': 'Pick on map',
     'location.resolving_address': 'Finding address...',
     'location.cannot_delete': 'Cannot Delete',
-    'location.cannot_delete_primary': 'You cannot delete your primary location. Please set another location as primary first.',
-    'location.create_failed': 'Could not create this location. Please try again.',
+    'location.cannot_delete_primary':
+        'You cannot delete your primary location. Please set another location as primary first.',
+    'location.create_failed':
+        'Could not create this location. Please try again.',
     'location.created_success': 'Location created successfully',
     'location.delete_error': 'Error deleting location: {error}',
     'location.deleted_success': 'Location deleted successfully',
     'location.edit_details': 'Edit Details',
-    'location.limit_message': 'You can save at most 3 locations. Delete one before adding another.',
-    'location.limit_full_hint': 'You have saved the maximum of 3 locations. Tap ⋮ on a saved address and choose Delete, then search above to add a new one.',
-    'location.limit_full_modal_hint': 'You have 3 saved addresses. Current location (GPS) does not count toward this limit — delete a saved address first to add a new one.',
-    'location.search_to_add_hint': 'Type your address in the search bar above, then tap a result to save it.',
+    'location.limit_message':
+        'You can save at most 3 locations. Delete one before adding another.',
+    'location.limit_full_hint':
+        'You have saved the maximum of 3 locations. Tap ⋮ on a saved address and choose Delete, then search above to add a new one.',
+    'location.limit_full_modal_hint':
+        'You have 3 saved addresses. Current location (GPS) does not count toward this limit — delete a saved address first to add a new one.',
+    'location.search_to_add_hint':
+        'Type your address in the search bar above, then tap a result to save it.',
     'location.slots_used': '{current} of {max} saved',
     'location.load_place_failed': 'Could not load place details.',
     'location.no_results': 'No results found',
@@ -590,7 +634,8 @@ class AppTranslations {
     'location.saved_count': '{current}/{max} saved',
     'location.saved_success': 'Location saved successfully',
     'location.search_hint': 'Search for a location...',
-    'location.update_failed': 'Could not update this location. Please try again.',
+    'location.update_failed':
+        'Could not update this location. Please try again.',
     'location.updated_success': 'Location updated successfully',
     'lost.title': 'Lost & Found',
     'lost.empty': 'No posts yet',
@@ -628,7 +673,8 @@ class AppTranslations {
     'comment.delete_failed': 'Failed to delete comment',
     'revise.title': 'Revise Order',
     'revise.banner_title': 'Order needs revision',
-    'revise.banner_message': 'The shop updated your order. Please review and re-submit.',
+    'revise.banner_message':
+        'The shop updated your order. Please review and re-submit.',
     'revise.review_button': 'Review & Re-submit',
     'revise.reason_title': 'Reason from shop',
     'revise.reason_default': 'Some items were updated by the shop.',
@@ -684,13 +730,16 @@ class AppTranslations {
     'review.choose_gallery': 'Choose from Gallery',
     'review.customer_ratings': 'Customer ratings & reviews',
     'review.error_generic': 'Something went wrong. Please try again.',
-    'review.experience_prompt': 'How was your experience? Tell us what you liked and what could be improved.',
+    'review.experience_prompt':
+        'How was your experience? Tell us what you liked and what could be improved.',
     'review.newest': 'Newest',
     'review.no_comment': 'No comment provided',
     'review.out_of_5': 'out of 5',
-    'review.permanent_body': 'Once submitted, your review cannot be edited or deleted. Please make sure your rating and feedback are honest and fair.',
+    'review.permanent_body':
+        'Once submitted, your review cannot be edited or deleted. Please make sure your rating and feedback are honest and fair.',
     'review.permanent_title': 'Reviews are permanent',
-    'review.public_body': 'Your review will be visible to others and represents your honest experience. You can only review this shop once, so please make sure your rating and feedback are fair.',
+    'review.public_body':
+        'Your review will be visible to others and represents your honest experience. You can only review this shop once, so please make sure your rating and feedback are fair.',
     'review.public_title': 'Reviews are public',
     'review.ratings_count': '{count} ratings',
     'review.recent': 'Recent Reviews',
@@ -708,12 +757,14 @@ class AppTranslations {
     'visa.official_website': 'Official Website',
     'visa.official_website_sub': 'Visit government site for more details',
     'visa.online_appointment': 'Online Appointment',
-    'visa.online_appointment_sub': 'You can book an appointment for this service online.',
+    'visa.online_appointment_sub':
+        'You can book an appointment for this service online.',
     'visa.subtitle': 'Types & Immigration Services 2026',
     'visa.title': 'Thailand Visa',
     'visa.visa_types': 'Visa Types',
     'wishlist.currently_unavailable': 'Currently unavailable',
-    'wishlist.empty_shops_sub': 'Tap the heart on any restaurant to save it here.',
+    'wishlist.empty_shops_sub':
+        'Tap the heart on any restaurant to save it here.',
     'wishlist.empty_shops_title': 'No saved restaurants yet',
     'wishlist.empty_sub': 'Tap the heart on any dish to keep it here.',
     'wishlist.empty_title': 'No saved items yet',
@@ -769,6 +820,10 @@ class AppTranslations {
         'Delivery unavailable · Sorry for the inconvenience',
     'order.status_strip_closed': 'Closed · {opens}',
     'order.status_strip_closed_short': 'Closed · Check back later',
+    'order.menu_browse_hint_delivery':
+        'Delivery is paused for now. You can browse the menu and order again soon.',
+    'order.menu_browse_hint_closed':
+        'You can browse the menu, but orders can\'t be placed until the restaurant reopens.',
     'order.menu_browse_hint':
         'You can browse the menu, but ordering is unavailable right now.',
     'order.badge_delivery_off': 'No delivery',
@@ -787,7 +842,8 @@ class AppTranslations {
     'help.office_hours': 'Office Hours',
     'help.office_hours_value': 'Mon–Fri: 9 AM – 6 PM',
     'help.need_more_help': 'Need more help?',
-    'help.email_support_desc': 'Email our support team directly to get assistance.',
+    'help.email_support_desc':
+        'Email our support team directly to get assistance.',
     'help.could_not_open': 'Could not open',
     'collection.items_count': '{count} items',
     'orders.items_count': '{count} Items',
@@ -820,8 +876,7 @@ class AppTranslations {
     'order_confirm.footer_prefix': 'You can continue next order ',
     'order_confirm.footer_link': 'here.',
     'demo.feature_unavailable': 'Coming Soon',
-    'demo.feature_unavailable_body':
-        'On its way in a future update!',
+    'demo.feature_unavailable_body': 'On its way in a future update!',
     'common.got_it': 'Got it',
     'news.report_post': 'Report Post',
     'news.block_user': 'Block User',
@@ -871,19 +926,21 @@ class AppTranslations {
     'food.distance_km': '{distance} km',
     'news.author_fallback': 'Together',
     'common.na': 'N/A',
-    
+
     // Firebase Errors
     'firebase.invalid_phone': 'The phone number you entered is invalid.',
     'firebase.too_many_requests': 'Too many requests. Please try again later.',
     'firebase.invalid_code': 'The OTP you entered is incorrect.',
-    'firebase.session_expired': 'The OTP code has expired. Please request a new one.',
+    'firebase.session_expired':
+        'The OTP code has expired. Please request a new one.',
     'firebase.network_error': 'Network error. Please check your connection.',
     'firebase.user_disabled': 'This account has been disabled.',
     'firebase.unknown_error': 'An unknown error occurred. Please try again.',
-    
+
     // Permissions
     'permission.title': 'Allow Permissions',
-    'permission.desc': 'To provide you with the best experience, MyTogether needs access to:\n\n📍 **Location:** To show nearby restaurants and calculate accurate delivery fees.\n\n🔔 **Notifications:** To update you in real-time about your order status and important announcements.',
+    'permission.desc':
+        'To provide you with the best experience, MyTogether needs access to:\n\n📍 **Location:** To show nearby restaurants and calculate accurate delivery fees.\n\n🔔 **Notifications:** To update you in real-time about your order status and important announcements.',
     'permission.continue': 'Continue',
   };
 
@@ -893,11 +950,14 @@ class AppTranslations {
   static const Map<String, String> _mm = {
     // Onboarding
     'onboarding.food_title': 'စဉ်းစားမနေနဲ့ စားသာစား!',
-    'onboarding.food_desc': 'မြန်မာအစားအစာ အရသာစုံကို အခုပဲ မှာယူလိုက်တော့။ ကြည့်နေရင်း ပိုဆာလာမှာပဲရှိတယ်။ စားလိုက်မှ စိတ်ကျေနပ်မှာနော်! 🤤',
+    'onboarding.food_desc':
+        'မြန်မာအစားအစာ အရသာစုံကို အခုပဲ မှာယူလိုက်တော့။ ကြည့်နေရင်း ပိုဆာလာမှာပဲရှိတယ်။ စားလိုက်မှ စိတ်ကျေနပ်မှာနော်! 🤤',
     'onboarding.community_title': 'သတင်းလည်းဖတ်၊ \n ပစ္စည်းလည်းရှာ 👀',
-    'onboarding.community_desc': 'ထိုင်းရောက် မြန်မာသတင်းတွေ မလွတ်စေနဲ့။ ပျောက်သွားတဲ့ ပစ္စည်းတွေကိုလည်း အလွယ်တကူ ရှာဖွေမျှဝေနိုင်တယ်နော်!',
+    'onboarding.community_desc':
+        'ထိုင်းရောက် မြန်မာသတင်းတွေ မလွတ်စေနဲ့။ ပျောက်သွားတဲ့ ပစ္စည်းတွေကိုလည်း အလွယ်တကူ ရှာဖွေမျှဝေနိုင်တယ်နော်!',
     'onboarding.services_title': 'လိုအပ်တာအကုန်ဒီမှာပါ✨',
-    'onboarding.services_desc': 'ငွေလဲနှုန်းကြည့်ချင်လား? ဗီဇာအကြောင်း သိချင်လား? လိုအပ်တဲ့ အချက်အလက်တွေကို အလွယ်တကူ ရှာကြည့်လိုက်တော့!',
+    'onboarding.services_desc':
+        'ငွေလဲနှုန်းကြည့်ချင်လား? ဗီဇာအကြောင်း သိချင်လား? လိုအပ်တဲ့ အချက်အလက်တွေကို အလွယ်တကူ ရှာကြည့်လိုက်တော့!',
     'onboarding.get_started': 'စသုံးကြည့်မယ်',
     'onboarding.skip': 'ကျော်ပါမယ်',
 
@@ -969,7 +1029,8 @@ class AppTranslations {
     'profile.logout': 'ထွက်မယ်',
     'profile.logout_confirm': 'အကောင့်မှ ထွက်ရန် သေချာပါသလား။',
     'profile.app_permissions': 'အက်ပ်ခွင့်ပြုချက်များ',
-    'profile.app_permissions_sub': 'အသိပေးချက်နှင့် တည်နေရာ ခွင့်ပြုချက်များကို စီမံပါ',
+    'profile.app_permissions_sub':
+        'အသိပေးချက်နှင့် တည်နေရာ ခွင့်ပြုချက်များကို စီမံပါ',
     'profile.privacy_policy': 'ကိုယ်ရေးအချက်အလက် မူဝါဒ',
     'profile.app_version': 'ဗားရှင်း',
 
@@ -1085,7 +1146,8 @@ class AppTranslations {
     'cart.select_shop': 'ဆိုင်ရွေးချယ်ပါ',
     'cart.empty': 'ခြင်းတောင်းတွင် ပစ္စည်းမရှိပါ',
     'cart.remove_shop': 'ဆိုင်ဖယ်ရှားမယ်',
-    'cart.remove_shop_confirm': 'ဤဆိုင်နှင့် ပစ္စည်းအားလုံးကို ခြင်းတောင်းမှ ဖယ်ရှားရန် သေချာပါသလား?',
+    'cart.remove_shop_confirm':
+        'ဤဆိုင်နှင့် ပစ္စည်းအားလုံးကို ခြင်းတောင်းမှ ဖယ်ရှားရန် သေချာပါသလား?',
     'cart.item': '{count} ခု',
     'cart.items': '{count} ခု',
     'cart.from': 'မှ',
@@ -1108,8 +1170,10 @@ class AppTranslations {
     'cart.total': 'စုစုပေါင်း',
     'cart.payment': 'ငွေပေးချေမှု',
     'cart.place_order': 'အော်ဒါတင်မယ်',
+    'cart.ongoing_order_wait':
+        'လက်ရှိ အော်ဒါတစ်ခု ရှိနေပါတယ်။ ပြီးဆုံးသည်အထိ စောင့်ပေးပါဗျ။',
     'cart.pickup_note_title': 'ကိုယ်တိုင်ယူမယ်',
-    'cart.pickup_note_body': 'အစားအစာအဆင်သင့်ဖြစ်သောအခါ စားသောက်ဆိုင်သို့ သွားယူပါ!',
+    'cart.pickup_note_body': 'အစားအစာအဆင်သင့်ဖြစ်တဲ့အခါ ဆိုင်မှာ သွားယူပါ!',
     'cart.promotion': 'ပရိုမိုးရှင်း',
     'cart.est_delivery_fee': 'ခန့်မှန်းပို့ဆောင်ခ  •  ',
     'cart.est_time': 'ခန့်မှန်းအချိန်  •  ',
@@ -1122,14 +1186,17 @@ class AppTranslations {
     'orders.no_cancelled': 'ပယ်ဖျက်သော အော်ဒါမရှိပါ',
     'orders.no_orders': 'အော်ဒါမရှိသေးပါ!',
     'orders.start_ordering': 'အော်ဒါစတင်မှာယူရန်',
-    'orders.start_ordering_desc': 'သင့်အနီးအနားရှိ အရသာရှိသော အစားအစာများကို ရှာဖွေပြီး ပထမဆုံးအော်ဒါကို ယခုမှာယူလိုက်ပါ!',
-    'orders.in_progress': 'လုပ်ဆောင်နေတယ်',
+    'orders.start_ordering_desc':
+        'နီးနီးနားနားရှိဆိုင်များမှ အရသာရှိသော အစားအစာများကို ယခုပဲမှာယူလိုက်ပါ!',
+    'orders.in_progress': 'လုပ်ဆောင်နေပါတယ်',
     'orders.reorder': 'ထပ်မှာမယ်',
     'orders.buy_again': 'ထပ်ဝယ်မယ်',
     'orders.reorder_added': 'ပစ္စည်းများကို ဈေးခြင်းထဲ ထည့်ပြီးပါပြီ',
-    'orders.reorder_some_unavailable': 'အချို့ပစ္စည်းများ မရရှိနိုင်တော့သဖြင့် ကျော်သွားပါတယ်',
-    'orders.reorder_failed': 'ထပ်မှာ၍ မရပါ။ ပစ္စည်းများ မရရှိနိုင်တော့ပါ။',
-    'orders.how_was_order': 'သင့်အော်ဒါ ဘယ်လိုရှိသလဲ?',
+    'orders.reorder_some_unavailable':
+        'အချို့ပစ္စည်းများ ကုန်သွားသဖြင့် မှာယူလို့မရနိုင်တော့ပါ။',
+    'orders.reorder_failed':
+        'ထပ်မှာ၍ မရသေးပါ။ ပစ္စည်းများကုန်နေတာကြောင့် ဖြစ်နိုင်ပါတယ်ဗျ ဒါမဲ့ အော်ဒါအသစ်ကိုတော့ မှာယူလို့ရပါတယ်နော်',
+    'orders.how_was_order': 'သင့်အော်ဒါကို စိတ်တိုင်းကျမှုရှိရဲ့လားဗျ?',
     'orders.my_rating': 'ကျွန်ုပ်၏အဆင့် {score}/5',
     'orders.invalid_reference': 'အော်ဒါကိုးကားချက် မမှန်ကန်ပါ။',
     'auth.address': 'လိပ်စာ',
@@ -1159,7 +1226,8 @@ class AppTranslations {
     'auth.enter_passcode': 'Passcode ထည့်ပါ',
     'auth.create_pin': 'PIN အသစ် ပေးပေးပါဦး',
     'auth.confirm_pin': 'PIN ကို အတည်ပြု ပေးပါဦး',
-    'auth.pin_mismatch': 'ကဲကြည့်..PIN သေချာမမှတ်ထားဘူး။ အခုပြန်ရိုက်တာအမှားကြီး 😒',
+    'auth.pin_mismatch':
+        'ကဲကြည့်..PIN သေချာမမှတ်ထားဘူး။ အခုပြန်ရိုက်တာအမှားကြီး 😒',
     'common.copied': 'ကူးယူပြီး!',
     'common.email': 'အီးမေးလ်',
     'common.enter_label': '{label} ထည့်ပါ',
@@ -1171,7 +1239,8 @@ class AppTranslations {
     'common.retry': 'ထပ်မံကြိုးစားပါ',
     'common.sign_up': 'အကောင့်ဖွင့်ဖို့',
     'common.no_data_title': 'ဒီနေရာတွင် ဘာမှမရှိသေးပါ',
-    'common.no_data_sub': 'ယခုပြသရန် အချက်အလက်မရှိသေးပါ။ နောက်မှ ပြန်လည်စစ်ဆေးပါ။',
+    'common.no_data_sub':
+        'ယခုပြသရန် အချက်အလက်မရှိသေးပါ။ နောက်မှ ပြန်လည်စစ်ဆေးပါ။',
     'delete.access_revoked_title': 'ဝင်ရောက်မှု ပိတ်မယ်',
     'delete.agree_required': 'ကျေးဇူးပြု၍ သဘောတူညီချက်ကို အမှန်ခြစ်ပေးပါ။',
     'delete.agreement_primary':
@@ -1180,7 +1249,8 @@ class AppTranslations {
     'delete.balance_title': 'ငွေလက်ကျန် ဆုံးရှုံးမယ်',
     'delete.before_title': 'မဖျက်မီ သိထားရန်',
     'delete.cannot_undo_title': 'ပြန်ရယူ၍ မရနိုင်ပါ',
-    'delete.confirm_checkbox': 'အကောင့်ကို အပြီးအပိုင်ဖျက်ရန် နားလည်ပြီး သဘောတူပါတယ်။',
+    'delete.confirm_checkbox':
+        'အကောင့်ကို အပြီးအပိုင်ဖျက်ရန် နားလည်ပြီး သဘောတူပါတယ်။',
     'delete.confirm_identity': 'အထောက်အထား အတည်ပြုပါ',
     'delete.continue_button': 'ဆက်လက်လုပ်ဆောင်မယ်',
     'delete.logged_out': 'ချက်ချင်း ထွက်ပြီး ဝင်ခွင့်ပိတ်မယ်',
@@ -1225,16 +1295,19 @@ class AppTranslations {
     'menu.cart_cleared_added': 'ခြင်းတောင်းရှင်းပြီး ပစ္စည်းထည့်ပြီး',
     'menu.clear_and_add': 'ရှင်းပြီး ထည့်မယ်',
     'menu.customer_reviews': 'ဖောက်သည်သုံးသပ်ချက်များ ({count})',
-    'menu.default_description': 'လတ်ဆတ်သော ပစ္စည်းများဖြင့် ပြုလုပ်ထားသော စစ်မှန်သော အရသာ။',
+    'menu.default_description':
+        'လတ်ဆတ်သော ပစ္စည်းများဖြင့် ပြုလုပ်ထားသော စစ်မှန်သော အရသာ။',
     'menu.failed_add_cart': 'ခြင်းတောင်းထည့်၍မရပါ: {error}',
     'menu.invalid_item_shop': 'ပစ္စည်း သို့မဟုတ် ဆိုင် ID မမှန်ကန်ပါ',
-    'menu.new_cart_message': 'ခြင်းတောင်းတွင် အခြားဆိုင်ပစ္စည်းများ ရှိပါတယ်။ ရှင်းပြီး ဤပစ္စည်းကို ထည့်မလား?',
+    'menu.new_cart_message':
+        'ခြင်းတောင်းတွင် အခြားဆိုင်ပစ္စည်းများ ရှိပါတယ်။ ရှင်းပြီး ဤပစ္စည်းကို ထည့်မလား?',
     'menu.new_cart_title': 'ခြင်းတောင်းအသစ်?',
     'menu.recommended_with': 'ဤအစားအစာနှင့် အကြံပြုထား',
     'menu.select_option_for': '{name} အတွက် ရွေးချယ်မှု တစ်ခု ရွေးပါ',
     'menu.select_variant': 'အမျိုးအစား ရွေးချယ်ပါ',
     'menu.special_instructions': 'အထူးညွှန်ကြားချက်',
-    'menu.special_instructions_hint': 'အထူးတောင်းဆိုချက်များ (ဥပမာ - ကြက်သွန်မထည့်၊ အရသာပြင်း)',
+    'menu.special_instructions_hint':
+        'အထူးတောင်းဆိုချက်များ (ဥပမာ - ကြက်သွန်မထည့်၊ အရသာပြင်း)',
     'menu.variants': 'အမျိုးအစားများ',
     'news.add_comment': 'မှတ်ချက်ထည့်ပါ...',
     'news.comments': 'မှတ်ချက်များ',
@@ -1287,22 +1360,24 @@ class AppTranslations {
     'order.status.on_the_way': 'လမ်းတွင် ပို့ဆောင်နေတယ်',
     'order.status.delivered': 'ပို့ဆောင်ပြီး',
     'order.status.canceled': 'ပယ်ဖျက်ပြီး',
-    'order_tracking.awaiting_confirmation': 'စားသောက်ဆိုင် အတည်ပြုချက် စောင့်နေတယ်',
+    'order_tracking.awaiting_confirmation': 'ဆိုင် အတည်ပြုချက် စောင့်နေတယ်',
     'order_tracking.calculating': 'တွက်ချက်နေတယ်',
     'order_tracking.cancel_confirm': 'ဤအော်ဒါကို ပယ်ဖျက်ရန် သေချာပါသလား?',
     'order_tracking.cancel_order': 'အော်ဒါပယ်ဖျက်မယ်',
     'order_tracking.cancel_title': 'အော်ဒါပယ်ဖျက်မလား?',
     'order_tracking.finding_route': 'လမ်းကြောင်း ရှာဖွေနေသည်...',
     'order_tracking.keep_order': 'အော်ဒါထားမယ်',
-    'order_tracking.restaurant_reviewing': 'စားသောက်ဆိုင်က အော်ဒါကို စစ်ဆေးပြီး ပို့ဆောင်သူ ခန့်နေတယ်။',
-    'order_tracking.usually_takes': 'ခဏလေးစောင့်ပါ — စားသောက်ဆိုင်နဲ့ အတည်ပြုနေပါတယ်။',
-    'order_tracking.taking_longer': 'ပုံမှန်ထက် နည်းနည်း ကြာနေပါတယ်။ စားသောက်ဆိုင်မှာ အော်ဒါအများကြီး ရှိနိုင်ပါတယ် — ခဏစောင့်ပေးပါ။',
+    'order_tracking.restaurant_reviewing':
+        'ဆိုင်က အော်ဒါကို စစ်ဆေးပြီး ပို့ဆောင်သူ ခန့်နေတယ်။',
+    'order_tracking.usually_takes': 'ခဏစောင့်ပါ — ဆိုင်နဲ့ အတည်ပြုနေပါတယ်။',
+    'order_tracking.taking_longer':
+        'ပုံမှန်ထက် နည်းနည်း ကြာနေပါတယ်။ ဆိုင်မှာ အော်ဒါများရှိနိုင်ပါတယ် — ခဏစောင့်ပေးပါ။',
     'active_order.awaiting_confirmation': 'အတည်ပြုချက် စောင့်နေတယ်',
     'active_order.awaiting_payment': 'ငွေပေးချေရန် စောင့်နေတယ်',
     'active_order.delivered': 'အော်ဒါပို့ဆောင်ပြီး!',
     'active_order.est_arrival': 'ရောက်ရှိမည့်အချိန် ခန့်မှန်း: {time}',
     'active_order.on_the_way': 'ပို့ဆောင်နေသည်...',
-    'active_order.preparing': 'စားသောက်ဆိုင် ပြင်ဆင်နေသည်...',
+    'active_order.preparing': 'ဆိုင် ပြင်ဆင်နေပါတယ်...',
     'active_order.processing': 'အော်ဒါလုပ်ဆောင်နေသည်...',
     'active_order.track': 'အော်ဒါခြေရာခံရန်',
     'active_order.verifying_payment': 'ငွေပေးချေမှု စစ်ဆေးနေသည်...',
@@ -1322,21 +1397,27 @@ class AppTranslations {
     'currency.buy': 'ဝယ်မယ်',
     'currency.latest_rate': 'နောက်ဆုံးနှုန်း',
     'currency.load_failed': 'ငွေလဲနှုန်း မတင်နိုင်ပါ။ ချိတ်ဆက်မှုကို စစ်ဆေးပါ။',
-    'currency.rates_disclaimer': 'ဤနှုန်းများသည် အချက်အလက်အတွက်သာ ခန့်မှန်းဈေးဖြစ်တယ်။',
+    'currency.rates_disclaimer':
+        'ဤနှုန်းများသည် အချက်အလက်အတွက်သာ ခန့်မှန်းဈေးဖြစ်တယ်။',
     'currency.sell': 'ရောင်းမယ်',
     'currency.welcome': 'ကြိုဆိုပါတယ်',
-    'order_cancel.message': 'သင့်အော်ဒါကို ဆိုင်မှ ပယ်ဖျက်ခဲ့တယ်။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
+    'order_cancel.message':
+        'သင့်အော်ဒါကို ဆိုင်မှ ပယ်ဖျက်လိုက်ပါတယ်။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
     'order_cancel.reason_title': 'ပယ်ဖျက်ရသည့် အကြောင်းရင်း',
     'order_cancel.sorry': 'စိတ်မကောင်းပါ!',
     'order_cancel.view_restaurant': 'စားသောက်ဆိုင် ကြည့်ရန်',
     'order_cancel_user.title': 'အော်ဒါ ပယ်ဖျက်ပြီးပါပြီ',
-    'order_cancel_user.message': 'သင့်အော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။ အဆင်မပြေမှုများရှိခဲ့ပါက တောင်းပန်ပါသည်။ နောက်တစ်ကြိမ် ပြန်လည်ဝန်ဆောင်ခွင့်ရရန် မျှော်လင့်ပါသည်။',
+    'order_cancel_user.message':
+        'သင့်အော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။ အဆင်မပြေမှုများရှိခဲ့ပါက တောင်းပန်ပါသည်။ နောက်တစ်ကြိမ် ပြန်လည်ဝန်ဆောင်ခွင့်ရရန် မျှော်လင့်ပါတယ်',
     'order_cancel_user.action': 'ပယ်ဖျက်ထားသော အော်ဒါများ ကြည့်ရန်',
     'order_complete.arrived_at': 'ရောက်ရှိချိန်: {time}',
     'order_complete.done': 'ပြီးပါပြီ',
-    'order_complete.items_placeholder': 'မှာယူထားသော ပစ္စည်းများကို ဤနေရာတွင် ပြသမယ်။',
-    'order_complete.rate_experience': '{shop} တွင် သင့်အတွေ့အကြုံကို အဆင့်သတ်မှတ်ပါ',
-    'order_complete.rate_subtitle': 'သင့်အကြံပြုချက်က အရည်အသွေးနှင့် ပို့ဆောင်မှုကို တိုးတက်စေပါတယ်။',
+    'order_complete.items_placeholder':
+        'မှာယူထားသော ပစ္စည်းများကို ဤနေရာတွင် ပြသမယ်။',
+    'order_complete.rate_experience':
+        '{shop} တွင် သင့်အတွေ့အကြုံကို အဆင့်သတ်မှတ်ပါ',
+    'order_complete.rate_subtitle':
+        'သင့်အကြံပြုချက်က အရည်အသွေးနှင့် ပို့ဆောင်မှုကို တိုးတက်စေပါတယ်။',
     'order_complete.title': 'အော်ဒါပြီးစီး',
     'order_complete.rating_thanks': 'အဆင့်သတ်မှတ်ပေးတဲ့အတွက် ကျေးဇူးတင်ပါတယ်!',
     'order_complete.delivery_proof': 'ပို့ဆောင်မှု အထောက်အထား',
@@ -1354,25 +1435,31 @@ class AppTranslations {
     'payment.est_delivery_fee': 'ခန့်မှန်းပို့ဆောင်ခ',
     'payment.est_waiting_time': 'ခန့်မှန်းစောင့်ဆိုင်းချိန်',
     'payment.food_price': 'အစားအစာစျေးနှုန်း',
-    'payment.gallery_denied': 'ဂယ်လရီသုံးခွင့် အပြီးအပိုင်ပိတ်ထားတယ်။ စက်ဆက်တင်များတွင် ဖွင့်ပေးပါ။',
+    'payment.gallery_denied':
+        'ဂယ်လရီသုံးခွင့် အပြီးအပိုင်ပိတ်ထားတယ်။ စက်ဆက်တင်များတွင် ဖွင့်ပေးပါ။',
     'payment.gallery_permission': 'ဂယ်လရီခွင့်ပြုချက်',
-    'payment.gallery_required': 'ဘောင်ချာတင်ရန် ဂယ်လရီခွင့်ပြုချက် လိုအပ်ပါတယ်။',
+    'payment.gallery_required':
+        'ဘောင်ချာတင်ရန် ဂယ်လရီခွင့်ပြုချက် လိုအပ်ပါတယ်။',
     'payment.image_saved': 'ငွေပေးချေမှုပုံကို ဂယ်လရီတွင် သိမ်းပြီး!',
     'payment.image_too_large': 'ပုံအရမ်းကြီးတယ်',
-    'payment.image_too_large_msg': 'ရွေးချယ်ထားသော ပုံသည် {size}MB ဖြစ်ပြီး 5MB ကန့်သတ်ချက်ထက် ကျော်လွန်နေတယ်။',
+    'payment.image_too_large_msg':
+        'ရွေးချယ်ထားသော ပုံသည် {size}MB ဖြစ်ပြီး 5MB ကန့်သတ်ချက်ထက် ကျော်လွန်နေတယ်။',
     'payment.no_phone': 'ဖုန်းမရှိ',
     'payment.open_settings': 'ဆက်တင်များဖွင့်ရန်',
     'payment.order_id_not_found': 'အော်ဒါ ID မတွေ့ပါ။ ထပ်မံကြိုးစားပါ။',
-    'payment.receipt_requested': 'စားသောက်ဆိုင်က ဘောင်ချာအသစ် တောင်းထားတယ်။ ရှင်းလင်းစွာ တင်ပေးပါ။',
+    'payment.receipt_requested':
+        'စားသောက်ဆိုင်က ဘောင်ချာအသစ် တောင်းထားတယ်။ ရှင်းလင်းစွာ တင်ပေးပါ။',
     'payment.reupload_reason_title': 'စားသောက်ဆိုင်မှ အကြောင်းပြချက်',
     'payment.remove_image': 'ပုံ ဖယ်ရှားမယ်',
     'payment.change_image': 'ပုံ ပြောင်းမယ်',
-    'payment.receipt_visible_hint': 'ရက်စွဲ၊ ပမာဏနှင့် အချိန်ကို ရှင်းလင်းစွာ မြင်ရစေရန် သေချာလေး ဂရုစိုက်ပေးပါဗျ',
+    'payment.receipt_visible_hint':
+        'ရက်စွဲ၊ ပမာဏနှင့် အချိန်ကို ရှင်းလင်းစွာ မြင်ရစေရန် သေချာလေး ဂရုစိုက်ပေးပါဗျ',
     'payment.delivery_fee_badge_estimate': 'ခန့်မှန်း',
     'payment.delivery_fee_badge_confirmed': 'ပို့ဆောင်ခ',
     'payment.save_failed': 'ပုံကို သိမ်း၍မရပါ။ ထပ်မံကြိုးစားပါ။',
     'payment.save_qr': 'QR Code သိမ်းမယ်',
-    'payment.separate_delivery_note': 'ဆိုင်က သီးခြားပို့ဆောင်မှုကို စီစဉ်ပေးမယ်။ အစားအစာငွေကို ယခုပေးပါ။ ပို့ဆောင်ခကို စီးနင်းသူထံ တိုက်ရိုက်ပေးပါ။',
+    'payment.separate_delivery_note':
+        'ဆိုင်က သီးခြားပို့ဆောင်မှုကို စီစဉ်ပေးမယ်။ အစားအစာငွေကို ယခုပေးပါ။ ပို့ဆောင်ခကို စီးနင်းသူထံ တိုက်ရိုက်ပေးပါ။',
     'payment.submit_receipt': 'ဘောင်ချာတင်မယ်',
     'payment.summary': 'ငွေပေးချေမှု အကျဉ်းချုပ်',
     'payment.tap_to_upload': 'တင်ရန် နှိပ်ပါ',
@@ -1382,7 +1469,8 @@ class AppTranslations {
     'payment.upload_receipt': 'ဘောင်ချာတင်ရန်',
     'payment.vehicle_no': 'ယာဉ်နံပါတ်: {number}',
     'payment.verifying': 'ငွေပေးချေမှု စစ်ဆေးနေတယ်',
-    'payment.verifying_desc': 'သင့်ငွေပေးချေဘောင်ချာကို စစ်ဆေးနေပါတယ်။ မိနစ်အနည်းငယ် ကြာနိုင်တယ်။',
+    'payment.verifying_desc':
+        'သင့်ငွေပေးချေဘောင်ချာကို စစ်ဆေးနေပါတယ်။ မိနစ်အနည်းငယ် ကြာနိုင်တယ်။',
     'restaurant.add_more_no_fee': 'ပစ္စည်းထပ်ထည့်ပါ — ပို့ဆောင်ခ အပိုမရှိပါ။',
     'restaurant.basket': 'ခြင်းတောင်း • {count} {items}',
     'restaurant.chat': 'ပရိုမိုးရှင်း',
@@ -1419,21 +1507,32 @@ class AppTranslations {
     'common.just_now': 'ယခုလေးတင်',
     'location.add_new_short': 'အသစ်ထည့်မယ်',
     'location.confirm_location': 'တည်နေရာအတည်ပြုမယ်',
-    'location.map_picker_hint': 'မြေပုံကို ရွှေ့ပြီး ပင်မှတ်ချက်ထားပါ',
+    'location.map_picker_hint':
+        'မြေပုံကို ရွှေ့ပြီး လက်လျှော့လိုက်ရင် လိပ်စာကို ရှာပေးမယ်',
     'location.map_picker_title': 'တည်နေရာရွေးချယ်ပါ',
+    'location.street_address': 'လိပ်စာ',
+    'location.street_address_hint': 'အိမ်အမှတ်၊ လမ်း၊ ရပ်ကွက်…',
+    'location.street_address_required': 'ပို့ဆောင်ရမည့် လိပ်စာ ထည့်ပါ',
+    'location.pin_to_add_address':
+        'တည်နေရာ တွေ့ပြီး — လိပ်စာထည့်ရန် မြေပုံမှာ ပင်မှတ်ချက်ထားပါ',
     'location.pick_on_map': 'မြေပုံတွင် ရွေးချယ်ပါ',
     'location.resolving_address': 'လိပ်စာရှာဖွေနေသည်...',
     'location.cannot_delete': 'ဖျက်၍မရပါ',
-    'location.cannot_delete_primary': 'အဓိကတည်နေရာကို ဖျက်၍မရပါ။ အခြားတည်နေရာကို အဓိကဖြစ်အောင် ဦးစွာသတ်မှတ်ပါ။',
+    'location.cannot_delete_primary':
+        'အဓိကတည်နေရာကို ဖျက်၍မရပါ။ အခြားတည်နေရာကို အဓိကဖြစ်အောင် ဦးစွာသတ်မှတ်ပါ။',
     'location.create_failed': 'ဤတည်နေရာကို ဖန်တီး၍မရပါ။ ထပ်မံကြိုးစားပါ။',
     'location.created_success': 'တည်နေရာ အောင်မြင်စွာ ဖန်တီးပြီး',
     'location.delete_error': 'တည်နေရာဖျက်ရာတွင် အမှား: {error}',
     'location.deleted_success': 'တည်နေရာ အောင်မြင်စွာ ဖျက်ပြီး',
     'location.edit_details': 'အသေးစိတ်ပြင်ဆင်ရန်',
-    'location.limit_message': 'တည်နေရာ ၃ ခုသာ သိမ်းနိုင်တယ်။ အသစ်ထည့်မီ တစ်ခုဖျက်ပါ။',
-    'location.limit_full_hint': 'တည်နေရာ ၃ ခု ပြည့်သွားပါပြီ။ သိမ်းထားသော လိပ်စာတစ်ခုရဲ့ ⋮ ကို နှိပ်ပြီး ဖျက်ပါ။ ပြီးရင် အပေါ်က ရှာဖွေမှုတွင် လိပ်စာအသစ် ရှာပြီး သိမ်းပါ။',
-    'location.limit_full_modal_hint': 'သိမ်းထားသော လိပ်စာ ၃ ခု ပြည့်ပါပြီ။ လက်ရှိတည်နေရာ (GPS) က ဤကန့်သတ်ချက်ထဲ မပါပါ — အသစ်ထည့်မီ သိမ်းထားသော လိပ်စာတစ်ခု ဖျက်ပါ။',
-    'location.search_to_add_hint': 'အပေါ်က ရှာဖွေမှုတွင် လိပ်စာရိုက်ထည့်ပြီး ရလဒ်တစ်ခုကို နှိပ်ကာ သိမ်းပါ။',
+    'location.limit_message':
+        'တည်နေရာ ၃ ခုသာ သိမ်းနိုင်တယ်။ အသစ်ထည့်မီ တစ်ခုဖျက်ပါ။',
+    'location.limit_full_hint':
+        'တည်နေရာ ၃ ခု ပြည့်သွားပါပြီ။ သိမ်းထားသော လိပ်စာတစ်ခုရဲ့ ⋮ ကို နှိပ်ပြီး ဖျက်ပါ။ ပြီးရင် အပေါ်က ရှာဖွေမှုတွင် လိပ်စာအသစ် ရှာပြီး သိမ်းပါ။',
+    'location.limit_full_modal_hint':
+        'သိမ်းထားသော လိပ်စာ ၃ ခု ပြည့်ပါပြီ။ လက်ရှိတည်နေရာ (GPS) က ဤကန့်သတ်ချက်ထဲ မပါပါ — အသစ်ထည့်မီ သိမ်းထားသော လိပ်စာတစ်ခု ဖျက်ပါ။',
+    'location.search_to_add_hint':
+        'အပေါ်က ရှာဖွေမှုတွင် လိပ်စာရိုက်ထည့်ပြီး ရလဒ်တစ်ခုကို နှိပ်ကာ သိမ်းပါ။',
     'location.slots_used': '{current}/{max} သိမ်းပြီး',
     'location.load_place_failed': 'နေရာအသေးစိတ် မတင်နိုင်ပါ။',
     'location.no_results': 'ရလဒ် မတွေ့ပါ',
@@ -1481,7 +1580,8 @@ class AppTranslations {
     'comment.delete_failed': 'မှတ်ချက် ဖျက်၍မရပါ',
     'revise.title': 'အော်ဒါ ပြန်ပြင်ရန်',
     'revise.banner_title': 'အော်ဒါ ပြန်ပြင်ရန် လိုအပ်တယ်',
-    'revise.banner_message': 'ဆိုင်မှ သင့်အော်ဒါကို ပြင်ဆင်ထားတယ်။ ပြန်စစ်ပြီး ပြန်တင်ပါ။',
+    'revise.banner_message':
+        'ဆိုင်မှ သင့်အော်ဒါကို ပြင်ဆင်ထားတယ်။ ပြန်စစ်ပြီး ပြန်တင်ပါ။',
     'revise.review_button': 'ပြန်စစ်ပြီး ပြန်တင်ရန်',
     'revise.reason_title': 'ဆိုင်မှ အကြောင်းပြချက်',
     'revise.reason_default': 'အချို့ပစ္စည်းများကို ဆိုင်မှ ပြင်ဆင်ထားတယ်။',
@@ -1528,7 +1628,8 @@ class AppTranslations {
     'place.nearby_places': 'အနီးအနားရှိ နေရာများ',
     'place.photo_gallery': 'ဓာတ်ပုံပြခန်း',
     'place.view_on_map': 'မြေပုံတွင် ကြည့်ရန်',
-    'restaurant.adjust_filters': 'စစ်ထုတ်မှုများ သို့မဟုတ် တည်နေရာကို ပြင်ဆင်ကြည့်ပါ',
+    'restaurant.adjust_filters':
+        'စစ်ထုတ်မှုများ သို့မဟုတ် တည်နေရာကို ပြင်ဆင်ကြည့်ပါ',
     'restaurant.load_error': 'စားသောက်ဆိုင်များ တင်ရာတွင် အမှား: {error}',
     'restaurant.no_restaurants': 'စားသောက်ဆိုင် မတွေ့ပါ',
     'restaurant.search_hint': 'စားသောက်ဆိုင်များ ရှာပါ...',
@@ -1537,13 +1638,16 @@ class AppTranslations {
     'review.choose_gallery': 'ပြခန်းမှ ရွေးချယ်ရန်',
     'review.customer_ratings': 'ဖောက်သည်အဆင့်သတ်မှတ်ချက်နှင့် သုံးသပ်ချက်များ',
     'review.error_generic': 'တစ်ခုခု မှားယွင်းနေတယ်။ ထပ်မံကြိုးစားပါ။',
-    'review.experience_prompt': 'သင့်အတွေ့အကြုံ ဘယ်လိုရှိခဲ့သလဲ။ ကြှစ်သက်မှုနှင့် တိုးတက်စေနိုင်သည်များကို ပြောပါ။',
+    'review.experience_prompt':
+        'သင့်အတွေ့အကြုံ ဘယ်လိုရှိခဲ့သလဲ။ ကြှစ်သက်မှုနှင့် တိုးတက်စေနိုင်သည်များကို ပြောပါ။',
     'review.newest': 'နောက်ဆုံးပေါ်',
     'review.no_comment': 'မှတ်ချက် မပေးထားပါ',
     'review.out_of_5': '၅ ထဲမှ',
-    'review.permanent_body': 'တင်ပြီးပါက သုံးသပ်ချက်ကို ပြင်ဆင် သို့မဟုတ် ဖျက်၍မရပါ။ မျှတသည်ကို သေချာစစ်ဆေးပါ။',
+    'review.permanent_body':
+        'တင်ပြီးပါက သုံးသပ်ချက်ကို ပြင်ဆင် သို့မဟုတ် ဖျက်၍မရပါ။ မျှတသည်ကို သေချာစစ်ဆေးပါ။',
     'review.permanent_title': 'သုံးသပ်ချက်များ အမြဲတမ်းဖြစ်တယ်',
-    'review.public_body': 'သင့်သုံးသပ်ချက်ကို အခြားသူများ မြင်နိုင်တယ်။ တစ်ကြိမ်သာ သုံးသပ်နိုင်ပါတယ်။',
+    'review.public_body':
+        'သင့်သုံးသပ်ချက်ကို အခြားသူများ မြင်နိုင်တယ်။ တစ်ကြိမ်သာ သုံးသပ်နိုင်ပါတယ်။',
     'review.public_title': 'သုံးသပ်ချက်များ အများမြင်ဖြစ်တယ်',
     'review.ratings_count': 'အဆင့်သတ်မှတ်ချက် {count} ခု',
     'review.recent': 'နောက်ဆုံးသုံးသပ်ချက်များ',
@@ -1561,12 +1665,15 @@ class AppTranslations {
     'visa.official_website': 'တရားဝင်ဝဘ်ဆိုဒ်',
     'visa.official_website_sub': 'အသေးစိတ်အတွက် အစိုးရဆိုဒ်သို့ သွားရန်',
     'visa.online_appointment': 'အွန်လိုင်းချိန်းဆိုမှု',
-    'visa.online_appointment_sub': 'ဤဝန်ဆောင်မှုအတွက် အွန်လိုင်းမှ ချိန်းဆိုနိုင်တယ်။',
-    'visa.subtitle': 'ဗီဇာအမျိုးအစားနှင့် လူဝင်မှုကြီးကြပ်ရေး ဝန်ဆောင်မှုများ ၂၀၂၆',
+    'visa.online_appointment_sub':
+        'ဤဝန်ဆောင်မှုအတွက် အွန်လိုင်းမှ ချိန်းဆိုနိုင်တယ်။',
+    'visa.subtitle':
+        'ဗီဇာအမျိုးအစားနှင့် လူဝင်မှုကြီးကြပ်ရေး ဝန်ဆောင်မှုများ ၂၀၂၆',
     'visa.title': 'ထိုင်းဗီဇာ',
     'visa.visa_types': 'ဗီဇာအမျိုးအစားများ',
     'wishlist.currently_unavailable': 'လက်ရှိ မရရှိနိုင်ပါ',
-    'wishlist.empty_shops_sub': 'စားသောက်ဆိုင်တွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
+    'wishlist.empty_shops_sub':
+        'စားသောက်ဆိုင်တွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
     'wishlist.empty_shops_title': 'သိမ်းထားသော စားသောက်ဆိုင် မရှိသေးပါ',
     'wishlist.empty_sub': 'မီနူးပစ္စည်းတွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
     'wishlist.empty_title': 'သိမ်းထားသော ပစ္စည်း မရှိသေးပါ',
@@ -1606,7 +1713,7 @@ class AppTranslations {
     'order.delivery_unavailable_sheet_title':
         'ဤစားသောက်ဆိုင်သည် ယခု ပို့ဆောင်မှု မလက်ခံနိုင်ပါ',
     'order.delivery_unavailable_sheet_body':
-        'စားသောက်ဆိုင်က ပို့ဆောင်မှုကို ယာယီရပ်ထားပါတယ်။ နောက်မှ ပြန်စစ်ကြည့်ပါ။',
+        'စားသောက်ဆိုင်က ပို့ဆောင်မှုကို ယာယီရပ်ထားပါတယ်။ မကြာခင်မှာ ပြန်လည်မှာယူနိုင်ပါမယ်',
     'order.closed_banner_short': 'ဤစားသောက်ဆိုင် ယခု ပိတ်ထားပါသည်',
     'order.closed_sheet_title': 'ဤစားသောက်ဆိုင် ယခု ပိတ်ထားပါသည်',
     'order.closed_sheet_body':
@@ -1622,8 +1729,12 @@ class AppTranslations {
         'ပို့ဆောင်မှု မရရှိနိုင်ပါ · အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်',
     'order.status_strip_closed': 'ပိတ်ထား · {opens}',
     'order.status_strip_closed_short': 'ပိတ်ထား · နောက်မှ ပြန်စစ်ကြည့်ပါ',
-    'order.menu_browse_hint':
+    'order.menu_browse_hint_delivery':
+        'လောလောဆယ် ပို့ဆောင်မှု ပိတ်ထားပါတယ် · မကြာခင်ပြန်မှာယူနိုင်ပါမယ်',
+    'order.menu_browse_hint_closed':
         'ဆိုင်ပြန်ဖွင့်မှ order မှာယူနိုင်မှာ ဖြစ်ပါတယ်ဗျ',
+    'order.menu_browse_hint':
+        'ယခု မှာယူ၍ မရသေးပါ · မီနူးကိုသာ ကြည့်ရှုနိုင်ပါတယ်',
     'order.badge_delivery_off': 'ပို့ဆောင်မှု မရှိ',
     'time.minutes_ago': '{count} မိနစ်က',
     'time.hours_ago': '{count} နာရီက',
@@ -1640,7 +1751,8 @@ class AppTranslations {
     'help.office_hours': 'ရုံးချိန်',
     'help.office_hours_value': 'တနင်္လာ–သောကြာ: နံနက် ၉ – ညနေ ၆',
     'help.need_more_help': 'အကူအညီ ထပ်မံလိုအပ်သလား?',
-    'help.email_support_desc': 'ကျွန်ုပ်တို့ Support team သို့ တိုက်ရိုက် Email ပို့ပြီး ကူညီမှုရယူပါ။',
+    'help.email_support_desc':
+        'ကျွန်ုပ်တို့ Support team သို့ တိုက်ရိုက် Email ပို့ပြီး ကူညီမှုရယူပါ။',
     'help.could_not_open': 'ဖွင့်၍ မရပါ',
     'collection.items_count': '{count} ခု',
     'orders.items_count': '{count} ခု',
@@ -1686,10 +1798,12 @@ class AppTranslations {
     'news.blocked_success': 'အသုံးပြုသူကို ပိတ်ပင်ပြီးပါပြီ။',
     'news.block_action': 'ပိတ်ပင်ရန်',
     'news.you': 'သင်',
-    'order_status.checking_payment_shop': '{shop} သည် သင့်ငွေပေးချေမှုကို စစ်ဆေးနေတယ်',
+    'order_status.checking_payment_shop':
+        '{shop} သည် သင့်ငွေပေးချေမှုကို စစ်ဆေးနေတယ်',
     'order_status.preparing_shop': '{shop} သည် သင့်အော်ဒါကို ပြင်ဆင်နေတယ်',
     'order_status.delivering_shop': '{shop} သည် သင့်အော်ဒါကို ပို့ဆောင်နေတယ်',
-    'order_status.completing_shop': '{shop} သည် သင့်အော်ဒါကို ပြီးမြောက်စေနေတယ်',
+    'order_status.completing_shop':
+        '{shop} သည် သင့်အော်ဒါကို ပြီးမြောက်စေနေတယ်',
     'cart.place_order_failed': 'အော်ဒါတင်၍မရပါ: {error}',
     'cart.unknown_error': 'မသိသော အမှား',
     'order_tracking.est_delivery_fee_label': 'ခန့်မှန်းပို့ဆောင်ခ ',
@@ -1711,8 +1825,10 @@ class AppTranslations {
     'auth.email_hint': 'john@example.com',
     'auth.otp_hint': '123456',
     'auth.invalid_credentials': 'အသုံးပြုသူအမည် သို့မဟုတ် စကားဝှက် မမှန်ကန်ပါ။',
-    'auth.username_exists': 'အသုံးပြုသူအမည် သို့မဟုတ် အီးမေးလ် ရှိပြီးသားဖြစ်တယ်။',
-    'auth.too_many_attempts': 'ကြိုးစားမှုများလွန်းတယ်။ နောက်မှ ထပ်မံကြိုးစားပါ။',
+    'auth.username_exists':
+        'အသုံးပြုသူအမည် သို့မဟုတ် အီးမေးလ် ရှိပြီးသားဖြစ်တယ်။',
+    'auth.too_many_attempts':
+        'ကြိုးစားမှုများလွန်းတယ်။ နောက်မှ ထပ်မံကြိုးစားပါ။',
     'auth.connection_failed':
         'ဆာဗာနှင့် ချိတ်ဆက်၍မရပါ။ ချိတ်ဆက်မှုကို စစ်ဆေးပါ။',
     'delete.confirm_button': 'အကောင့်ဖျက်မယ်',
@@ -1723,19 +1839,25 @@ class AppTranslations {
     'food.distance_km': '{distance} km',
     'news.author_fallback': 'Together',
     'common.na': 'N/A',
-    
+
     // Firebase Errors
     'firebase.invalid_phone': 'ဖုန်းနံပါတ် ကအမှားကြီး 😤။',
-    'firebase.too_many_requests': 'ခဏလေးစောင့်ပြီးမှ ထပ်မံထပ်လုပ်ကြည့်ပေးပါနော် 🤯',
-    'firebase.invalid_code': 'OTP ကုဒ် အမှားကြီး မထည့်ပါနဲ့။ ဟုတ်မဟုတ် သေချာပြန်စစ်ပြီးမှထည့် 😵‍💫 ',
-    'firebase.session_expired': 'OTP ကုဒ် သက်တမ်းကုန်သွားပါပြီ။ အသစ်ပြန်တောင်းပါ။',
-    'firebase.network_error': 'အင်တာနက်လိုင်း မကောင်းထင်တယ်။ ပြန်စစ်ကြည့်ပါအုံးနော် 😶‍🌫️',
-    'firebase.user_disabled': 'ဒီအကောင့်ကို ပိတ်ထားပါတယ်။ ဘာမဟုတ်တာလုပ်ထားလဲပြော 😡',
+    'firebase.too_many_requests':
+        'ခဏလေးစောင့်ပြီးမှ ထပ်မံထပ်လုပ်ကြည့်ပေးပါနော် 🤯',
+    'firebase.invalid_code':
+        'OTP ကုဒ် အမှားကြီး မထည့်ပါနဲ့။ ဟုတ်မဟုတ် သေချာပြန်စစ်ပြီးမှထည့် 😵‍💫 ',
+    'firebase.session_expired':
+        'OTP ကုဒ် သက်တမ်းကုန်သွားပါပြီ။ အသစ်ပြန်တောင်းပါ။',
+    'firebase.network_error':
+        'အင်တာနက်လိုင်း မကောင်းထင်တယ်။ ပြန်စစ်ကြည့်ပါအုံးနော် 😶‍🌫️',
+    'firebase.user_disabled':
+        'ဒီအကောင့်ကို ပိတ်ထားပါတယ်။ ဘာမဟုတ်တာလုပ်ထားလဲပြော 😡',
     'firebase.unknown_error': 'ဟ ဘာထဖြစ်လဲမသိဘူး။ ထပ်လုပ်ကြည့်ပေးပါ။',
-    
+
     // Permissions
     'permission.title': 'ခွင့်ပြုချက် တောင်းခံခြင်း',
-    'permission.desc': 'အကောင်းဆုံး ဝန်ဆောင်မှုပေးနိုင်ဖို့ MyTogether မှ အောက်ပါအချက်တွေကို အသုံးပြုခွင့် လိုအပ်ပါတယ် -\n\n📍 **တည်နေရာ (Location):** အနီးအနားမှာရှိတဲ့ မြန်မာဆိုင် မိုက်မိုက်လေးတွေကို ပြပေးဖို့နဲ့ ပို့ဆောင်ခကို တွက်ချက်ပေးနိုင်ဖို့အတွက်ပါ။\n\n🔔 **အသိပေးချက် (Notifications):** အော်ဒါအခြေအနေတွေကို အချိန်နဲ့တပြေးညီ သိရအောင်နဲ့ အရေးကြီးတဲ့ သတင်းအချက်အလက်သစ်တွေကို လက်မလွတ်ရအောင်လို့ပါနော်။',
+    'permission.desc':
+        'အကောင်းဆုံး ဝန်ဆောင်မှုပေးနိုင်ဖို့ MyTogether မှ အောက်ပါအချက်တွေကို အသုံးပြုခွင့် လိုအပ်ပါတယ် -\n\n📍 **တည်နေရာ (Location):** အနီးအနားမှာရှိတဲ့ မြန်မာဆိုင် မိုက်မိုက်လေးတွေကို ပြပေးဖို့နဲ့ ပို့ဆောင်ခကို တွက်ချက်ပေးနိုင်ဖို့အတွက်ပါ။\n\n🔔 **အသိပေးချက် (Notifications):** အော်ဒါအခြေအနေတွေကို အချိန်နဲ့တပြေးညီ သိရအောင်နဲ့ အရေးကြီးတဲ့ သတင်းအချက်အလက်သစ်တွေကို လက်မလွတ်ရအောင်လို့ပါနော်။',
     'permission.continue': 'ဆက်လုပ်မယ်',
   };
   // ---------------------------------------------------------------------------
@@ -1744,11 +1866,15 @@ class AppTranslations {
   static const Map<String, String> _th = {
     // Onboarding
     'onboarding.food_title': 'ไม่ต้องคิดมาก... กินเลย!',
-    'onboarding.food_desc': 'สั่งอาหารพม่ารสเด็ดได้ทันที ยิ่งดูยิ่งหิว... สั่งเลยเพื่อความอร่อย! 🤤',
+    'onboarding.food_desc':
+        'สั่งอาหารพม่ารสเด็ดได้ทันที ยิ่งดูยิ่งหิว... สั่งเลยเพื่อความอร่อย! 🤤',
     'onboarding.community_title': 'อ่านข่าวสาร,\nหาของหาย 👀',
-    'onboarding.community_desc': 'ไม่พลาดข่าวสารพม่าในไทย พร้อมระบบแจ้งของหายและพบของที่ใช้งานง่าย',
-    'onboarding.services_title': 'ทุกสิ่งที่คุณต้องการอยู่ที่นี่ \n ครบจบในที่เดียว ✨',
-    'onboarding.services_desc': 'เช็คอัตราแลกเปลี่ยน? ข้อมูลวีซ่า? ค้นหาข้อมูลสำคัญที่คุณต้องการได้อย่างง่ายดาย',
+    'onboarding.community_desc':
+        'ไม่พลาดข่าวสารพม่าในไทย พร้อมระบบแจ้งของหายและพบของที่ใช้งานง่าย',
+    'onboarding.services_title':
+        'ทุกสิ่งที่คุณต้องการอยู่ที่นี่ \n ครบจบในที่เดียว ✨',
+    'onboarding.services_desc':
+        'เช็คอัตราแลกเปลี่ยน? ข้อมูลวีซ่า? ค้นหาข้อมูลสำคัญที่คุณต้องการได้อย่างง่ายดาย',
     'onboarding.get_started': 'เริ่มต้นใช้งาน',
     'onboarding.skip': 'ข้ามไปก่อน',
 
@@ -1942,7 +2068,8 @@ class AppTranslations {
     'cart.select_shop': 'เลือกร้าน',
     'cart.empty': 'ตะกร้าของคุณว่างเปล่า',
     'cart.remove_shop': 'ลบร้าน',
-    'cart.remove_shop_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการลบร้านนี้และสินค้าทั้งหมดออกจากตะกร้า?',
+    'cart.remove_shop_confirm':
+        'คุณแน่ใจหรือไม่ว่าต้องการลบร้านนี้และสินค้าทั้งหมดออกจากตะกร้า?',
     'cart.item': '{count} รายการ',
     'cart.items': '{count} รายการ',
     'cart.from': 'จาก',
@@ -1965,13 +2092,16 @@ class AppTranslations {
     'cart.total': 'รวม',
     'cart.payment': 'ชำระเงิน',
     'cart.place_order': 'สั่งซื้อ',
+    'cart.ongoing_order_wait':
+        'มีคำสั่งซื้อที่กำลังดำเนินการอยู่ กรุณารอให้เสร็จสิ้นก่อนนะ',
     'cart.pickup_note_title': 'รับเองที่ร้าน',
     'cart.pickup_note_body': 'อย่าลืมไปรับอาหารที่ร้านเมื่อพร้อมแล้ว!',
     'cart.promotion': 'โปรโมชัน',
     'cart.est_delivery_fee': 'ค่าจัดส่งโดยประมาณ  •  ',
     'cart.est_time': 'เวลาโดยประมาณ  •  ',
     'cart.remove_item': 'ลบรายการ',
-    'cart.remove_item_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการลบ {name} ออกจากคำสั่งซื้อ?',
+    'cart.remove_item_confirm':
+        'คุณแน่ใจหรือไม่ว่าต้องการลบ {name} ออกจากคำสั่งซื้อ?',
 
     // Orders
     'orders.history': 'ประวัติคำสั่งซื้อ',
@@ -1981,13 +2111,16 @@ class AppTranslations {
     'orders.no_cancelled': 'ไม่มีคำสั่งซื้อที่ยกเลิก',
     'orders.no_orders': 'ยังไม่มีคำสั่งซื้อ!',
     'orders.start_ordering': 'เริ่มสั่งอาหาร',
-    'orders.start_ordering_desc': 'ค้นพบอาหารอร่อยใกล้คุณ และสั่งออเดอร์แรกของคุณเลยตอนนี้!',
+    'orders.start_ordering_desc':
+        'ค้นพบอาหารอร่อยใกล้คุณ และสั่งออเดอร์แรกของคุณเลยตอนนี้!',
     'orders.in_progress': 'กำลังดำเนินการ',
     'orders.reorder': 'สั่งซื้ออีกครั้ง',
     'orders.buy_again': 'ซื้ออีกครั้ง',
     'orders.reorder_added': 'เพิ่มรายการลงในตะกร้าแล้ว',
-    'orders.reorder_some_unavailable': 'บางรายการไม่พร้อมจำหน่ายแล้วและถูกข้ามไป',
-    'orders.reorder_failed': 'ไม่สามารถสั่งซื้ออีกครั้งได้ สินค้าอาจไม่พร้อมจำหน่าย',
+    'orders.reorder_some_unavailable':
+        'บางรายการไม่พร้อมจำหน่ายแล้วและถูกข้ามไป',
+    'orders.reorder_failed':
+        'ไม่สามารถสั่งซื้ออีกครั้งได้ สินค้าอาจไม่พร้อมจำหน่าย',
     'orders.how_was_order': 'คำสั่งซื้อของคุณเป็นอย่างไร?',
     'orders.my_rating': 'คะแนนของฉัน {score}/5',
     'orders.invalid_reference': 'อ้างอิงคำสั่งซื้อไม่ถูกต้อง',
@@ -2029,7 +2162,8 @@ class AppTranslations {
     'common.retry': 'ลองอีกครั้ง',
     'common.sign_up': 'สมัครสมาชิกเลย',
     'common.no_data_title': 'ยังไม่มีข้อมูลที่นี่',
-    'common.no_data_sub': 'ขณะนี้ยังไม่มีข้อมูลที่จะแสดง โปรดกลับมาตรวจสอบใหม่ภายหลัง',
+    'common.no_data_sub':
+        'ขณะนี้ยังไม่มีข้อมูลที่จะแสดง โปรดกลับมาตรวจสอบใหม่ภายหลัง',
     'delete.access_revoked_title': 'การเข้าถึงจะถูกเพิกถอน',
     'delete.agree_required': 'กรุณาเลือกช่องยอมรับข้อตกลงเพื่อดำเนินการต่อ',
     'delete.agreement_primary':
@@ -2083,10 +2217,12 @@ class AppTranslations {
     'menu.cart_cleared_added': 'ล้างตะกร้าและเพิ่มรายการแล้ว',
     'menu.clear_and_add': 'ล้างและเพิ่ม',
     'menu.customer_reviews': 'รีวิวจากลูกค้า ({count})',
-    'menu.default_description': 'รสชาติแท้จากวัตถุดิบสดใหม่ เหมาะคู่กับมื้ออาหารของคุณ',
+    'menu.default_description':
+        'รสชาติแท้จากวัตถุดิบสดใหม่ เหมาะคู่กับมื้ออาหารของคุณ',
     'menu.failed_add_cart': 'เพิ่มลงตะกร้าไม่สำเร็จ: {error}',
     'menu.invalid_item_shop': 'รหัสสินค้าหรือร้านไม่ถูกต้อง',
-    'menu.new_cart_message': 'ตะกร้ามีสินค้าจากร้านอื่น ต้องการล้างตะกร้าและเพิ่มรายการนี้หรือไม่?',
+    'menu.new_cart_message':
+        'ตะกร้ามีสินค้าจากร้านอื่น ต้องการล้างตะกร้าและเพิ่มรายการนี้หรือไม่?',
     'menu.new_cart_title': 'ตะกร้าใหม่?',
     'menu.recommended_with': 'แนะนำคู่กับเมนูนี้',
     'menu.select_option_for': 'กรุณาเลือกตัวเลือกสำหรับ {name}',
@@ -2147,14 +2283,18 @@ class AppTranslations {
     'order.status.canceled': 'ยกเลิกแล้ว',
     'order_tracking.awaiting_confirmation': 'รอร้านอาหารยืนยัน',
     'order_tracking.calculating': 'กำลังคำนวณ',
-    'order_tracking.cancel_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการยกเลิกคำสั่งซื้อนี้?',
+    'order_tracking.cancel_confirm':
+        'คุณแน่ใจหรือไม่ว่าต้องการยกเลิกคำสั่งซื้อนี้?',
     'order_tracking.cancel_order': 'ยกเลิกคำสั่งซื้อ',
     'order_tracking.cancel_title': 'ยกเลิกคำสั่งซื้อ?',
     'order_tracking.finding_route': 'กำลังหาเส้นทาง...',
     'order_tracking.keep_order': 'เก็บคำสั่งซื้อ',
-    'order_tracking.restaurant_reviewing': 'ร้านกำลังตรวจสอบคำสั่งซื้อและจัดหาคนขับ',
-    'order_tracking.usually_takes': 'กรุณารอสักครู่ — เรากำลังยืนยันกับร้านอาหาร',
-    'order_tracking.taking_longer': 'ใช้เวลานานกว่าปกติเล็กน้อย ร้านอาจมีออเดอร์อื่นอยู่ — รอสักครู่นะครับ',
+    'order_tracking.restaurant_reviewing':
+        'ร้านกำลังตรวจสอบคำสั่งซื้อและจัดหาคนขับ',
+    'order_tracking.usually_takes':
+        'กรุณารอสักครู่ — เรากำลังยืนยันกับร้านอาหาร',
+    'order_tracking.taking_longer':
+        'ใช้เวลานานกว่าปกติเล็กน้อย ร้านอาจมีออเดอร์อื่นอยู่ — รอสักครู่นะครับ',
     'active_order.awaiting_confirmation': 'รอยืนยัน',
     'active_order.awaiting_payment': 'รอชำระเงิน',
     'active_order.delivered': 'จัดส่งเสร็จแล้ว!',
@@ -2179,22 +2319,27 @@ class AppTranslations {
     'currency.as_of': 'ณ {time}',
     'currency.buy': 'ซื้อ',
     'currency.latest_rate': 'อัตราล่าสุด',
-    'currency.load_failed': 'โหลดอัตราแลกเปลี่ยนไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ',
-    'currency.rates_disclaimer': 'อัตราเหล่านี้เป็นราคาโดยประมาณเพื่อข้อมูลเท่านั้น',
+    'currency.load_failed':
+        'โหลดอัตราแลกเปลี่ยนไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ',
+    'currency.rates_disclaimer':
+        'อัตราเหล่านี้เป็นราคาโดยประมาณเพื่อข้อมูลเท่านั้น',
     'currency.sell': 'ขาย',
     'currency.welcome': 'ยินดีต้อนรับ',
-    'order_cancel.message': 'คำสั่งซื้อของคุณถูกยกเลิกโดยร้านค้า เราขออภัยในความไม่สะดวก',
+    'order_cancel.message':
+        'คำสั่งซื้อของคุณถูกยกเลิกโดยร้านค้า เราขออภัยในความไม่สะดวก',
     'order_cancel.reason_title': 'เหตุผลการยกเลิก',
     'order_cancel.sorry': 'ขออภัย!',
     'order_cancel.view_restaurant': 'ดูร้านอาหาร',
     'order_cancel_user.title': 'ยกเลิกคำสั่งซื้อแล้ว',
-    'order_cancel_user.message': 'คำสั่งซื้อของคุณถูกยกเลิกแล้ว เราขออภัยในความไม่สะดวกที่อาจเกิดขึ้น และหวังว่าจะได้ให้บริการคุณอีกครั้งเร็วๆ นี้',
+    'order_cancel_user.message':
+        'คำสั่งซื้อของคุณถูกยกเลิกแล้ว เราขออภัยในความไม่สะดวกที่อาจเกิดขึ้น และหวังว่าจะได้ให้บริการคุณอีกครั้งเร็วๆ นี้',
     'order_cancel_user.action': 'ดูคำสั่งซื้อที่ถูกยกเลิก',
     'order_complete.arrived_at': 'ถึงเมื่อ: {time}',
     'order_complete.done': 'เสร็จสิ้น',
     'order_complete.items_placeholder': 'รายการที่สั่งจะแสดงที่นี่',
     'order_complete.rate_experience': 'ให้คะแนนประสบการณ์ที่ {shop}',
-    'order_complete.rate_subtitle': 'ความคิดเห็นของคุณช่วยปรับปรุงคุณภาพอาหารและการจัดส่ง',
+    'order_complete.rate_subtitle':
+        'ความคิดเห็นของคุณช่วยปรับปรุงคุณภาพอาหารและการจัดส่ง',
     'order_complete.title': 'คำสั่งซื้อเสร็จสิ้น',
     'order_complete.rating_thanks': 'ขอบคุณสำหรับการให้คะแนน!',
     'order_complete.delivery_proof': 'หลักฐานการจัดส่ง',
@@ -2206,18 +2351,21 @@ class AppTranslations {
     'payment.cancel_failed': 'ยกเลิกคำสั่งซื้อไม่สำเร็จ กรุณาลองอีกครั้ง',
     'payment.cancel_success': 'ยกเลิกคำสั่งซื้อสำเร็จ',
     'payment.confirm_title': 'ยืนยันการชำระเงิน',
-    'payment.connection_error': 'ข้อผิดพลาดการเชื่อมต่อ ไม่สามารถยกเลิกคำสั่งซื้อได้',
+    'payment.connection_error':
+        'ข้อผิดพลาดการเชื่อมต่อ ไม่สามารถยกเลิกคำสั่งซื้อได้',
     'payment.done_payment': 'ชำระเงินแล้ว',
     'payment.error_loading_image': 'โหลดภาพการชำระเงินไม่สำเร็จ',
     'payment.est_delivery_fee': 'ค่าจัดส่งโดยประมาณ',
     'payment.est_waiting_time': 'เวลารอโดยประมาณ',
     'payment.food_price': 'ราคาอาหาร',
-    'payment.gallery_denied': 'การเข้าถึงแกลเลอรีถูกปฏิเสธถาวร กรุณาเปิดในตั้งค่าอุปกรณ์',
+    'payment.gallery_denied':
+        'การเข้าถึงแกลเลอรีถูกปฏิเสธถาวร กรุณาเปิดในตั้งค่าอุปกรณ์',
     'payment.gallery_permission': 'สิทธิ์แกลเลอรี',
     'payment.gallery_required': 'ต้องอนุญาตแกลเลอรีเพื่ออัปโหลดใบเสร็จ',
     'payment.image_saved': 'บันทึกภาพการชำระเงินลงแกลเลอรีแล้ว!',
     'payment.image_too_large': 'รูปภาพใหญ่เกินไป',
-    'payment.image_too_large_msg': 'รูปที่เลือกมีขนาด {size}MB เกินขีดจำกัด 5MB กรุณาเลือกรูปที่เล็กลง',
+    'payment.image_too_large_msg':
+        'รูปที่เลือกมีขนาด {size}MB เกินขีดจำกัด 5MB กรุณาเลือกรูปที่เล็กลง',
     'payment.no_phone': 'ไม่มีเบอร์โทร',
     'payment.open_settings': 'เปิดการตั้งค่า',
     'payment.order_id_not_found': 'ไม่พบรหัสคำสั่งซื้อ กรุณาลองอีกครั้ง',
@@ -2225,12 +2373,14 @@ class AppTranslations {
     'payment.reupload_reason_title': 'เหตุผลจากร้านอาหาร',
     'payment.remove_image': 'ลบรูปภาพ',
     'payment.change_image': 'เปลี่ยนรูปภาพ',
-    'payment.receipt_visible_hint': 'ตรวจสอบให้วันที่ จำนวนเงิน และเวลาเห็นชัดเจน',
+    'payment.receipt_visible_hint':
+        'ตรวจสอบให้วันที่ จำนวนเงิน และเวลาเห็นชัดเจน',
     'payment.delivery_fee_badge_estimate': 'ประมาณการ',
     'payment.delivery_fee_badge_confirmed': 'ค่าจัดส่ง',
     'payment.save_failed': 'บันทึกรูปภาพไม่สำเร็จ กรุณาลองอีกครั้ง',
     'payment.save_qr': 'บันทึก QR Code',
-    'payment.separate_delivery_note': 'ร้านจะจัดหาบริการจัดส่งแยกให้ กรุณาชำระค่าอาหารก่อน ค่าจัดส่งจ่ายให้คนขับโดยตรง',
+    'payment.separate_delivery_note':
+        'ร้านจะจัดหาบริการจัดส่งแยกให้ กรุณาชำระค่าอาหารก่อน ค่าจัดส่งจ่ายให้คนขับโดยตรง',
     'payment.submit_receipt': 'ส่งใบเสร็จ',
     'payment.summary': 'สรุปการชำระเงิน',
     'payment.tap_to_upload': 'แตะเพื่ออัปโหลด',
@@ -2240,7 +2390,8 @@ class AppTranslations {
     'payment.upload_receipt': 'อัปโหลดใบเสร็จ',
     'payment.vehicle_no': 'ทะเบียนรถ: {number}',
     'payment.verifying': 'กำลังตรวจสอบการชำระเงิน',
-    'payment.verifying_desc': 'เรากำลังตรวจสอบใบเสร็จของคุณ โดยปกติใช้เวลาไม่กี่นาที',
+    'payment.verifying_desc':
+        'เรากำลังตรวจสอบใบเสร็จของคุณ โดยปกติใช้เวลาไม่กี่นาที',
     'restaurant.add_more_no_fee': 'เพิ่มรายการ — ไม่มีค่าจัดส่งเพิ่ม',
     'restaurant.basket': 'ตะกร้า • {count} {items}',
     'restaurant.chat': 'โปรโมชั่น',
@@ -2277,21 +2428,31 @@ class AppTranslations {
     'common.just_now': 'เมื่อสักครู่',
     'location.add_new_short': 'เพิ่มใหม่',
     'location.confirm_location': 'ยืนยันตำแหน่ง',
-    'location.map_picker_hint': 'เลื่อนแผนที่เพื่อวางหมุด',
+    'location.map_picker_hint': 'เลื่อนแผนที่แล้วปล่อยมือเพื่อค้นหาที่อยู่',
     'location.map_picker_title': 'เลือกตำแหน่ง',
+    'location.street_address': 'ที่อยู่',
+    'location.street_address_hint': 'บ้านเลขที่ ถนน แขวง/ตำบล…',
+    'location.street_address_required': 'กรุณากรอกที่อยู่จัดส่ง',
+    'location.pin_to_add_address':
+        'พบตำแหน่ง GPS แล้ว — เปิดแผนที่เพื่อปักหมุดและกรอกที่อยู่',
     'location.pick_on_map': 'เลือกบนแผนที่',
     'location.resolving_address': 'กำลังค้นหาที่อยู่...',
     'location.cannot_delete': 'ลบไม่ได้',
-    'location.cannot_delete_primary': 'ไม่สามารถลบตำแหน่งหลักได้ กรุณาตั้งตำแหน่งอื่นเป็นหลักก่อน',
+    'location.cannot_delete_primary':
+        'ไม่สามารถลบตำแหน่งหลักได้ กรุณาตั้งตำแหน่งอื่นเป็นหลักก่อน',
     'location.create_failed': 'สร้างตำแหน่งนี้ไม่สำเร็จ กรุณาลองอีกครั้ง',
     'location.created_success': 'สร้างตำแหน่งสำเร็จ',
     'location.delete_error': 'ลบตำแหน่งผิดพลาด: {error}',
     'location.deleted_success': 'ลบตำแหน่งสำเร็จ',
     'location.edit_details': 'แก้ไขรายละเอียด',
-    'location.limit_message': 'บันทึกได้สูงสุด 3 ตำแหน่ง กรุณาลบตำแหน่งก่อนเพิ่มใหม่',
-    'location.limit_full_hint': 'บันทึกครบ 3 ตำแหน่งแล้ว แตะ ⋮ ที่ตำแหน่งที่บันทึกไว้แล้วเลือกลบ จากนั้นค้นหาด้านบนเพื่อเพิ่มตำแหน่งใหม่',
-    'location.limit_full_modal_hint': 'บันทึกที่อยู่ครบ 3 แห่งแล้ว ตำแหน่งปัจจุบัน (GPS) ไม่นับในลิมิตนี้ — ลบที่อยู่ที่บันทึกไว้ก่อนเพิ่มใหม่',
-    'location.search_to_add_hint': 'พิมพ์ที่อยู่ในช่องค้นหาด้านบน แล้วแตะผลลัพธ์เพื่อบันทึก',
+    'location.limit_message':
+        'บันทึกได้สูงสุด 3 ตำแหน่ง กรุณาลบตำแหน่งก่อนเพิ่มใหม่',
+    'location.limit_full_hint':
+        'บันทึกครบ 3 ตำแหน่งแล้ว แตะ ⋮ ที่ตำแหน่งที่บันทึกไว้แล้วเลือกลบ จากนั้นค้นหาด้านบนเพื่อเพิ่มตำแหน่งใหม่',
+    'location.limit_full_modal_hint':
+        'บันทึกที่อยู่ครบ 3 แห่งแล้ว ตำแหน่งปัจจุบัน (GPS) ไม่นับในลิมิตนี้ — ลบที่อยู่ที่บันทึกไว้ก่อนเพิ่มใหม่',
+    'location.search_to_add_hint':
+        'พิมพ์ที่อยู่ในช่องค้นหาด้านบน แล้วแตะผลลัพธ์เพื่อบันทึก',
     'location.slots_used': 'บันทึกแล้ว {current}/{max}',
     'location.load_place_failed': 'โหลดรายละเอียดสถานที่ไม่ได้',
     'location.no_results': 'ไม่พบผลลัพธ์',
@@ -2339,7 +2500,8 @@ class AppTranslations {
     'comment.delete_failed': 'ลบความคิดเห็นไม่สำเร็จ',
     'revise.title': 'แก้ไขคำสั่งซื้อ',
     'revise.banner_title': 'คำสั่งซื้อต้องแก้ไข',
-    'revise.banner_message': 'ร้านค้าได้อัปเดตคำสั่งซื้อของคุณ กรุณาตรวจสอบและส่งใหม่',
+    'revise.banner_message':
+        'ร้านค้าได้อัปเดตคำสั่งซื้อของคุณ กรุณาตรวจสอบและส่งใหม่',
     'revise.review_button': 'ตรวจสอบและส่งใหม่',
     'revise.reason_title': 'เหตุผลจากร้านค้า',
     'revise.reason_default': 'ร้านค้าได้แก้ไขรายการบางรายการ',
@@ -2393,13 +2555,16 @@ class AppTranslations {
     'review.choose_gallery': 'เลือกจากแกลเลอรี',
     'review.customer_ratings': 'คะแนนและรีวิวจากลูกค้า',
     'review.error_generic': 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง',
-    'review.experience_prompt': 'ประสบการณ์ของคุณเป็นอย่างไร? บอกสิ่งที่ชอบและสิ่งที่ควรปรับปรุง',
+    'review.experience_prompt':
+        'ประสบการณ์ของคุณเป็นอย่างไร? บอกสิ่งที่ชอบและสิ่งที่ควรปรับปรุง',
     'review.newest': 'ใหม่ล่าสุด',
     'review.no_comment': 'ไม่มีความคิดเห็น',
     'review.out_of_5': 'จาก 5',
-    'review.permanent_body': 'เมื่อส่งแล้วจะแก้ไขหรือลบไม่ได้ กรุณาตรวจสอบให้ถูกต้องและยุติธรรม',
+    'review.permanent_body':
+        'เมื่อส่งแล้วจะแก้ไขหรือลบไม่ได้ กรุณาตรวจสอบให้ถูกต้องและยุติธรรม',
     'review.permanent_title': 'รีวิวถาวร',
-    'review.public_body': 'รีวิวของคุณจะแสดงต่อผู้อื่น คุณรีวิวร้านนี้ได้เพียงครั้งเดียว',
+    'review.public_body':
+        'รีวิวของคุณจะแสดงต่อผู้อื่น คุณรีวิวร้านนี้ได้เพียงครั้งเดียว',
     'review.public_title': 'รีวิวเป็นสาธารณะ',
     'review.ratings_count': '{count} คะแนน',
     'review.recent': 'รีวิวล่าสุด',
@@ -2415,7 +2580,8 @@ class AppTranslations {
     'visa.could_not_launch': 'เปิด {url} ไม่ได้',
     'visa.immigration_services': 'บริการตรวจคนเข้าเมือง',
     'visa.official_website': 'เว็บไซต์ทางการ',
-    'visa.official_website_sub': 'เยี่ยมชมเว็บไซต์ราชการเพื่อรายละเอียดเพิ่มเติม',
+    'visa.official_website_sub':
+        'เยี่ยมชมเว็บไซต์ราชการเพื่อรายละเอียดเพิ่มเติม',
     'visa.online_appointment': 'นัดหมายออนไลน์',
     'visa.online_appointment_sub': 'คุณสามารถจองนัดหมายบริการนี้ออนไลน์ได้',
     'visa.subtitle': 'ประเภทวีซ่าและบริการตรวจคนเข้าเมือง 2026',
@@ -2467,19 +2633,20 @@ class AppTranslations {
     'order.closed_sheet_title': 'ร้านนี้ปิดอยู่ในขณะนี้',
     'order.closed_sheet_body':
         'คุณสามารถดูเมนูได้ แต่ยังสั่งอาหารไม่ได้จนกว่าร้านจะเปิด',
-    'order.menu_item_delivery_banner':
-        'ร้านนี้ยังไม่รับออเดอร์จัดส่งในขณะนี้',
+    'order.menu_item_delivery_banner': 'ร้านนี้ยังไม่รับออเดอร์จัดส่งในขณะนี้',
     'order.menu_item_closed_banner':
         'ร้านปิดอยู่ คุณดูเมนูได้แต่ยังเพิ่มลงตะกร้าไม่ได้',
     'order.card_closed_opens': 'ปิด · {opens}',
     'order.add_to_cart_unavailable': 'สั่งไม่ได้ในขณะนี้',
     'order.got_it': 'เข้าใจแล้ว',
-    'order.status_strip_delivery':
-        'ไม่มีบริการจัดส่ง · ขออภัยในความไม่สะดวก',
+    'order.status_strip_delivery': 'ไม่มีบริการจัดส่ง · ขออภัยในความไม่สะดวก',
     'order.status_strip_closed': 'ปิด · {opens}',
     'order.status_strip_closed_short': 'ปิด · กรุณากลับมาใหม่ภายหลัง',
-    'order.menu_browse_hint':
-        'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้ในขณะนี้',
+    'order.menu_browse_hint_delivery':
+        'ขณะนี้ร้านหยุดรับออเดอร์จัดส่งชั่วคราว · กลับมาสั่งใหม่ได้เร็ว ๆ นี้',
+    'order.menu_browse_hint_closed':
+        'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้จนกว่าร้านจะเปิด',
+    'order.menu_browse_hint': 'ดูเมนูได้ แต่ยังสั่งอาหารไม่ได้ในขณะนี้',
     'order.badge_delivery_off': 'ไม่จัดส่ง',
     'time.minutes_ago': '{count} นาทีที่แล้ว',
     'time.hours_ago': '{count} ชม.ที่แล้ว',
@@ -2496,7 +2663,8 @@ class AppTranslations {
     'help.office_hours': 'เวลาทำการ',
     'help.office_hours_value': 'จันทร์–ศุกร์: 9.00 – 18.00 น.',
     'help.need_more_help': 'ต้องการความช่วยเหลือเพิ่มเติม?',
-    'help.email_support_desc': 'ส่งอีเมลถึงทีมสนับสนุนของเราโดยตรงเพื่อขอความช่วยเหลือ',
+    'help.email_support_desc':
+        'ส่งอีเมลถึงทีมสนับสนุนของเราโดยตรงเพื่อขอความช่วยเหลือ',
     'help.could_not_open': 'เปิดไม่ได้',
     'collection.items_count': '{count} รายการ',
     'orders.items_count': '{count} รายการ',
@@ -2529,8 +2697,7 @@ class AppTranslations {
     'order_confirm.footer_prefix': 'คุณสามารถสั่งซื้อครั้งถัดไปได้ ',
     'order_confirm.footer_link': 'ที่นี่',
     'demo.feature_unavailable': 'ฟีเจอร์ไม่พร้อมใช้งาน',
-    'demo.feature_unavailable_body':
-        'ฟีเจอร์นี้ยังไม่พร้อมใช้งานในแอปเดโม',
+    'demo.feature_unavailable_body': 'ฟีเจอร์นี้ยังไม่พร้อมใช้งานในแอปเดโม',
     'common.got_it': 'เข้าใจแล้ว',
     'news.report_post': 'รายงานโพสต์',
     'news.block_user': 'บล็อกผู้ใช้',
@@ -2543,10 +2710,12 @@ class AppTranslations {
     'news.blocked_success': 'บล็อกผู้ใช้แล้ว',
     'news.block_action': 'บล็อก',
     'news.you': 'คุณ',
-    'order_status.checking_payment_shop': '{shop} กำลังตรวจสอบการชำระเงินของคุณ',
+    'order_status.checking_payment_shop':
+        '{shop} กำลังตรวจสอบการชำระเงินของคุณ',
     'order_status.preparing_shop': '{shop} กำลังเตรียมคำสั่งซื้อของคุณ',
     'order_status.delivering_shop': '{shop} กำลังจัดส่งคำสั่งซื้อของคุณ',
-    'order_status.completing_shop': '{shop} กำลังดำเนินการคำสั่งซื้อให้เสร็จสิ้น',
+    'order_status.completing_shop':
+        '{shop} กำลังดำเนินการคำสั่งซื้อให้เสร็จสิ้น',
     'cart.place_order_failed': 'สั่งซื้อไม่สำเร็จ: {error}',
     'cart.unknown_error': 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ',
     'order_tracking.est_delivery_fee_label': 'ค่าจัดส่งโดยประมาณ ',
@@ -2580,19 +2749,22 @@ class AppTranslations {
     'food.distance_km': '{distance} กม.',
     'news.author_fallback': 'Together',
     'common.na': 'N/A',
-    
+
     // Firebase Errors
     'firebase.invalid_phone': 'หมายเลขโทรศัพท์ที่คุณป้อนไม่ถูกต้อง',
-    'firebase.too_many_requests': 'มีการร้องขอมากเกินไป โปรดลองอีกครั้งในภายหลัง',
+    'firebase.too_many_requests':
+        'มีการร้องขอมากเกินไป โปรดลองอีกครั้งในภายหลัง',
     'firebase.invalid_code': 'รหัส OTP ที่คุณป้อนไม่ถูกต้อง',
     'firebase.session_expired': 'รหัส OTP หมดอายุแล้ว โปรดขอรหัสใหม่',
-    'firebase.network_error': 'ข้อผิดพลาดของเครือข่าย โปรดตรวจสอบการเชื่อมต่อของคุณ',
+    'firebase.network_error':
+        'ข้อผิดพลาดของเครือข่าย โปรดตรวจสอบการเชื่อมต่อของคุณ',
     'firebase.user_disabled': 'บัญชีนี้ถูกปิดใช้งาน',
     'firebase.unknown_error': 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ โปรดลองอีกครั้ง',
-    
+
     // Permissions
     'permission.title': 'อนุญาตการเข้าถึง',
-    'permission.desc': 'เพื่อให้คุณได้รับประสบการณ์ที่ดีที่สุด MyTogether ต้องการเข้าถึง:\n\n📍 **ตำแหน่ง:** เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่งอย่างถูกต้อง\n\n🔔 **การแจ้งเตือน:** เพื่ออัปเดตสถานะคำสั่งซื้อของคุณแบบเรียลไทม์และประกาศสำคัญ',
+    'permission.desc':
+        'เพื่อให้คุณได้รับประสบการณ์ที่ดีที่สุด MyTogether ต้องการเข้าถึง:\n\n📍 **ตำแหน่ง:** เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่งอย่างถูกต้อง\n\n🔔 **การแจ้งเตือน:** เพื่ออัปเดตสถานะคำสั่งซื้อของคุณแบบเรียลไทม์และประกาศสำคัญ',
     'permission.continue': 'ดำเนินการต่อ',
   };
 }

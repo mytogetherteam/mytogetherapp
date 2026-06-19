@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/presentation/widgets/local_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -30,7 +31,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isSaving = false;
 
   final ImagePicker _picker = ImagePicker();
-  XFile? _pickedImage;
+  PickedImage? _pickedImage;
   String? _currentAvatarUrl;
 
   @override
@@ -63,11 +64,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
         maxWidth: 1024,
       );
       if (picked != null) {
-        setState(() => _pickedImage = picked);
+        setState(() => _pickedImage = null);
+        final image = await PickedImage.fromXFile(picked);
+        if (mounted) setState(() => _pickedImage = image);
       }
     } catch (e) {
       if (mounted) {
-        AppDialog.showToast(context, context.tr('auth.could_not_pick_image'), isError: true);
+        AppDialog.showToast(
+          context,
+          context.tr('auth.could_not_pick_image'),
+          isError: true,
+        );
       }
     }
   }
@@ -178,7 +185,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildAvatarPicker() {
     ImageProvider? avatarImage;
     if (_pickedImage != null) {
-      avatarImage = localImageProvider(_pickedImage!);
+      avatarImage = MemoryImage(_pickedImage!.bytes);
     } else if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
       avatarImage = CachedNetworkImageProvider(
         _resolveAvatarUrl(_currentAvatarUrl!),
@@ -195,14 +202,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 2,
+                ),
               ),
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.grey[200],
                 backgroundImage: avatarImage,
                 child: avatarImage == null
-                    ? Icon(PhosphorIcons.userBold, size: 40, color: Colors.grey[400])
+                    ? Icon(
+                        PhosphorIcons.userBold,
+                        size: 40,
+                        color: Colors.grey[400],
+                      )
                     : null,
               ),
             ),
@@ -219,7 +233,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -319,7 +337,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),

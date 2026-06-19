@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
 import '../../../../core/utils/multipart_helper.dart';
@@ -32,11 +32,7 @@ class ItemPostRepository {
   }) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/item-posts',
-      queryParameters: {
-        'page': page,
-        'size': size,
-        'type': ?type,
-      },
+      queryParameters: {'page': page, 'size': size, 'type': ?type},
     );
     final body = response.data;
     return ItemPostFeedPage(
@@ -76,7 +72,9 @@ class ItemPostRepository {
   }
 
   Future<ItemPostDto?> fetchOne(int id) async {
-    final response = await _dio.get('${ApiClient.apiPrefix}/user/item-posts/$id');
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/item-posts/$id',
+    );
     return ApiResponseUtils.parseDataObject(
       response.data,
       ItemPostDto.fromJson,
@@ -108,7 +106,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<XFile> photos = const [],
+    List<PickedImage> photos = const [],
     List<int> removePhotoIds = const [],
   }) async {
     final formData = FormData.fromMap({
@@ -126,7 +124,9 @@ class ItemPostRepository {
       formData.files.add(
         MapEntry(
           'photos',
-          await multipartFromXFile(photos[i], filenamePrefix: 'photo_$i'),
+          photos[i].toMultipartFile(
+            filenameOverride: 'photo_$i.${photos[i].extension}',
+          ),
         ),
       );
     }
@@ -153,7 +153,7 @@ class ItemPostRepository {
     double? longitude,
     String? locationName,
     String? phoneNumber,
-    List<XFile> photos = const [],
+    List<PickedImage> photos = const [],
   }) async {
     final formData = FormData.fromMap({
       'description': description,
@@ -170,7 +170,9 @@ class ItemPostRepository {
       formData.files.add(
         MapEntry(
           'photos',
-          await multipartFromXFile(photos[i], filenamePrefix: 'photo_$i'),
+          photos[i].toMultipartFile(
+            filenameOverride: 'photo_$i.${photos[i].extension}',
+          ),
         ),
       );
     }
@@ -186,8 +188,9 @@ class ItemPostRepository {
   }
 
   Future<({bool liked, int likeCount})> toggleLike(int id) async {
-    final response =
-        await _dio.post('${ApiClient.apiPrefix}/user/item-posts/$id/like');
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/item-posts/$id/like',
+    );
     final data = ApiResponseUtils.unwrapData(response.data);
     if (data is Map) {
       return (

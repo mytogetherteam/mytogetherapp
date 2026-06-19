@@ -5,6 +5,7 @@ import '../models/auth_models.dart';
 import '../models/user_location_model.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/media/picked_image.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
@@ -20,11 +21,11 @@ class AuthRepository {
       final response = await _dataSource.login(
         LoginRequest(phone: phone, pin: pin),
       );
-      
+
       if (response.role != 'CUSTOMER') {
         throw Exception('Access Denied: Only users can login to this app.');
       }
-      
+
       // After login success, we must ensure the token is set for subsequent calls
       // The Dio interceptor usually handles this, but here we might need a manual set if not yet initialized
       AuthService().updateAccessToken(response.token);
@@ -48,9 +49,9 @@ class AuthRepository {
       final response = await _dataSource.register(
         RegisterRequest(idToken: idToken, pin: pin, name: name, email: email),
       );
-      
+
       AuthService().updateAccessToken(response.token);
-      
+
       final profile = await _dataSource.getUserProfile();
       final locations = await _dataSource.getUserLocations();
 
@@ -91,7 +92,7 @@ class AuthRepository {
     String? username,
     String? phone,
     String? address,
-    XFile? profilePhoto,
+    PickedImage? profilePhoto,
   }) async {
     try {
       final updated = await _dataSource.updateUserProfile(
@@ -110,9 +111,9 @@ class AuthRepository {
 
   /// Uploads a new profile photo, then refreshes the cached session so the
   /// avatar updates everywhere it's shown.
-  Future<UserModel> updateAvatar(XFile photo) async {
+  Future<UserModel> updateAvatar(PickedImage image) async {
     try {
-      final updated = await _dataSource.uploadAvatar(photo);
+      final updated = await _dataSource.uploadAvatar(image);
       await AuthService().updateCurrentUser(updated);
       return updated;
     } on DioException catch (e) {
@@ -132,14 +133,20 @@ class AuthRepository {
     }
   }
 
-  Future<void> _saveSession(AuthResponse response, {UserModel? profile, List<UserLocationModel>? locations}) async {
-    final user = profile ?? UserModel(
-      id: response.id,
-      username: response.username,
-      email: response.email,
-      fullName: response.fullName,
-      role: response.role,
-    );
+  Future<void> _saveSession(
+    AuthResponse response, {
+    UserModel? profile,
+    List<UserLocationModel>? locations,
+  }) async {
+    final user =
+        profile ??
+        UserModel(
+          id: response.id,
+          username: response.username,
+          email: response.email,
+          fullName: response.fullName,
+          role: response.role,
+        );
     await AuthService().saveSession(
       accessToken: response.token,
       refreshToken: response.refreshToken,
@@ -155,9 +162,13 @@ class AuthRepository {
     String? message;
     if (body is Map) {
       final rawDetails = body['details'];
-      details = rawDetails is List ? rawDetails.join(', ') : rawDetails?.toString();
+      details = rawDetails is List
+          ? rawDetails.join(', ')
+          : rawDetails?.toString();
       final rawMessage = body['message'];
-      message = rawMessage is List ? rawMessage.join(', ') : rawMessage?.toString();
+      message = rawMessage is List
+          ? rawMessage.join(', ')
+          : rawMessage?.toString();
     }
     final text = details?.isNotEmpty == true ? details : message;
 

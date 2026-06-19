@@ -96,10 +96,13 @@ class ShopFeedItemDto {
         _estimatedTime = estimatedTime;
 
   factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
-    final orderState = ShopOrderStateFields.fromJson(json);
+    final shopMap =
+        json['shop'] is Map<String, dynamic> ? json['shop'] as Map<String, dynamic> : null;
+    final orderState = ShopOrderStateFields.fromJson(json, shop: shopMap);
     final shopId = int.tryParse(json['shopId'].toString()) ?? 0;
 
-    if (shopId > 0) {
+    if (shopId > 0 &&
+        ShopOrderStateFields.jsonContainsOrderState(json, shop: shopMap)) {
       ShopOrderStateCache.instance.ensureListening();
       ShopOrderStateCache.instance.rememberParts(
         shopId,

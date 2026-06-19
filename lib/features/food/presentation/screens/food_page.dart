@@ -33,6 +33,9 @@ class FoodPage extends StatefulWidget {
 }
 
 class _FoodPageState extends State<FoodPage> {
+  /// Toggle to show discount + collection rails between banner and restaurants.
+  static const _showDiscountAndCollectionRails = false;
+
   Key _refreshKey = UniqueKey();
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
@@ -206,13 +209,16 @@ class _FoodPageState extends State<FoodPage> {
                               ),
                               const SizedBox(height: 28),
                               const FoodPromotionsCarousel(),
-                              const SizedBox(height: 28),
-                              FoodDiscountSelectionSection(
-                                key: ValueKey('discount_$_refreshKey'),
-                              ),
-                              const SizedBox(height: 32),
-                              const CollectionsSection(),
-                              const SizedBox(height: 32),
+                              if (_showDiscountAndCollectionRails) ...[
+                                const SizedBox(height: 28),
+                                FoodDiscountSelectionSection(
+                                  key: ValueKey('discount_$_refreshKey'),
+                                ),
+                                const SizedBox(height: 32),
+                                const CollectionsSection(),
+                                const SizedBox(height: 32),
+                              ] else
+                                const SizedBox(height: 32),
                               const FoodRestaurantsSection(),
                               const TrendingShopsSection(),
                               PopularBrandsSection(

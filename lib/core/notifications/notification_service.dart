@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -45,38 +44,54 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize local notifications
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    await _localNotifications.initialize(
-      settings: initializationSettings,
-      onDidReceiveNotificationResponse: (details) {
-        _handleNotificationClick(null); // Simple navigation for now
-      },
-    );
+    if (!kIsWeb) {
+      // Initialize local notifications
+      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
+      const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+      await _localNotifications.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (details) {
+          _handleNotificationClick(null); // Simple navigation for now
+        },
+      );
 
-    // Create high importance channel for Android
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel',
-      'High Importance Notifications',
-      description: 'This channel is used for important notifications.',
-      importance: Importance.high,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+      // Create high importance channel for Android
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel_v2',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.high,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      // Payment-request channel — high importance but normal (default) sound,
+      // no looping flag so it behaves like every other notification.
+      const AndroidNotificationChannel paymentChannel = AndroidNotificationChannel(
+        'high_importance_channel_payment',
+        'Payment Notifications',
+        description: 'This channel is used for payment request notifications.',
+        importance: Importance.high,
+        playSound: true,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(paymentChannel);
+    }
 
     // Permissions are now requested via MainNavigationScreen rationale modal
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    try {
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];
 
       // 0. Admin broadcast/announcement: pop the modal globally (any screen)
@@ -108,11 +123,11 @@ class NotificationService {
       // We manual handle it here for consistency.
       if (message.notification != null) {
         NotificationRepository().incrementCount();
-        _showLocalNotification(message);
+        showLocalNotification(message);
       } else if (message.data.isNotEmpty && type != 'SILENT_SYNC') {
         // Fallback for data-only legacy/other pushes
         NotificationRepository().getUnreadCount();
-        _showLocalNotification(message);
+        showLocalNotification(message);
       }
     });
 
@@ -140,14 +155,13 @@ class NotificationService {
     }
 
     // Listen for token refreshes
-    try {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         if (AuthService().isLoggedIn) {
           _sendTokenToServer(newToken);
         }
       });
     } catch (e) {
-      debugPrint('FCM onTokenRefresh failed: $e');
+      debugPrint('FCM listener setup failed: $e');
     }
 
     _isInitialized = true;
@@ -222,25 +236,37 @@ class NotificationService {
 
   String get _devicePlatform {
     if (kIsWeb) return 'web';
-    if (Platform.isIOS) return 'ios';
-    if (Platform.isAndroid) return 'android';
-    return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.android:
+        return 'android';
+      default:
+        return 'web';
+    }
   }
 
-  Future<void> _showLocalNotification(RemoteMessage message) async {
+  Future<void> showLocalNotification(RemoteMessage message) async {
+    if (kIsWeb) return;
+
     final String title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
     final String body = message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? 'You have a new message';
+    
+    final String? type = message.data['type'];
+    final String? subType = message.data['subType'];
+    final bool isPayment = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      channelDescription: 'This channel is used for important notifications.',
-      importance: Importance.max,
+    final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      isPayment ? 'high_importance_channel_payment' : 'high_importance_channel_v2',
+      isPayment ? 'Payment Notifications' : 'High Importance Notifications',
+      channelDescription: isPayment ? 'This channel is used for payment request notifications.' : 'This channel is used for important notifications.',
+      importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/launcher_icon',
+      playSound: true,
       showWhen: true,
     );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
       id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
       title: title,

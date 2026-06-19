@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -86,12 +87,14 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       return;
     }
 
-    // 1. Immediate Last Known Position (Instant check)
-    final lastKnown = await Geolocator.getLastKnownPosition();
-    if (lastKnown != null && mounted) {
-      setState(() {
-        _currentLocation = LatLng(lastKnown.latitude, lastKnown.longitude);
-      });
+    // 1. Immediate last known position (mobile only — not supported on web).
+    if (!kIsWeb) {
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        setState(() {
+          _currentLocation = LatLng(lastKnown.latitude, lastKnown.longitude);
+        });
+      }
     }
 
     // 2. Start streaming for real-time updates (Keep GPS warm)
@@ -196,10 +199,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           _currentLocation = startLoc;
         });
       } catch (e) {
-        // Still no location? Fallback to last known as absolute last resort
-        final last = await Geolocator.getLastKnownPosition();
-        if (last != null) {
-          startLoc = LatLng(last.latitude, last.longitude);
+        if (!kIsWeb) {
+          final last = await Geolocator.getLastKnownPosition();
+          if (last != null) {
+            startLoc = LatLng(last.latitude, last.longitude);
+          }
         }
       }
     }
