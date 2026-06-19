@@ -6,6 +6,7 @@ import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
+import '../../../../core/location/location_display_util.dart';
 import 'location_selection_modal.dart';
 import 'location_skeleton_loader.dart';
 import '../../../food/presentation/screens/food_search_page.dart';
@@ -117,9 +118,10 @@ class _FoodHeaderState extends State<FoodHeader> {
     if (UserLocationRepository.instance.isSessionCurrentLocation) {
       return context.tr('location.current');
     }
-    return _displayLocation!.locationName ??
-        _displayLocation!.address ??
-        context.tr('food.my_location');
+    final compact = LocationDisplayUtil.compactAddress(
+      _displayLocation!.streetAddress ?? _displayLocation!.address,
+    );
+    return compact.isNotEmpty ? compact : context.tr('food.my_location');
   }
 
   @override

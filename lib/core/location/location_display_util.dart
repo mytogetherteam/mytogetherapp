@@ -37,4 +37,21 @@ class LocationDisplayUtil {
     }
     return null;
   }
+
+  /// Short address for tight UI slots such as the food tab header.
+  ///
+  /// Uses the first comma-separated segment (usually street/soi) and caps length.
+  static String compactAddress(String? value, {int maxLength = 32}) {
+    final readable = readableAddress(value);
+    if (readable == null) return '';
+
+    final segments = readable
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty);
+    var short = segments.isNotEmpty ? segments.first : readable;
+
+    if (short.length <= maxLength) return short;
+    return '${short.substring(0, maxLength - 1).trim()}…';
+  }
 }

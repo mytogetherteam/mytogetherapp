@@ -23,34 +23,28 @@ class LocationDetailsSheet extends StatefulWidget {
 }
 
 class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
-  late TextEditingController _nameController;
   late TextEditingController _buildingController;
   late TextEditingController _floorController;
   late TextEditingController _noteController;
   late TextEditingController _postalController;
   late String _selectedType;
-  String? _nicknameError;
 
   final List<String> _types = ['HOME', 'WORK', 'OTHER'];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.location.locationName ?? '',
-    );
     _buildingController = TextEditingController(text: widget.location.buildingName);
     _floorController = TextEditingController(text: widget.location.floor);
     _noteController = TextEditingController(text: widget.location.note);
     _postalController = TextEditingController(text: widget.location.postalCode);
-    _selectedType = _types.contains(widget.location.locationType) 
-        ? widget.location.locationType! 
+    _selectedType = _types.contains(widget.location.locationType)
+        ? widget.location.locationType!
         : 'OTHER';
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _buildingController.dispose();
     _floorController.dispose();
     _noteController.dispose();
@@ -60,6 +54,8 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final address = widget.location.streetAddress;
+
     return Container(
       padding: EdgeInsets.only(
         top: 20,
@@ -91,7 +87,9 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.isEdit ? context.tr('location.edit') : context.tr('location.create'),
+                    widget.isEdit
+                        ? context.tr('location.edit')
+                        : context.tr('location.create'),
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -109,42 +107,25 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(PhosphorIconsFill.mapPin, size: 20, color: AppColors.primary),
+                Icon(
+                  PhosphorIconsFill.mapPin,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    widget.location.address ?? context.tr('location.unspecified_address'),
+                    address ?? context.tr('location.unspecified_address'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Colors.grey[800],
+                      height: 1.4,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            _buildLabel(context.tr('location.nickname')),
-            _buildTextField(
-              controller: _nameController,
-              hint: context.tr('location.nickname_hint'),
-              icon: PhosphorIcons.tag,
-              onChanged: (_) {
-                if (_nicknameError != null) {
-                  setState(() => _nicknameError = null);
-                }
-              },
-            ),
-            if (_nicknameError != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _nicknameError!,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.red.shade700,
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
             _buildLabel(context.tr('location.type')),
             const SizedBox(height: 8),
             Row(
@@ -189,15 +170,11 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             const SizedBox(height: 32),
             PrimaryGradientButton(
               onPressed: () {
-                final nickname = _nameController.text.trim();
-                if (nickname.isEmpty) {
-                  setState(() {
-                    _nicknameError = context.tr('location.nickname_required');
-                  });
+                if (address == null || address.isEmpty) {
                   return;
                 }
                 final updated = widget.location.copyWith(
-                  locationName: nickname,
+                  clearLocationName: true,
                   locationType: _selectedType,
                   buildingName: _buildingController.text.trim().isNotEmpty
                       ? _buildingController.text.trim()
@@ -216,7 +193,9 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 widget.onSave(updated);
               },
               child: Text(
-                widget.isEdit ? context.tr('location.update') : context.tr('location.create'),
+                widget.isEdit
+                    ? context.tr('location.update')
+                    : context.tr('location.create'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -250,30 +229,25 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
     required IconData icon,
     TextInputType? keyboardType,
     int maxLines = 1,
-    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _nicknameError != null && identical(controller, _nameController)
-              ? Colors.red.shade300
-              : const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        onChanged: onChanged,
         style: GoogleFonts.poppins(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
           prefixIcon: Icon(icon, size: 18, color: Colors.grey[600]),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
     );
@@ -283,9 +257,15 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
     final isSelected = _selectedType == type;
     IconData icon;
     switch (type) {
-      case 'HOME': icon = PhosphorIcons.house; break;
-      case 'WORK': icon = PhosphorIcons.briefcase; break;
-      default: icon = PhosphorIcons.mapPin; break;
+      case 'HOME':
+        icon = PhosphorIcons.house;
+        break;
+      case 'WORK':
+        icon = PhosphorIcons.briefcase;
+        break;
+      default:
+        icon = PhosphorIcons.mapPin;
+        break;
     }
 
     return Expanded(
@@ -296,7 +276,9 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),

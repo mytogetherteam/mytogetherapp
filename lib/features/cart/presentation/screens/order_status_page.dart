@@ -1119,30 +1119,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                           (state.deliveryAddress != null &&
                                                   state.deliveryAddress!.isNotEmpty)
                                               ? state.deliveryAddress!
-                                              : (state.userLocationName ??
-                                                  context.tr('food.my_location')),
+                                              : context.tr('food.my_location'),
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
                                           ),
-                                          maxLines: 2,
+                                          maxLines: 3,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        if (state.userLocationName != null &&
-                                            state.userLocationName!.isNotEmpty &&
-                                            state.deliveryAddress != null &&
-                                            state.deliveryAddress!.isNotEmpty &&
-                                            state.userLocationName !=
-                                                state.deliveryAddress)
-                                          Text(
-                                            state.userLocationName!,
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: Colors.grey[500],
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
                                       ],
                                     ),
                                   ],
