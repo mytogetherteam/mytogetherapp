@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -51,6 +54,23 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
   Future<void> _checkPermissions({bool silent = false}) async {
     if (!silent) setState(() => _isLoading = true);
 
+    if (kIsWeb) {
+      final geoPerm = await Geolocator.checkPermission();
+      final locationGranted = geoPerm == LocationPermission.always ||
+          geoPerm == LocationPermission.whileInUse;
+
+      if (mounted) {
+        setState(() {
+          _locationStatus =
+              locationGranted ? PermissionStatus.granted : PermissionStatus.denied;
+          // Browser push permissions are managed outside the native permission API.
+          _notificationStatus = PermissionStatus.granted;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
     final notification = await Permission.notification.status;
     final location = await Permission.location.status;
 
@@ -68,6 +88,14 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
     PermissionStatus status,
     void Function(PermissionStatus) onUpdated,
   ) async {
+    if (kIsWeb) {
+      if (permission == Permission.location) {
+        await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
+        await _checkPermissions(silent: true);
+      }
+      return;
+    }
+
     // Already granted or blocked by the user -> the only way forward is the
     // OS settings screen.
     if (status.isGranted ||
@@ -135,18 +163,19 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _buildPermissionCard(
-                    icon: PhosphorIconsRegular.bellRinging,
-                    title: context.tr('permissions.notifications_title'),
-                    description: context.tr('permissions.notifications_desc'),
-                    status: _notificationStatus,
-                    onActionPressed: () => _handlePermission(
-                      Permission.notification,
-                      _notificationStatus,
-                      (s) => setState(() => _notificationStatus = s),
+                  if (!kIsWeb)
+                    _buildPermissionCard(
+                      icon: PhosphorIconsRegular.bellRinging,
+                      title: context.tr('permissions.notifications_title'),
+                      description: context.tr('permissions.notifications_desc'),
+                      status: _notificationStatus,
+                      onActionPressed: () => _handlePermission(
+                        Permission.notification,
+                        _notificationStatus,
+                        (s) => setState(() => _notificationStatus = s),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                  if (!kIsWeb) const SizedBox(height: 16),
                   _buildPermissionCard(
                     icon: PhosphorIconsRegular.mapPin,
                     title: context.tr('permissions.location_title'),
