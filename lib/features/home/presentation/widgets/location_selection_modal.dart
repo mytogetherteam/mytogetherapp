@@ -95,7 +95,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
     try {
       LocationService().clearCache();
       final pos = await LocationService().getCurrentPosition(
-        requestPermissionIfDenied: true,
+        requestPermissionIfDenied: false,
         forceRefresh: true,
         highAccuracy: !kIsWeb,
       );

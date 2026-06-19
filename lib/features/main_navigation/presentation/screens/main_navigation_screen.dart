@@ -173,6 +173,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  /// Extra bottom inset so tab labels stay above the browser/PWA home indicator.
+  double _bottomNavInset(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final safeBottom = media.viewPadding.bottom > 0
+        ? media.viewPadding.bottom
+        : media.padding.bottom;
+
+    if (kIsWeb) {
+      return safeBottom > 0 ? safeBottom + 6 : 20;
+    }
+
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      return safeBottom * 0.5;
+    }
+    return safeBottom;
+  }
+
+  static const double _navBarContentHeight = 60;
+
   @override
   Widget build(BuildContext context) {
     // Rebuild tab list only when the active language changes.
@@ -187,8 +206,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       floatingActionButton: const StyledCartFab(),
       bottomNavigationBar: Container(
-        height: 60 + (Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
-        padding: EdgeInsets.only(bottom: Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
+        height: _navBarContentHeight + _bottomNavInset(context),
+        padding: EdgeInsets.only(bottom: _bottomNavInset(context)),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
