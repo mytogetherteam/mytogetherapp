@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,9 +30,11 @@ class _RegisterPageState extends State<RegisterPage>
   final _otpController = TextEditingController();
 
   bool _isLoading = false;
-
   bool _showOtpView = false;
   String? _verificationId;
+
+  Timer? _resendTimer;
+  int _resendSecondsRemaining = 0;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeAnim;
@@ -52,8 +55,27 @@ class _RegisterPageState extends State<RegisterPage>
     _animController.forward();
   }
 
+  void _startResendTimer() {
+    setState(() {
+      _resendSecondsRemaining = 60;
+    });
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        if (_resendSecondsRemaining > 0) {
+          setState(() {
+            _resendSecondsRemaining--;
+          });
+        } else {
+          _resendTimer?.cancel();
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _animController.dispose();
     _phoneController.dispose();
     _pinController.dispose();
@@ -89,41 +111,21 @@ class _RegisterPageState extends State<RegisterPage>
         return;
       }
 
-      // Safety timeout: unlock UI if Firebase callbacks fail to trigger
-      Timer(const Duration(seconds: 20), () {
-        if (mounted && _isLoading && !_showOtpView) {
-          setState(() => _isLoading = false);
-          AppDialog.showToast(context, 'Request timed out or reCAPTCHA failed. Please try again.', isError: true);
-        }
+      // Directly navigate to SetupPinPage, skipping OTP steps
+      setState(() {
+        _isLoading = false;
       });
-
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phoneStr,
-        timeout: const Duration(seconds: 60),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-resolution (rarely triggers correctly across all devices)
-          _verifyWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (!mounted) return;
-          final msg = FirebaseErrorHandler.getMessage(context, e);
-          AppDialog.showToast(context, msg, isError: true);
-          setState(() {
-            _isLoading = false;
-          });
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          if (!mounted) return;
-          setState(() {
-            _verificationId = verificationId;
-            _showOtpView = true;
-            _isLoading = false;
-          });
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-      );
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SetupPinPage(
+              idToken: phoneStr,
+              name: _fullNameController.text.trim(),
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       final msg = FirebaseErrorHandler.getMessage(context, e);
@@ -262,18 +264,15 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     const SizedBox(height: 32),
 
-                    if (!_showOtpView) _buildRegistrationForm(),
-                    if (_showOtpView) _buildOtpForm(),
+                     _buildRegistrationForm(),
 
                     const SizedBox(height: 32),
 
                     PrimaryGradientButton(
-                      onPressed: _isLoading ? null : (_showOtpView ? _handleVerifyOtp : _handleSendOtp),
+                      onPressed: _isLoading ? null : _handleSendOtp,
                       isLoading: _isLoading,
                       child: Text(
-                        _showOtpView
-                            ? context.tr('auth.verify_otp_register')
-                            : context.tr('auth.send_otp'),
+                        context.tr('auth.register_account'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -401,6 +400,38 @@ class _RegisterPageState extends State<RegisterPage>
                 _handleVerifyOtp();
               }
             },
+          ),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _resendSecondsRemaining > 0
+                ? Text(
+                    context.trArgs('auth.resend_in', {'seconds': '$_resendSecondsRemaining'}),
+                    key: const ValueKey('countdown'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                : TextButton(
+                    key: const ValueKey('resend_btn'),
+                    onPressed: _isLoading ? null : _handleSendOtp,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: Text(
+                      context.tr('auth.resend_code'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
           ),
         ),
       ],

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
@@ -10,22 +8,19 @@ class WelcomeModal extends StatelessWidget {
 
   const WelcomeModal({super.key, required this.onClosed});
 
-  static const String _prefsKey = 'has_seen_welcome_modal';
+  static bool _hasShownThisSession = false;
 
-  /// Checks SharedPreferences and shows the modal if it's the user's first time.
+  /// Shows the modal once per app session when the user first reaches this screen.
   static Future<void> showIfFirstTime(
       BuildContext context, VoidCallback onClosed) async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeen = prefs.getBool(_prefsKey) ?? false;
-
-    if (!hasSeen) {
-      await prefs.setBool(_prefsKey, true);
+    if (!_hasShownThisSession) {
+      _hasShownThisSession = true;
       if (!context.mounted) return;
 
       showGeneralDialog(
         context: context,
         barrierDismissible: false,
-        barrierColor: Colors.white,
+        barrierColor: Colors.black54,
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) {
           return WelcomeModal(onClosed: () {
@@ -54,184 +49,105 @@ class WelcomeModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      PhosphorIcons.handWavingFill,
-                      size: 64,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'မင်္ဂလာပါခင်ဗျာ!',
-                    style: GoogleFonts.poppins(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'MyTogether မိသားစုကနေ\nနွေးထွေးစွာ ကြိုဆိုလိုက်ပါတယ်ဗျ။',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: SingleChildScrollView(
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with Gradient and Logo
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Image.asset(
+                      'assets/images/logo_3d.png',
+                      height: 80,
+                    ),
+                    const SizedBox(height: 16),
                     Text(
-                      'အခုဆိုရင် လူကြီးမင်းဟာ ကျွန်တော်တို့ရဲ့ အပျော်ရဆုံးနဲ့ အနွေးထွေးဆုံး MyTogether Community ကြီးရဲ့ အဖွဲ့ဝင် ဖြစ်သွားပြီနော်။\n\nကျွန်တော်တို့ အတူတူ ဘာတွေ လုပ်လို့ရမလဲဆိုတော့ -',
+                      'Closed Beta 🎉',
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        color: Colors.black87,
-                        height: 1.6,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    
-                    // Features List
-                    _buildFeatureItem(
-                      icon: PhosphorIcons.storefront,
-                      title: 'ဗိုက်ဆာရင် အတူတူရှာမယ်',
-                      description: 'ဘန်ကောက်ရဲ့ နာမည်ကြီး ဆိုင်ကောင်း၊ သောက်ကောင်းလေးတွေကို မြေပုံနဲ့တကွ စက္ကန့်ပိုင်းအတွင်း တန်းရှာပေးမှာ!',
-                      color: const Color(0xFFF59E0B),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: PhosphorIcons.magnifyingGlass,
-                      title: 'Lost & Found',
-                      description: 'အပျောက်အရှာ ကူညီမယ်။',
-                      color: const Color(0xFF3B82F6),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: PhosphorIcons.currencyCircleDollar,
-                      title: 'Money Rate',
-                      description: 'နေ့စဉ် ငွေလဲနှုန်းကြည့်မယ်။',
-                      color: const Color(0xFF10B981),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: PhosphorIcons.newspaper,
-                      title: 'News',
-                      description: 'နောက်ဆုံးရသတင်းနဲ့ ဗီဇာအချက်အလက်။',
-                      color: const Color(0xFF6366F1),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: PhosphorIcons.usersThree,
-                      title: 'Support',
-                      description: 'အချင်းချင်းဝိုင်းဝန်းကူညီမယ်။',
-                      color: const Color(0xFFEC4899),
-                    ),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
-            ),
-            
-            // Bottom Button
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: PrimaryGradientButton(
-                onPressed: onClosed,
-                width: double.infinity,
-                child: Text(
-                  'စတင်အသုံးပြုမယ်', // "Let's start using"
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+              
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildParagraph('"အကောင်းဆုံးတွေပဲ ပေးချင်လွန်းလို့" ဆိုတဲ့ စေတနာကြီးနဲ့ Team တစ်ခုလုံး မျက်ကွင်းတွေ ညို၊ နေ့မအိပ် ညမအိပ် ကြိုးစားခဲ့ကြတဲ့ ရလဒ်လေးကတော့... အခု ထွက်လာပါပြီဗျို့! 🚀'),
+                      const SizedBox(height: 16),
+                      _buildParagraph('ရင်ခုန်တုန်ရင်စွာနဲ့ စောင့်မျှော်နေကြတဲ့ MyTogether App ရဲ့ Closed Beta Version ကြီး အားလုံးဆီကို တရားဝင် ရောက်ရှိလို့လာပါပြီ! အခုပဲ အဆင်သင့်ဖြစ်ကြပြီလား? 🔥'),
+                      const SizedBox(height: 16),
+                      _buildParagraph('Early Bird စာရင်းသွင်းထားတဲ့ လူလည်လေးတွေအတွက်ကတော့ Official Launch တာနဲ့ Promotions တွေက အလုအယက် စောင့်နေမှာ။ သွားစားမလား၊ မှာစားမလား... အခုကတည်းက ဗိုက်ကို နေရာချန်ထားလိုက်တော့! 🤤🎁'),
+                      const SizedBox(height: 16),
+                      _buildParagraph('ဒီနေ့ Closed Beta အနေနဲ့ အရင်ဆုံး စတင် ပွဲထုတ်လိုက်တာဖြစ်လို့ အချစ်ဦးမို့ အမှားပါရင် ခွင့်လွှတ်ပေးပြီး လိုအပ်တာလေးတွေကို စိတ်ကြိုက် ဝေဖန် အကြံပြုပေးသွားဦးနော်။ 🫶'),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem({
-    required IconData icon,
-    required String title,
-    required String description,
-    required Color color,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(
-            icon,
-            size: 24,
-            color: color,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                  height: 1.5,
+              
+              // Bottom Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: PrimaryGradientButton(
+                  onPressed: onClosed,
+                  width: double.infinity,
+                  child: Text(
+                    'အခုပဲ စတင်မယ်',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildParagraph(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        color: Colors.black87,
+        height: 1.8,
+      ),
+      textAlign: TextAlign.justify,
     );
   }
 }
