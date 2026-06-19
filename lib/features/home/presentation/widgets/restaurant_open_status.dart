@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import '../../data/restaurant_data.dart';
 
 /// Localized, presentation-ready open/closed state for a [Restaurant].
@@ -46,7 +47,10 @@ class RestaurantOpenStatus {
 
     String? next;
     if (status.nextOpenHour != null) {
-      final time = _formatTime(status.nextOpenHour!, status.nextOpenMinute ?? 0);
+      final time = TimeFormatter.formatParts(
+        status.nextOpenHour!,
+        status.nextOpenMinute ?? 0,
+      );
       if (status.nextOpenIsToday) {
         next = context.trArgs('restaurant.opens_today', {'time': time});
       } else {
@@ -59,11 +63,6 @@ class RestaurantOpenStatus {
       color: closedColor,
       nextOpenText: next,
     );
-  }
-
-  static String _formatTime(int hour, int minute) {
-    final m = minute.toString().padLeft(2, '0');
-    return '$hour:$m';
   }
 
   static String _dayName(BuildContext context, int iso) {

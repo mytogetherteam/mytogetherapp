@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
+import 'package:mytogetherapp/core/utils/time_formatter.dart';
 
 class LockScreenWidgetManager {
   static final LockScreenWidgetManager instance = LockScreenWidgetManager._internal();
@@ -160,7 +161,7 @@ class LockScreenWidgetManager {
         return 'Preparing your order';
       case 3:
         return order.estimatedTime != null && order.estimatedTime!.isNotEmpty
-            ? 'Est. Arrival: ${order.estimatedTime}'
+            ? 'Est. Arrival: ${TimeFormatter.normalizeDisplay(order.estimatedTime!)}'
             : 'On the way';
       case 4:
         return 'Delivered';

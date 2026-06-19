@@ -62,6 +62,14 @@ class _AppState extends State<App> {
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.light,
             debugShowCheckedModeBanner: false,
+            builder: (context, child) {
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  alwaysUse24HourFormat: true,
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             navigatorObservers: [App.routeObserver],
             navigatorKey: App.navigatorKey,
             scaffoldMessengerKey: App.scaffoldMessengerKey,

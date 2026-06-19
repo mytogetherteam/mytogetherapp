@@ -10,6 +10,7 @@ import '../screens/order_tracking_page.dart';
 import '../../data/cart_manager.dart';
 import '../screens/revise_order_page.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/time_formatter.dart';
 
 class ActiveOrderBar extends StatefulWidget {
   final int? shopId;
@@ -449,7 +450,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       case 3:
         final eta = order.estimatedTime;
         return eta != null && eta.isNotEmpty
-            ? context.trArgs('active_order.est_arrival', {'time': eta})
+            ? context.trArgs('active_order.est_arrival', {
+                'time': TimeFormatter.normalizeDisplay(eta),
+              })
             : context.tr('active_order.on_the_way');
       case 4:
         return context.tr('active_order.delivered');
