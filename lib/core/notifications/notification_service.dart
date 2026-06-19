@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
 import '../auth/auth_service.dart';
+import 'web_notification_platform.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
@@ -169,6 +171,10 @@ class NotificationService {
 
   Future<void> requestPermission() async {
     try {
+      if (kIsWeb) {
+        await requestWebNotificationPermission();
+        return;
+      }
       await FirebaseMessaging.instance.requestPermission(
         alert: true,
         announcement: false,
@@ -210,11 +216,23 @@ class NotificationService {
 
   Future<void> _registerDeviceInBackground() async {
     try {
-      String? token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 5));
+      String? token;
+      if (kIsWeb) {
+        final vapidKey = dotenv.env['FIREBASE_VAPID_KEY'];
+        if (vapidKey != null && vapidKey.isNotEmpty) {
+          token = await FirebaseMessaging.instance
+              .getToken(vapidKey: vapidKey)
+              .timeout(const Duration(seconds: 5));
+        }
+      } else {
+        token = await FirebaseMessaging.instance
+            .getToken()
+            .timeout(const Duration(seconds: 5));
+      }
       if (token != null) {
         await _sendTokenToServer(token);
       }
-    } catch (e) {
+    } catch (_) {
       // Ignore token retrieval or registration errors
     }
   }
@@ -247,19 +265,38 @@ class NotificationService {
   }
 
   Future<void> showLocalNotification(RemoteMessage message) async {
-    if (kIsWeb) return;
+    final String title =
+        message.notification?.title ??
+        message.data['title'] ??
+        'New Notification';
+    final String body =
+        message.notification?.body ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'You have a new message';
 
-    final String title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
-    final String body = message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? 'You have a new message';
-    
     final String? type = message.data['type'];
     final String? subType = message.data['subType'];
-    final bool isPayment = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
+    final bool isPayment =
+        type == 'PAYMENT_REMINDER' ||
+        subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
-    final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    if (kIsWeb) {
+      await showWebNotification(
+        title: title,
+        body: body,
+        isPayment: isPayment,
+      );
+      return;
+    }
+
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
       isPayment ? 'high_importance_channel_payment' : 'high_importance_channel_v2',
       isPayment ? 'Payment Notifications' : 'High Importance Notifications',
-      channelDescription: isPayment ? 'This channel is used for payment request notifications.' : 'This channel is used for important notifications.',
+      channelDescription: isPayment
+          ? 'This channel is used for payment request notifications.'
+          : 'This channel is used for important notifications.',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/launcher_icon',
@@ -298,6 +335,13 @@ class NotificationService {
       createdAt: DateTime.now(),
       isRead: false,
     );
+  }
+
+  /// Plays the payment alert sound on PWA when push permission is unavailable
+  /// but the app is in the foreground (e.g. WebSocket order updates).
+  Future<void> playPaymentAlert() async {
+    if (!kIsWeb) return;
+    await playWebNotificationSound(isPayment: true);
   }
 
   void _handleNotificationClick(RemoteMessage? message) {

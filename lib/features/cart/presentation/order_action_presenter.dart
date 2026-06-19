@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../app.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/localization/app_translations.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../data/active_order_state.dart';
 import 'screens/awaiting_payment_page.dart';
 import 'screens/order_cancel_page.dart';
@@ -145,6 +147,9 @@ class OrderActionPresenter {
     _isShowing = true;
     _shownEpisodeKeys.add(episodeKey);
     try {
+      if (kIsWeb && kind == OrderActionDialogKind.slipReupload) {
+        unawaited(NotificationService().playPaymentAlert());
+      }
       final result = await OrderActionDialog.show(
         context,
         kind: kind,

@@ -82,6 +82,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _checkAndRequestPermissions() async {
     if (kIsWeb) {
       LocationService().getCurrentPosition(requestPermissionIfDenied: true);
+      await NotificationService().requestPermission();
       return;
     }
 

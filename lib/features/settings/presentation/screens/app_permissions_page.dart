@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/core/notifications/web_notification_platform.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -58,13 +59,15 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
       final geoPerm = await Geolocator.checkPermission();
       final locationGranted = geoPerm == LocationPermission.always ||
           geoPerm == LocationPermission.whileInUse;
+      final notificationGranted = await isWebNotificationGranted();
 
       if (mounted) {
         setState(() {
           _locationStatus =
               locationGranted ? PermissionStatus.granted : PermissionStatus.denied;
-          // Browser push permissions are managed outside the native permission API.
-          _notificationStatus = PermissionStatus.granted;
+          _notificationStatus = notificationGranted
+              ? PermissionStatus.granted
+              : PermissionStatus.denied;
           _isLoading = false;
         });
       }
@@ -91,8 +94,10 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
     if (kIsWeb) {
       if (permission == Permission.location) {
         await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
-        await _checkPermissions(silent: true);
+      } else if (permission == Permission.notification) {
+        await requestWebNotificationPermission();
       }
+      await _checkPermissions(silent: true);
       return;
     }
 
@@ -163,19 +168,18 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (!kIsWeb)
-                    _buildPermissionCard(
-                      icon: PhosphorIconsRegular.bellRinging,
-                      title: context.tr('permissions.notifications_title'),
-                      description: context.tr('permissions.notifications_desc'),
-                      status: _notificationStatus,
-                      onActionPressed: () => _handlePermission(
-                        Permission.notification,
-                        _notificationStatus,
-                        (s) => setState(() => _notificationStatus = s),
-                      ),
+                  _buildPermissionCard(
+                    icon: PhosphorIconsRegular.bellRinging,
+                    title: context.tr('permissions.notifications_title'),
+                    description: context.tr('permissions.notifications_desc'),
+                    status: _notificationStatus,
+                    onActionPressed: () => _handlePermission(
+                      Permission.notification,
+                      _notificationStatus,
+                      (s) => setState(() => _notificationStatus = s),
                     ),
-                  if (!kIsWeb) const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 16),
                   _buildPermissionCard(
                     icon: PhosphorIconsRegular.mapPin,
                     title: context.tr('permissions.location_title'),
