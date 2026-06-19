@@ -4,7 +4,8 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
-import 'package:mytogetherapp/features/reviews/data/repositories/shop_review_repository.dart';
+import 'package:mytogetherapp/features/reviews/data/models/order_review_dto.dart';
+import 'package:mytogetherapp/features/reviews/data/repositories/order_review_repository.dart';
 import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -20,16 +21,12 @@ import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart'
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
 
-  /// User's existing restaurant review rating for this order's shop, if any.
-  final double? shopRating;
-
-  /// Optional callback the parent can use to refresh shop ratings after submit.
+  /// Called after an order review is submitted so the list can refresh.
   final VoidCallback? onReviewSubmitted;
 
   const OrderHistoryCard({
     super.key,
     required this.order,
-    this.shopRating,
     this.onReviewSubmitted,
   });
 
@@ -38,17 +35,20 @@ class OrderHistoryCard extends StatefulWidget {
 }
 
 class _OrderHistoryCardState extends State<OrderHistoryCard> {
-  /// Locally cached rating after submit, before parent reloads shop ratings.
-  double? _localRating;
+  OrderReviewDto? _review;
   bool _isReordering = false;
 
-  double? get _displayRating => _localRating ?? widget.shopRating;
+  @override
+  void initState() {
+    super.initState();
+    _review = widget.order.orderReview;
+  }
 
   @override
   void didUpdateWidget(covariant OrderHistoryCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.shopRating != widget.shopRating) {
-      _localRating = null;
+    if (oldWidget.order.orderReview != widget.order.orderReview) {
+      _review = widget.order.orderReview;
     }
   }
 
@@ -334,8 +334,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
              bottomRight: Radius.circular(16),
           ),
        ),
-       child: _displayRating != null
-           ? _buildRatedContent(context, _displayRating!)
+       child: _review != null
+           ? _buildRatedContent(context, _review!)
            : _buildPromptContent(context),
     );
   }
@@ -411,8 +411,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   }
 
   Future<void> _openReviewFlow({int initialRating = 0}) async {
-    final shopId = widget.order.shopId;
-    if (shopId == null) {
+    final orderIdInt = int.tryParse(widget.order.id);
+    if (orderIdInt == null) {
       AppDialog.showToast(
         context,
         context.tr('orders.invalid_reference'),
@@ -424,7 +424,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     final submitted = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => WriteReviewPage(
-          shopId: shopId,
+          orderId: orderIdInt,
+          shopId: widget.order.shopId,
           shopName: widget.order.shopName,
           initialRating: initialRating,
         ),
@@ -433,19 +434,13 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
 
     if (submitted == true) {
       try {
-        final reviews = await ShopReviewRepository.instance.getMyReviews(
-          shopId: shopId,
-          size: 1,
-        );
+        final fresh = await OrderReviewRepository.instance
+            .getReviewForOrder(orderIdInt);
         if (!mounted) return;
-        if (reviews.isNotEmpty) {
-          setState(() => _localRating = reviews.first.rating);
+        if (fresh != null) {
+          setState(() => _review = fresh);
         }
-      } catch (_) {
-        if (mounted && initialRating > 0) {
-          setState(() => _localRating = initialRating.toDouble());
-        }
-      }
+      } catch (_) {}
       widget.onReviewSubmitted?.call();
     }
   }
@@ -476,10 +471,11 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 
-  Widget _buildRatedContent(BuildContext context, double rating) {
-    final scoreLabel = rating == rating.roundToDouble()
-        ? rating.toInt().toString()
-        : rating.toStringAsFixed(1);
+  Widget _buildRatedContent(BuildContext context, OrderReviewDto review) {
+    final score = review.rating;
+    final scoreLabel = score == score.roundToDouble()
+        ? score.toInt().toString()
+        : score.toStringAsFixed(1);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
