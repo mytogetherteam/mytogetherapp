@@ -29,6 +29,7 @@ import '../../../../core/auth/user_model.dart';
 import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../../auth/data/session_location_store.dart';
 import '../../../home/presentation/widgets/location_selection_modal.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -130,8 +131,23 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   Future<void> _loadPrimaryLocation({bool forceRefresh = false}) async {
     try {
-      final loc = await UserLocationRepository.instance
+      var loc = UserLocationRepository.instance.activeLocation;
+      loc ??= await UserLocationRepository.instance
           .getPrimaryLocation(forceRefresh: forceRefresh);
+
+      if (loc != null &&
+          loc.streetAddress == null &&
+          loc.latitude != null &&
+          loc.longitude != null) {
+        final stored = await SessionLocationStore.addressNear(
+          loc.latitude!,
+          loc.longitude!,
+        );
+        if (stored != null) {
+          loc = loc.copyWith(address: stored);
+        }
+      }
+
       if (mounted) {
         setState(() {
           _primaryLocation = loc;
@@ -216,14 +232,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  /// Builds the delivery address text. The backend stores a location as a
-  /// `label` (+ coordinates) and does not return a full `address` string, so
-  /// fall back through the available fields instead of always showing the
-  /// "No address set" empty state when a location is actually selected.
   Widget _buildAddressText() {
     final loc = _primaryLocation;
     final name = loc?.locationName?.trim();
-    final address = (loc?.address ?? loc?.addressTh ?? loc?.addressMm)?.trim();
+    final address = loc?.streetAddress;
 
     final hasName = name != null && name.isNotEmpty;
     final hasAddress = address != null && address.isNotEmpty;
@@ -239,8 +251,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       );
     }
 
-    final title = hasName ? name : address;
-    final subtitle = hasName && hasAddress ? address : null;
+    final title = hasAddress ? address : name;
+    final subtitle = hasName && hasAddress && name != address ? name : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,20 +279,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  /// Resolves the best available address text from the selected location.
+  /// Street address sent on order creation (never the nickname/label).
   String? _primaryLocationAddressText() {
-    final loc = _primaryLocation;
-    if (loc == null) return null;
-    for (final candidate in [
-      loc.address,
-      loc.addressTh,
-      loc.addressMm,
-      loc.locationName,
-    ]) {
-      final trimmed = candidate?.trim();
-      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
-    }
-    return null;
+    return _primaryLocation?.streetAddress;
   }
 
   /// Address fields accepted by `CreateUserOrderDto` on the backend.

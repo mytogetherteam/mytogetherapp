@@ -52,13 +52,26 @@ class UserLocationModel {
     );
   }
 
-  /// Returns only the fields accepted by the new backend
-  /// (`CreateUserLocationDto` / `UpdateUserLocationDto`): label, latitude,
-  /// longitude, isCurrent. Any extra field would be rejected by NestJS
-  /// `forbidNonWhitelisted: true`.
+  /// Street address for delivery display and orders (excludes nickname/label).
+  String? get streetAddress {
+    for (final candidate in [address, addressTh, addressMm]) {
+      final trimmed = candidate?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return null;
+  }
+
+  /// Payload for `CreateUserLocationDto` / `UpdateUserLocationDto`.
   Map<String, dynamic> toJson() {
     return {
-      if (locationName != null) 'label': locationName,
+      if (locationName != null && locationName!.trim().isNotEmpty)
+        'label': locationName!.trim(),
+      if (address != null && address!.trim().isNotEmpty)
+        'address': address!.trim(),
+      if (buildingName != null && buildingName!.trim().isNotEmpty)
+        'buildingName': buildingName!.trim(),
+      if (floor != null && floor!.trim().isNotEmpty) 'floor': floor!.trim(),
+      if (note != null && note!.trim().isNotEmpty) 'note': note!.trim(),
       'latitude': latitude,
       'longitude': longitude,
       'isCurrent': isPrimary,

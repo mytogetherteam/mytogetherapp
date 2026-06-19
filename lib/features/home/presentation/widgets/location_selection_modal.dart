@@ -678,15 +678,17 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    location.address ?? '',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
+                  if (LocationDisplayUtil.readableAddress(location.address) !=
+                      null)
+                    Text(
+                      location.address!,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                 ],
               ),
             ),
