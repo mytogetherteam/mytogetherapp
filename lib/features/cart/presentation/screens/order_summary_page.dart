@@ -234,13 +234,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   Widget _buildAddressText() {
     final loc = _primaryLocation;
-    final name = loc?.locationName?.trim();
     final address = loc?.streetAddress;
+    final subtitle = loc?.detailSubtitle;
 
-    final hasName = name != null && name.isNotEmpty;
-    final hasAddress = address != null && address.isNotEmpty;
-
-    if (loc == null || (!hasName && !hasAddress)) {
+    if (loc == null || address == null || address.isEmpty) {
       return Text(
         context.tr('cart.no_address'),
         style: GoogleFonts.poppins(
@@ -251,14 +248,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       );
     }
 
-    final title = hasAddress ? address : name;
-    final subtitle = hasName && hasAddress && name != address ? name : null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title!,
+          address,
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -279,7 +273,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  /// Street address sent on order creation (never the nickname/label).
+  /// Street address sent on order creation.
   String? _primaryLocationAddressText() {
     return _primaryLocation?.streetAddress;
   }
@@ -1086,8 +1080,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         _restaurant?.addressEn ??
                                         _restaurant?.addressTh;
                                     ActiveOrderState.instance.userLocationName =
-                                        _primaryLocation?.locationName ??
-                                        _primaryLocation?.locationType;
+                                        null;
                                     ActiveOrderState.instance.deliveryAddress =
                                         _primaryLocationAddressText();
                                     ActiveOrderState.instance

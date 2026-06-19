@@ -608,8 +608,8 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       onTap: () async {
         final place = PlaceResult(
           placeId: location.id.toString(),
-          name: location.locationName ?? location.address ?? context.tr('location.saved'),
-          displayName: location.address ?? location.addressTh ?? '',
+          name: location.displayTitle(context.tr('location.saved')),
+          displayName: location.streetAddress ?? '',
           lat: location.latitude ?? 0,
           lon: location.longitude ?? 0,
         );
@@ -643,15 +643,13 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     children: [
                       Expanded(
                         child: Text(
-                          location.locationName ??
-                              location.locationType ??
-                              context.tr('location.saved'),
+                          location.displayTitle(context.tr('location.saved')),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
                           ),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -678,10 +676,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  if (LocationDisplayUtil.readableAddress(location.address) !=
-                      null)
+                  if (location.detailSubtitle != null)
                     Text(
-                      location.address!,
+                      location.detailSubtitle!,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade500,

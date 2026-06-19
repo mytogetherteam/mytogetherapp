@@ -161,15 +161,14 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
     return _apiLocations
         .where((loc) {
-          final name = (loc.locationName ?? '').toLowerCase();
-          final addr = (loc.address ?? '').toLowerCase();
-          return name.contains(q) || addr.contains(q);
+          final addr = (loc.streetAddress ?? '').toLowerCase();
+          return addr.contains(q);
         })
         .map(
           (loc) => PlaceResult(
             placeId: 'saved-${loc.id}',
-            name: loc.locationName ?? loc.address ?? context.tr('location.saved'),
-            displayName: loc.address ?? loc.locationName ?? '',
+            name: loc.displayTitle(context.tr('location.saved')),
+            displayName: loc.streetAddress ?? '',
             lat: loc.latitude ?? 0,
             lon: loc.longitude ?? 0,
           ),
@@ -224,7 +223,6 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
         id: 0,
         latitude: fullPlace.lat,
         longitude: fullPlace.lon,
-        locationName: fullPlace.name,
         address: fullPlace.displayName,
         locationType: 'OTHER',
         isPrimary: true,
@@ -770,9 +768,13 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          location.locationName ?? context.tr('location.saved'),
-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
-                          maxLines: 1,
+                          location.displayTitle(context.tr('location.saved')),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -794,10 +796,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                         ),
                     ],
                   ),
-                  if (LocationDisplayUtil.readableAddress(location.address) !=
-                      null)
+                  if (location.detailSubtitle != null)
                     Text(
-                      location.address!,
+                      location.detailSubtitle!,
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.grey.shade500,
