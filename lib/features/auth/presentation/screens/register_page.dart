@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -88,13 +89,23 @@ class _RegisterPageState extends State<RegisterPage>
         return;
       }
 
+      // Safety timeout: unlock UI if Firebase callbacks fail to trigger
+      Timer(const Duration(seconds: 20), () {
+        if (mounted && _isLoading && !_showOtpView) {
+          setState(() => _isLoading = false);
+          AppDialog.showToast(context, 'Request timed out or reCAPTCHA failed. Please try again.', isError: true);
+        }
+      });
+
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneStr,
+        timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
           // Auto-resolution (rarely triggers correctly across all devices)
           _verifyWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
           final msg = FirebaseErrorHandler.getMessage(context, e);
           AppDialog.showToast(context, msg, isError: true);
           setState(() {
@@ -102,6 +113,7 @@ class _RegisterPageState extends State<RegisterPage>
           });
         },
         codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
           setState(() {
             _verificationId = verificationId;
             _showOtpView = true;

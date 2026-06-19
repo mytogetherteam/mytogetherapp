@@ -72,12 +72,18 @@ class AuthRemoteDataSource {
   }
 
   Future<bool> checkPhoneExists(String phone) async {
-    final response = await _dio.post(
-      '${ApiClient.apiPrefix}/user/auth/check-phone',
-      data: {'phone': phone},
-    );
-    final data = response.data['data'];
-    return data['exists'] == true;
+    try {
+      final response = await _dio.post(
+        '${ApiClient.apiPrefix}/user/auth/check-phone',
+        data: {'phone': phone},
+      ).timeout(const Duration(seconds: 8));
+      final data = response.data['data'];
+      return data['exists'] == true;
+    } catch (_) {
+      // If endpoint is unreachable or times out, assume phone does not exist
+      // and let Firebase OTP proceed. Firebase will fail itself if there is a real problem.
+      return false;
+    }
   }
 
   Future<void> logout() async {
