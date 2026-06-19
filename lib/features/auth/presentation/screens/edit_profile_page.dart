@@ -26,7 +26,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _usernameController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _addressController;
 
   bool _isSaving = false;
 
@@ -41,7 +40,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController = TextEditingController(text: user?.fullName ?? '');
     _usernameController = TextEditingController(text: user?.username ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
-    _addressController = TextEditingController(text: user?.address ?? '');
     _currentAvatarUrl = user?.avatarUrl;
   }
 
@@ -84,7 +82,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController.dispose();
     _usernameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     super.dispose();
   }
 
@@ -100,7 +97,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
         phone: _phoneController.text.trim(),
-        address: _addressController.text.trim(),
         profilePhoto: _pickedImage,
       );
       if (mounted) {
@@ -165,12 +161,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     label: context.tr('auth.phone'),
                     icon: PhosphorIcons.phone,
                     keyboardType: TextInputType.phone,
-                  ),
-                  _buildField(
-                    controller: _addressController,
-                    label: context.tr('auth.address'),
-                    icon: PhosphorIcons.mapPin,
-                    maxLines: 3,
                   ),
                 ],
               ),

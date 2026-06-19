@@ -20,6 +20,7 @@ import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/time_formatter.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import 'revise_order_page.dart';
@@ -1121,7 +1122,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       const SizedBox(height: 12),
                       _summaryRow(
                         context.tr('payment.est_waiting_time'),
-                        order.estimatedTime!,
+                        TimeFormatter.normalizeDisplay(order.estimatedTime!),
                         isValue: false,
                       ),
                     ],
@@ -1216,7 +1217,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                               GradientText(
                                 (order?.estimatedTime != null &&
                                         order!.estimatedTime!.isNotEmpty)
-                                    ? order.estimatedTime!
+                                    ? TimeFormatter.normalizeDisplay(
+                                        order.estimatedTime!,
+                                      )
                                     : '05:00',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,

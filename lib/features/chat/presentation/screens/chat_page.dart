@@ -7,6 +7,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/websocket_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
@@ -595,8 +596,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     final isMine = message.isMe;
-    final timeLabel =
-        TimeOfDay.fromDateTime(message.createdAt).format(context);
+    final timeLabel = TimeFormatter.formatClock(message.createdAt);
     final displayText = message.kind == ChatMessageKind.image
         ? '📷 ${context.tr('chat.photo')}'
         : (message.content ?? '');

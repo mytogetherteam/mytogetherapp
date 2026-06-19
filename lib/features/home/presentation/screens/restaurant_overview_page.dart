@@ -408,7 +408,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                   child: Text(
                     h.isClosed
                         ? context.tr('common.closed')
-                        : h.displayTime24h.replaceAll('-', '–'),
+                        : h.displayTime.replaceAll('-', '–'),
                     textAlign: TextAlign.right,
                     style: GoogleFonts.poppins(
                       fontSize: 14,

@@ -1,6 +1,5 @@
-import 'package:intl/intl.dart';
-
 import '../../../reviews/data/models/order_review_dto.dart';
+import '../../../../core/utils/time_formatter.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/utils/file_url_util.dart';
@@ -101,7 +100,7 @@ class OrderHistoryDto {
   String get dateDisplay {
     try {
       final date = DateTime.parse(createdAt);
-      return DateFormat('dd MMM yyyy, HH:mm').format(date);
+      return TimeFormatter.formatDateTime(date);
     } catch (e) {
       return createdAt;
     }

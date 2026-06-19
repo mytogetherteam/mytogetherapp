@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/time_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_map_theme.dart';
@@ -493,10 +494,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 state.isPickupFulfillment
                     ? (state.estimatedTime != null &&
                             state.estimatedTime!.isNotEmpty
-                        ? '${context.tr('order_status.est_waiting_time')}: ${state.estimatedTime!}'
+                        ? '${context.tr('order_status.est_waiting_time')}: ${TimeFormatter.normalizeDisplay(state.estimatedTime!)}'
                         : context.tr('order_status.preparing'))
                     : context.trArgs('order_status.estimate_arrival', {
-                        'time': state.estimatedTime ?? '09:45 PM',
+                        'time': TimeFormatter.normalizeDisplay(
+                          state.estimatedTime ?? '21:45',
+                        ),
                       }),
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
               ),
@@ -646,7 +649,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             ),
                           ),
                           GradientText(
-                            state.estimatedTime!,
+                            TimeFormatter.normalizeDisplay(state.estimatedTime!),
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

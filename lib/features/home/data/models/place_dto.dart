@@ -1,6 +1,7 @@
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/utils/relative_time.dart';
+import '../../../../core/utils/time_formatter.dart';
 
 class PlaceGalleryDto {
   final int id;
@@ -76,7 +77,9 @@ class PlaceDto {
 
   String get formattedDistance => formatDistanceKm(distanceKm);
 
-  String get formattedHours => '$openingTime - $closingTime';
+  String get formattedHours => TimeFormatter.normalizeDisplay(
+        '$openingTime - $closingTime',
+      );
 
   PlaceDto copyWith({bool? isFavorite, double? distanceKm}) {
     return PlaceDto(

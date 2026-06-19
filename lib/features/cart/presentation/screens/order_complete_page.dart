@@ -11,6 +11,7 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/time_formatter.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
@@ -169,9 +170,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final displayTotal =
         order?.displayTotalAmount ?? total.toFormattedPrice();
     
-    // In a real app we'd format actual Arrival time, mocked for now
-    final now = DateTime.now();
-    final arrivalTime = '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
+    final arrivalTime = TimeFormatter.formatClock(DateTime.now());
     final logoPath = order?.logoPath;
     final orderItems = order?.orderItems ?? const <CartItem>[];
 

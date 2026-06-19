@@ -1,6 +1,7 @@
 import 'menu_item_dto.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/utils/time_formatter.dart';
 
 class ShopRequestDto {
   final double lat;
@@ -690,16 +691,11 @@ class OperatingHourDto {
     if (openingTime == null || closingTime == null) {
       return LocaleController.instance.tr('common.na');
     }
-    return '${openingTime!.format} - ${closingTime!.format}';
-  }
-
-  String get displayTime24h {
-    if (isClosed) return LocaleController.instance.tr('common.closed');
-    if (openingTime == null || closingTime == null) {
-      return LocaleController.instance.tr('common.na');
-    }
     return '${openingTime!.format24h} - ${closingTime!.format24h}';
   }
+
+  /// Alias for [displayTime] — operating hours are always shown in 24-hour format.
+  String get displayTime24h => displayTime;
 }
 
 class LocalTimeDto {
@@ -712,18 +708,11 @@ class LocalTimeDto {
     return LocalTimeDto(hour: json['hour'] ?? 0, minute: json['minute'] ?? 0);
   }
 
-  String get format {
-    final h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final ampm = hour >= 12 ? 'PM' : 'AM';
-    final m = minute.toString().padLeft(2, '0');
-    return '$h:$m $ampm';
-  }
+  /// 24-hour clock display, e.g. `06:00` or `18:30`.
+  String get format24h => TimeFormatter.formatParts(hour, minute);
 
-  String get format24h {
-    final h = hour.toString();
-    final m = minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
+  /// Alias for [format24h].
+  String get format => format24h;
 }
 
 class ShopPaymentTypeDto {
