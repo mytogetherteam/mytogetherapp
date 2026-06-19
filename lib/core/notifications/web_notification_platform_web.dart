@@ -19,13 +19,13 @@ Future<void> showWebNotification({
   required String body,
   bool isPayment = false,
 }) async {
-  if (!_supported || html.Notification.permission != 'granted') return;
-
-  html.Notification(
-    title,
-    body: body,
-    icon: '/icons/Icon-192.png',
-  );
+  if (_supported && html.Notification.permission == 'granted') {
+    html.Notification(
+      title,
+      body: body,
+      icon: '/icons/Icon-192.png',
+    );
+  }
 
   if (isPayment) {
     await playWebNotificationSound(isPayment: true);
