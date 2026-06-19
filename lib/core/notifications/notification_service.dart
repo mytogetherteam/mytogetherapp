@@ -74,18 +74,18 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
 
-      // Create warning channel for Android
-      const AndroidNotificationChannel warningChannel = AndroidNotificationChannel(
-        'high_importance_channel_warning',
-        'Warning Notifications',
-        description: 'This channel is used for warning notifications.',
-        importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('warning'),
+      // Payment-request channel — high importance but normal (default) sound,
+      // no looping flag so it behaves like every other notification.
+      const AndroidNotificationChannel paymentChannel = AndroidNotificationChannel(
+        'high_importance_channel_payment',
+        'Payment Notifications',
+        description: 'This channel is used for payment request notifications.',
+        importance: Importance.high,
         playSound: true,
       );
       await _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(warningChannel);
+          ?.createNotificationChannel(paymentChannel);
     }
 
     // Permissions are now requested via MainNavigationScreen rationale modal
@@ -254,18 +254,16 @@ class NotificationService {
     
     final String? type = message.data['type'];
     final String? subType = message.data['subType'];
-    final bool isWarning = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
+    final bool isPayment = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      isWarning ? 'high_importance_channel_warning' : 'high_importance_channel_v2',
-      isWarning ? 'Warning Notifications' : 'High Importance Notifications',
-      channelDescription: isWarning ? 'This channel is used for warning notifications.' : 'This channel is used for important notifications.',
-      importance: Importance.max,
+      isPayment ? 'high_importance_channel_payment' : 'high_importance_channel_v2',
+      isPayment ? 'Payment Notifications' : 'High Importance Notifications',
+      channelDescription: isPayment ? 'This channel is used for payment request notifications.' : 'This channel is used for important notifications.',
+      importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/launcher_icon',
-      sound: isWarning ? const RawResourceAndroidNotificationSound('warning') : null,
       playSound: true,
-      additionalFlags: isWarning ? Int32List.fromList([4]) : null,
       showWhen: true,
     );
     final NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);

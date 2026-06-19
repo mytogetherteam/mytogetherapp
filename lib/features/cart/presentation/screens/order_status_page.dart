@@ -531,9 +531,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 final state = ActiveOrderState.instance;
                 final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
                 
-                // If we attempted to show WebView but it failed, hide the map section entirely as requested
-                if (hasTrackingUrl && _webViewError) {
-                  return const SizedBox.shrink(key: ValueKey('webview_error'));
+                if (!hasTrackingUrl) {
+                  return const SizedBox.shrink(key: ValueKey('empty_map'));
                 }
 
                 return Column(
@@ -559,28 +558,62 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           Positioned.fill(
                             child: ImageSkeletonLoader(),
                           ),
-                          Positioned.fill(
-                            child: (hasTrackingUrl && _webController != null)
-                              ? WebViewWidget(controller: _webController!)
-                              : GoogleMap(
-                                  padding: const EdgeInsets.only(bottom: 0),
-                                  initialCameraPosition: CameraPosition(
-                                    target: _restaurantLatLng,
-                                    zoom: 14,
+                          if (_webController != null && !_webViewError)
+                            Positioned.fill(
+                              child: WebViewWidget(controller: _webController!),
+                            )
+                          else
+                            Positioned.fill(
+                              child: Container(
+                                color: Colors.grey[50],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(PhosphorIcons.mapPinLine, size: 40, color: Colors.grey[400]),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Tracking view unavailable',
+                                        style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
+                                      ),
+                                    ],
                                   ),
-                                  onMapCreated: (controller) {
-                                    _mapController = controller;
-                                    _updateMarkers();
-                                    Future.delayed(const Duration(milliseconds: 400), _fitBounds);
-                                  },
-                                  markers: _markers,
-                                  polylines: _polylines,
-                                  myLocationEnabled: false,
-                                  zoomControlsEnabled: false,
-                                  mapToolbarEnabled: false,
-                                  compassEnabled: false,
-                                  style: AppMapTheme.defaultStyle,
                                 ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    PrimaryGradientButton(
+                      height: 48,
+                      onPressed: () async {
+                        final uri = Uri.parse(state.deliveryTrackingUrl!);
+                        try {
+                          final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                          if (!launched) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (e) {
+                          debugPrint('Failed to launch tracking URL: $e');
+                          try {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } catch (_) {}
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(PhosphorIcons.arrowSquareOut, size: 18, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Text(
+                            (context.tr('order_status.track_order_link') == 'order_status.track_order_link') 
+                                ? 'Track Order' 
+                                : context.tr('order_status.track_order_link'),
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),

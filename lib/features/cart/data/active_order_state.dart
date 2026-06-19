@@ -318,7 +318,7 @@ class ActiveOrderItem {
     deliveryFee: json['deliveryFee'],
     riderName: json['riderName'],
     riderPhone: json['riderPhone'],
-    deliveryTrackingUrl: json['deliveryTrackingUrl'],
+    deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
     shopPaymentQrUrl: json['shopPaymentQrUrl'],
     deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
     restaurantAddress: json['restaurantAddress'],
@@ -707,8 +707,15 @@ class ActiveOrderState extends ChangeNotifier {
       item.estimatedTime = "${data['waitingTimeMinutes']} mins";
     }
 
-    final trackingUrl = _parseSafeString(data['deliveryTrackingUrl']);
-    if (trackingUrl != null && _isValidUrl(trackingUrl)) item.deliveryTrackingUrl = trackingUrl;
+    var trackingUrl = _parseSafeString(data['deliveryTrackingUrl'] ?? data['trackingUrl']);
+    if (trackingUrl != null && trackingUrl.isNotEmpty) {
+      if (!trackingUrl.startsWith('http://') && !trackingUrl.startsWith('https://')) {
+        trackingUrl = 'https://$trackingUrl';
+      }
+      if (_isValidUrl(trackingUrl)) {
+        item.deliveryTrackingUrl = trackingUrl;
+      }
+    }
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
@@ -1008,6 +1015,9 @@ class ActiveOrderState extends ChangeNotifier {
 
   bool _isValidUrl(String url) {
     if (url.isEmpty) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
     final uri = Uri.tryParse(url);
     return uri != null && uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
   }
