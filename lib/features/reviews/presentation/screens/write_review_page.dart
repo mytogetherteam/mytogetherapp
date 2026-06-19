@@ -6,22 +6,23 @@ import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../data/repositories/order_review_repository.dart';
 import '../../data/repositories/shop_review_repository.dart';
 import '../../data/review_demo_data.dart';
 import '../widgets/review_success_bottom_sheet.dart';
 
-/// Restaurant review form — submits via `POST /api/user/reviews`
-/// (`shopId`, `rating`, optional `comment`). One review per shop; resubmit
-/// updates the existing row.
-///
-/// Tags are prepended into `comment` for storage. Image upload is omitted.
+///   • Order review  — `POST /api/user/order-reviews` when [orderId] is set.
+///   • Shop review   — `POST /api/user/reviews` when [shopId] is set alone,
+///     or mirrored after a successful order review when [shopId] is also set.
 class WriteReviewPage extends StatefulWidget {
+  final int? orderId;
   final int? shopId;
   final String? shopName;
   final int initialRating;
 
   const WriteReviewPage({
     super.key,
+    this.orderId,
     this.shopId,
     this.shopName,
     this.initialRating = 0,
@@ -59,8 +60,12 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     if (_submitting) return;
     if (_rating <= 0) return;
 
+    final orderId = widget.orderId;
     final shopId = widget.shopId;
-    if (shopId != null) {
+
+    if (orderId != null) {
+      await _submitOrderReview(orderId);
+    } else if (shopId != null) {
       await _submitShopReview(shopId);
     } else {
       final result = await ReviewSuccessBottomSheet.show(context);
@@ -68,6 +73,49 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
         Navigator.pop(context, true);
       }
     }
+  }
+
+  Future<void> _submitOrderReview(int orderId) async {
+    setState(() => _submitting = true);
+
+    final result = await OrderReviewRepository.instance.create(
+      orderId: orderId,
+      rating: _rating.toDouble(),
+      comment: _composeComment(),
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      final shopId = widget.shopId;
+      if (shopId != null) {
+        try {
+          await ShopReviewRepository.instance.createOrUpdate(
+            shopId: shopId,
+            rating: _rating.toDouble(),
+            comment: _composeComment(),
+          );
+        } catch (_) {
+          // Order review saved; shop mirror is best-effort for MyShop.
+        }
+      }
+
+      setState(() => _submitting = false);
+
+      final ok = await ReviewSuccessBottomSheet.show(context);
+      if (ok == true && mounted) {
+        Navigator.pop(context, true);
+      }
+      return;
+    }
+
+    setState(() => _submitting = false);
+
+    AppDialog.showToast(
+      context,
+      result.errorMessage ?? context.tr('review.submit_failed'),
+      isError: true,
+    );
   }
 
   Future<void> _submitShopReview(int shopId) async {
@@ -117,6 +165,14 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     const Color amber50 = Color(0xFFFFFBEB);
     const Color amber200 = Color(0xFFFDE68A);
 
+    final isPermanent = widget.orderId != null;
+    final title = isPermanent
+        ? context.tr('review.permanent_title')
+        : context.tr('review.public_title');
+    final body = isPermanent
+        ? context.tr('review.permanent_body')
+        : context.tr('review.public_body');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -138,7 +194,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.tr('review.public_title'),
+                  title,
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
@@ -147,7 +203,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  context.tr('review.public_body'),
+                  body,
                   style: GoogleFonts.poppins(
                     fontSize: 12.5,
                     height: 1.45,
