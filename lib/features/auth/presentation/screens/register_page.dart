@@ -331,7 +331,9 @@ class _RegisterPageState extends State<RegisterPage>
           validator: (v) {
             if (v == null || v.trim().isEmpty) return context.tr('auth.enter_phone');
             final cleanPhone = v.replaceAll(' ', '');
-            if (!RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
+            // Strict Thai mobile validation: Must be exactly 9 digits and start with 6, 8, or 9 
+            // (representing 06, 08, 09 when combined with +66)
+            if (!RegExp(r'^[689]\d{8}$').hasMatch(cleanPhone)) {
               return context.tr('auth.invalid_thai_phone');
             }
             return null;
