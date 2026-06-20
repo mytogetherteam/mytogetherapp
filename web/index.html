@@ -36,35 +36,7 @@
 
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <script>
-    // Lazy-load Maps so iOS PWA startup stays interactive (myshop does not
-    // load Maps in index.html). Places bridge calls ensureGoogleMapsLoaded().
-    window.ensureGoogleMapsLoaded = function () {
-      if (window.google && window.google.maps) {
-        window.googleMapsApiReady = true;
-        return Promise.resolve();
-      }
-      if (window._googleMapsLoadPromise) {
-        return window._googleMapsLoadPromise;
-      }
-      window._googleMapsLoadPromise = new Promise(function (resolve, reject) {
-        window.initGoogleMapsApi = function () {
-          window.googleMapsApiReady = true;
-          resolve();
-        };
-        var script = document.createElement('script');
-        script.async = true;
-        script.defer = true;
-        script.src =
-          'https://maps.googleapis.com/maps/api/js?key=AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU&libraries=places&callback=initGoogleMapsApi';
-        script.onerror = function () {
-          reject(new Error('Google Maps script failed to load'));
-        };
-        document.head.appendChild(script);
-      });
-      return window._googleMapsLoadPromise;
-    };
-  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU&libraries=places"></script>
   <script src="maps_places_bridge.js"></script>
   <style id="splash-screen-style">
     html {

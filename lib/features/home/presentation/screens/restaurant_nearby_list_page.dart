@@ -401,7 +401,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       text: nameStr,
       style: GoogleFonts.poppins(
         fontSize: fontSize,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         color: selected ? Colors.white : AppColors.primary,
       ),
     );
@@ -850,7 +850,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                   },
                   onCameraMove: _onCameraMove,
                   onCameraIdle: _onCameraIdle,
-                  style: AppMapTheme.defaultStyle,
+                  style: kIsWeb ? null : AppMapTheme.defaultStyle,
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
