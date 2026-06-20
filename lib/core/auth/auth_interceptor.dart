@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import '../network/websocket_service.dart';
 import '../../app.dart';
-import '../../features/auth/presentation/screens/auth_entry_page.dart';
+import '../../features/auth/presentation/screens/login_page.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final Dio dio;
@@ -75,13 +75,16 @@ class AuthInterceptor extends QueuedInterceptor {
         }
       } catch (e) {
         if (e is DioException) {
-          final refreshStatus = e.response?.statusCode;
-          if (refreshStatus == 401 || refreshStatus == 403) {
+          // Check if the error came from the refresh request itself
+          final isFromRefresh = e.requestOptions.path.contains('/auth/refresh');
+          final responseStatus = e.response?.statusCode;
+          
+          if (isFromRefresh && (responseStatus == 401 || responseStatus == 403)) {
             // Refresh token itself is invalid/expired — force logout
             await _forceLogout();
           }
-          // For network errors (5xx, timeout) during refresh, keep session
-          // but fail the current request gracefully
+          // For other network errors or if the RETRIED request failed again,
+          // just pass the error down without logging out.
         } else {
           await _forceLogout();
         }
@@ -92,15 +95,10 @@ class AuthInterceptor extends QueuedInterceptor {
     handler.next(err);
   }
 
-  /// Clears all local session data and navigates the user back to the login screen.
+  /// Clears all local session data but DOES NOT force navigation,
+  /// so the user is not abruptly kicked out of their current screen
+  /// when resuming from the background.
   Future<void> _forceLogout() async {
-    await AuthService().clearSession();
-    final nav = App.navigatorKey.currentState;
-    if (nav != null) {
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AuthEntryPage()),
-        (route) => false,
-      );
-    }
+    await AuthService().clearSession(navigate: false);
   }
 }

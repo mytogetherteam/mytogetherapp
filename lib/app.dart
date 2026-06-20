@@ -34,7 +34,7 @@ class _AppState extends State<App> {
       final nav = App.navigatorKey.currentState;
       if (nav != null) {
         nav.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+          MaterialPageRoute(builder: (_) => const LoginPage()),
           (route) => false,
         );
       }
@@ -82,7 +82,7 @@ class _AppState extends State<App> {
                   ? const OnboardingScreen()
                   : AuthService().isLoggedIn
                       ? const MainNavigationScreen()
-                      : const AuthEntryPage(),
+                      : const LoginPage(),
             ),
             routes: {
               '/home': (context) => const MainNavigationScreen(),
