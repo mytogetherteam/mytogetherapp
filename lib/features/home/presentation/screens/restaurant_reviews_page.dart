@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
@@ -34,13 +35,23 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
   Timer? _pollTimer;
   ShopReviewSummaryDto? _cachedSummary;
   List<ShopReviewDto> _cachedReviews = const [];
+  List<String> _blockedUsers = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadData();
-    _startPolling();
+    _loadBlockedUsers().then((_) {
+      _loadData();
+      _startPolling();
+    });
+  }
+
+  Future<void> _loadBlockedUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _blockedUsers = prefs.getStringList('blocked_review_users') ?? [];
+    });
   }
 
   @override
@@ -359,7 +370,8 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
           return const SizedBox.shrink();
         }
 
-        final reviews = snapshot.data ?? [];
+        final allReviews = snapshot.data ?? [];
+        final reviews = allReviews.where((r) => !_blockedUsers.contains(r.userName)).toList();
         if (reviews.isEmpty) return _buildEmptyState();
 
         return Column(
@@ -502,6 +514,29 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                     color: const Color(0xFF1E293B),
                   ),
                 ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'report') {
+                    _handleReport(review);
+                  } else if (value == 'block') {
+                    _handleBlock(review);
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'report',
+                    child: Text(context.tr('news.report_post') != 'news.report_post' ? context.tr('news.report_post') : 'Report Review'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'block',
+                    child: Text(
+                      context.tr('news.block_user') != 'news.block_user' ? context.tr('news.block_user') : 'Block User',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -649,6 +684,80 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
 
   String _getTimeAgo(DateTime dateTime) {
     return context.relativeTime(dateTime);
+  }
+
+  void _handleReport(ShopReviewDto review) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('news.report_post') != 'news.report_post' ? context.tr('news.report_post') : 'Report Review', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Text(context.tr('news.report_confirm') != 'news.report_confirm' ? context.tr('news.report_confirm') : 'Are you sure you want to report this content?', style: GoogleFonts.poppins(fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.tr('news.reported_success') != 'news.reported_success' ? context.tr('news.reported_success') : 'Reported successfully.', style: GoogleFonts.poppins(color: Colors.white)),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Text(context.tr('news.report_action') != 'news.report_action' ? context.tr('news.report_action') : 'Report', style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleBlock(ShopReviewDto review) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('news.block_user') != 'news.block_user' ? context.tr('news.block_user') : 'Block User', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+        content: Text(context.tr('news.block_confirm') != 'news.block_confirm' ? context.tr('news.block_confirm') : 'Are you sure you want to block this user? You will no longer see their posts.', style: GoogleFonts.poppins(fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // Block the user locally
+              final prefs = await SharedPreferences.getInstance();
+              final currentBlocked = prefs.getStringList('blocked_review_users') ?? [];
+              if (!currentBlocked.contains(review.userName)) {
+                currentBlocked.add(review.userName);
+                await prefs.setStringList('blocked_review_users', currentBlocked);
+              }
+
+              if (mounted) {
+                setState(() {
+                  _blockedUsers = currentBlocked;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(context.tr('news.blocked_success') != 'news.blocked_success' ? context.tr('news.blocked_success') : 'User blocked.', style: GoogleFonts.poppins(color: Colors.white)),
+                    backgroundColor: Colors.grey[800],
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text(context.tr('news.block_action') != 'news.block_action' ? context.tr('news.block_action') : 'Block', style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
