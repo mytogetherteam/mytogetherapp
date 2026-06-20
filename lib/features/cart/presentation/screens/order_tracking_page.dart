@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -10,7 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
@@ -97,7 +95,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
-  BitmapDescriptor? _homeWithBubbleIcon;
 
   @override
   void initState() {
@@ -406,7 +403,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       await _fetchRoute(startLoc);
     } else {
       _buildInitialMarkersAndPolylines();
-      _updateBubbleBitmap();
       if (mounted) setState(() => _showMap = true);
       // Zoom to cached route
       Future.delayed(const Duration(milliseconds: 400), () {
@@ -490,188 +486,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
-  Future<void> _updateBubbleBitmap() async {
-    if (_routeDistanceKm == null || _routeDurationMins == null) return;
-
-    final fee = _deliveryFee ?? 0;
-    final distance = _routeDistanceKm ?? 0;
-    final duration = _routeDurationMins ?? 0;
-
-    final bmp = await _drawHomeMarkerWithBubbleBitmap(
-      fee: fee.toDouble(),
-      distance: distance,
-      duration: duration,
-    );
-
-    if (mounted) {
-      setState(() {
-        _homeWithBubbleIcon = bmp;
-        _updateMarkersAndPolylines();
-      });
-    }
-  }
-
-  Future<BitmapDescriptor> _drawHomeMarkerWithBubbleBitmap({
-    required double fee,
-    required double distance,
-    required int duration,
-  }) async {
-    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(pictureRecorder);
-
-    const double iconSize = 45.0; // Reduced from 60
-    const double r = iconSize / 2;
-    const double boxHeight = 60.0; // Reduced from 80
-    const double pointerWidth = 16.0; // Reduced from 20
-    const double pointerHeight = 10.0; // Reduced from 14
-    const double gap = 2.0; // Reduced from 4
-    const double shadowBottomPadding = 6.0;
-
-    final double homeIconY = boxHeight + pointerHeight + gap;
-    final double centerOfHomeY = homeIconY + r;
-    final double totalHeight = centerOfHomeY + r + shadowBottomPadding;
-
-    // Text details
-    final TextPainter feePainter = TextPainter(
-      text: TextSpan(
-        text: LocaleController.instance.tr('order_tracking.est_delivery_fee_label'),
-        style: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: Colors.white,
-        ), // Reduced from 22
-        children: [
-          TextSpan(
-            text: '฿ ${fee.toStringAsFixed(0)}',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ), // Reduced from 24
-          ),
-        ],
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final TextPainter timePainter = TextPainter(
-      text: TextSpan(
-        text: '${distance.toStringAsFixed(1)} km  •  $duration min',
-        style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.w400,
-          color: Colors.white,
-        ), // Reduced from 18
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final double textWidth = math.max(feePainter.width, timePainter.width);
-    final double boxWidth = textWidth + 32; // Reduced padding
-    final double totalWidth = math.max(boxWidth, iconSize + 20);
-
-    final double centerX = totalWidth / 2;
-
-    // Background shadow of the entire bubble
-    final RRect bubbleRRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(centerX - boxWidth / 2, 0, boxWidth, boxHeight),
-      const Radius.circular(12), // Reduced from 30
-    );
-    canvas.drawRRect(
-      bubbleRRect.shift(const Offset(0, 8)),
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.18)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-    );
-
-    // Bubble path including pointer
-    final Path pointerPath = Path()
-      ..moveTo(centerX - pointerWidth / 2, boxHeight - 2)
-      ..lineTo(centerX + pointerWidth / 2, boxHeight - 2)
-      ..lineTo(centerX, boxHeight + pointerHeight)
-      ..close();
-
-    final Path fullBubble = Path.combine(
-      PathOperation.union,
-      Path()..addRRect(bubbleRRect),
-      pointerPath,
-    );
-
-    final Paint gradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(
-        Rect.fromLTWH(0, 0, totalWidth, boxHeight),
-      );
-    final Paint whiteBorderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-
-    canvas.drawPath(fullBubble, gradientPaint);
-    canvas.drawPath(fullBubble, whiteBorderPaint);
-
-    // Draw Texts vertically centered inside the fixed boxHeight
-    final double totalTextHeight = feePainter.height + timePainter.height + 6;
-    final double textStartY = (boxHeight - totalTextHeight) / 2;
-
-    feePainter.paint(
-      canvas,
-      Offset(centerX - feePainter.width / 2, textStartY),
-    );
-    timePainter.paint(
-      canvas,
-      Offset(
-        centerX - timePainter.width / 2,
-        textStartY + feePainter.height + 6,
-      ),
-    );
-
-    // Home Icon Shadow
-    canvas.drawCircle(
-      Offset(centerX, centerOfHomeY + 4),
-      r * 0.85,
-      Paint()..color = Colors.black.withValues(alpha: 0.18),
-    );
-    // Home Icon Base
-    canvas.drawCircle(
-      Offset(centerX, centerOfHomeY),
-      r,
-      Paint()..color = Colors.white,
-    );
-
-    final Paint homeGradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(
-        Rect.fromLTWH(centerX - r, centerOfHomeY - r, iconSize, iconSize),
-      );
-    canvas.drawCircle(Offset(centerX, centerOfHomeY), r - 4, homeGradientPaint);
-
-    final TextPainter iconPainter =
-        TextPainter(textDirection: TextDirection.ltr)
-          ..text = TextSpan(
-            text: String.fromCharCode(Icons.home_rounded.codePoint),
-            style: TextStyle(
-              fontSize: iconSize * 0.44,
-              fontFamily: Icons.home_rounded.fontFamily,
-              package: Icons.home_rounded.fontPackage,
-              color: Colors.white,
-            ),
-          );
-    iconPainter.layout();
-    iconPainter.paint(
-      canvas,
-      Offset(
-        centerX - iconPainter.width / 2,
-        centerOfHomeY - iconPainter.height / 2 - 2,
-      ),
-    );
-
-    final ui.Image img = await pictureRecorder.endRecording().toImage(
-      totalWidth.toInt(),
-      totalHeight.toInt(),
-    );
-    final ByteData? data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
-  }
-
   // ---------------------------------------------------------------------------
 
   void _updateMarkersAndPolylines() {
@@ -691,32 +505,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     // User / Home Marker (custom pink home icon)
     if (_currentLocation != null) {
-      final bool hasRouteData =
-          _routePoints.isNotEmpty && _routeDistanceKm != null;
-      if (hasRouteData && _homeWithBubbleIcon != null) {
-        sets.add(
-          Marker(
-            markerId: const MarkerId('user_bubble'),
-            position: _currentLocation!,
-            icon: _homeWithBubbleIcon!,
-            anchor: const Offset(0.5, 0.76),
-            zIndexInt: 2,
-          ),
-        );
-      } else {
-        sets.add(
-          Marker(
-            markerId: const MarkerId('user'),
-            position: _currentLocation!,
-            icon:
-                _homeIcon ??
-                BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure,
-                ),
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
+      sets.add(
+        Marker(
+          markerId: const MarkerId('user'),
+          position: _currentLocation!,
+          icon:
+              _homeIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure,
+              ),
+          anchor: const Offset(0.5, 0.5),
+        ),
+      );
     }
 
     final polySet = <Polyline>{};
@@ -818,8 +618,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             _updateMarkersAndPolylines();
           });
 
-          _updateBubbleBitmap();
-
           // Cache in global state
           ActiveOrderState.instance.updateRouteData(
             points: polyPoints,
@@ -863,8 +661,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           _isRouting = false;
           _updateMarkersAndPolylines();
         });
-
-        _updateBubbleBitmap();
 
         ActiveOrderState.instance.updateRouteData(
           points: fallbackPoints,
