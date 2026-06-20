@@ -71,7 +71,7 @@ class LocationService {
 
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: _buildLocationSettings(highAccuracy: highAccuracy),
-      ).timeout(Duration(seconds: kIsWeb ? 18 : 15));
+      ).timeout(Duration(seconds: kIsWeb ? 30 : 15));
 
       _storePosition(pos, isFallback: false);
       await _reverseGeocode(pos.latitude, pos.longitude)
@@ -90,7 +90,8 @@ class LocationService {
     if (kIsWeb) {
       return WebSettings(
         accuracy: accuracy,
-        timeLimit: timeLimit,
+        timeLimit: Duration(seconds: kIsWeb ? 25 : 12),
+        maximumAge: const Duration(minutes: 5), // Crucial for iOS PWA to not hang
       );
     }
 
