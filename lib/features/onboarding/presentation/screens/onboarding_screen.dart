@@ -20,7 +20,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    FlutterNativeSplash.remove();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        FlutterNativeSplash.remove();
+      });
+    });
   }
 
   List<Map<String, dynamic>> _getOnboardingData() {

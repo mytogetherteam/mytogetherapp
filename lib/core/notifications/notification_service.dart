@@ -65,10 +65,12 @@ class NotificationService {
 
       // Create high importance channel for Android
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'high_importance_channel_v2',
+        'high_importance_channel_v3',
         'High Importance Notifications',
         description: 'This channel is used for important notifications.',
         importance: Importance.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('normal_noti'),
       );
       await _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -77,11 +79,12 @@ class NotificationService {
       // Payment-request channel — high importance but normal (default) sound,
       // no looping flag so it behaves like every other notification.
       const AndroidNotificationChannel paymentChannel = AndroidNotificationChannel(
-        'high_importance_channel_payment',
+        'high_importance_channel_payment_v3',
         'Payment Notifications',
         description: 'This channel is used for payment request notifications.',
         importance: Importance.high,
         playSound: true,
+        sound: RawResourceAndroidNotificationSound('normal_noti'),
       );
       await _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -257,7 +260,7 @@ class NotificationService {
     final bool isPayment = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      isPayment ? 'high_importance_channel_payment' : 'high_importance_channel_v2',
+      isPayment ? 'high_importance_channel_payment_v3' : 'high_importance_channel_v3',
       isPayment ? 'Payment Notifications' : 'High Importance Notifications',
       channelDescription: isPayment ? 'This channel is used for payment request notifications.' : 'This channel is used for important notifications.',
       importance: Importance.high,
