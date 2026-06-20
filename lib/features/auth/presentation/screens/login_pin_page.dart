@@ -8,7 +8,6 @@ import '../../../../core/utils/firebase_error_handler.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:flutter/services.dart';
-import '../../../cart/data/active_order_state.dart';
 
 class LoginPinPage extends StatefulWidget {
   final String phone;
@@ -86,8 +85,6 @@ class _LoginPinPageState extends State<LoginPinPage>
         phone: widget.phone,
         pin: _pin,
       );
-      // Seed any ongoing orders for this account from the backend.
-      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
       if (!mounted) return;
       // Login successful, go to home
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);

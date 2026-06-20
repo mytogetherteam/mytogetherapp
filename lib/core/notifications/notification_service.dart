@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
 import '../auth/auth_service.dart';
+import '../auth/order_ownership.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
@@ -113,7 +115,9 @@ class NotificationService {
         if (message.data['order'] != null) {
           try {
             final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-            ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+            if (!OrderOwnership.isForeignOrder(rawOrder)) {
+              ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+            }
           } catch (_) {}
         } else if (refId != null && ActiveOrderState.instance.orderId == refId) {
           ActiveOrderState.instance.syncActiveOrder();
@@ -318,19 +322,16 @@ class NotificationService {
 
     if (message != null && type == 'ORDER_STATUS') {
       try {
-        final String? refId = message.data['referenceId']?.toString();
-        
+        final String? refId = message.data['referenceId']?.toString() ??
+            message.data['orderId']?.toString();
+
         if (message.data['order'] != null) {
           final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-          ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
-        } else if (refId != null) {
-          // Store reference if we're not already tracking it
-          if (ActiveOrderState.instance.orderId != refId) {
-            ActiveOrderState.instance.orderId = refId;
-            ActiveOrderState.instance.hasActiveOrder = true;
+          if (!OrderOwnership.isForeignOrder(rawOrder)) {
+            ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
           }
-          // Trigger sync to get full order details for the UI
-          ActiveOrderState.instance.syncActiveOrder();
+        } else if (refId != null) {
+          unawaited(ActiveOrderState.instance.adoptOrderIfOwned(refId));
         }
         
         final context = App.navigatorKey.currentState?.context;

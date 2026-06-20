@@ -8,6 +8,7 @@ import '../../../../core/media/picked_image.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
+import '../../../../core/auth/session_realtime.dart';
 
 class AuthRepository {
   static final AuthRepository instance = AuthRepository._internal();
@@ -33,6 +34,7 @@ class AuthRepository {
       final locations = await _dataSource.getUserLocations();
 
       await _saveSession(response, profile: profile, locations: locations);
+      await SessionRealtime.bootstrap();
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -55,6 +57,7 @@ class AuthRepository {
       final locations = await _dataSource.getUserLocations();
 
       await _saveSession(response, profile: profile, locations: locations);
+      await SessionRealtime.bootstrap();
     } on DioException catch (e) {
       throw _parseError(e);
     }

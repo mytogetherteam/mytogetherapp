@@ -117,14 +117,13 @@ void main() async {
     debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
 
     debugPrint('[BOOT] Loading active order state...');
-    await ActiveOrderState.instance.loadFromPrefs();
-    debugPrint('[BOOT] Active order state loaded.');
-
-    // Seed active orders from the backend so ongoing orders survive cold
-    // starts / cleared prefs (WebSocket alone can't hydrate unknown orders).
     if (AuthService().isLoggedIn) {
+      await ActiveOrderState.instance.loadFromPrefs();
       ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+    } else {
+      ActiveOrderState.instance.resetForUserSession();
     }
+    debugPrint('[BOOT] Active order state loaded.');
 
     debugPrint('[BOOT] Syncing cart...');
     CartManager.instance.syncWithApi();
