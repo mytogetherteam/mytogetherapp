@@ -89,11 +89,13 @@ class _AppState extends State<App> {
                 child: child ?? const SizedBox.shrink(),
               );
               if (!kIsWeb) return wrapped;
-              return GestureDetector(
-                onTap: () {
+              // Listener (not GestureDetector) so iOS PWA taps reach buttons
+              // while still unlocking payment alert audio on first interaction.
+              return Listener(
+                onPointerDown: (_) {
                   PaymentAlertSound.prepareForUserInteraction();
-                  FocusManager.instance.primaryFocus?.unfocus();
                 },
+                behavior: HitTestBehavior.translucent,
                 child: wrapped,
               );
             },

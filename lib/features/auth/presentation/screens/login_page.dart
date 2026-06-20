@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -46,11 +47,15 @@ class _LoginPageState extends State<LoginPage>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        FlutterNativeSplash.remove();
+    if (kIsWeb) {
+      FlutterNativeSplash.remove();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          FlutterNativeSplash.remove();
+        });
       });
-    });
+    }
   }
 
   @override

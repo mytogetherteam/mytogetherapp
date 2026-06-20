@@ -177,9 +177,11 @@ void main() async {
 Future<void> _finishWebBoot() async {
   try {
     await NotificationService().initialize();
-    await ActiveOrderState.instance.loadFromPrefs();
     if (AuthService().isLoggedIn) {
+      await ActiveOrderState.instance.loadFromPrefs();
       ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+    } else {
+      ActiveOrderState.instance.resetForUserSession();
     }
     CartManager.instance.syncWithApi();
   } catch (e) {
