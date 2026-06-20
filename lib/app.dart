@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/auth/auth_service.dart';
 import 'core/localization/locale_controller.dart';
+import 'core/notifications/payment_alert_sound.dart';
 import 'features/auth/presentation/screens/login_page.dart';
 import 'features/auth/presentation/screens/auth_entry_page.dart';
 import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
@@ -81,11 +82,19 @@ class _AppState extends State<App> {
             themeMode: ThemeMode.light,
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
-              return MediaQuery(
+              final wrapped = MediaQuery(
                 data: MediaQuery.of(context).copyWith(
                   alwaysUse24HourFormat: true,
                 ),
                 child: child ?? const SizedBox.shrink(),
+              );
+              if (!kIsWeb) return wrapped;
+              return GestureDetector(
+                onTap: () {
+                  PaymentAlertSound.prepareForUserInteraction();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                child: wrapped,
               );
             },
             navigatorObservers: [App.routeObserver],

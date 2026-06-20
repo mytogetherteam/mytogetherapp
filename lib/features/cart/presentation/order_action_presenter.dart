@@ -148,7 +148,7 @@ class OrderActionPresenter {
     _shownEpisodeKeys.add(episodeKey);
     try {
       if (kIsWeb && kind == OrderActionDialogKind.slipReupload) {
-        unawaited(NotificationService().playPaymentAlert());
+        unawaited(NotificationService().playPaymentAlert(orderId: order.orderId));
       }
       final result = await OrderActionDialog.show(
         context,
@@ -177,6 +177,9 @@ class OrderActionPresenter {
       }
     } finally {
       _isShowing = false;
+      if (kIsWeb) {
+        NotificationService.stopGlobalAlert();
+      }
     }
   }
 

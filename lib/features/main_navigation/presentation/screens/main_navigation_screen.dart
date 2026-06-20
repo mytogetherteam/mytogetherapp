@@ -86,7 +86,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _checkAndRequestPermissions() async {
     if (kIsWeb) {
       await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
-      await NotificationService().requestPermission();
+      await _prepareWebNotifications();
       return;
     }
 
@@ -117,6 +117,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         LocationService().getCurrentPosition();
       }
     }
+  }
+
+  Future<void> _prepareWebNotifications() async {
+    await NotificationService().requestPermission();
+    await NotificationService().ensurePushRegistration();
   }
 
   void _onOrderStateChanged() {

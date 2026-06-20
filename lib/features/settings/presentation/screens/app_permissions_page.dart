@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/core/notifications/notification_service.dart';
 import 'package:mytogetherapp/core/notifications/web_notification_platform.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -95,7 +96,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
       if (permission == Permission.location) {
         await LocationService().getCurrentPosition(requestPermissionIfDenied: true);
       } else if (permission == Permission.notification) {
-        await requestWebNotificationPermission();
+        await NotificationService().requestPermission();
       }
       await _checkPermissions(silent: true);
       return;

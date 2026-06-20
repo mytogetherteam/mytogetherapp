@@ -6,7 +6,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
 import '../auth/auth_service.dart';
-import 'web_notification_platform.dart';
+import 'payment_alert_sound.dart';
+import 'web_browser_notification.dart';
+import 'web_push_helper.dart';
+import 'web_sw_message_listener.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
@@ -27,6 +30,10 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
+
+  static void stopGlobalAlert() {
+    PaymentAlertSound.stopAlert();
+  }
 
   FirebaseMessaging? _fcm;
   FirebaseMessaging get fcm {
@@ -90,11 +97,45 @@ class NotificationService {
           ?.createNotificationChannel(paymentChannel);
     }
 
+    if (kIsWeb) {
+      PaymentAlertSound.setupBackgroundAlertResume();
+
+      WebServiceWorkerMessageListener.start((data) async {
+        final type = data['type']?.toString();
+        if (type != 'PAYMENT_ALERT') return;
+
+        final orderId = data['orderId']?.toString();
+        final fromClick = data['fromNotificationClick'] == true;
+        final title = data['title']?.toString();
+        final body = data['body']?.toString();
+        if (!fromClick && title != null && body != null) {
+          await WebBrowserNotification.show(
+            title: title,
+            body: body,
+            tag: orderId != null ? 'payment-$orderId' : 'payment',
+            requireInteraction: true,
+          );
+        }
+        if (!fromClick) {
+          await PaymentAlertSound.handleServiceWorkerAlert(orderId: orderId);
+        } else {
+          NotificationService.stopGlobalAlert();
+        }
+        if (orderId != null && orderId.isNotEmpty && orderId != 'payment') {
+          ActiveOrderState.instance.syncActiveOrder();
+        }
+      });
+    }
+
     // Permissions are now requested via MainNavigationScreen rationale modal
     try {
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = message.data['type'] ?? message.data['notificationType'];
+      final String? subType = message.data['subType'];
+      final bool isPayment =
+          type == 'PAYMENT_REMINDER' ||
+          subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
       // 0. Admin broadcast/announcement: pop the modal globally (any screen)
       // and bump the badge. Handled here so we don't also show a banner.
@@ -107,16 +148,18 @@ class NotificationService {
       }
 
       // 1. Process Order Data regardless of notification display
-      if (type == 'ORDER_STATUS') {
-        final String? refId = message.data['referenceId']?.toString();
-        if (message.data['order'] != null) {
-          try {
-            final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-            ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
-          } catch (_) {}
-        } else if (refId != null && ActiveOrderState.instance.orderId == refId) {
-          ActiveOrderState.instance.syncActiveOrder();
+      if (type == 'ORDER_STATUS' || isPayment) {
+        _processOrderStatusMessage(message);
+      }
+
+      if (isPayment) {
+        NotificationRepository().incrementCount();
+        if (kIsWeb) {
+          _handleWebForegroundPaymentAlert(message);
+        } else {
+          showLocalNotification(message);
         }
+        return;
       }
 
       // 2. Display Notification
@@ -125,11 +168,19 @@ class NotificationService {
       // We manual handle it here for consistency.
       if (message.notification != null) {
         NotificationRepository().incrementCount();
-        showLocalNotification(message);
+        if (kIsWeb) {
+          _showWebNotification(message);
+        } else {
+          showLocalNotification(message);
+        }
       } else if (message.data.isNotEmpty && type != 'SILENT_SYNC') {
         // Fallback for data-only legacy/other pushes
         NotificationRepository().getUnreadCount();
-        showLocalNotification(message);
+        if (kIsWeb) {
+          _showWebNotification(message);
+        } else {
+          showLocalNotification(message);
+        }
       }
     });
 
@@ -151,10 +202,7 @@ class NotificationService {
       // Ignore timeout or initialization errors
     }
 
-    // Register token if already logged in
-    if (AuthService().isLoggedIn) {
-      await registerDevice();
-    }
+    await ensurePushRegistration();
 
     // Listen for token refreshes
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
@@ -169,10 +217,40 @@ class NotificationService {
     _isInitialized = true;
   }
 
+  /// Ensures the FCM service worker is active and the device token is registered.
+  Future<void> ensurePushRegistration() async {
+    if (!kIsWeb) {
+      if (AuthService().isLoggedIn) {
+        await registerDevice();
+      }
+      return;
+    }
+
+    await WebPushHelper.ensureMessagingServiceWorkerReady();
+
+    final settings = await fcm.getNotificationSettings();
+    final granted = settings.authorizationStatus ==
+            AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    if (!granted) {
+      debugPrint(
+        '[NotificationService] Web push permission: ${settings.authorizationStatus}',
+      );
+      return;
+    }
+
+    if (AuthService().isLoggedIn) {
+      await registerDevice();
+    }
+  }
+
   Future<void> requestPermission() async {
     try {
       if (kIsWeb) {
-        await requestWebNotificationPermission();
+        await PaymentAlertSound.prepareForUserInteraction();
+        await fcm.requestPermission();
+        await ensurePushRegistration();
         return;
       }
       await FirebaseMessaging.instance.requestPermission(
@@ -184,6 +262,9 @@ class NotificationService {
         provisional: false,
         sound: true,
       );
+      if (AuthService().isLoggedIn) {
+        await registerDevice();
+      }
     } catch (e) {
       debugPrint('FCM permission request failed: $e');
     }
@@ -216,13 +297,17 @@ class NotificationService {
 
   Future<void> _registerDeviceInBackground() async {
     try {
+      if (kIsWeb) {
+        await WebPushHelper.ensureMessagingServiceWorkerReady();
+      }
+
       String? token;
       if (kIsWeb) {
         final vapidKey = dotenv.env['FIREBASE_VAPID_KEY'];
         if (vapidKey != null && vapidKey.isNotEmpty) {
           token = await FirebaseMessaging.instance
               .getToken(vapidKey: vapidKey)
-              .timeout(const Duration(seconds: 5));
+              .timeout(const Duration(seconds: 10));
         }
       } else {
         token = await FirebaseMessaging.instance
@@ -282,11 +367,11 @@ class NotificationService {
         subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
     if (kIsWeb) {
-      await showWebNotification(
-        title: title,
-        body: body,
-        isPayment: isPayment,
-      );
+      if (isPayment) {
+        await _handleWebForegroundPaymentAlert(message);
+      } else {
+        await _showWebNotification(message);
+      }
       return;
     }
 
@@ -339,9 +424,61 @@ class NotificationService {
 
   /// Plays the payment alert sound on PWA when push permission is unavailable
   /// but the app is in the foreground (e.g. WebSocket order updates).
-  Future<void> playPaymentAlert() async {
+  Future<void> playPaymentAlert({String? orderId}) async {
     if (!kIsWeb) return;
-    await playWebNotificationSound(isPayment: true);
+    await PaymentAlertSound.playLoopingAlert(orderId: orderId);
+  }
+
+  void _processOrderStatusMessage(RemoteMessage message) {
+    final String? refId = message.data['referenceId']?.toString();
+    if (message.data['order'] != null) {
+      try {
+        final Map<String, dynamic> rawOrder =
+            json.decode(message.data['order'] as String);
+        ActiveOrderState.instance
+            .updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+      } catch (_) {}
+    } else if (refId != null) {
+      if (ActiveOrderState.instance.orderId == refId ||
+          ActiveOrderState.instance.allOrdersList
+              .any((order) => order.orderId == refId)) {
+        ActiveOrderState.instance.syncActiveOrder();
+      }
+    }
+  }
+
+  Future<void> _handleWebForegroundPaymentAlert(RemoteMessage message) async {
+    final orderId = message.data['referenceId']?.toString() ??
+        message.data['orderId']?.toString();
+    final title =
+        message.notification?.title ?? message.data['title'] ?? 'Payment Required';
+    final body = message.notification?.body ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'Please upload your payment slip.';
+
+    await WebBrowserNotification.show(
+      title: title,
+      body: body,
+      tag: orderId != null ? 'payment-$orderId' : 'payment',
+      requireInteraction: true,
+    );
+    await PaymentAlertSound.playLoopingAlert(orderId: orderId);
+  }
+
+  Future<void> _showWebNotification(RemoteMessage message) async {
+    final title =
+        message.notification?.title ?? message.data['title'] ?? 'New Notification';
+    final body = message.notification?.body ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'You have a new message';
+
+    await WebBrowserNotification.show(
+      title: title,
+      body: body,
+      tag: message.messageId,
+    );
   }
 
   void _handleNotificationClick(RemoteMessage? message) {
