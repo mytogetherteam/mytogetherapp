@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
-import 'package:mytogetherapp/core/utils/multipart_helper.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import '../models/order_history_dto.dart';
 
 /// Talks to the new backend's user-orders endpoint.
@@ -46,6 +46,14 @@ class OrderRepository {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/orders',
         queryParameters: queryParams,
+        options: Options(
+          extra: {
+            '@dio_cache_interceptor@': CacheOptions(
+              store: MemCacheStore(),
+              policy: CachePolicy.refresh,
+            ),
+          },
+        ),
       );
 
       if (response.statusCode == 200 && response.data != null) {

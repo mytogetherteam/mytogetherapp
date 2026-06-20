@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'payment_alert_sound.dart';
 import 'web_browser_notification.dart';
 import 'web_push_helper.dart';
 import 'web_sw_message_listener.dart';
+import '../auth/order_ownership.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
@@ -42,8 +44,9 @@ class NotificationService {
     } catch (e) {
       debugPrint('Firebase Messaging not available: $e');
     }
-    return _fcm!; 
+    return _fcm!;
   }
+
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -55,16 +58,19 @@ class NotificationService {
 
     if (!kIsWeb) {
       // Initialize local notifications
-      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
-      const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      );
-      const InitializationSettings initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsIOS,
-      );
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/launcher_icon');
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+            requestAlertPermission: false,
+            requestBadgePermission: false,
+            requestSoundPermission: false,
+          );
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsIOS,
+          );
       await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (details) {
@@ -74,26 +80,35 @@ class NotificationService {
 
       // Create high importance channel for Android
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'high_importance_channel_v2',
+        'high_importance_channel_v3',
         'High Importance Notifications',
         description: 'This channel is used for important notifications.',
         importance: Importance.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('normal_noti'),
       );
       await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(channel);
 
       // Payment-request channel — high importance but normal (default) sound,
       // no looping flag so it behaves like every other notification.
-      const AndroidNotificationChannel paymentChannel = AndroidNotificationChannel(
-        'high_importance_channel_payment',
-        'Payment Notifications',
-        description: 'This channel is used for payment request notifications.',
-        importance: Importance.high,
-        playSound: true,
-      );
+      const AndroidNotificationChannel paymentChannel =
+          AndroidNotificationChannel(
+            'high_importance_channel_payment_v3',
+            'Payment Notifications',
+            description:
+                'This channel is used for payment request notifications.',
+            importance: Importance.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('normal_noti'),
+          );
       await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(paymentChannel);
     }
 
@@ -131,80 +146,88 @@ class NotificationService {
     try {
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final String? type = message.data['type'] ?? message.data['notificationType'];
-      final String? subType = message.data['subType'];
-      final bool isPayment =
-          type == 'PAYMENT_REMINDER' ||
-          subType == 'PAYMENT_SLIP_REQUEST_ORDER';
+        final String? type =
+            message.data['type'] ?? message.data['notificationType'];
+        final String? subType = message.data['subType'];
+        final bool isPayment =
+            type == 'PAYMENT_REMINDER' ||
+            subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
-      // 0. Admin broadcast/announcement: pop the modal globally (any screen)
-      // and bump the badge. Handled here so we don't also show a banner.
-      if (type == 'BROADCAST') {
-        final announcement = _announcementFromMessage(message);
-        if (announcement != null) {
-          AnnouncementPresenter.present(announcement);
+        // 0. Admin broadcast/announcement: pop the modal globally (any screen)
+        // and bump the badge. Handled here so we don't also show a banner.
+        if (type == 'BROADCAST') {
+          final announcement = _announcementFromMessage(message);
+          if (announcement != null) {
+            AnnouncementPresenter.present(announcement);
+          }
+          return;
         }
-        return;
-      }
 
-      // 1. Process Order Data regardless of notification display
-      if (type == 'ORDER_STATUS' || isPayment) {
-        _processOrderStatusMessage(message);
-      }
-
-      if (isPayment) {
-        NotificationRepository().incrementCount();
-        if (kIsWeb) {
-          _handleWebForegroundPaymentAlert(message);
-        } else {
-          showLocalNotification(message);
+        // 1. Process Order Data regardless of notification display
+        if (type == 'ORDER_STATUS') {
+          final String? refId = message.data['referenceId']?.toString();
+          if (message.data['order'] != null) {
+            try {
+              final Map<String, dynamic> rawOrder = json.decode(
+                message.data['order'] as String,
+              );
+              if (!OrderOwnership.isForeignOrder(rawOrder)) {
+                ActiveOrderState.instance.updateFromSocket({
+                  'type': 'ORDER_UPDATE',
+                  'order': rawOrder,
+                });
+              }
+            } catch (_) {}
+          } else if (refId != null &&
+              ActiveOrderState.instance.orderId == refId) {
+            ActiveOrderState.instance.syncActiveOrder();
+          }
+          return;
         }
-        return;
-      }
 
-      // 2. Display Notification
-      // Since the backend now sends 'STANDARD' mode with a 'notification' object,
-      // Firebase will NOT show a banner automatically in the foreground.
-      // We manual handle it here for consistency.
-      if (message.notification != null) {
-        NotificationRepository().incrementCount();
-        if (kIsWeb) {
-          _showWebNotification(message);
-        } else {
-          showLocalNotification(message);
+        // 2. Display Notification
+        // Since the backend now sends 'STANDARD' mode with a 'notification' object,
+        // Firebase will NOT show a banner automatically in the foreground.
+        // We manual handle it here for consistency.
+        if (message.notification != null) {
+          NotificationRepository().incrementCount();
+          if (kIsWeb) {
+            _showWebNotification(message);
+          } else {
+            showLocalNotification(message);
+          }
+        } else if (message.data.isNotEmpty && type != 'SILENT_SYNC') {
+          // Fallback for data-only legacy/other pushes
+          NotificationRepository().getUnreadCount();
+          if (kIsWeb) {
+            _showWebNotification(message);
+          } else {
+            showLocalNotification(message);
+          }
         }
-      } else if (message.data.isNotEmpty && type != 'SILENT_SYNC') {
-        // Fallback for data-only legacy/other pushes
-        NotificationRepository().getUnreadCount();
-        if (kIsWeb) {
-          _showWebNotification(message);
-        } else {
-          showLocalNotification(message);
+      });
+
+      // Handle background message clicks
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _handleNotificationClick(message);
+      });
+
+      // Check if the app was opened from a terminated state via a notification
+      // Add a timeout to prevent hanging the initialization if Firebase is unresponsive
+      try {
+        RemoteMessage? initialMessage = await FirebaseMessaging.instance
+            .getInitialMessage()
+            .timeout(const Duration(seconds: 2));
+        if (initialMessage != null) {
+          _handleNotificationClick(initialMessage);
         }
+      } catch (_) {
+        // Ignore timeout or initialization errors
       }
-    });
 
-    // Handle background message clicks
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleNotificationClick(message);
-    });
+      await ensurePushRegistration();
 
-    // Check if the app was opened from a terminated state via a notification
-    // Add a timeout to prevent hanging the initialization if Firebase is unresponsive
-    try {
-      RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage().timeout(
-        const Duration(seconds: 2),
-      );
-      if (initialMessage != null) {
-        _handleNotificationClick(initialMessage);
-      }
-    } catch (_) {
-      // Ignore timeout or initialization errors
-    }
-
-    await ensurePushRegistration();
-
-    // Listen for token refreshes
+      // Listen for token refreshes
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         if (AuthService().isLoggedIn) {
           _sendTokenToServer(newToken);
@@ -229,8 +252,8 @@ class NotificationService {
     await WebPushHelper.ensureMessagingServiceWorkerReady();
 
     final settings = await fcm.getNotificationSettings();
-    final granted = settings.authorizationStatus ==
-            AuthorizationStatus.authorized ||
+    final granted =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
 
     if (!granted) {
@@ -277,10 +300,11 @@ class NotificationService {
   /// Removes the current FCM token from the backend (call before logout).
   Future<void> unregisterDevice() async {
     try {
-      final token = _registeredFcmToken ??
-          await FirebaseMessaging.instance
-              .getToken()
-              .timeout(const Duration(seconds: 5));
+      final token =
+          _registeredFcmToken ??
+          await FirebaseMessaging.instance.getToken().timeout(
+            const Duration(seconds: 5),
+          );
       if (token == null || token.isEmpty) return;
 
       await ApiClient().dio.delete(
@@ -310,9 +334,9 @@ class NotificationService {
               .timeout(const Duration(seconds: 10));
         }
       } else {
-        token = await FirebaseMessaging.instance
-            .getToken()
-            .timeout(const Duration(seconds: 5));
+        token = await FirebaseMessaging.instance.getToken().timeout(
+          const Duration(seconds: 5),
+        );
       }
       if (token != null) {
         await _sendTokenToServer(token);
@@ -326,10 +350,7 @@ class NotificationService {
     try {
       await ApiClient().dio.post(
         '${ApiClient.apiPrefix}/user/device-tokens',
-        data: {
-          'token': token,
-          'platform': _devicePlatform,
-        },
+        data: {'token': token, 'platform': _devicePlatform},
       );
       _registeredFcmToken = token;
     } catch (e) {
@@ -363,32 +384,26 @@ class NotificationService {
     final String? type = message.data['type'];
     final String? subType = message.data['subType'];
     final bool isPayment =
-        type == 'PAYMENT_REMINDER' ||
-        subType == 'PAYMENT_SLIP_REQUEST_ORDER';
-
-    if (kIsWeb) {
-      if (isPayment) {
-        await _handleWebForegroundPaymentAlert(message);
-      } else {
-        await _showWebNotification(message);
-      }
-      return;
-    }
+        type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      isPayment ? 'high_importance_channel_payment' : 'high_importance_channel_v2',
-      isPayment ? 'Payment Notifications' : 'High Importance Notifications',
-      channelDescription: isPayment
-          ? 'This channel is used for payment request notifications.'
-          : 'This channel is used for important notifications.',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/launcher_icon',
-      playSound: true,
-      showWhen: true,
+          isPayment
+              ? 'high_importance_channel_payment_v3'
+              : 'high_importance_channel_v3',
+          isPayment ? 'Payment Notifications' : 'High Importance Notifications',
+          channelDescription: isPayment
+              ? 'This channel is used for payment request notifications.'
+              : 'This channel is used for important notifications.',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/launcher_icon',
+          playSound: true,
+          showWhen: true,
+        );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    final NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
     await _localNotifications.show(
       id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
       title: title,
@@ -406,7 +421,8 @@ class NotificationService {
     if (id == null) return null;
     final String title =
         message.notification?.title ?? message.data['title']?.toString() ?? '';
-    final String body = message.notification?.body ??
+    final String body =
+        message.notification?.body ??
         message.data['message']?.toString() ??
         message.data['body']?.toString() ??
         '';
@@ -433,26 +449,34 @@ class NotificationService {
     final String? refId = message.data['referenceId']?.toString();
     if (message.data['order'] != null) {
       try {
-        final Map<String, dynamic> rawOrder =
-            json.decode(message.data['order'] as String);
-        ActiveOrderState.instance
-            .updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+        final Map<String, dynamic> rawOrder = json.decode(
+          message.data['order'] as String,
+        );
+        ActiveOrderState.instance.updateFromSocket({
+          'type': 'ORDER_UPDATE',
+          'order': rawOrder,
+        });
       } catch (_) {}
     } else if (refId != null) {
       if (ActiveOrderState.instance.orderId == refId ||
-          ActiveOrderState.instance.allOrdersList
-              .any((order) => order.orderId == refId)) {
+          ActiveOrderState.instance.allOrdersList.any(
+            (order) => order.orderId == refId,
+          )) {
         ActiveOrderState.instance.syncActiveOrder();
       }
     }
   }
 
   Future<void> _handleWebForegroundPaymentAlert(RemoteMessage message) async {
-    final orderId = message.data['referenceId']?.toString() ??
+    final orderId =
+        message.data['referenceId']?.toString() ??
         message.data['orderId']?.toString();
     final title =
-        message.notification?.title ?? message.data['title'] ?? 'Payment Required';
-    final body = message.notification?.body ??
+        message.notification?.title ??
+        message.data['title'] ??
+        'Payment Required';
+    final body =
+        message.notification?.body ??
         message.data['body'] ??
         message.data['message'] ??
         'Please upload your payment slip.';
@@ -468,8 +492,11 @@ class NotificationService {
 
   Future<void> _showWebNotification(RemoteMessage message) async {
     final title =
-        message.notification?.title ?? message.data['title'] ?? 'New Notification';
-    final body = message.notification?.body ??
+        message.notification?.title ??
+        message.data['title'] ??
+        'New Notification';
+    final body =
+        message.notification?.body ??
         message.data['body'] ??
         message.data['message'] ??
         'You have a new message';
@@ -482,7 +509,8 @@ class NotificationService {
   }
 
   void _handleNotificationClick(RemoteMessage? message) {
-    final String? type = message?.data['type'] ?? message?.data['notificationType'];
+    final String? type =
+        message?.data['type'] ?? message?.data['notificationType'];
 
     // Tapping a broadcast push (from background/terminated) opens the modal.
     if (message != null && type == 'BROADCAST') {
@@ -496,61 +524,70 @@ class NotificationService {
 
     if (message != null && type == 'ORDER_STATUS') {
       try {
-        final String? refId = message.data['referenceId']?.toString();
-        
+        final String? refId =
+            message.data['referenceId']?.toString() ??
+            message.data['orderId']?.toString();
+
         if (message.data['order'] != null) {
-          final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
-          ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
-        } else if (refId != null) {
-          // Store reference if we're not already tracking it
-          if (ActiveOrderState.instance.orderId != refId) {
-            ActiveOrderState.instance.orderId = refId;
-            ActiveOrderState.instance.hasActiveOrder = true;
+          final Map<String, dynamic> rawOrder = json.decode(
+            message.data['order'] as String,
+          );
+          if (!OrderOwnership.isForeignOrder(rawOrder)) {
+            ActiveOrderState.instance.updateFromSocket({
+              'type': 'ORDER_UPDATE',
+              'order': rawOrder,
+            });
           }
-          // Trigger sync to get full order details for the UI
-          ActiveOrderState.instance.syncActiveOrder();
+        } else if (refId != null) {
+          unawaited(ActiveOrderState.instance.adoptOrderIfOwned(refId));
         }
-        
+
         final context = App.navigatorKey.currentState?.context;
         if (context == null) return;
         final state = ActiveOrderState.instance;
         final s = state.orderStatus;
 
         if (s == 0) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderTrackingPage(
-              store: CartStore(
-                nameKey: state.shopNameEn ?? state.storeName ?? '',
-                nameEn: state.shopNameEn ?? state.storeName,
-                nameMm: state.shopNameMm,
-                nameTh: state.shopNameTh,
-                items: state.orderItems,
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderTrackingPage(
+                store: CartStore(
+                  nameKey: state.shopNameEn ?? state.storeName ?? '',
+                  nameEn: state.shopNameEn ?? state.storeName,
+                  nameMm: state.shopNameMm,
+                  nameTh: state.shopNameTh,
+                  items: state.orderItems,
+                ),
+                foodTotal: (_primaryFoodSubtotal(state)).round(),
               ),
-              foodTotal: (_primaryFoodSubtotal(state)).round(),
             ),
-          ));
+          );
         } else if (s == 1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => AwaitingPaymentPage(
-              orderId: state.orderId,
-              foodTotal: _primaryFoodSubtotal(state),
-              deliveryFee: state.deliveryFee ?? 0,
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => AwaitingPaymentPage(
+                orderId: state.orderId,
+                foodTotal: _primaryFoodSubtotal(state),
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
             ),
-          ));
+          );
         } else if (s == 2 || s == 3 || s == -1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderStatusPage(
-              foodTotal: _primaryFoodSubtotal(state),
-              deliveryFee: state.deliveryFee ?? 0,
+          App.navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderStatusPage(
+                foodTotal: _primaryFoodSubtotal(state),
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
             ),
-          ));
+          );
         } else if (s == 4) {
           OrderCompletePage.navigateWithState(App.navigatorKey.currentState);
         }
         return; // Handled order routing
       } catch (e) {
-          // Ignore FCM routing errors
-        }
+        // Ignore FCM routing errors
+      }
     }
 
     App.navigatorKey.currentState?.push(

@@ -26,8 +26,12 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
   @override
   void initState() {
     super.initState();
-    // Remove splash screen since this is now the initial route
-    FlutterNativeSplash.remove();
+    // Remove splash screen after first frame is rendered to prevent flash
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        FlutterNativeSplash.remove();
+      });
+    });
   }
 
   @override

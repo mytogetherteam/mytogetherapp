@@ -70,11 +70,15 @@ void main() async {
   try {
     debugPrint('[BOOT] Initializing LocaleController...');
     await LocaleController.instance.initialize();
-    debugPrint('[BOOT] LocaleController initialized. Language: ${LocaleController.instance.language.code}');
+    debugPrint(
+      '[BOOT] LocaleController initialized. Language: ${LocaleController.instance.language.code}',
+    );
 
     debugPrint('[BOOT] Initializing AuthService...');
     await AuthService().initialize();
-    debugPrint('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
+    debugPrint(
+      '[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}',
+    );
 
     // ── Next-day startup refresh ──────────────────────────────────────────
     // If the stored access token is already expired at launch, refresh it NOW
@@ -84,17 +88,19 @@ void main() async {
     if (AuthService().isLoggedIn && AuthService().isTokenNearlyExpired) {
       debugPrint('[BOOT] Access token expired — refreshing before runApp()...');
       try {
-        final newToken = await AuthService().performRefresh(
-          ApiClient().dio,
-        );
+        final newToken = await AuthService().performRefresh(ApiClient().dio);
         if (newToken != null) {
           debugPrint('[BOOT] Token refreshed successfully.');
         } else {
-          debugPrint('[BOOT] Refresh returned null — user will be asked to log in.');
+          debugPrint(
+            '[BOOT] Refresh returned null — user will be asked to log in.',
+          );
           await AuthService().clearSession(navigate: false);
         }
       } catch (e) {
-        debugPrint('[BOOT] Startup refresh failed: $e — continuing without valid token.');
+        debugPrint(
+          '[BOOT] Startup refresh failed: $e — continuing without valid token.',
+        );
         // Keep session; interceptor will retry on the first real API call.
       }
     }
@@ -107,7 +113,9 @@ void main() async {
       } catch (e) {
         debugPrint('[BOOT] NotificationService initialization failed: $e');
       }
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
       debugPrint('[BOOT] NotificationService initialization triggered.');
 
       debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
@@ -117,13 +125,18 @@ void main() async {
         debugPrint('[BOOT] LockScreenWidgetManager initialization failed: $e');
       }
 
-      debugPrint('[BOOT] Loading active order state...');
-      await ActiveOrderState.instance.loadFromPrefs();
-      debugPrint('[BOOT] Active order state loaded.');
+      debugPrint(
+        '[BOOT] LocationService pre-fetch removed for rationale modal.',
+      );
 
+      debugPrint('[BOOT] Loading active order state...');
       if (AuthService().isLoggedIn) {
+        await ActiveOrderState.instance.loadFromPrefs();
         ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+      } else {
+        ActiveOrderState.instance.resetForUserSession();
       }
+      debugPrint('[BOOT] Active order state loaded.');
 
       debugPrint('[BOOT] Syncing cart...');
       CartManager.instance.syncWithApi();

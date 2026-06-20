@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../auth/auth_service.dart';
 import '../config/env_config.dart';
+import '../auth/order_ownership.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/home/data/repositories/restaurant_repository.dart';
 import '../../features/announcements/data/models/announcement_model.dart';
@@ -364,6 +365,22 @@ class WebSocketService {
           }
 
           // ── ORDER_UPDATE (existing logic) ─────────────────────────────────
+          if (messageType == 'ORDER_UPDATE') {
+            final nestedOrder = raw['order'];
+            if (nestedOrder is Map) {
+              final orderMap = Map<String, dynamic>.from(nestedOrder);
+              if (OrderOwnership.isForeignOrder(orderMap)) {
+                debugPrint(
+                  ' [WS] Ignoring foreign ORDER_UPDATE orderId=${orderMap['id'] ?? orderMap['orderId']}',
+                );
+                return;
+              }
+            } else if (OrderOwnership.isForeignOrder(raw)) {
+              debugPrint(' [WS] Ignoring foreign ORDER_UPDATE');
+              return;
+            }
+          }
+
           dynamic payload = raw;
 
           // Unmarshall if wrapped

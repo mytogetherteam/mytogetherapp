@@ -8,6 +8,7 @@ import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
 import '../notifications/notification_service.dart';
 import 'jwt_utils.dart';
+import 'session_realtime.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -152,6 +153,8 @@ class AuthService {
   }
 
   Future<void> clearSession({bool navigate = true}) async {
+    SessionRealtime.teardown();
+
     _accessToken = null;
     _refreshToken = null;
     _currentUser = null;

@@ -13,6 +13,8 @@ import '../../../core/utils/image_utils.dart';
 import '../../order/data/repositories/order_repository.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
+import '../../../core/auth/auth_service.dart';
+import '../../../core/auth/order_ownership.dart';
 
 /// Normalizes `deliveryAddress` from API/WebSocket payloads. The backend
 /// returns a nested object (`address`, `addressMm`, `buildingName`, …) while
@@ -439,8 +441,28 @@ class ActiveOrderState extends ChangeNotifier {
     if (val == null) return;
     if (!_orders.containsKey(val)) {
       _orders[val] = ActiveOrderItem(orderId: val);
+      _primaryOrderId ??= val;
       notifyListeners();
     }
+  }
+
+  /// Clears in-memory orders when the signed-in user changes. Does not touch
+  /// persisted prefs (those are keyed per user id).
+  void resetForUserSession() {
+    _orders.clear();
+    _primaryOrderId = null;
+    _userCancelledOrderIds.clear();
+    notifyListeners();
+  }
+
+  static String _prefsKeyForUser(int? userId) {
+    if (userId == null) return 'active_orders_v3_guest';
+    return 'active_orders_v3_$userId';
+  }
+
+  static String _primaryPrefsKeyForUser(int? userId) {
+    if (userId == null) return 'primary_order_id_guest';
+    return 'primary_order_id_$userId';
   }
 
   void setShowUploadSection(bool val, {String? orderId}) {
@@ -643,7 +665,7 @@ class ActiveOrderState extends ChangeNotifier {
     final targetId = orderId ?? _primaryOrderId ?? this.orderId;
     if (targetId == null) return;
     if (!_orders.containsKey(targetId)) return;
-    
+
     try {
       final sanitizedOrderId = targetId.replaceAll('#', '');
       // Backend: GET /api/user/orders/:id (UserOrdersController.findAwaitingPaymentInfo).
@@ -651,18 +673,55 @@ class ActiveOrderState extends ChangeNotifier {
         '${ApiClient.apiPrefix}/user/orders/$sanitizedOrderId',
         options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
       );
-      
+
       if (response.statusCode == 200 && response.data != null) {
         Map<String, dynamic> data = response.data as Map<String, dynamic>;
         // Unwrap success/data envelope if present
         if (data.containsKey('data') && data['data'] is Map) {
           data = Map<String, dynamic>.from(data['data'] as Map);
         }
+        if (OrderOwnership.isForeignOrder(data)) {
+          clearOrder(orderId: targetId);
+          return;
+        }
         data['orderId'] = targetId;
         updateFromSocket(data);
+        return;
       }
-    } catch (e) {
-      // Silent fail
+      clearOrder(orderId: targetId);
+    } catch (_) {
+      clearOrder(orderId: targetId);
+    }
+  }
+
+  /// Verifies ownership via the REST API before tracking an order from a push.
+  Future<void> adoptOrderIfOwned(String orderId) async {
+    final sanitized = orderId.replaceAll('#', '').trim();
+    if (sanitized.isEmpty) return;
+
+    try {
+      final response = await ApiClient().dio.get(
+        '${ApiClient.apiPrefix}/user/orders/$sanitized',
+        options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
+      );
+      if (response.statusCode != 200 || response.data == null) return;
+
+      Map<String, dynamic> data = response.data as Map<String, dynamic>;
+      if (data.containsKey('data') && data['data'] is Map) {
+        data = Map<String, dynamic>.from(data['data'] as Map);
+      }
+      if (OrderOwnership.isForeignOrder(data)) return;
+
+      final id = data['id']?.toString() ?? sanitized;
+      if (!_orders.containsKey(id)) {
+        _orders[id] = ActiveOrderItem(orderId: id);
+        _primaryOrderId ??= id;
+      }
+      data['orderId'] = id;
+      updateFromSocket(data);
+      saveToPrefs();
+    } catch (_) {
+      // Not owned by this account or unreachable — do not track.
     }
   }
 
@@ -681,7 +740,23 @@ class ActiveOrderState extends ChangeNotifier {
     // Identify the tracked order (tolerate `#` prefixes and numeric ids).
     final rawId =
         data['orderId']?.toString() ?? data['id']?.toString() ?? orderId;
-    final item = _findTrackedOrder(rawId);
+
+    if (OrderOwnership.isForeignOrder(data)) {
+      if (rawId != null) clearOrder(orderId: rawId);
+      return;
+    }
+
+    final ownerId = OrderOwnership.parseUserId(data);
+    var item = _findTrackedOrder(rawId);
+    if (item == null) {
+      // Never adopt a brand-new order from realtime unless ownership is explicit.
+      if (ownerId == null || !OrderOwnership.isOwnedByCurrentUser(data)) return;
+      final id = rawId;
+      if (id == null || id.isEmpty) return;
+      _orders[id] = ActiveOrderItem(orderId: id);
+      _primaryOrderId ??= id;
+      item = _orders[id];
+    }
     if (item == null) return;
 
     if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
@@ -1300,15 +1375,20 @@ class ActiveOrderState extends ChangeNotifier {
   // Persistence logic
   Future<void> saveToPrefs() async {
     try {
+      final userId = AuthService().currentUser?.id;
+      if (userId == null) return;
+
       final prefs = await SharedPreferences.getInstance();
+      final ordersKey = _prefsKeyForUser(userId);
+      final primaryKey = _primaryPrefsKeyForUser(userId);
       final List<String> ordersJson = _orders.values
           .map((o) => jsonEncode(o.toJson()))
           .toList();
-      await prefs.setStringList('active_orders_v2', ordersJson);
+      await prefs.setStringList(ordersKey, ordersJson);
       if (_primaryOrderId != null) {
-        await prefs.setString('primary_order_id', _primaryOrderId!);
+        await prefs.setString(primaryKey, _primaryOrderId!);
       } else {
-        await prefs.remove('primary_order_id');
+        await prefs.remove(primaryKey);
       }
     } catch (e) {
       // Ignore prefs save errors
@@ -1317,11 +1397,19 @@ class ActiveOrderState extends ChangeNotifier {
 
   Future<void> loadFromPrefs() async {
     try {
+      final userId = AuthService().currentUser?.id;
+      if (userId == null) {
+        resetForUserSession();
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      final List<String>? ordersJson = prefs.getStringList('active_orders_v2');
-      
+      final ordersKey = _prefsKeyForUser(userId);
+      final primaryKey = _primaryPrefsKeyForUser(userId);
+      final List<String>? ordersJson = prefs.getStringList(ordersKey);
+
+      resetForUserSession();
       if (ordersJson != null) {
-        _orders.clear();
         for (final jsonStr in ordersJson) {
           try {
             final Map<String, dynamic> data = jsonDecode(jsonStr);
@@ -1331,25 +1419,10 @@ class ActiveOrderState extends ChangeNotifier {
             // Ignore individual item decode errors
           }
         }
-      } else {
-        // Fallback for transition from v1 (single order)
-        final bool legacyActive = prefs.getBool('hasActiveOrder') ?? false;
-        if (legacyActive) {
-          final legacyId = prefs.getString('orderId');
-          if (legacyId != null && legacyId.isNotEmpty) {
-             _orders[legacyId] = ActiveOrderItem(
-               orderId: legacyId,
-               storeName: prefs.getString('storeName'),
-               restaurantName: prefs.getString('restaurantName'),
-               logoPath: prefs.getString('logoPath'),
-               orderStatus: prefs.getInt('orderStatus') ?? 0,
-             );
-          }
-        }
       }
 
       _purgeTerminalOrders();
-      final savedPrimary = prefs.getString('primary_order_id');
+      final savedPrimary = prefs.getString(primaryKey);
       if (savedPrimary != null &&
           savedPrimary.isNotEmpty &&
           _orders.containsKey(savedPrimary)) {
