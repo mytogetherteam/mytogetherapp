@@ -118,18 +118,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreatePost,
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          context.tr('lost.post'),
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         color: AppColors.primary,
@@ -162,10 +151,14 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      PhosphorIcons.magnifyingGlassFill,
-                      color: AppColors.primary,
-                      size: 18,
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                      blendMode: BlendMode.srcIn,
+                      child: const Icon(
+                        PhosphorIcons.magnifyingGlassFill,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -182,12 +175,16 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
               actions: [
                 TextButton(
                   onPressed: _openMyPosts,
-                  child: Text(
-                    context.tr('lost.my_posts'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                    blendMode: BlendMode.srcIn,
+                    child: Text(
+                      context.tr('lost.my_posts'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -198,6 +195,50 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   color: Colors.black.withValues(alpha: 0.05),
                   height: 1,
                 ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _openCreatePost,
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey[100],
+                            child: Icon(PhosphorIcons.user, color: Colors.grey[400], size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                border: Border.all(color: Colors.grey[200]!),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Text(
+                                context.tr('lost.create_title'),
+                                style: GoogleFonts.notoSansMyanmar(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: 6,
+                    color: Colors.grey[100],
+                  ),
+                ],
               ),
             ),
             if (_items.isEmpty && _isLoading)
@@ -219,7 +260,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => NewsFeedItem(item: _items[index]),
+                  (context, index) => NewsFeedItem(item: _items[index], showBlockOption: true),
                   childCount: _items.length,
                 ),
               ),

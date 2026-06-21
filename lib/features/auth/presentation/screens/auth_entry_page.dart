@@ -407,6 +407,26 @@ class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMix
         _velocity += acceleration * dt;
         _position += _velocity * dt;
 
+        // Boundary constraints to keep pills inside the card area
+        const maxDx = 60.0;
+        const maxDy = 60.0;
+        
+        if (_position.dx > maxDx) {
+          _position = Offset(maxDx, _position.dy);
+          _velocity = Offset(-_velocity.dx * 0.6, _velocity.dy);
+        } else if (_position.dx < -maxDx) {
+          _position = Offset(-maxDx, _position.dy);
+          _velocity = Offset(-_velocity.dx * 0.6, _velocity.dy);
+        }
+        
+        if (_position.dy > maxDy) {
+          _position = Offset(_position.dx, maxDy);
+          _velocity = Offset(_velocity.dx, -_velocity.dy * 0.6);
+        } else if (_position.dy < -maxDy) {
+          _position = Offset(_position.dx, -maxDy);
+          _velocity = Offset(_velocity.dx, -_velocity.dy * 0.6);
+        }
+
         if (_velocity.distance < 0.5 && _position.distance < 0.5) {
           _velocity = Offset.zero;
           _position = Offset.zero;

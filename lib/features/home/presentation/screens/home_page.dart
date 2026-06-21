@@ -305,6 +305,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             color: Colors.black87,
                           ),
                         ),
+                        if ((banner.descriptionMm ?? banner.descriptionEn) != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            banner.descriptionMm ?? banner.descriptionEn ?? '',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black54,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
                         // Link text removed per user request
                         const SizedBox(height: 16),
                       ],

@@ -34,11 +34,25 @@ class _ProfilePageState extends State<ProfilePage> {
   String _appVersion = '';
   String? _bgImageUrl;
 
+  late ScrollController _scrollController;
+  double _headerOpacity = 0.0;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     _initAppVersion();
     _fetchBackgroundTheme();
+  }
+
+  void _onScroll() {
+    final double offset = _scrollController.offset;
+    final double newOpacity = (offset / 80).clamp(0.0, 1.0);
+    if (newOpacity != _headerOpacity) {
+      setState(() {
+        _headerOpacity = newOpacity;
+      });
+    }
   }
 
   Future<void> _initAppVersion() async {
@@ -68,96 +82,75 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header with Background
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
               children: [
-                ClipRect(
-                  child: Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
-                          ? DecorationImage(
-                              image: CachedNetworkImageProvider(_bgImageUrl!),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            )
-                          : const DecorationImage(
-                              image: AssetImage('assets/images/top-bannner.jpg'),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -50,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: user?.avatarUrl != null
-                          ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
-                          : null,
-                      child: user?.avatarUrl == null
-                          ? Icon(PhosphorIcons.userBold,
-                              size: 40, color: Colors.grey[400])
-                          : null,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 16,
-                  left: 16,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/app_icon_small.png',
-                        height: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Transform.translate(
-                        offset: const Offset(0, 4),
-                        child: Text(
-                          context.tr('nav.profile'),
-                          style: GoogleFonts.poppins(
-                            color: Colors.black,
-                            fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                // Header with Background
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    ClipRect(
+                      child: Container(
+                        height: 120,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                              ? DecorationImage(
+                                  image: CachedNetworkImageProvider(_bgImageUrl!),
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.topCenter,
+                                )
+                              : const DecorationImage(
+                                  image: AssetImage('assets/images/top-bannner.jpg'),
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.topCenter,
+                                ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      bottom: -50,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey[200],
+                          backgroundImage: user?.avatarUrl != null
+                              ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
+                              : null,
+                          child: user?.avatarUrl == null
+                              ? Icon(PhosphorIcons.userBold,
+                                  size: 40, color: Colors.grey[400])
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 16,
-                  right: 16,
-                  child: const NotificationBell(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 60),
-            
-            // User Info
-            Text(
+                const SizedBox(height: 60),
+                
+                // User Info
+                Text(
               user?.fullName ?? user?.username ?? context.tr('common.user_name'),
               style: GoogleFonts.poppins(
                 fontSize: 22,
@@ -284,7 +277,84 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-    );
+      // Fixed Nav Header
+      Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: _headerOpacity),
+            boxShadow: _headerOpacity > 0.8
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 12,
+            bottom: 12,
+            left: 16,
+            right: 16,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Image.asset(
+                        'assets/images/app_icon_small.png',
+                        height: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Transform.translate(
+                        offset: const Offset(0, 4),
+                        child: Text(
+                          context.tr('nav.profile'),
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const NotificationBell(),
+                ],
+              ),
+              // Center small profile picture
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: _headerOpacity > 0.8 ? 1.0 : 0.0,
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: user?.avatarUrl != null
+                      ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
+                      : null,
+                  child: user?.avatarUrl == null
+                      ? Icon(PhosphorIcons.userBold,
+                          size: 18, color: Colors.grey[400])
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  ),
+);
   }
 
   Widget _buildOptionTile({

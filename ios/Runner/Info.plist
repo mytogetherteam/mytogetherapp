@@ -63,7 +63,7 @@
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIStatusBarHidden</key>
-		<true/>
+		<false/>
 		<key>LSApplicationQueriesSchemes</key>
 		<array>
 			<string>tel</string>
@@ -74,5 +74,10 @@
 		<string>$(GOOGLE_MAPS_API_KEY)</string>
 		<key>NSSupportsLiveActivities</key>
 		<true/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<false/>
+		</dict>
 	</dict>
 </plist>

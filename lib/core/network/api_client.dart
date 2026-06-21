@@ -4,6 +4,8 @@ import '../auth/auth_interceptor.dart';
 import '../config/env_config.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
+import 'certificate_pinning.dart';
+
 class ApiClient {
   // ───────────────────────────────────────────────────────────────────────
   // Base URL configuration (see EnvConfig — set APP_ENV=staging for local).
@@ -33,6 +35,9 @@ class ApiClient {
         headers: {'Content-Type': 'application/json', 'Accept': '*/*'},
       ),
     );
+
+    // Enforce Certificate Pinning & prevent MITM Proxy interception
+    CertificatePinning.setup(_dio);
 
     // Auth interceptor: attaches Bearer token and handles 401 auto-refresh
     _dio.interceptors.add(AuthInterceptor(_dio));

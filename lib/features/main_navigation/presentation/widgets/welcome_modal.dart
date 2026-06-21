@@ -104,13 +104,11 @@ class WelcomeModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildParagraph('"အကောင်းဆုံးတွေပဲ ပေးချင်လွန်းလို့" ဆိုတဲ့ စေတနာကြီးနဲ့ Team တစ်ခုလုံး မျက်ကွင်းတွေ ညို၊ နေ့မအိပ် ညမအိပ် ကြိုးစားခဲ့ကြတဲ့ ရလဒ်လေးကတော့... အခု ထွက်လာပါပြီဗျို့! 🚀'),
-                      const SizedBox(height: 16),
-                      _buildParagraph('ရင်ခုန်တုန်ရင်စွာနဲ့ စောင့်မျှော်နေကြတဲ့ MyTogether App ရဲ့ Closed Beta Version ကြီး အားလုံးဆီကို တရားဝင် ရောက်ရှိလို့လာပါပြီ! အခုပဲ အဆင်သင့်ဖြစ်ကြပြီလား? 🔥'),
-                      const SizedBox(height: 16),
-                      _buildParagraph('Early Bird စာရင်းသွင်းထားတဲ့ လူလည်လေးတွေအတွက်ကတော့ Official Launch တာနဲ့ Promotions တွေက အလုအယက် စောင့်နေမှာ။ သွားစားမလား၊ မှာစားမလား... အခုကတည်းက ဗိုက်ကို နေရာချန်ထားလိုက်တော့! 🤤🎁'),
-                      const SizedBox(height: 16),
-                      _buildParagraph('ဒီနေ့ Closed Beta အနေနဲ့ အရင်ဆုံး စတင် ပွဲထုတ်လိုက်တာဖြစ်လို့ အချစ်ဦးမို့ အမှားပါရင် ခွင့်လွှတ်ပေးပြီး လိုအပ်တာလေးတွေကို စိတ်ကြိုက် ဝေဖန် အကြံပြုပေးသွားဦးနော်။ 🫶'),
+                      _buildParagraph('🚀 Team တစ်ခုလုံး ညနေးမအိပ် ကြိုးစားခဲ့တဲ့ MyTogether App Closed Beta မှ ကြိုဆိုပါတယ်!'),
+                      const SizedBox(height: 12),
+                      _buildParagraph('🔥 Early Bird တွေအတွက် Official Launch မှာ Promotions အများကြီး ထားပေးထားပါတယ်။'),
+                      const SizedBox(height: 12),
+                      _buildParagraph('🫶 Beta ဖြစ်လို့ အမှားပါနိုင်ပါတယ် — ဝေဖန် အကြံပြုပေးပါနော်!'),
                     ],
                   ),
                 ),

@@ -115,21 +115,32 @@ class _RegisterPageState extends State<RegisterPage>
         return;
       }
 
-      // Directly navigate to SetupPinPage, skipping OTP steps
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SetupPinPage(
-              idToken: phoneStr,
-              name: _fullNameController.text.trim(),
-              email: _emailController.text.trim(),
-            ),
-          ),
-        );
-      }
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phoneStr,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _verifyWithCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          final msg = FirebaseErrorHandler.getMessage(context, e);
+          AppDialog.showToast(context, msg, isError: true);
+          setState(() {
+            _isLoading = false;
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _verificationId = verificationId;
+            _showOtpView = true;
+          });
+          _startResendTimer();
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
     } catch (e) {
       if (!mounted) return;
       final msg = FirebaseErrorHandler.getMessage(context, e);
@@ -268,12 +279,13 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     const SizedBox(height: 32),
 
-                     _buildRegistrationForm(),
+                     _showOtpView ? _buildOtpForm() : _buildRegistrationForm(),
 
                     const SizedBox(height: 32),
 
-                    const SizedBox(height: 20),
-                    Row(
+                    if (!_showOtpView) ...[
+                      const SizedBox(height: 20),
+                      Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
@@ -337,18 +349,33 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     const SizedBox(height: 24),
 
-                    PrimaryGradientButton(
-                      onPressed: (_isLoading || !_agreedToTerms) ? null : _handleSendOtp,
-                      isLoading: _isLoading,
-                      child: Text(
-                        context.tr('auth.register_account'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                      PrimaryGradientButton(
+                        onPressed: (_isLoading || !_agreedToTerms) ? null : _handleSendOtp,
+                        isLoading: _isLoading,
+                        child: Text(
+                          context.tr('auth.register_account'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(height: 24),
+                      PrimaryGradientButton(
+                        onPressed: _isLoading ? null : _handleVerifyOtp,
+                        isLoading: _isLoading,
+                        child: Text(
+                          context.tr('auth.verify_otp_register'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
 
 
                           const SizedBox(height: 40),

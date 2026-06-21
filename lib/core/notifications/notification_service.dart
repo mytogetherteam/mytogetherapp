@@ -91,6 +91,30 @@ class NotificationService {
       await _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(paymentChannel);
+
+      const AndroidNotificationChannel orderStatusChannel = AndroidNotificationChannel(
+        'order_status_channel_v1',
+        'Order Status Updates',
+        description: 'This channel is used for order status changes.',
+        importance: Importance.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('status_change'),
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(orderStatusChannel);
+
+      const AndroidNotificationChannel orderDeliveredChannel = AndroidNotificationChannel(
+        'order_delivered_channel_v1',
+        'Order Delivered',
+        description: 'This channel is used when an order is delivered.',
+        importance: Importance.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('order_deliver'),
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(orderDeliveredChannel);
     }
 
     // Permissions are now requested via MainNavigationScreen rationale modal
@@ -259,27 +283,48 @@ class NotificationService {
     final String title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
     final String body = message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? 'You have a new message';
     
-    final String? type = message.data['type'];
+    final String? type = message.data['type'] ?? message.data['notificationType'];
     final String? subType = message.data['subType'];
+    
     final bool isPayment = type == 'PAYMENT_REMINDER' || subType == 'PAYMENT_SLIP_REQUEST_ORDER';
+    final bool isDelivered = type == 'ORDER' && subType == 'DELIVERED_ORDER';
+    final bool isOrderChange = type == 'ORDER' && !isDelivered && !isPayment;
+
+    String channelId = 'high_importance_channel_v3';
+    String channelName = 'High Importance Notifications';
+    String channelDescription = 'This channel is used for important notifications.';
+
+    if (isDelivered) {
+      channelId = 'order_delivered_channel_v1';
+      channelName = 'Order Delivered';
+      channelDescription = 'This channel is used when an order is delivered.';
+    } else if (isOrderChange) {
+      channelId = 'order_status_channel_v1';
+      channelName = 'Order Status Updates';
+      channelDescription = 'This channel is used for order status changes.';
+    } else if (isPayment) {
+      channelId = 'high_importance_channel_payment_v3';
+      channelName = 'Payment Notifications';
+      channelDescription = 'This channel is used for payment request notifications.';
+    }
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      isPayment ? 'high_importance_channel_payment_v3' : 'high_importance_channel_v3',
-      isPayment ? 'Payment Notifications' : 'High Importance Notifications',
-      channelDescription: isPayment ? 'This channel is used for payment request notifications.' : 'This channel is used for important notifications.',
+      channelId,
+      channelName,
+      channelDescription: channelDescription,
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/launcher_icon',
       playSound: true,
       showWhen: true,
     );
-    const DarwinNotificationDetails iosPlatformChannelSpecifics = DarwinNotificationDetails(
-      sound: 'normal_noti.mp3',
+    final DarwinNotificationDetails iOSPlatformChannelSpecifics = DarwinNotificationDetails(
       presentSound: true,
+      sound: isDelivered ? 'order_deliver.mp3' : (isOrderChange ? 'status_change.mp3' : 'normal_noti.mp3'),
     );
     final NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
-      iOS: iosPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
     );
     await _localNotifications.show(
       id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
