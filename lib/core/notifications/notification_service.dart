@@ -273,7 +273,14 @@ class NotificationService {
       playSound: true,
       showWhen: true,
     );
-    final NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    const DarwinNotificationDetails iosPlatformChannelSpecifics = DarwinNotificationDetails(
+      sound: 'normal_noti.mp3',
+      presentSound: true,
+    );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iosPlatformChannelSpecifics,
+    );
     await _localNotifications.show(
       id: (DateTime.now().millisecondsSinceEpoch % 100000), // Safe 32-bit int
       title: title,
