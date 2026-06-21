@@ -298,18 +298,23 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          widget.order.dateDisplay,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Colors.grey[500],
+        Flexible(
+          child: Text(
+            widget.order.dateDisplay,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.grey[500],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        const SizedBox(width: 8),
         PrimaryGradientButton(
            onPressed: _isReordering ? null : _reorder,
            isLoading: _isReordering,
            height: 42,
-           width: 120,
+           width: 110,
            borderRadius: BorderRadius.circular(12),
            child: Text(
              btnLabel,

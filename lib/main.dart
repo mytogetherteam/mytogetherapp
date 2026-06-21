@@ -14,6 +14,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/onboarding/data/onboarding_prefs.dart';
 import 'core/utils/lock_screen_widget_manager.dart';
+import 'core/security/security_check.dart';
 import 'app.dart';
 
 @pragma('vm:entry-point')
@@ -27,6 +28,9 @@ void main() async {
   debugPrint('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[BOOT] WidgetsBinding initialized.');
+
+  // Check for Jailbroken/Rooted devices and kill app if compromised
+  await SecurityCheck.ensureDeviceIsSecure();
 
   bool hasSeenOnboarding = false;
 
@@ -139,7 +143,8 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.dark, // Android: dark icons
+      statusBarBrightness: Brightness.light,    // iOS: dark icons (light background)
     ),
   );
 

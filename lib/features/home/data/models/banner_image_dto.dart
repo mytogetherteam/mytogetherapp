@@ -5,6 +5,9 @@ class BannerImageDto {
   final String? nameEn;
   final String? nameMm;
   final String? nameTh;
+  final String? descriptionEn;
+  final String? descriptionMm;
+  final String? descriptionTh;
   final String imageUrl;
   final String? link;
   final String position;
@@ -15,6 +18,9 @@ class BannerImageDto {
     this.nameEn,
     this.nameMm,
     this.nameTh,
+    this.descriptionEn,
+    this.descriptionMm,
+    this.descriptionTh,
     required this.imageUrl,
     this.link,
     required this.position,
@@ -32,6 +38,9 @@ class BannerImageDto {
       nameEn: json['nameEn']?.toString(),
       nameMm: json['nameMm']?.toString(),
       nameTh: json['nameTh']?.toString(),
+      descriptionEn: json['descriptionEn']?.toString(),
+      descriptionMm: json['descriptionMm']?.toString(),
+      descriptionTh: json['descriptionTh']?.toString(),
       imageUrl: resolveMediaUrl(rawImage),
       link: json['link']?.toString(),
       position: json['position']?.toString() ?? '',
@@ -45,6 +54,9 @@ class BannerImageDto {
       'nameEn': nameEn,
       'nameMm': nameMm,
       'nameTh': nameTh,
+      'descriptionEn': descriptionEn,
+      'descriptionMm': descriptionMm,
+      'descriptionTh': descriptionTh,
       'imageUrl': imageUrl,
       'link': link,
       'position': position,

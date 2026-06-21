@@ -11,11 +11,19 @@ import '../../data/repositories/news_repository.dart';
 import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import '../screens/news_detail_page.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 
 class NewsFeedItem extends StatefulWidget {
   final NewsItem item;
+  final bool showProfile;
+  final bool showBlockOption;
 
-  const NewsFeedItem({super.key, required this.item});
+  const NewsFeedItem({
+    super.key,
+    required this.item,
+    this.showProfile = true,
+    this.showBlockOption = false,
+  });
 
   @override
   State<NewsFeedItem> createState() => _NewsFeedItemState();
@@ -79,9 +87,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
       } else {
         debugPrint('Could not launch $launchUri');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('news.dialer_failed'))),
-          );
+          AppDialog.showToast(context, context.tr('news.dialer_failed'), isError: true);
         }
       }
     } catch (e) {
@@ -122,17 +128,19 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                   _handleReport();
                 },
               ),
-              ListTile(
-                leading: const Icon(PhosphorIcons.prohibit, color: Colors.red),
-                title: Text(
-                  context.tr('news.block_user'),
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
+              if (widget.showBlockOption)
+                ListTile(
+                  leading: const Icon(PhosphorIcons.userMinus, color: Colors.red),
+                  title: Text(
+                    context.tr('news.block_user'),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleBlock();
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleBlock();
-                },
-              ),
+
               const SizedBox(height: 16),
             ],
           ),
@@ -145,7 +153,14 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.tr('news.report_post'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Image.asset('assets/images/app_icon_small.png', width: 28, height: 28),
+            const SizedBox(width: 10),
+            Expanded(child: Text(context.tr('news.report_post'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17))),
+          ],
+        ),
         content: Text(context.tr('news.report_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
@@ -156,13 +171,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(context.tr('news.reported_success'), style: GoogleFonts.poppins(color: Colors.white)),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              AppDialog.showToast(context, context.tr('news.reported_success'));
             },
             child: Text(context.tr('news.report_action'), style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
           ),
@@ -175,7 +184,14 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.tr('news.block_user'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Image.asset('assets/images/app_icon_small.png', width: 28, height: 28),
+            const SizedBox(width: 10),
+            Expanded(child: Text(context.tr('news.block_user'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.red))),
+          ],
+        ),
         content: Text(context.tr('news.block_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
@@ -189,13 +205,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               setState(() {
                 _isBlocked = true;
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(context.tr('news.blocked_success'), style: GoogleFonts.poppins(color: Colors.white)),
-                  backgroundColor: Colors.grey[800],
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              AppDialog.showToast(context, context.tr('news.blocked_success'));
             },
             child: Text(context.tr('news.block_action'), style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
@@ -203,6 +213,8 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
       ),
     );
   }
+
+
 
   String _formatCount(int count) {
     if (count >= 1000) {
@@ -216,11 +228,12 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     if (_isBlocked) {
       return const SizedBox.shrink();
     }
-    const double avatarRadius = 20.0;
-    const double avatarGap = 14.0;
     const double outerPadding = 16.0;
-    const double leftContentOffset =
-        outerPadding + (avatarRadius * 2) + avatarGap; // 16 + 40 + 14 = 70
+    const double avatarRadius = 24.0;
+    const double avatarGap = 14.0;
+    final double leftContentOffset = widget.showProfile
+        ? outerPadding + (avatarRadius * 2) + avatarGap
+        : outerPadding;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +254,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Section: Avatar and Content
+                  // Top Section: Content
                   Padding(
                     padding: const EdgeInsets.only(
                       left: outerPadding,
@@ -251,156 +264,172 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Left Column: Avatar
-                        CircleAvatar(
-                          radius: avatarRadius,
-                          backgroundImage: widget.item.authorAvatar.isNotEmpty
-                              ? CachedNetworkImageProvider(
-                                  widget.item.authorAvatar,
-                                )
-                              : null,
-                          backgroundColor: Colors.grey[100],
-                          child: widget.item.authorAvatar.isEmpty
-                              ? Icon(
-                                  PhosphorIcons.user,
-                                  size: 22,
-                                  color: Colors.grey[400],
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: avatarGap),
-                        // Right Column: Content text
+                        if (widget.showProfile) ...[
+                          CircleAvatar(
+                            radius: avatarRadius,
+                            backgroundImage: widget.item.authorAvatar.isNotEmpty
+                                ? CachedNetworkImageProvider(widget.item.authorAvatar)
+                                : null,
+                            backgroundColor: Colors.grey[100],
+                            child: widget.item.authorAvatar.isEmpty
+                                ? Icon(PhosphorIcons.user, size: 22, color: Colors.grey[400])
+                                : null,
+                          ),
+                          const SizedBox(width: avatarGap),
+                        ],
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      widget.item.authorName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.item.authorName,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            if (widget.item.itemPostType != null) ...[
+                              const SizedBox(width: 8),
+                              _ItemPostTypeBadge(
+                                type: widget.item.itemPostType!,
+                              ),
+                            ],
+                            const Spacer(),
+                            if (widget.item.phoneNumber != null)
+                              const SizedBox(width: 80, height: 30),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              widget.item.timeAgo,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.black45,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (widget.item.location != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(
+                                PhosphorIcons.mapPinFill,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.item.location!,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: const Color(0xFF7B8794),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final content = widget.item.content;
+                            const int charLimit = 120;
+                            final bool isLong = content.length > charLimit;
+
+                            if (_isExpanded && isLong) {
+                              return Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '$content ',
+                                      style: GoogleFonts.notoSansMyanmar(
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.black87,
+                                        height: 1.5,
                                       ),
                                     ),
-                                  ),
-                                  if (widget.item.itemPostType != null) ...[
-                                    const SizedBox(width: 8),
-                                    _ItemPostTypeBadge(
-                                      type: widget.item.itemPostType!,
-                                    ),
-                                  ],
-                                  const Spacer(),
-                                  // Placeholder for Connect button to maintain layout height
-                                  if (widget.item.phoneNumber != null)
-                                    const SizedBox(width: 80, height: 30),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: _showMoreOptions,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
-                                      child: Icon(PhosphorIcons.dotsThreeVerticalBold, size: 20, color: Colors.grey),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    widget.item.timeAgo,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.black45,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              // (Rest of the content remains inside this GestureDetector)
-                              if (widget.item.location != null) ...[
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      PhosphorIcons.mapPinFill,
-                                      color: AppColors.primary,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        widget.item.location!,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          color: const Color(0xFF7B8794),
-                                          fontWeight: FontWeight.w500,
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.baseline,
+                                      baseline: TextBaseline.alphabetic,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isExpanded = false;
+                                          });
+                                        },
+                                        child: GradientText(
+                                          context.tr('news.see_less') == 'news.see_less' ? 'See less' : context.tr('news.see_less'),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                              const SizedBox(height: 4),
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final content = widget.item.content;
-                                  const int charLimit = 120;
-                                  final bool isLong =
-                                      content.length > charLimit;
+                              );
+                            } else if (!isLong) {
+                              return Text(
+                                content,
+                                style: GoogleFonts.notoSansMyanmar(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.black87,
+                                  height: 1.5,
+                                ),
+                              );
+                            }
 
-                                  if (_isExpanded || !isLong) {
-                                    return Text(
-                                      content,
-                                      style: GoogleFonts.notoSansMyanmar(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w400,
-                                        color: Colors.black87,
-                                        height: 1.5,
-                                      ),
-                                    );
-                                  }
-
-                                  return Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text:
-                                              '${content.substring(0, charLimit)}... ',
-                                          style: GoogleFonts.notoSansMyanmar(
-                                            fontSize: 13,
-                                            height: 1.5,
-                                            fontWeight: FontWeight.w400,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                        WidgetSpan(
-                                          alignment:
-                                              PlaceholderAlignment.baseline,
-                                          baseline: TextBaseline.alphabetic,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _isExpanded = true;
-                                              });
-                                            },
-                                            child: GradientText(
-                                              context.tr('news.see_more'),
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                            return Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: '${content.substring(0, charLimit)}... ',
+                                    style: GoogleFonts.notoSansMyanmar(
+                                      fontSize: 14,
+                                      height: 1.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.black87,
                                     ),
-                                  );
-                                },
+                                  ),
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.baseline,
+                                    baseline: TextBaseline.alphabetic,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _isExpanded = true;
+                                        });
+                                      },
+                                      child: GradientText(
+                                        context.tr('news.see_more'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                            );
+                          },
+                        ),
                             ],
                           ),
                         ),
@@ -408,7 +437,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                     ),
                   ),
 
-                  // Middle Section: Single or Multiple Images
+            // Middle Section: Single or Multiple Images
                   if (widget.item.imageUrls.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 12.0),
@@ -441,8 +470,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               child: Hero(
                                 tag: widget.item.imageUrls[0],
                                 child: Padding(
-                                  // Single image: Reduced width (with extra right padding) for better proportion
-                                  padding: const EdgeInsets.only(
+                                  padding: EdgeInsets.only(
                                     left: leftContentOffset,
                                     right: 40.0,
                                   ),
@@ -452,8 +480,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                       imageUrl: widget.item.imageUrls[0],
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      height:
-                                          180, // Slightly reduced height to match the narrower width
+                                      height: 180,
                                       placeholder: (context, url) =>
                                           Container(color: Colors.grey[100]),
                                       errorWidget: (context, url, error) =>
@@ -472,12 +499,10 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                           : SizedBox(
                               height: 190,
                               child: ListView.builder(
-                                // Changed from PageView.builder to ListView.builder
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 itemCount: widget.item.imageUrls.length,
-                                padding: EdgeInsets
-                                    .zero, // Removed padding from here, added to individual items
+                                padding: EdgeInsets.zero,
                                 itemBuilder: (context, index) {
                                   final imageUrl = widget.item.imageUrls[index];
                                   return GestureDetector(
@@ -500,45 +525,35 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                         if (mounted) {
                                           setState(() {
                                             _isLiked = widget.item.isLiked;
-                                            _likesCount =
-                                                widget.item.likesCount;
+                                            _likesCount = widget.item.likesCount;
                                           });
                                         }
                                       });
                                     },
                                     child: Container(
-                                      width:
-                                          MediaQuery.of(context).size.width *
-                                          0.75, // Adjusted width
+                                      width: MediaQuery.of(context).size.width * 0.75,
                                       margin: EdgeInsets.only(
-                                        left: index == 0
-                                            ? leftContentOffset
-                                            : 0,
+                                        left: index == 0 ? leftContentOffset : 0,
                                         right: 12.0,
                                       ),
                                       child: Hero(
                                         tag: imageUrl,
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
+                                          borderRadius: BorderRadius.circular(16),
                                           child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                             imageUrl: imageUrl,
                                             fit: BoxFit.cover,
                                             width: double.infinity,
                                             placeholder: (context, url) =>
+                                                Container(color: Colors.grey[100]),
+                                            errorWidget: (context, url, error) =>
                                                 Container(
                                                   color: Colors.grey[100],
+                                                  child: Icon(
+                                                    PhosphorIcons.image,
+                                                    color: Colors.grey[400],
+                                                  ),
                                                 ),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                                      color: Colors.grey[100],
-                                                      child: Icon(
-                                                        PhosphorIcons.image,
-                                                        color: Colors.grey[400],
-                                                      ),
-                                                    ),
                                           ),
                                         ),
                                       ),
@@ -549,6 +564,18 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             ),
                     ),
                 ],
+              ),
+            ),
+
+            // Ellipsis Menu
+            Positioned(
+              top: 20, // Aligned with the author row
+              right: 0,
+              child: IconButton(
+                icon: const Icon(PhosphorIcons.dotsThreeVerticalBold, size: 20, color: Colors.grey),
+                onPressed: _showMoreOptions,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
               ),
             ),
 
@@ -606,7 +633,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
         // Bottom Section: Interaction Buttons
         Padding(
-          padding: const EdgeInsets.only(
+          padding: EdgeInsets.only(
             left: leftContentOffset,
             top: 12.0,
             right: outerPadding,

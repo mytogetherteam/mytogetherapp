@@ -24,5 +24,22 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.mytogether/order_tracker").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startTracker", "updateTracker" -> {
+                    val shopName = call.argument<String>("shopName") ?: ""
+                    val statusText = call.argument<String>("statusText") ?: ""
+                    val step = call.argument<Int>("step") ?: 0
+                    OrderTrackerService.startService(this, shopName, statusText, step)
+                    result.success(true)
+                }
+                "stopTracker" -> {
+                    OrderTrackerService.stopService(this)
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 }
