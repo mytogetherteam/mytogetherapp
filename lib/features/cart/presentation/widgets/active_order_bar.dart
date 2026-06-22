@@ -3,6 +3,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/notifications/order_tracker_channel.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../data/active_order_state.dart';
 import '../screens/order_status_page.dart';
 import '../screens/awaiting_payment_page.dart';
@@ -115,10 +116,12 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
           ? state.activeOrdersList.firstWhere((o) => o.shopId == widget.shopId?.toString())
           : state.activeOrdersList.first;
         
+        final logoUrl = resolveMediaUrl(order.shopLogo ?? order.logoPath);
         OrderTrackerChannel.startOrUpdateTracker(
-          shopName: order.displayShopName.isNotEmpty ? order.displayShopName : 'Restaurant',
-          statusText: _getStatusText(context, order),
-          step: order.orderStatus,
+          shopName: order.displayShopName.isNotEmpty
+              ? order.displayShopName
+              : 'Restaurant',
+          shopLogoUrl: logoUrl.isNotEmpty ? logoUrl : null,
         );
       }
       

@@ -29,9 +29,8 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "startTracker", "updateTracker" -> {
                     val shopName = call.argument<String>("shopName") ?: ""
-                    val statusText = call.argument<String>("statusText") ?: ""
-                    val step = call.argument<Int>("step") ?: 0
-                    OrderTrackerService.startService(this, shopName, statusText, step)
+                    val shopLogoUrl = call.argument<String>("shopLogoUrl") ?: ""
+                    OrderTrackerService.startService(this, shopName, shopLogoUrl)
                     result.success(true)
                 }
                 "stopTracker" -> {

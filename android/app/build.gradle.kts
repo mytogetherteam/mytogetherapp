@@ -50,7 +50,23 @@ android {
         if (localPropertiesFile.exists()) {
             localProperties.load(FileInputStream(localPropertiesFile))
         }
-        val googleMapsApiKey = localProperties.getProperty("google_maps_api_key") ?: ""
+
+        fun readDotEnvMapsKey(): String? {
+            val envFile = rootProject.file("../.env")
+            if (!envFile.exists()) return null
+            return envFile.readLines()
+                .firstOrNull { it.startsWith("GOOGLE_MAPS_API_KEY=") }
+                ?.substringAfter("=")
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() && it != "YOUR_NEW_API_KEY_HERE" }
+        }
+
+        val googleMapsApiKey = sequenceOf(
+            localProperties.getProperty("google_maps_api_key"),
+            readDotEnvMapsKey(),
+            // Dev fallback — keep in sync with ios/Flutter/Secrets.xcconfig
+            "AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU",
+        ).firstOrNull { !it.isNullOrBlank() } ?: ""
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
