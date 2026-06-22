@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -12,6 +11,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
@@ -61,8 +61,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Timer? _waitingHintTimer;
   bool _showLongWaitHint = false;
 
-  double? _routeDistanceKm;
-  int? _routeDurationMins;
   double? _deliveryFee;
   bool _isCancelling = false;
   bool _showCancelLoading = false;
@@ -71,22 +69,89 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   static const LatLng _defaultLocation = LatLng(13.7563, 100.5018);
 
-  LatLng get _restaurantLatLng {
+  String get _restaurantName {
+    final state = ActiveOrderState.instance;
+    if (state.displayShopName.isNotEmpty) return state.displayShopName;
+    final restaurant = widget.restaurant;
+    if (restaurant != null && restaurant.name.isNotEmpty) {
+      return restaurant.name;
+    }
+    return widget.store.name;
+  }
+
+  String? get _restaurantLogoUrl {
+    final state = ActiveOrderState.instance;
+    final raw = state.shopLogo ??
+        state.logoPath ??
+        widget.restaurant?.logoPath ??
+        widget.store.shopImageUrl;
+    final url = resolveMediaUrl(raw);
+    return url.isNotEmpty ? url : null;
+  }
+
+  LatLng get _rawRestaurantLatLng {
     final lat = widget.restaurant?.latitude;
     final lon = widget.restaurant?.longitude;
+    if (lat != null && lon != null && lat != 0) {
+      return LatLng(lat, lon);
+    }
+    final fromState = ActiveOrderState.instance.restaurantLatLng;
+    if (fromState != null && fromState.latitude != 0) {
+      return fromState;
+    }
+    return const LatLng(13.7600, 100.5050);
+  }
+
+  LatLng get _homeLatLng {
+    final saved = ActiveOrderState.instance.userLocation;
+    if (saved != null && saved.latitude != 0 && saved.longitude != 0) {
+      return saved;
+    }
+
+    if (_routePoints.length >= 2) {
+      final first = _routePoints.first;
+      final last = _routePoints.last;
+      final restaurant = _rawRestaurantLatLng;
+      final dFirst = Geolocator.distanceBetween(
+        first.latitude,
+        first.longitude,
+        restaurant.latitude,
+        restaurant.longitude,
+      );
+      final dLast = Geolocator.distanceBetween(
+        last.latitude,
+        last.longitude,
+        restaurant.latitude,
+        restaurant.longitude,
+      );
+      // Pin home to the route endpoint that is not the restaurant.
+      return dFirst <= dLast ? last : first;
+    }
+
+    if (_routePoints.isNotEmpty) return _routePoints.first;
+    return _currentLocation ?? _defaultLocation;
+  }
+
+  LatLng get _restaurantLatLng {
+    final restaurant = _rawRestaurantLatLng;
 
     // Demo Safety: If the restaurant is way too far (e.g. in Yangon while user is in Bangkok),
     // we fallback to a local Bangkok location for a realistic demo route.
-    if (lat != null && lon != null && lat != 0) {
-      final userLat = _currentLocation?.latitude ?? _defaultLocation.latitude;
-      final userLon = _currentLocation?.longitude ?? _defaultLocation.longitude;
+    if (restaurant.latitude != 0) {
+      final userLat = _homeLatLng.latitude;
+      final userLon = _homeLatLng.longitude;
 
-      final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
+      final dist = Geolocator.distanceBetween(
+        restaurant.latitude,
+        restaurant.longitude,
+        userLat,
+        userLon,
+      );
       if (dist > 100000) {
         // > 100km
         return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
       }
-      return LatLng(lat, lon);
+      return restaurant;
     }
     return const LatLng(13.7600, 100.5050);
   }
@@ -97,7 +162,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
-  BitmapDescriptor? _homeWithBubbleIcon;
+  BitmapDescriptor? _restaurantBubbleIcon;
 
   @override
   void initState() {
@@ -220,6 +285,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       if (mounted) setState(() => _showMap = false);
     } else {
       _buildCustomMarkers().then((_) {
+        _updateRestaurantBubbleBitmap();
         _initLocationAndRoute();
       });
     }
@@ -312,9 +378,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final state = ActiveOrderState.instance;
     if (state.routePoints.isNotEmpty) {
       _routePoints = state.routePoints;
-      _routeDistanceKm = state.routeDistanceKm;
-      _routeDurationMins = state.routeDurationMins;
       _deliveryFee = state.deliveryFee;
+    }
+    final savedUser = state.userLocation;
+    if (savedUser != null &&
+        savedUser.latitude != 0 &&
+        savedUser.longitude != 0) {
+      _currentLocation = savedUser;
     }
   }
 
@@ -372,7 +442,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       if (!kIsWeb) {
         try {
           final last = await Geolocator.getLastKnownPosition();
-          if (last != null) {
+          if (last != null &&
+              ActiveOrderState.instance.userLocation == null &&
+              _routePoints.isEmpty) {
             userLoc = LatLng(last.latitude, last.longitude);
             if (mounted) setState(() => _currentLocation = userLoc);
           }
@@ -387,6 +459,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               distanceFilter: 15,
             ),
           ).listen((pos) {
+            // Keep the home pin on the saved delivery address / route endpoint.
+            // Emulator GPS often drifts to a default city center and breaks alignment.
+            if (ActiveOrderState.instance.userLocation != null ||
+                _routePoints.isNotEmpty) {
+              return;
+            }
             final newLoc = LatLng(pos.latitude, pos.longitude);
             if (mounted) {
               setState(() {
@@ -397,7 +475,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           });
     }
 
-    final startLoc = userLoc ?? _defaultLocation;
+    final startLoc = _homeLatLng;
     if (mounted) setState(() => _currentLocation ??= startLoc);
 
     if (_routePoints.isEmpty) {
@@ -406,7 +484,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       await _fetchRoute(startLoc);
     } else {
       _buildInitialMarkersAndPolylines();
-      _updateBubbleBitmap();
+      _updateRestaurantBubbleBitmap();
       if (mounted) setState(() => _showMap = true);
       // Zoom to cached route
       Future.delayed(const Duration(milliseconds: 400), () {
@@ -490,92 +568,111 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
-  Future<void> _updateBubbleBitmap() async {
-    if (_routeDistanceKm == null || _routeDurationMins == null) return;
-
-    final fee = _deliveryFee ?? 0;
-    final distance = _routeDistanceKm ?? 0;
-    final duration = _routeDurationMins ?? 0;
-
-    final bmp = await _drawHomeMarkerWithBubbleBitmap(
-      fee: fee.toDouble(),
-      distance: distance,
-      duration: duration,
+  Future<void> _updateRestaurantBubbleBitmap() async {
+    final bmp = await _drawRestaurantBubbleBitmap(
+      name: _restaurantName,
+      logoUrl: _restaurantLogoUrl,
     );
 
     if (mounted) {
       setState(() {
-        _homeWithBubbleIcon = bmp;
+        _restaurantBubbleIcon = bmp;
         _updateMarkersAndPolylines();
       });
     }
   }
 
-  Future<BitmapDescriptor> _drawHomeMarkerWithBubbleBitmap({
-    required double fee,
-    required double distance,
-    required int duration,
+  Future<ui.Image?> _loadNetworkImage(String url) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) return null;
+      final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes));
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _paintCircularImage(
+    Canvas canvas,
+    ui.Image image,
+    Offset center,
+    double radius,
+  ) {
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final scale = math.max(
+      (radius * 2) / src.width,
+      (radius * 2) / src.height,
+    );
+    final scaledW = src.width * scale;
+    final scaledH = src.height * scale;
+    final dst = Rect.fromCenter(
+      center: center,
+      width: scaledW,
+      height: scaledH,
+    );
+
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: radius)));
+    canvas.drawImageRect(image, src, dst, Paint());
+    canvas.restore();
+  }
+
+  Future<BitmapDescriptor> _drawRestaurantBubbleBitmap({
+    required String name,
+    String? logoUrl,
   }) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
 
-    const double iconSize = 45.0; // Reduced from 60
-    const double r = iconSize / 2;
-    const double boxHeight = 60.0; // Reduced from 80
-    const double pointerWidth = 16.0; // Reduced from 20
-    const double pointerHeight = 10.0; // Reduced from 14
-    const double gap = 2.0; // Reduced from 4
-    const double shadowBottomPadding = 6.0;
+    const double boxHeight = 52.0;
+    const double pointerWidth = 16.0;
+    const double pointerHeight = 10.0;
+    const double shadowBottomPadding = 4.0;
+    const double bubbleLogoSize = 28.0;
+    const double bubblePadding = 12.0;
+    const double bubbleLogoGap = 8.0;
+    const double maxBubbleTextWidth = 150.0;
 
-    final double homeIconY = boxHeight + pointerHeight + gap;
-    final double centerOfHomeY = homeIconY + r;
-    final double totalHeight = centerOfHomeY + r + shadowBottomPadding;
+    final ui.Image? logoImage =
+        logoUrl != null ? await _loadNetworkImage(logoUrl) : null;
 
-    // Text details
-    final TextPainter feePainter = TextPainter(
+    final TextPainter namePainter = TextPainter(
       text: TextSpan(
-        text: LocaleController.instance.tr('order_tracking.est_delivery_fee_label'),
+        text: name,
         style: GoogleFonts.poppins(
           fontSize: 14,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w600,
           color: Colors.white,
-        ), // Reduced from 22
-        children: [
-          TextSpan(
-            text: '฿ ${fee.toStringAsFixed(0)}',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ), // Reduced from 24
-          ),
-        ],
+        ),
       ),
       textDirection: TextDirection.ltr,
-    )..layout();
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout(maxWidth: maxBubbleTextWidth);
 
-    final TextPainter timePainter = TextPainter(
-      text: TextSpan(
-        text: '${distance.toStringAsFixed(1)} km  •  $duration min',
-        style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.w400,
-          color: Colors.white,
-        ), // Reduced from 18
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final double textWidth = math.max(feePainter.width, timePainter.width);
-    final double boxWidth = textWidth + 32; // Reduced padding
-    final double totalWidth = math.max(boxWidth, iconSize + 20);
-
+    final double bubbleContentWidth = (logoImage != null
+            ? bubbleLogoSize + bubbleLogoGap
+            : 0) +
+        namePainter.width;
+    final double boxWidth = bubbleContentWidth + bubblePadding * 2;
+    final double totalWidth = boxWidth;
+    final double totalHeight = boxHeight + pointerHeight + shadowBottomPadding;
     final double centerX = totalWidth / 2;
 
-    // Background shadow of the entire bubble
     final RRect bubbleRRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(centerX - boxWidth / 2, 0, boxWidth, boxHeight),
-      const Radius.circular(12), // Reduced from 30
+      const Radius.circular(12),
     );
     canvas.drawRRect(
       bubbleRRect.shift(const Offset(0, 8)),
@@ -584,7 +681,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
     );
 
-    // Bubble path including pointer
     final Path pointerPath = Path()
       ..moveTo(centerX - pointerWidth / 2, boxHeight - 2)
       ..lineTo(centerX + pointerWidth / 2, boxHeight - 2)
@@ -597,70 +693,48 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       pointerPath,
     );
 
-    final Paint gradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(
-        Rect.fromLTWH(0, 0, totalWidth, boxHeight),
-      );
-    final Paint whiteBorderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-
-    canvas.drawPath(fullBubble, gradientPaint);
-    canvas.drawPath(fullBubble, whiteBorderPaint);
-
-    // Draw Texts vertically centered inside the fixed boxHeight
-    final double totalTextHeight = feePainter.height + timePainter.height + 6;
-    final double textStartY = (boxHeight - totalTextHeight) / 2;
-
-    feePainter.paint(
-      canvas,
-      Offset(centerX - feePainter.width / 2, textStartY),
+    canvas.drawPath(
+      fullBubble,
+      Paint()
+        ..shader = AppColors.primaryGradient.createShader(
+          Rect.fromLTWH(0, 0, totalWidth, boxHeight),
+        ),
     );
-    timePainter.paint(
+    canvas.drawPath(
+      fullBubble,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4,
+    );
+
+    final double bubbleContentStartX = centerX - bubbleContentWidth / 2;
+    final double bubbleContentCenterY = boxHeight / 2;
+
+    if (logoImage != null) {
+      final logoCenter = Offset(
+        bubbleContentStartX + bubbleLogoSize / 2,
+        bubbleContentCenterY,
+      );
+      canvas.drawCircle(
+        logoCenter,
+        bubbleLogoSize / 2,
+        Paint()..color = Colors.white,
+      );
+      _paintCircularImage(
+        canvas,
+        logoImage,
+        logoCenter,
+        bubbleLogoSize / 2 - 2,
+      );
+    }
+
+    namePainter.paint(
       canvas,
       Offset(
-        centerX - timePainter.width / 2,
-        textStartY + feePainter.height + 6,
-      ),
-    );
-
-    // Home Icon Shadow
-    canvas.drawCircle(
-      Offset(centerX, centerOfHomeY + 4),
-      r * 0.85,
-      Paint()..color = Colors.black.withValues(alpha: 0.18),
-    );
-    // Home Icon Base
-    canvas.drawCircle(
-      Offset(centerX, centerOfHomeY),
-      r,
-      Paint()..color = Colors.white,
-    );
-
-    final Paint homeGradientPaint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(
-        Rect.fromLTWH(centerX - r, centerOfHomeY - r, iconSize, iconSize),
-      );
-    canvas.drawCircle(Offset(centerX, centerOfHomeY), r - 4, homeGradientPaint);
-
-    final TextPainter iconPainter =
-        TextPainter(textDirection: TextDirection.ltr)
-          ..text = TextSpan(
-            text: String.fromCharCode(Icons.home_rounded.codePoint),
-            style: TextStyle(
-              fontSize: iconSize * 0.44,
-              fontFamily: Icons.home_rounded.fontFamily,
-              package: Icons.home_rounded.fontPackage,
-              color: Colors.white,
-            ),
-          );
-    iconPainter.layout();
-    iconPainter.paint(
-      canvas,
-      Offset(
-        centerX - iconPainter.width / 2,
-        centerOfHomeY - iconPainter.height / 2 - 2,
+        bubbleContentStartX +
+            (logoImage != null ? bubbleLogoSize + bubbleLogoGap : 0),
+        bubbleContentCenterY - namePainter.height / 2,
       ),
     );
 
@@ -677,7 +751,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   void _updateMarkersAndPolylines() {
     final sets = <Marker>{};
 
-    // Restaurant Marker (custom pink shop icon)
     sets.add(
       Marker(
         markerId: const MarkerId('restaurant'),
@@ -689,34 +762,31 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       ),
     );
 
-    // User / Home Marker (custom pink home icon)
-    if (_currentLocation != null) {
-      final bool hasRouteData =
-          _routePoints.isNotEmpty && _routeDistanceKm != null;
-      if (hasRouteData && _homeWithBubbleIcon != null) {
-        sets.add(
-          Marker(
-            markerId: const MarkerId('user_bubble'),
-            position: _currentLocation!,
-            icon: _homeWithBubbleIcon!,
-            anchor: const Offset(0.5, 0.76),
-            zIndexInt: 2,
-          ),
-        );
-      } else {
-        sets.add(
-          Marker(
-            markerId: const MarkerId('user'),
-            position: _currentLocation!,
-            icon:
-                _homeIcon ??
-                BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure,
-                ),
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
+    if (_restaurantBubbleIcon != null) {
+      sets.add(
+        Marker(
+          markerId: const MarkerId('restaurant_bubble'),
+          position: _restaurantLatLng,
+          icon: _restaurantBubbleIcon!,
+          anchor: const Offset(0.5, 1.15),
+          zIndexInt: 3,
+        ),
+      );
+    }
+
+    if (_homeLatLng.latitude != 0) {
+      sets.add(
+        Marker(
+          markerId: const MarkerId('user'),
+          position: _homeLatLng,
+          icon:
+              _homeIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure,
+              ),
+          anchor: const Offset(0.5, 0.5),
+        ),
+      );
     }
 
     final polySet = <Polyline>{};
@@ -747,7 +817,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (points.isEmpty || _mapController == null) return;
 
     // Include both user and restaurant in the bounds
-    final all = [...points, _restaurantLatLng, ?_currentLocation];
+    final all = [...points, _restaurantLatLng, _homeLatLng];
 
     double minLat = all.first.latitude;
     double maxLat = all.first.latitude;
@@ -811,14 +881,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           final polyPoints = [start, ...points, dest];
           setState(() {
             _routePoints = polyPoints;
-            _routeDistanceKm = km;
-            _routeDurationMins = mins;
             _deliveryFee = fee;
             _isRouting = false;
+            if (ActiveOrderState.instance.userLocation == null) {
+              _currentLocation = start;
+            }
             _updateMarkersAndPolylines();
           });
-
-          _updateBubbleBitmap();
 
           // Cache in global state
           ActiveOrderState.instance.updateRouteData(
@@ -857,14 +926,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
         setState(() {
           _routePoints = fallbackPoints;
-          _routeDistanceKm = km;
-          _routeDurationMins = mins;
           _deliveryFee = fee;
           _isRouting = false;
+          if (ActiveOrderState.instance.userLocation == null) {
+            _currentLocation = start;
+          }
           _updateMarkersAndPolylines();
         });
-
-        _updateBubbleBitmap();
 
         ActiveOrderState.instance.updateRouteData(
           points: fallbackPoints,

@@ -2,126 +2,31 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:background="@android:color/white"
     android:padding="16dp">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        
-        <ImageView
-            android:id="@+id/shop_logo"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_centerVertical="true"
-            android:background="@drawable/bg_oval_inactive"
-            android:src="@drawable/ic_store"
-            android:tint="#AAAAAA"
-            android:padding="8dp"/>
+    <ImageView
+        android:id="@+id/shop_logo"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_oval_inactive"
+        android:src="@drawable/ic_store"
+        android:scaleType="centerCrop"
+        android:padding="0dp" />
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_toEndOf="@id/shop_logo"
-            android:layout_toRightOf="@id/shop_logo"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="12dp"
-            android:layout_marginLeft="12dp">
-
-            <TextView
-                android:id="@+id/shop_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Shop Name"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/status_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Status here"
-                android:textColor="#666666"
-                android:textSize="14sp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:text="အော်ဒါခြေရာခံရန် >"
-            android:textColor="#ED3973"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </RelativeLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/shop_name"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="16dp">
-
-        <ImageView
-            android:id="@+id/icon_step_1"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_oval_active"
-            android:src="@drawable/ic_store"
-            android:tint="#FFFFFF"
-            android:padding="6dp"/>
-
-        <View
-            android:id="@+id/line_1"
-            android:layout_width="0dp"
-            android:layout_height="3dp"
-            android:layout_weight="1"
-            android:background="#ED3973" />
-
-        <ImageView
-            android:id="@+id/icon_step_2"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_oval_inactive"
-            android:src="@drawable/ic_receipt"
-            android:tint="#AAAAAA"
-            android:padding="6dp"/>
-
-        <View
-            android:id="@+id/line_2"
-            android:layout_width="0dp"
-            android:layout_height="3dp"
-            android:layout_weight="1"
-            android:background="#EEEEEE" />
-
-        <ImageView
-            android:id="@+id/icon_step_3"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_oval_inactive"
-            android:src="@drawable/ic_bike"
-            android:tint="#AAAAAA"
-            android:padding="6dp"/>
-
-        <View
-            android:id="@+id/line_3"
-            android:layout_width="0dp"
-            android:layout_height="3dp"
-            android:layout_weight="1"
-            android:background="#EEEEEE" />
-
-        <ImageView
-            android:id="@+id/icon_step_4"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_oval_inactive"
-            android:src="@drawable/ic_home"
-            android:tint="#AAAAAA"
-            android:padding="6dp"/>
-    </LinearLayout>
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:layout_marginLeft="12dp"
+        android:text="Shop Name"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end" />
 </LinearLayout>
