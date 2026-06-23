@@ -14,13 +14,13 @@ import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
-import '../widgets/welcome_modal.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -53,11 +53,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       WebSocketService().connect();
     }
 
-    // Show welcome modal if first time, then check permissions after first frame
+    // Request permissions after first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      WelcomeModal.showIfFirstTime(context, () {
-        _checkAndRequestPermissions();
-      });
+      _checkAndRequestPermissions();
     });
   }
 
@@ -97,7 +95,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         await Permission.location.request();
       }
       if (await Permission.location.isGranted) {
-        LocationService().getCurrentPosition();
+        await UserLocationRepository.instance
+            .ensureSessionCurrentLocationFromDevice();
       }
       return;
     }

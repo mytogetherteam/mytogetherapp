@@ -9,7 +9,6 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
-import '../../../../core/location/location_service.dart';
 
 class TodaysOverviewSection extends StatefulWidget {
   final String? title;
@@ -26,65 +25,68 @@ class TodaysOverviewSection extends StatefulWidget {
 }
 
 class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
-  Future<List<MenuItemDto>>? _menuItemsFuture;
+  Future<List<TrendingItemDto>>? _trendingFuture;
   final Map<String, bool> _localFavorites = {};
 
   @override
   void initState() {
     super.initState();
     if (widget.items == null) {
-      // Home page: fetch trending from API
-      _menuItemsFuture = _fetchTrending();
+      _trendingFuture = _fetchTrending();
     }
   }
 
-  Future<List<MenuItemDto>> _fetchTrending() async {
+  Future<List<TrendingItemDto>> _fetchTrending() async {
     try {
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
-      
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
       final section = await RestaurantRepository.instance.getTrendingItems(
-        lat: activeLoc?.latitude ?? pos.latitude,
-        lon: activeLoc?.longitude ?? pos.longitude,
+        lat: coords.lat,
+        lon: coords.lon,
         radiusKm: 10.0,
         size: 10,
-      ).timeout(const Duration(seconds: 5));
-      return section.items.map((t) => _trendingToMenuItem(t)).toList();
+      ).timeout(const Duration(seconds: 8));
+      return section.items;
     } catch (e) {
       debugPrint('TodaysOverviewSection: API error or timeout: $e');
-      return []; // Trigger fallback in builder
+      return [];
     }
   }
 
-  MenuItemDto _trendingToMenuItem(TrendingItemDto t) {
-    return MenuItemDto(
-      id: t.id.toString(),
-      restaurantId: t.shopId.toString(),
-      restaurantName: t.shopName,
-      title: t.name,
-      price: t.price,
-      currency: t.currency,
-      imagePath: t.imageUrl,
-      category: '',
-      isFavorite: t.isFavorite,
-      rating: t.rating,
-      reviewCount: t.reviewCount,
-      distanceKm: t.distanceKm,
-      estimatedTime: t.estimatedTime,
-      deliveryFee: t.deliveryFee,
-      originalDeliveryFee: t.originalDeliveryFee,
-      originalPrice: t.originalPrice,
-      displayPrice: t.displayPrice,
-      isAvailable: t.isAvailable,
-      publishStatus: t.publishStatus,
-    );
-  }
-
-  Future<void> _toggleFavorite(MenuItemDto item) async {
-    final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
+  Future<void> _toggleFavorite(TrendingItemDto item) async {
+    final itemId = item.id.toString();
+    final newStatus = !(_localFavorites[itemId] ?? item.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
     
     // Immediate local feedback
+    setState(() {
+      _localFavorites[itemId] = newStatus;
+    });
+
+    try {
+      await RestaurantRepository.instance.toggleMenuFavorite(
+        item.id,
+        newStatus,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _localFavorites[itemId] = !newStatus;
+        });
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(context.tr('common.favorite_failed')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleFavoriteMenuItem(MenuItemDto item) async {
+    final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
+    final messenger = ScaffoldMessenger.of(context);
+
     setState(() {
       _localFavorites[item.id] = newStatus;
     });
@@ -94,10 +96,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
         int.tryParse(item.id) ?? 0,
         newStatus,
       );
-      // No longer refreshing the future here to prevent flickering.
-      // The local state _localFavorites handles the immediate color change.
     } catch (e) {
-      // Rollback on error
       if (mounted) {
         setState(() {
           _localFavorites[item.id] = !newStatus;
@@ -116,18 +115,21 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
   Widget build(BuildContext context) {
     if (widget.items != null) {
       if (widget.items!.isEmpty) return const SizedBox.shrink();
-      return _buildContent(context, widget.items!, widget.title ?? context.tr('home.trending_nearby'));
+      return _buildMenuItemContent(
+        context,
+        widget.items!,
+        widget.title ?? context.tr('home.trending_nearby'),
+      );
     }
 
-    return FutureBuilder<List<MenuItemDto>>(
-      future: _menuItemsFuture,
+    return FutureBuilder<List<TrendingItemDto>>(
+      future: _trendingFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) { // Modified condition
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return _buildSkeleton(context);
         }
 
-        // No bundled mock data: hide the section when the API errors or
-        // returns nothing, matching the other home rails.
         if (snapshot.hasError ||
             !snapshot.hasData ||
             snapshot.data!.isEmpty) {
@@ -136,8 +138,11 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
 
         final displayItems = snapshot.data!.take(10).toList();
 
-        return _buildContent(
-            context, displayItems, widget.title ?? context.tr('home.trending_nearby'));
+        return _buildTrendingContent(
+          context,
+          displayItems,
+          widget.title ?? context.tr('home.trending_nearby'),
+        );
       },
     );
   }
@@ -203,7 +208,95 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
     );
   }
 
-  Widget _buildContent(BuildContext context, List<MenuItemDto> displayItems, String displayTitle) {
+  Widget _buildTrendingContent(
+    BuildContext context,
+    List<TrendingItemDto> displayItems,
+    String displayTitle,
+  ) {
+    final maxItems = MediaQuery.of(context).size.width > 600 ? 5 : 6;
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 5 : 2;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayTitle,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  color: Colors.black,
+                ),
+              ),
+              ViewAllIconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TodayOverviewDetailPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.88,
+          ),
+          itemCount: displayItems.length > maxItems
+              ? maxItems
+              : displayItems.length,
+          itemBuilder: (context, index) {
+            final item = displayItems[index];
+            final itemId = item.id.toString();
+            return FoodMenuItemCard(
+              id: itemId,
+              restaurantId: item.shopId.toString(),
+              title: item.name,
+              price: item.price,
+              currency: item.currency,
+              imagePath: item.imageUrl,
+              restaurantName: item.shopName,
+              isFavorite: _localFavorites[itemId] ?? item.isFavorite,
+              rating: item.rating,
+              reviewCount: item.reviewCount,
+              distanceKm: item.distanceKm,
+              estimatedTime: item.estimatedTime,
+              deliveryFee: item.deliveryFee,
+              originalDeliveryFee: item.originalDeliveryFee,
+              originalPrice: item.originalPrice,
+              displayPrice: item.displayPrice,
+              onFavoriteToggle: () => _toggleFavorite(item),
+              forceRestaurantNavigation: true,
+              isAvailable: item.isAvailable,
+              publishStatus: item.publishStatus,
+              deliveryEnabled: item.deliveryEnabled,
+              operatingHours: item.operatingHours,
+              restaurantStatus: item.restaurantStatus,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuItemContent(
+    BuildContext context,
+    List<MenuItemDto> displayItems,
+    String displayTitle,
+  ) {
     return Column(
       children: [
         Padding(
@@ -263,7 +356,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
               originalDeliveryFee: item.originalDeliveryFee,
               originalPrice: item.originalPrice,
               displayPrice: item.displayPrice,
-              onFavoriteToggle: () => _toggleFavorite(item),
+              onFavoriteToggle: () => _toggleFavoriteMenuItem(item),
               forceRestaurantNavigation: true,
               isAvailable: item.isAvailable,
               publishStatus: item.publishStatus,

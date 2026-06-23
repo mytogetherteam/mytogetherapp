@@ -9,6 +9,7 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
 import '../../../../core/auth/session_realtime.dart';
+import 'user_location_repository.dart';
 
 class AuthRepository {
   static final AuthRepository instance = AuthRepository._internal();
@@ -83,6 +84,10 @@ class AuthRepository {
     } finally {
       NotificationRepository().setUnreadCount(0);
       await AuthService().clearSession(navigate: false);
+      UserLocationRepository.instance.clearCachedLocationsForSignOut();
+      await UserLocationRepository.instance.ensureSessionCurrentLocationFromDevice(
+        requestPermissionIfDenied: false,
+      );
     }
   }
 

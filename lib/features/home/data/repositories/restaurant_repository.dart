@@ -372,22 +372,13 @@ class RestaurantRepository {
     }
 
     TrendingSectionDto result;
-    if (AuthService().isLoggedIn) {
-      result = await SearchRepository.instance.searchTrendingNearby(
-        latitude: lat,
-        longitude: lon,
-        radiusKm: radiusKm,
-        page: page + 1,
-        size: size,
-      );
-    } else {
-      result = TrendingSectionDto(
-        title: '',
-        description: '',
-        items: const [],
-        totalCount: 0,
-      );
-    }
+    result = await SearchRepository.instance.searchTrendingNearby(
+      latitude: lat,
+      longitude: lon,
+      radiusKm: radiusKm,
+      page: page + 1,
+      size: size,
+    );
 
     if (page == 0) {
       _cachedTrending = result;

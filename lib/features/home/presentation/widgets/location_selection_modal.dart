@@ -10,6 +10,8 @@ import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_display_util.dart';
 import '../../../auth/data/models/user_location_model.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../auth/presentation/screens/auth_entry_page.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
 import '../screens/location_search_page.dart';
@@ -39,12 +41,18 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
   bool get _isAtLocationLimit =>
       UserLocationRepository.instance.isAtLocationLimit(_apiLocations);
 
+  bool get _isGuest => GuestAuthGuard.isGuest;
+
   @override
   void initState() {
     super.initState();
     _hydrateFromActiveLocation();
     _loadCurrentLocation();
-    _loadApiLocations();
+    if (!_isGuest) {
+      _loadApiLocations();
+    } else {
+      _isLoadingApi = false;
+    }
     UserLocationRepository.instance.addListener(_onRepositoryChanged);
   }
 
@@ -167,12 +175,21 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
 
   /// Opens the saved-addresses page (search, manage, add via map picker).
   Future<void> _onViewAddresses() async {
-    if (!mounted || _isProcessing) return;
+    if (!mounted || _isProcessing || _isGuest) return;
 
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     Navigator.pop(context);
     await rootNavigator.push<bool>(
       MaterialPageRoute(builder: (_) => const LocationSearchPage()),
+    );
+  }
+
+  Future<void> _promptSignInForAddresses() async {
+    if (!mounted || _isProcessing) return;
+    Navigator.pop(context);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthEntryPage()),
     );
   }
 
@@ -339,6 +356,19 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     children: [
                       // Current Location
                       _buildCurrentLocationTile(),
+                      if (_isGuest) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                          child: Text(
+                            context.tr('guest.location_current_only'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                       Divider(
                         height: 1,
                         color: Colors.grey.shade100,
@@ -347,9 +377,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                       ),
 
                       // API locations
-                      if (_isLoadingApi)
+                      if (!_isGuest && _isLoadingApi)
                         const LocationSkeletonLoader(isList: true, itemCount: 2)
-                      else if (_apiLocations.isNotEmpty) ...[
+                      else if (!_isGuest && _apiLocations.isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                           child: Row(
@@ -399,55 +429,71 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 ),
               ),
 
-              // Fixed footer — outside the scroll view so taps are never blocked.
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomInset),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _isProcessing ? null : _onViewAddresses,
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            PhosphorIcons.mapPin,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.tr('location.view_addresses'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+              // Fixed footer — signed-in users only.
+              if (!_isGuest)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomInset),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isProcessing ? null : _onViewAddresses,
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              PhosphorIcons.mapPin,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              context.tr('location.view_addresses'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 12 + bottomInset),
+                  child: TextButton(
+                    onPressed: _isProcessing ? null : _promptSignInForAddresses,
+                    child: Text(
+                      context.tr('guest.create_or_login'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           if (_isProcessing)

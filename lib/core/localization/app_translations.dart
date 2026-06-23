@@ -68,6 +68,8 @@ class AppTranslations {
     'guest.create_or_login': 'Create account or sign in',
     'guest.settings_subtitle': 'Sign in to access your profile and saved items.',
     'guest.sign_in_prompt': 'Sign in to unlock full features',
+    'guest.location_current_only':
+        'Browsing uses your current location. Sign in to save and manage delivery addresses.',
 
     // Common
     'common.cancel': 'Cancel',
@@ -1006,6 +1008,8 @@ class AppTranslations {
     'guest.settings_subtitle':
         'ပရိုဖိုင်နှင့် သိမ်းထားသောအရာများကို သုံးရန် အကောင့်ဝင်ပါ။',
     'guest.sign_in_prompt': 'အပြည့်အစုံ အင်္ဂါရပ်များကို သုံးရန် အကောင့်ဝင်ပါ',
+    'guest.location_current_only':
+        'လက်ရှိတည်နေရာကို အသုံးပြုမည်။ လိပ်စာသိမ်းဆည်းရန် အကောင့်ဝင်ပါ။',
 
     // Common
     'common.cancel': 'မလုပ်တော့ပါ',
@@ -1941,6 +1945,8 @@ class AppTranslations {
     'guest.settings_subtitle':
         'เข้าสู่ระบบเพื่อเข้าถึงโปรไฟล์และรายการที่บันทึกไว้',
     'guest.sign_in_prompt': 'เข้าสู่ระบบเพื่อปลดล็อกฟีเจอร์ทั้งหมด',
+    'guest.location_current_only':
+        'ใช้ตำแหน่งปัจจุบันสำหรับการเรียกดู ลงชื่อเข้าใช้เพื่อบันทึกและจัดการที่อยู่',
 
     // Common
     'common.cancel': 'ยกเลิก',

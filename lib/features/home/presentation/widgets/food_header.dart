@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
@@ -55,6 +56,21 @@ class _FoodHeaderState extends State<FoodHeader> {
     }
 
     setState(() => _isLoading = true);
+
+    if (GuestAuthGuard.isGuest) {
+      final ok = await UserLocationRepository.instance
+          .ensureSessionCurrentLocationFromDevice();
+      if (!mounted) return;
+      if (ok) {
+        setState(() {
+          _displayLocation = UserLocationRepository.instance.activeLocation;
+          _isLoading = false;
+        });
+        return;
+      }
+      await _fallbackToCurrentLocation();
+      return;
+    }
 
     try {
       final loc = await UserLocationRepository.instance

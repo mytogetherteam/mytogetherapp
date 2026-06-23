@@ -58,17 +58,24 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
           // Top Gradient Card
           SafeArea(
             bottom: false,
-            child: Container(
-              height: size.height * 0.65,
-              width: double.infinity,
-              margin: const EdgeInsets.only(left: 16, right: 16, top: 10),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradientVertical,
-                borderRadius: BorderRadius.circular(32),
-              ),
+            child: SizedBox(
+              height: size.height * 0.65 + 48,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  Positioned(
+                    top: 44,
+                    left: 16,
+                    right: 16,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradientVertical,
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
                   // Fade line in background
                   Positioned(
                     top: -size.width * 0.3,
@@ -164,24 +171,28 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     right: 0,
                     child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
                   ),
+                        ],
+                      ),
+                    ),
+                  ),
                   Positioned(
-                    top: 8,
+                    top: 0,
                     right: 8,
                     child: Material(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: Colors.grey.shade200,
                       shape: const CircleBorder(),
                       child: IconButton(
                         onPressed: _dismiss,
-                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                        icon: const Icon(
+                        tooltip: MaterialLocalizations.of(context)
+                            .closeButtonTooltip,
+                        icon: Icon(
                           Icons.close_rounded,
-                          color: Colors.white,
-                          size: 24,
+                          color: Colors.grey.shade700,
+                          size: 22,
                         ),
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),
