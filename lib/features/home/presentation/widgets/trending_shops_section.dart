@@ -3,6 +3,8 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
@@ -62,6 +64,13 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (GuestAuthGuard.isGuest) {
+      return GuestAccountRequiredSection(
+        title: context.tr('food.trending_now'),
+        subtitle: context.tr('guest.need_account_message'),
+      );
+    }
+
     return FutureBuilder<List<Restaurant>>(
       future: _future,
       builder: (context, snapshot) {

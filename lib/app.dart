@@ -80,9 +80,7 @@ class _AppState extends State<App> {
               upgrader: Upgrader(),
               child: !widget.hasSeenOnboarding
                   ? const OnboardingScreen()
-                  : AuthService().isLoggedIn
-                      ? const MainNavigationScreen()
-                      : const LoginPage(),
+                  : const MainNavigationScreen(),
             ),
             routes: {
               '/home': (context) => const MainNavigationScreen(),

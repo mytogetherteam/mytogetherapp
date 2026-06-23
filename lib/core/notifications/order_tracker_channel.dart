@@ -1,4 +1,6 @@
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class OrderTrackerChannel {
@@ -16,7 +18,7 @@ class OrderTrackerChannel {
         'shopLogoUrl': shopLogoUrl ?? '',
       });
     } on PlatformException catch (e) {
-      print("Failed to start/update tracker: '${e.message}'.");
+      debugPrint("Failed to start/update tracker: '${e.message}'.");
     }
   }
 
@@ -25,7 +27,7 @@ class OrderTrackerChannel {
     try {
       await _channel.invokeMethod('stopTracker');
     } on PlatformException catch (e) {
-      print("Failed to stop tracker: '${e.message}'.");
+      debugPrint("Failed to stop tracker: '${e.message}'.");
     }
   }
 }

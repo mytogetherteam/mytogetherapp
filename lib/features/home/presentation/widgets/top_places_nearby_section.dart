@@ -10,6 +10,8 @@ import '../../data/models/place_dto.dart';
 import '../../data/repositories/places_repository.dart';
 import '../screens/place_detail_page.dart';
 import '../screens/places_list_page.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class TopPlacesNearbySection extends StatefulWidget {
   const TopPlacesNearbySection({super.key});
@@ -80,6 +82,14 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
 
   @override
   Widget build(BuildContext context) {
+    if (GuestAuthGuard.isGuest) {
+      return GuestAccountRequiredSection(
+        title: context.tr('home.top_places_nearby'),
+        subtitle: context.tr('guest.need_account_message'),
+        height: 160,
+      );
+    }
+
     if (_isLoading) {
       return const SizedBox(
         height: 320,

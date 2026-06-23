@@ -13,6 +13,7 @@ import '../../../../core/localization/app_language.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'login_page.dart';
 import 'register_page.dart';
+import '../../../main_navigation/presentation/screens/main_navigation_screen.dart';
 
 class AuthEntryPage extends StatefulWidget {
   const AuthEntryPage({super.key});
@@ -210,6 +211,25 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const MainNavigationScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  child: Text(
+                    context.tr('auth.continue_guest'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ),

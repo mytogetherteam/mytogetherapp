@@ -30,6 +30,8 @@ import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_ba
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -104,6 +106,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchBanners() async {
+    if (GuestAuthGuard.isGuest) {
+      if (mounted) {
+        setState(() => _isLoadingBanners = false);
+        FlutterNativeSplash.remove();
+      }
+      return;
+    }
+
     try {
       final topBanners = await RestaurantRepository.instance.getBanners(
         position: 'Promotions',
@@ -224,6 +234,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   void _showBannerModal(BannerImageDto banner) {
+    if (GuestAuthGuard.isGuest) {
+      GuestAuthGuard.requireAccount(context);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -407,7 +421,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       const SizedBox(height: 20),
 
                       // Banner Carousel
-                      Padding(
+                      if (GuestAuthGuard.isGuest)
+                        GuestAccountRequiredSection(
+                          title: context.tr('home.promotions_ads'),
+                          subtitle: context.tr('guest.need_account_message'),
+                          height: 120,
+                        )
+                      else
+                        Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: SizedBox(
                           height: 120,
@@ -477,7 +498,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 12),
                       // Dots Indicator
-                      if (!_isLoadingBanners && _topBanners.isNotEmpty)
+                      if (!GuestAuthGuard.isGuest &&
+                          !_isLoadingBanners &&
+                          _topBanners.isNotEmpty)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(
@@ -564,10 +587,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_visa'),
                                     assetPath:
                                         'assets/images/services/visa_3d.png',
-                                    onTap: () => Navigator.push(
+                                    onTap: () => GuestAuthGuard.runIfSignedIn(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const VisaPage(),
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const VisaPage(),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -575,11 +601,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_places'),
                                     assetPath:
                                         'assets/images/services/places_3d.png',
-                                    onTap: () => Navigator.push(
+                                    onTap: () => GuestAuthGuard.runIfSignedIn(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const PlacesListPage(),
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const PlacesListPage(),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -595,7 +624,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             const SizedBox(height: 20),
 
                             // Second Promo Banner Section (Below Categories)
-                            Padding(
+                            if (GuestAuthGuard.isGuest)
+                              GuestAccountRequiredSection(
+                                title: context.tr('home.promotions_ads'),
+                                subtitle: context.tr('guest.need_account_message'),
+                                height: 150,
+                              )
+                            else
+                              Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
                               ),

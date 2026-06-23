@@ -12,6 +12,9 @@ import '../../../../features/cart/presentation/screens/order_complete_page.dart'
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
+import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -46,8 +49,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _lastStatus = ActiveOrderState.instance.orderStatus;
     ActiveOrderState.instance.addListener(_onOrderStateChanged);
 
-    // Connect WebSocket for real-time updates
-    WebSocketService().connect();
+    // Connect WebSocket for real-time updates (signed-in users only)
+    if (AuthService().isLoggedIn) {
+      WebSocketService().connect();
+    }
 
     // Show welcome modal if first time, then check permissions after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,9 +78,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomePage(key: ValueKey('home_$localeKey')),
       FoodPage(key: ValueKey('food_$localeKey')),
       OrderHistoryPage(key: ValueKey('orders_$localeKey')),
-      NewsPage(key: ValueKey('news_$localeKey')),
+      _newsTab(localeKey),
       ProfilePage(key: ValueKey('profile_$localeKey')),
     ];
+  }
+
+  Widget _newsTab(String localeKey) {
+    if (GuestAuthGuard.isGuest) {
+      return GuestAccountRequiredPage(
+        key: ValueKey('news_guest_$localeKey'),
+        title: LocaleController.instance.tr('home.trending_news'),
+      );
+    }
+    return NewsPage(key: ValueKey('news_$localeKey'));
   }
 
   Future<void> _checkAndRequestPermissions() async {
@@ -221,9 +236,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
             _buildNavItem(
               4,
-              PhosphorIcons.user,
-              PhosphorIcons.userFill,
-              context.tr('nav.profile'),
+              GuestAuthGuard.isGuest
+                  ? PhosphorIcons.gearSix
+                  : PhosphorIcons.user,
+              GuestAuthGuard.isGuest
+                  ? PhosphorIcons.gearSixFill
+                  : PhosphorIcons.userFill,
+              GuestAuthGuard.isGuest
+                  ? context.tr('nav.settings')
+                  : context.tr('nav.profile'),
             ),
           ],
         ),

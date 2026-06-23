@@ -85,20 +85,6 @@ class RemoteRestaurantDataSource {
   }
 
   Future<ApiResponseShopDetailDto> getShopById(int id, {double? lat, double? lon}) async {
-    if (!AuthService().isLoggedIn) {
-      throw DioException(
-        requestOptions: RequestOptions(
-          path: '${ApiClient.apiPrefix}/user/shop-profile/$id',
-        ),
-        type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: RequestOptions(),
-          statusCode: 401,
-          statusMessage: 'Login required for shop details',
-        ),
-      );
-    }
-
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/shop-profile/$id',
@@ -154,15 +140,6 @@ class RemoteRestaurantDataSource {
     int page = 0,
     int size = 20,
   }) async {
-    if (!AuthService().isLoggedIn) {
-      return TrendingSectionDto(
-        title: '',
-        description: '',
-        items: const [],
-        totalCount: 0,
-      );
-    }
-
     return SearchRepository.instance.searchTrendingNearby(
       latitude: lat,
       longitude: lon,
@@ -454,7 +431,6 @@ class RemoteRestaurantDataSource {
     int size = 100,
     String? search,
   }) async {
-    if (!AuthService().isLoggedIn) return [];
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/menu-categories',
@@ -579,9 +555,6 @@ class RemoteRestaurantDataSource {
 
   /// Backend (auth): GET /api/user/menu-items/:id
   Future<FoodDetailDto?> getUserMenuItemById(int id) async {
-    if (!AuthService().isLoggedIn) {
-      return null;
-    }
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/menu-items/$id',

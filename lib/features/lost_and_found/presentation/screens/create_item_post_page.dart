@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+// ignore: unused_import
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import '../../data/models/item_post_dto.dart';
 import '../../data/repositories/item_post_repository.dart';
@@ -270,6 +271,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
     final count = allPhotos.length;
     const maxShow = 5;
     const h = 260.0;
+    // ignore: unused_local_variable
     final screenW = MediaQuery.of(context).size.width - 32;
 
     if (count == 1) {

@@ -60,7 +60,6 @@ class SearchRepository {
     int size = 10,
     int? days,
   }) async {
-    _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/shop-profile/trending',
       queryParameters: {
@@ -84,7 +83,6 @@ class SearchRepository {
     int page = 1,
     int size = 10,
   }) async {
-    _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/search/trending-nearby',
       queryParameters: {
@@ -111,7 +109,6 @@ class SearchRepository {
     int page = 1,
     int size = 20,
   }) async {
-    _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/search/nearby',
       queryParameters: {
@@ -157,7 +154,6 @@ class SearchRepository {
     int page = 1,
     int size = 10,
   }) async {
-    _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/shop-profile/popular',
       queryParameters: {
@@ -201,7 +197,6 @@ class SearchRepository {
 
   /// Raw enriched shop profile payload from `GET /api/user/shop-profile/:id`.
   Future<Map<String, dynamic>?> getShopProfileRawById(int id) async {
-    _requireAuth();
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/shop-profile/$id',
     );

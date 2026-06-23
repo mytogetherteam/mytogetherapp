@@ -7,6 +7,8 @@ import '../../../../features/news/presentation/screens/news_page.dart';
 import '../../../../features/news/data/models/news_item.dart';
 import '../../../../features/news/data/repositories/news_repository.dart';
 import '../../../../features/news/presentation/screens/news_detail_page.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class TrendingNewsSection extends StatefulWidget {
   const TrendingNewsSection({super.key});
@@ -65,6 +67,14 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (GuestAuthGuard.isGuest) {
+      return GuestAccountRequiredSection(
+        title: context.tr('home.trending_news'),
+        subtitle: context.tr('guest.need_account_message'),
+        height: 160,
+      );
+    }
+
     if (_isLoading) {
       return const SizedBox(
         height: 260,
