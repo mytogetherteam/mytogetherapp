@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
+import 'package:live_activities/models/live_activity_file.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
 import 'package:mytogetherapp/core/utils/time_formatter.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 
 class LockScreenWidgetManager {
   static final LockScreenWidgetManager instance = LockScreenWidgetManager._internal();
@@ -18,6 +20,9 @@ class LockScreenWidgetManager {
   String? _lastStatusText;
   int? _lastProgress;
   String? _lastShopName;
+  String? _lastEstimatedTime;
+  String? _lastRiderName;
+  String? _lastLogoUrl;
 
   bool get _isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
@@ -35,7 +40,7 @@ class LockScreenWidgetManager {
     if (_isIOS) {
       try {
         await _liveActivitiesPlugin.init(
-          appGroupId: 'group.com.mytogetherapp.orders', // Update with actual group ID if needed
+          appGroupId: 'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
         );
       } catch (e) {
         debugPrint('Live Activities init failed: $e');
@@ -76,23 +81,38 @@ class LockScreenWidgetManager {
     final statusText = _getStatusText(order);
     final progress = _getProgressValue(order);
     final shopName = order.displayShopName;
+    final estimatedTime = order.estimatedTime ?? '';
+    final riderName = order.riderName ?? '';
+    final logoUrl = resolveMediaUrl(order.shopLogo ?? order.logoPath);
 
     if (_lastStatusText == statusText && 
         _lastProgress == progress && 
-        _lastShopName == shopName) {
+        _lastShopName == shopName &&
+        _lastEstimatedTime == estimatedTime &&
+        _lastRiderName == riderName &&
+        _lastLogoUrl == logoUrl) {
       return; // No meaningful change, avoid spamming native widgets
     }
 
     _lastStatusText = statusText;
     _lastProgress = progress;
     _lastShopName = shopName;
+    _lastEstimatedTime = estimatedTime;
+    _lastRiderName = riderName;
+    _lastLogoUrl = logoUrl;
 
     if (_isIOS) {
       final data = {
         'shopName': order.displayShopName,
         'statusText': statusText,
         'progress': progress.toString(),
+        'estimatedTime': order.estimatedTime ?? '',
+        'riderName': order.riderName ?? '',
       };
+      
+      if (logoUrl.isNotEmpty) {
+        data['shopLogoPath'] = LiveActivityFileFromUrl.image(logoUrl);
+      }
 
       try {
         if (_currentLiveActivityId == null) {
@@ -140,6 +160,9 @@ class LockScreenWidgetManager {
     _lastStatusText = null;
     _lastProgress = null;
     _lastShopName = null;
+    _lastEstimatedTime = null;
+    _lastRiderName = null;
+    _lastLogoUrl = null;
 
     if (_isIOS && _currentLiveActivityId != null) {
       try {

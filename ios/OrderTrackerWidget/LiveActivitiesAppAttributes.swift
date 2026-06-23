@@ -7,7 +7,12 @@ struct LiveActivitiesAppAttributes: ActivityAttributes, Identifiable {
     
     // Dynamic data passed from Flutter using live_activities package
     public struct ContentState: Codable, Hashable {
-        var data: [String: String] 
+        var shopName: String?
+        var statusText: String?
+        var progress: String?
+        var estimatedTime: String?
+        var riderName: String?
+        var shopLogoPath: String?
     }
     
     var id = UUID()
