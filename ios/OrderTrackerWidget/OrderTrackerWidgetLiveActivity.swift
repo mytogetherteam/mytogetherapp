@@ -11,6 +11,13 @@ let primaryGradient = LinearGradient(
     endPoint: .trailing
 )
 
+
+let sharedDefault = UserDefaults(suiteName: "group.com.mytogetherorg.mytogether")!
+
+func getString(context: ActivityViewContext<LiveActivitiesAppAttributes>, key: String) -> String? {
+    return sharedDefault.string(forKey: context.attributes.prefixedKey(key))
+}
+
 struct OrderTrackerWidgetLiveActivity: Widget {
     
     var body: some WidgetConfiguration {
@@ -22,7 +29,7 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                 // Expanded UI goes here
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 8) {
-                        if let logoPath = context.state.shopLogoPath, let uiImage = UIImage(contentsOfFile: logoPath) {
+                        if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
@@ -36,14 +43,14 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                                 .clipShape(Circle())
                         }
                         
-                        Text(context.state.statusText ?? "Processing")
+                        Text(getString(context: context, key: "statusText") ?? "Processing")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white)
                     }
                     .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    if let eta = context.state.estimatedTime, !eta.isEmpty {
+                    if let eta = getString(context: context, key: "estimatedTime"), !eta.isEmpty {
                         Text(eta)
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(primaryGradient)
@@ -58,7 +65,7 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            if let riderName = context.state.riderName, !riderName.isEmpty {
+                            if let riderName = getString(context: context, key: "riderName"), !riderName.isEmpty {
                                 Image(systemName: "person.crop.circle.fill")
                                     .foregroundColor(.gray)
                                     .font(.title2)
@@ -68,20 +75,20 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                                 Image(systemName: "storefront.fill")
                                     .foregroundColor(.gray)
                                     .font(.title2)
-                                Text(context.state.shopName ?? "Restaurant")
+                                Text(getString(context: context, key: "shopName") ?? "Restaurant")
                                     .font(.system(size: 14, weight: .medium))
                             }
                             Spacer()
                         }
                         .padding(.horizontal, 8)
                         
-                        ProgressBarView(progress: Int(context.state.progress ?? "0") ?? 0)
+                        ProgressBarView(progress: Int(getString(context: context, key: "progress") ?? "0") ?? 0)
                             .padding(.horizontal, 4)
                             .padding(.bottom, 4)
                     }
                 }
             } compactLeading: {
-                if let logoPath = context.state.shopLogoPath, let uiImage = UIImage(contentsOfFile: logoPath) {
+                if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -95,15 +102,15 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                         .clipShape(Circle())
                 }
             } compactTrailing: {
-                if let eta = context.state.estimatedTime, !eta.isEmpty {
+                if let eta = getString(context: context, key: "estimatedTime"), !eta.isEmpty {
                     Text(eta)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(primaryGradient)
                 } else {
-                    ProgressRingView(progress: Int(context.state.progress ?? "0") ?? 0)
+                    ProgressRingView(progress: Int(getString(context: context, key: "progress") ?? "0") ?? 0)
                 }
             } minimal: {
-                if let logoPath = context.state.shopLogoPath, let uiImage = UIImage(contentsOfFile: logoPath) {
+                if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -127,18 +134,18 @@ struct LiveActivityView: View {
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        let shopName = context.state.shopName ?? "Restaurant"
-        let statusText = context.state.statusText ?? "Processing"
-        let progress = Int(context.state.progress ?? "0") ?? 0
-        let eta = context.state.estimatedTime ?? ""
-        let riderName = context.state.riderName ?? ""
+        let shopName = getString(context: context, key: "shopName") ?? "Restaurant"
+        let statusText = getString(context: context, key: "statusText") ?? "Processing"
+        let progress = Int(getString(context: context, key: "progress") ?? "0") ?? 0
+        let eta = getString(context: context, key: "estimatedTime") ?? ""
+        let riderName = getString(context: context, key: "riderName") ?? ""
         
         VStack(spacing: 16) {
             // Header Row
             HStack(alignment: .center, spacing: 12) {
                 // Logo
                 Group {
-                    if let logoPath = context.state.shopLogoPath, let uiImage = UIImage(contentsOfFile: logoPath) {
+                    if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
