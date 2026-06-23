@@ -259,25 +259,6 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const MainNavigationScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  child: Text(
-                    context.tr('auth.continue_guest'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
                 Center(
                   child: InkWell(
