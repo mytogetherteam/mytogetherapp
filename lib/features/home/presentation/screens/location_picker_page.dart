@@ -14,6 +14,7 @@ import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../auth/data/models/user_location_model.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
 import '../widgets/location_details_sheet.dart';
@@ -49,6 +50,16 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   @override
   void initState() {
     super.initState();
+    if (GuestAuthGuard.isGuest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await GuestAuthGuard.requireAccount(context);
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      });
+      return;
+    }
     _geocode = MapPinGeocodeController(
       addressController: TextEditingController(),
     );

@@ -9,6 +9,7 @@ import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -75,10 +76,13 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     }
 
     if (widget.autoFocusComment) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _commentFocusNode.requestFocus();
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _focusCommentIfSignedIn());
     }
+  }
+
+  Future<void> _focusCommentIfSignedIn() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    _commentFocusNode.requestFocus();
   }
 
   Future<void> _loadComments() async {
@@ -134,6 +138,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   }
 
   Future<void> _toggleLike() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final previousLiked = _isLiked;
     final previousCount = _likesCount;
     setState(() {
@@ -182,6 +188,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   }
 
   Future<void> _postComment() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
 
@@ -676,7 +684,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         ),
                         const SizedBox(width: 24),
                         GestureDetector(
-                          onTap: () => _commentFocusNode.requestFocus(),
+                          onTap: _focusCommentIfSignedIn,
                           child: Row(
                             children: [
                               Icon(

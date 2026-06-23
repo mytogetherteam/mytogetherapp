@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 
 class NearbyRestaurantListItem extends StatelessWidget {
   final String name;
@@ -143,7 +144,15 @@ class NearbyRestaurantListItem extends StatelessWidget {
                             ),
                           ),
                           GestureDetector(
-                            onTap: onFavoriteToggle,
+                            onTap: () async {
+                              if (onFavoriteToggle == null) return;
+                              if (!await GuestAuthGuard.requireAccount(
+                                context,
+                              )) {
+                                return;
+                              }
+                              onFavoriteToggle!();
+                            },
                             child: Icon(
                               isFavorite ? PhosphorIcons.heartFill : PhosphorIcons.heart,
                               color: isFavorite ? AppColors.primary : Colors.grey[400],

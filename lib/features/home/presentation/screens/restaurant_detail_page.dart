@@ -18,7 +18,7 @@ import '../../data/models/menu_category_dto.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/network/websocket_service.dart';
-import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
@@ -1419,15 +1419,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
   /// Toggles the shop (restaurant) wishlist via `POST/DELETE /api/user/wishlist`.
   Future<void> _toggleShopFavorite() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final shopId = int.tryParse(_currentRestaurant?.id ?? '');
     if (shopId == null) return;
-
-    if (!AuthService().isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('restaurant.sign_in_save'))),
-      );
-      return;
-    }
 
     final newStatus = !_isFavorite;
     final messenger = ScaffoldMessenger.of(context);

@@ -10,8 +10,10 @@ import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import '../screens/news_detail_page.dart';
+import '../../../auth/presentation/screens/auth_entry_page.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 
 class NewsFeedItem extends StatefulWidget {
   final NewsItem item;
@@ -48,6 +50,8 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
   }
 
   Future<void> _toggleLike() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final previousLiked = _isLiked;
     final previousCount = _likesCount;
     setState(() {
@@ -76,6 +80,30 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
         _likesCount = previousCount;
       });
     }
+  }
+
+  void _openDetail({bool autoFocusComment = false}) {
+    if (widget.item.source == FeedSource.itemPost && GuestAuthGuard.isGuest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthEntryPage()),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewsDetailPage(
+          item: widget.item,
+          autoFocusComment: autoFocusComment,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openComments() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    _openDetail(autoFocusComment: true);
   }
 
   Future<void> _makeCall(String phoneNumber) async {
@@ -242,14 +270,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
           children: [
             // Main Tappable Area for Detail Page
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NewsDetailPage(item: widget.item),
-                  ),
-                );
-              },
+              onTap: () => _openDetail(),
               behavior: HitTestBehavior.opaque,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -664,17 +685,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               const SizedBox(width: 20),
               // Comment
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NewsDetailPage(
-                        item: widget.item,
-                        autoFocusComment: true,
-                      ),
-                    ),
-                  );
-                },
+                onTap: _openComments,
                 child: Row(
                   children: [
                     Icon(

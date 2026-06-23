@@ -309,14 +309,6 @@ class _ProfilePageState extends State<ProfilePage> {
               MaterialPageRoute(builder: (_) => const AuthEntryPage()),
             ),
           ),
-          _buildOptionTile(
-            icon: PhosphorIcons.signIn,
-            title: context.tr('auth.login_account'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AuthEntryPage()),
-            ),
-          ),
           const SizedBox(height: 8),
         ],
       ),

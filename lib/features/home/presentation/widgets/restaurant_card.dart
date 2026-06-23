@@ -12,6 +12,7 @@ import '../../data/models/shop_dto.dart' show OperatingHourDto;
 import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 
 class RestaurantCard extends StatelessWidget {
   final String name;
@@ -106,6 +107,7 @@ class RestaurantCard extends StatelessWidget {
   ) {
     final blockedLine = availability.cardStatusLine(context);
     final isBlocked = availability.isBlocked;
+    final shouldDimImage = availability.shouldDimImage;
     final showStatusLine = isBlocked && !compact && blockedLine.isNotEmpty;
     const imageHeight = 160.0;
 
@@ -130,7 +132,7 @@ class RestaurantCard extends StatelessWidget {
           Stack(
             children: [
               UnavailableImageDim(
-                active: isBlocked,
+                active: shouldDimImage,
                 borderRadius: BorderRadius.circular(24),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
@@ -171,7 +173,10 @@ class RestaurantCard extends StatelessWidget {
                 right: 12,
                 child: GestureDetector(
                   onTap: onFavoriteToggle != null
-                      ? () {
+                      ? () async {
+                          if (!await GuestAuthGuard.requireAccount(context)) {
+                            return;
+                          }
                           final willBeSaved = !isFavorite;
                           onFavoriteToggle!.call();
                           if (showFavoriteToast) {
@@ -204,7 +209,7 @@ class RestaurantCard extends StatelessWidget {
                 left: 12,
                 bottom: 12,
                 child: Opacity(
-                  opacity: isBlocked ? 0.55 : 1,
+                  opacity: shouldDimImage ? 0.55 : 1,
                   child: _buildLogoBadge(context),
                 ),
               ),

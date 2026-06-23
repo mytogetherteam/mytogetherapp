@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
-import '../widgets/home_discount_section.dart';
-import '../widgets/todays_overview_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_categories_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
 import '../widgets/trending_news_section.dart';
@@ -23,6 +23,8 @@ import 'package:mytogetherapp/features/notifications/data/repositories/notificat
 import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
@@ -540,25 +542,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const LostAndFoundPage(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (GuestAuthGuard.isGuest) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AuthEntryPage(),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const LostAndFoundPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_currency'),
                                     assetPath:
                                         'assets/images/services/exchange_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const CurrencyExchangePage(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (GuestAuthGuard.isGuest) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AuthEntryPage(),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const CurrencyExchangePage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_visa'),
@@ -702,8 +728,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
 
-                            HomeDiscountSection(
-                              key: ValueKey('discount_$_refreshKey'),
+                            FoodCategoriesSection(
+                              key: ValueKey('categories_$_refreshKey'),
                             ),
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),

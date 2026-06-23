@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-import '../../../../core/auth/auth_service.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../food/presentation/screens/food_search_page.dart';
 import '../../data/models/master_category_dto.dart';
@@ -32,7 +31,6 @@ class _PopularCategoriesSectionState extends State<PopularCategoriesSection> {
   }
 
   Future<List<MasterCategoryDto>> _load() async {
-    if (!AuthService().isLoggedIn) return [];
     try {
       return await RestaurantRepository.instance
           .getPopularMasterCategories(limit: 12)

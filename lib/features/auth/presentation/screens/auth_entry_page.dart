@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -34,7 +34,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
     });
   }
 
-  void _dismiss() {
+  void _handleBack() {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
       return;
@@ -49,150 +49,166 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-          // Top Gradient Card
-          SafeArea(
-            bottom: false,
-            child: Container(
-              height: size.height * 0.65,
-              width: double.infinity,
-              margin: const EdgeInsets.only(left: 16, right: 16, top: 10),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradientVertical,
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Fade line in background
-                  Positioned(
-                    top: -size.width * 0.3,
-                    right: -size.width * 0.1,
-                    child: Container(
-                      width: size.width * 1.5,
-                      height: size.width * 1.5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          width: 80,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: _handleBack,
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradientVertical,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Positioned(
+                      top: -size.width * 0.3,
+                      right: -size.width * 0.1,
+                      child: Container(
+                        width: size.width * 1.5,
+                        height: size.width * 1.5,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            width: 80,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 40, 24, 0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            context.tr('auth.easy_connect'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: LocaleController.instance.language == AppLanguage.mm ? 1.6 : 1.2,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(32, 40, 24, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              context.tr('auth.easy_connect'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 38,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: LocaleController.instance.language ==
+                                        AppLanguage.mm
+                                    ? 1.6
+                                    : 1.2,
+                              ),
                             ),
                           ),
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/images/logo_3d.png',
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/images/logo_3d.png',
+                              width: 56,
+                              height: 56,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Horizontal clustered pills
-                  Positioned(
-                    bottom: 150,
-                    left: 20,
-                    child: _buildDecorativePill(context.tr('auth.pill_food'), context.tr('auth.pill_food_sub'), Icons.delivery_dining, -0.05),
-                  ),
-                  Positioned(
-                    bottom: 90,
-                    left: 10,
-                    child: _buildDecorativePill(
-                      context.tr('auth.pill_community'), 
-                      context.tr('auth.pill_community_sub'), 
-                      Icons.people, 
-                      0.08,
-                      backgroundColor: Colors.pinkAccent,
-                      textColor: Colors.white,
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 30,
-                    left: 30,
-                    child: _buildDecorativePill(context.tr('auth.pill_lost'), context.tr('auth.pill_lost_sub'), Icons.manage_search, -0.1),
-                  ),
-                  Positioned(
-                    bottom: 180,
-                    right: 40,
-                    child: _buildDecorativePill(context.tr('auth.pill_secure'), context.tr('auth.pill_secure_sub'), Icons.security, 0.1),
-                  ),
-                  Positioned(
-                    bottom: 120,
-                    right: 10,
-                    child: _buildDecorativePill(
-                      context.tr('auth.pill_special'), 
-                      context.tr('auth.pill_special_sub'), 
-                      Icons.local_offer, 
-                      -0.05,
-                      backgroundColor: AppColors.secondary,
-                      textColor: Colors.white,
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 70,
-                    right: 60,
-                    child: _buildDecorativePill(context.tr('auth.pill_currency'), context.tr('auth.pill_currency_sub'), Icons.currency_exchange, -0.15),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    right: 0,
-                    child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Material(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        onPressed: _dismiss,
-                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        ],
                       ),
                     ),
-                  ),
-
-                ],
+                    Positioned(
+                      bottom: 150,
+                      left: 20,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_food'),
+                        context.tr('auth.pill_food_sub'),
+                        Icons.delivery_dining,
+                        -0.05,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 90,
+                      left: 10,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_community'),
+                        context.tr('auth.pill_community_sub'),
+                        Icons.people,
+                        0.08,
+                        backgroundColor: Colors.pinkAccent,
+                        textColor: Colors.white,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 30,
+                      left: 30,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_lost'),
+                        context.tr('auth.pill_lost_sub'),
+                        Icons.manage_search,
+                        -0.1,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 180,
+                      right: 40,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_secure'),
+                        context.tr('auth.pill_secure_sub'),
+                        Icons.security,
+                        0.1,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 120,
+                      right: 10,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_special'),
+                        context.tr('auth.pill_special_sub'),
+                        Icons.local_offer,
+                        -0.05,
+                        backgroundColor: AppColors.secondary,
+                        textColor: Colors.white,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 70,
+                      right: 60,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_currency'),
+                        context.tr('auth.pill_currency_sub'),
+                        Icons.currency_exchange,
+                        -0.15,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      right: 0,
+                      child: _buildDecorativePill(
+                        context.tr('auth.pill_support'),
+                        context.tr('auth.pill_support_sub'),
+                        Icons.storefront,
+                        0.05,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          
-          const Spacer(),
-
-          // Buttons
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              0,
+              24,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 PrimaryGradientButton(
                   onPressed: () {
@@ -225,7 +241,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                         gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.all(2), // Gradient border width
+                      padding: const EdgeInsets.all(2),
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -243,40 +259,23 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const MainNavigationScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  child: Text(
-                    context.tr('auth.continue_guest'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
                 Center(
                   child: InkWell(
-                    onTap: () {
-                      _showLanguagePicker(context);
-                    },
+                    onTap: () => _showLanguagePicker(context),
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           ShaderMask(
                             blendMode: BlendMode.srcIn,
-                            shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                            shaderCallback: (bounds) =>
+                                AppColors.primaryGradient.createShader(bounds),
                             child: const Icon(
                               Icons.language,
                               size: 20,
@@ -298,11 +297,9 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
               ],
             ),
           ),
-          
-          const Spacer(),
         ],
       ),
-    ));
+    );
   }
 
   Widget _buildDecorativePill(String title, String subtitle, IconData icon, double rotation, {Color backgroundColor = Colors.white, Color textColor = const Color(0xFF1E1E1E)}) {
@@ -483,27 +480,29 @@ class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMix
       });
     })..start();
 
-    // Accelerometer — detect shake from sudden delta
-    _accelSub = accelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 16),
-    ).listen((AccelerometerEvent event) {
-      final current = Offset(event.x, event.y);
-      final delta = current - _prevAccel;
-      _prevAccel = current;
+    // Accelerometer — detect shake from sudden delta (mobile only)
+    if (!kIsWeb) {
+      _accelSub = accelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 16),
+      ).listen((AccelerometerEvent event) {
+        final current = Offset(event.x, event.y);
+        final delta = current - _prevAccel;
+        _prevAccel = current;
 
-      final shakeMagnitude = delta.distance;
-      if (shakeMagnitude > 1.2) {
-        final impulseScale = (shakeMagnitude * 12.0).clamp(0.0, 120.0);
-        _velocity += Offset(
-          delta.dx * -impulseScale / _mass,
-          delta.dy * impulseScale / _mass,
-        );
-        final speed = _velocity.distance;
-        if (speed > 200) {
-          _velocity = _velocity / speed * 200;
+        final shakeMagnitude = delta.distance;
+        if (shakeMagnitude > 1.2) {
+          final impulseScale = (shakeMagnitude * 12.0).clamp(0.0, 120.0);
+          _velocity += Offset(
+            delta.dx * -impulseScale / _mass,
+            delta.dy * impulseScale / _mass,
+          );
+          final speed = _velocity.distance;
+          if (speed > 200) {
+            _velocity = _velocity / speed * 200;
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   @override

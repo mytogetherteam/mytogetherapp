@@ -8,12 +8,13 @@ import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 
 class LockScreenWidgetManager {
-  static final LockScreenWidgetManager instance = LockScreenWidgetManager._internal();
+  static final LockScreenWidgetManager instance =
+      LockScreenWidgetManager._internal();
   LockScreenWidgetManager._internal();
 
   final _liveActivitiesPlugin = LiveActivities();
   final _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  
+
   String? _currentLiveActivityId;
   final int _notificationId = 8888;
   bool _isInitialized = false;
@@ -25,8 +26,7 @@ class LockScreenWidgetManager {
   String? _lastRiderName;
   String? _lastLogoUrl;
 
-  bool get _isIOS =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   bool get _isAndroid =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -37,11 +37,12 @@ class LockScreenWidgetManager {
       _isInitialized = true;
       return;
     }
-    
+
     if (_isIOS) {
       try {
         await _liveActivitiesPlugin.init(
-          appGroupId: 'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
+          appGroupId:
+              'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
         );
       } catch (e) {
         debugPrint('Live Activities init failed: $e');
@@ -49,16 +50,15 @@ class LockScreenWidgetManager {
     } else if (_isAndroid) {
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('@mipmap/launcher_icon');
-      const InitializationSettings initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid,
-      );
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
       await _flutterLocalNotificationsPlugin.initialize(
         settings: initializationSettings,
       );
     }
-    
+
     _isInitialized = true;
-    
+
     // Add listener to keep native widgets in sync
     ActiveOrderState.instance.addListener(_onOrderStateChanged);
   }
@@ -67,7 +67,9 @@ class LockScreenWidgetManager {
     final state = ActiveOrderState.instance;
     if (state.hasActiveOrder) {
       // Get the primary order
-      final order = state.activeOrdersList.isNotEmpty ? state.activeOrdersList.first : null;
+      final order = state.activeOrdersList.isNotEmpty
+          ? state.activeOrdersList.first
+          : null;
       if (order != null) {
         showOrUpdateWidget(order);
       }
@@ -86,8 +88,8 @@ class LockScreenWidgetManager {
     final riderName = order.riderName ?? '';
     final logoUrl = resolveMediaUrl(order.shopLogo ?? order.logoPath);
 
-    if (_lastStatusText == statusText && 
-        _lastProgress == progress && 
+    if (_lastStatusText == statusText &&
+        _lastProgress == progress &&
         _lastShopName == shopName &&
         _lastEstimatedTime == estimatedTime &&
         _lastRiderName == riderName &&
@@ -110,7 +112,7 @@ class LockScreenWidgetManager {
         'estimatedTime': order.estimatedTime ?? '',
         'riderName': order.riderName ?? '',
       };
-      
+
       if (logoUrl.isNotEmpty) {
         try {
           final response = await Dio().get(
@@ -146,24 +148,27 @@ class LockScreenWidgetManager {
     } else if (_isAndroid) {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
-        'active_order_channel',
-        'Active Orders',
-        channelDescription: 'Shows the status of your active order',
-        importance: Importance.low,
-        priority: Priority.low,
-        icon: '@mipmap/launcher_icon',
-        showProgress: true,
-        maxProgress: 4,
-        progress: progress,
-        indeterminate: false,
-        ongoing: true, // Keep it persistent while order is active
+            'active_order_channel',
+            'Active Orders',
+            channelDescription: 'Shows the status of your active order',
+            importance: Importance.low,
+            priority: Priority.low,
+            icon: '@mipmap/launcher_icon',
+            showProgress: true,
+            maxProgress: 4,
+            progress: progress,
+            indeterminate: false,
+            ongoing: true, // Keep it persistent while order is active
+          );
+      final NotificationDetails platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
       );
-      final NotificationDetails platformChannelSpecifics =
-          NotificationDetails(android: androidPlatformChannelSpecifics);
 
       await _flutterLocalNotificationsPlugin.show(
         id: _notificationId,
-        title: order.displayShopName.isNotEmpty ? order.displayShopName : 'Order Update',
+        title: order.displayShopName.isNotEmpty
+            ? order.displayShopName
+            : 'Order Update',
         body: statusText,
         notificationDetails: platformChannelSpecifics,
       );
@@ -193,7 +198,9 @@ class LockScreenWidgetManager {
       case 0:
         return 'Awaiting Confirmation';
       case 1:
-        return order.showUploadSection ? 'Awaiting Payment' : 'Verifying Payment';
+        return order.showUploadSection
+            ? 'Awaiting Payment'
+            : 'Verifying Payment';
       case 2:
         return 'Preparing your order';
       case 3:

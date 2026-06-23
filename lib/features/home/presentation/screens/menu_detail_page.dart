@@ -22,6 +22,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 
@@ -903,6 +904,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ? PhosphorIcons.heartFill
                           : PhosphorIcons.heart,
                       onPressed: () async {
+                        if (!await GuestAuthGuard.requireAccount(context)) {
+                          return;
+                        }
                         if (_isTogglingFavorite) return;
                         _isTogglingFavorite = true;
 
