@@ -52,14 +52,17 @@ class FoodSearchPage extends StatefulWidget {
   State<FoodSearchPage> createState() => _FoodSearchPageState();
 }
 
-class _FoodSearchPageState extends State<FoodSearchPage> {
+class _FoodSearchPageState extends State<FoodSearchPage>
+    with WidgetsBindingObserver {
   static const _recentSearchesKey = 'food_search_recent';
+  static const _shopStatePollInterval = Duration(seconds: 45);
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
 
   SearchFlowState _currentState = SearchFlowState.idle;
   Timer? _debounceTimer;
+  Timer? _shopStatePollTimer;
 
   List<SearchShopDto> _shopResults = [];
   List<String> _recentSearches = [];
@@ -80,6 +83,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadRecentSearches();
     _loadPopularCategories();
     _ensureMasterCategoriesLoaded();
@@ -108,10 +112,39 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounceTimer?.cancel();
+    _shopStatePollTimer?.cancel();
     _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshVisibleShopStates();
+    }
+  }
+
+  void _startShopStatePolling() {
+    _shopStatePollTimer?.cancel();
+    _shopStatePollTimer = Timer.periodic(
+      _shopStatePollInterval,
+      (_) => _refreshVisibleShopStates(),
+    );
+  }
+
+  void _stopShopStatePolling() {
+    _shopStatePollTimer?.cancel();
+    _shopStatePollTimer = null;
+  }
+
+  Future<void> _refreshVisibleShopStates() async {
+    if (_shopResults.isEmpty) return;
+    await RestaurantRepository.instance.refreshOrderStatesForShopIds(
+      _shopResults.map((dto) => dto.shop.id),
+    );
   }
 
   Future<void> _loadPopularCategories() async {
@@ -357,9 +390,12 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           _shopResults = shopPage.shops;
           _isLoading = false;
         });
+        _startShopStatePolling();
+        unawaited(_refreshVisibleShopStates());
       }
     } catch (e) {
       if (mounted) {
+        _stopShopStatePolling();
         setState(() {
           _isLoading = false;
           _errorMessage = context.tr('food.search_failed');

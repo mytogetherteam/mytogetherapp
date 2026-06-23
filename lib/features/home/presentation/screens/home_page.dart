@@ -5,7 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/home_location_feeds_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/todays_overview_section.dart';
+import '../widgets/restaurants_nearby_section.dart';
+import '../widgets/lost_items_nearby_section.dart';
+import '../widgets/top_places_nearby_section.dart';
+import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -723,10 +727,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
 
-                            HomeLocationFeedsSection(
-                              key: ValueKey('geo_feeds_$_refreshKey'),
-                              refreshKey: _refreshKey,
+                            RestaurantsNearbySection(
+                              key: ValueKey('nearby_$_refreshKey'),
                             ),
+                            PopularBrandsSection(
+                              key: ValueKey('brands_$_refreshKey'),
+                            ),
+                            TodaysOverviewSection(
+                              key: ValueKey('overview_$_refreshKey'),
+                            ),
+                            const SizedBox(height: 24),
+                            LostItemsNearbySection(
+                              key: ValueKey('lost_$_refreshKey'),
+                            ),
+                            const SizedBox(height: 24),
+                            TopPlacesNearbySection(
+                              key: ValueKey('places_$_refreshKey'),
+                            ),
+                            const SizedBox(height: 24),
                             TrendingNewsSection(
                               key: ValueKey('news_$_refreshKey'),
                             ),

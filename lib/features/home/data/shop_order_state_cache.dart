@@ -87,6 +87,23 @@ class ShopOrderStateCache extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces cached order state with a fresh API snapshot (no merge).
+  /// Use when polling `GET /api/user/shop-profile/:id` without WebSocket.
+  void replaceParts(
+    int shopId, {
+    required bool deliveryEnabled,
+    required List<OperatingHourDto> operatingHours,
+    required String status,
+  }) {
+    if (shopId <= 0) return;
+    _entries[shopId] = _ShopOrderEntry(
+      deliveryEnabled: deliveryEnabled,
+      operatingHours: operatingHours,
+      status: _statusFromHoursOrFallback(operatingHours, status),
+    );
+    notifyListeners();
+  }
+
   bool hasCompleteOperatingHours(int shopId) {
     final hours = _entries[shopId]?.operatingHours ?? const [];
     return hours.length >= _completeScheduleDays;
