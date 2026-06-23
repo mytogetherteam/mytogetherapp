@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:live_activities/models/live_activity_file.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
+import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 
@@ -104,7 +105,7 @@ class LockScreenWidgetManager {
     _lastLogoUrl = logoUrl;
 
     if (_isIOS) {
-      final data = <String, dynamic>{
+      final Map<String, dynamic> data = {
         'shopName': order.displayShopName,
         'statusText': statusText,
         'progress': progress.toString(),
@@ -113,17 +114,30 @@ class LockScreenWidgetManager {
       };
 
       if (logoUrl.isNotEmpty) {
-        data['shopLogoPath'] = LiveActivityFileFromUrl.image(logoUrl);
+        try {
+          final response = await Dio().get(
+            logoUrl, 
+            options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 3)),
+          );
+          if (response.statusCode == 200 && response.data != null) {
+            data['shopLogoPath'] = LiveActivityFileFromMemory.image(
+              Uint8List.fromList(response.data),
+              'logo_${order.orderId}.png',
+            );
+          }
+        } catch (e) {
+          debugPrint('Failed to download logo for live activity: $e');
+        }
       }
 
       try {
         if (_currentLiveActivityId == null) {
-          _currentLiveActivityId = await _liveActivitiesPlugin.createActivity(
+          _currentLiveActivityId = await _liveActivitiesPlugin.createOrUpdateActivity(
             'order_${order.orderId}',
             data,
           );
         } else {
-          await _liveActivitiesPlugin.updateActivity(
+          await _liveActivitiesPlugin.createOrUpdateActivity(
             _currentLiveActivityId!,
             data,
           );
