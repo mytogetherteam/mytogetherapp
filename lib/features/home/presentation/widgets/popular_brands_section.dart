@@ -8,7 +8,6 @@ import '../screens/restaurant_detail_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
-import '../../../../core/location/location_service.dart';
 import 'image_skeleton_loader.dart';
 
 class PopularBrandsSection extends StatefulWidget {
@@ -32,13 +31,13 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
 
   Future<List<Restaurant>> _loadPopularBrands() async {
     try {
-      final activeLoc = UserLocationRepository.instance.activeLocation;
-      final pos = await LocationService().getCurrentPosition();
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
 
       return await RestaurantRepository.instance
           .getPopularShops(
-            lat: activeLoc?.latitude ?? pos.latitude,
-            lon: activeLoc?.longitude ?? pos.longitude,
+            lat: coords.lat,
+            lon: coords.lon,
             size: 20, // Request up to 20 for 2 pages
           )
           .timeout(const Duration(seconds: 5));

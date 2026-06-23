@@ -272,7 +272,7 @@ class UserLocationRepository extends ChangeNotifier {
     if (active?.latitude == null || active?.longitude == null) {
       if (_isGuest) {
         await ensureSessionCurrentLocationFromDevice(
-          requestPermissionIfDenied: false,
+          requestPermissionIfDenied: true,
         );
         active = _activeLocation;
       } else {
@@ -289,7 +289,8 @@ class UserLocationRepository extends ChangeNotifier {
     if (_isGuest) {
       try {
         final pos = await LocationService().getCurrentPosition(
-          requestPermissionIfDenied: false,
+          requestPermissionIfDenied: true,
+          forceRefresh: true,
         );
         if (LocationService().hasRealPosition) {
           return (lat: pos.latitude, lon: pos.longitude);

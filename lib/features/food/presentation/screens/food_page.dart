@@ -2,21 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/food_feed_section.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
+import 'package:mytogetherapp/features/food/presentation/widgets/food_location_feeds_section.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurants_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/popular_brands_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/collections_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/explore_menu_section.dart';
 import 'package:mytogetherapp/features/food/presentation/widgets/food_discount_selection_section.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/food_categories_section.dart';
 import 'package:mytogetherapp/features/food/presentation/widgets/food_promotions_carousel.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_nearby_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_collection_list_page.dart';
@@ -192,8 +187,6 @@ class _FoodPageState extends State<FoodPage> {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              const FoodCategoriesSection(),
-                              const SizedBox(height: 16),
                               FoodQuickAccessSection(
                                 onNearbyTap: () =>
                                     _openPage(const RestaurantNearbyListPage()),
@@ -222,26 +215,12 @@ class _FoodPageState extends State<FoodPage> {
                                 const SizedBox(height: 32),
                               ] else
                                 const SizedBox(height: 32),
-                              const FoodRestaurantsSection(),
-                              const TrendingShopsSection(),
-                              PopularBrandsSection(
-                                title: context.tr('food.popular'),
-                              ),
-                              const SizedBox(height: 24),
-                              FoodFeedSection(
-                                key: ValueKey('foryou_${lat}_$lon'),
-                                feedType: 'for-you',
-                                title: context.tr('food.for_you'),
+                              FoodLocationFeedsSection(
+                                key: ValueKey('food_geo_$_refreshKey'),
+                                refreshKey: _refreshKey,
                                 latitude: lat,
                                 longitude: lon,
-                                layoutType: 2,
-                              ),
-                              ExploreMenuSection(
-                                key: ValueKey('explore_${lat}_$lon'),
-                                title: context.tr('food.explore_menu'),
-                                latitude: lat,
-                                longitude: lon,
-                                scrollController: _scrollController,
+                                exploreScrollController: _scrollController,
                               ),
                               const SizedBox(height: 80),
                             ],

@@ -71,6 +71,11 @@ class AppTranslations {
     'guest.sign_in_prompt': 'Sign in to unlock full features',
     'guest.location_current_only':
         'Browsing uses your current location. Sign in to save and manage delivery addresses.',
+    'guest.welcome_banner_lead': 'Welcome to MyTogether!',
+    'guest.welcome_banner_body': 'Enjoy and place your ',
+    'guest.welcome_banner_highlight': 'first order',
+    'guest.welcome_banner_tail': ' today.',
+    'guest.welcome_banner_cta': 'Sign up',
 
     // Common
     'common.cancel': 'Cancel',
@@ -159,7 +164,9 @@ class AppTranslations {
     'home.promotions_ads': 'Promotions & Ads',
     'home.restaurants_nearby': 'Restaurants Nearby',
     'home.popular_restaurants': 'Popular Restaurants',
-    'home.top_places_nearby': 'Top Places Nearby',
+    'home.top_places_nearby': 'Top Places',
+    'home.nothing_here_title': 'Nothing here for now',
+    'home.nothing_here_subtitle': 'You can still try our services',
     'home.trending_nearby': 'Trending Near By',
     'home.together_deals': 'Together Deals',
     'home.together_prefix': 'Together ',
@@ -179,6 +186,9 @@ class AppTranslations {
     'food.nearby_shops_sub': 'Get it quick',
     'food.for_you': 'For You',
     'food.for_you_sub': 'Handpicked for you',
+    'food.for_you_guest_title': 'Sign in to see For You',
+    'food.for_you_guest_message':
+        'Personalised picks are based on your orders. Create an account or sign in to get started.',
     'food.trending': 'Trending',
     'food.trending_sub': 'Most ordered',
     'food.popular': 'Popular',
@@ -1012,6 +1022,11 @@ class AppTranslations {
         'feature အစုံအလင် သုံးနိုင်ဖို့ အကောင့်ဝင်လိုက်နော် 🙌',
     'guest.location_current_only':
         'လက်ရှိတည်နေရာကို အသုံးပြုမည်။ လိပ်စာသိမ်းဆည်းရန် အကောင့်ဝင်ပါ။',
+    'guest.welcome_banner_lead': 'MyTogether မှ ကြိုဆိုပါတယ်!',
+    'guest.welcome_banner_body': 'ပထမဆုံး ',
+    'guest.welcome_banner_highlight': 'အော်ဒါ',
+    'guest.welcome_banner_tail': ' ကို ချက်ချင်းမှာယူလိုက်ပါ။',
+    'guest.welcome_banner_cta': 'အကောင့်ဖွင့်မယ်',
 
     // Common
     'common.cancel': 'မလုပ်တော့ပါ',
@@ -1099,7 +1114,9 @@ class AppTranslations {
     'home.promotions_ads': 'ပရိုမိုးရှင်းနှင့် ကြော်ငြာ',
     'home.restaurants_nearby': 'ဒီနားက ဆိုင်ကောင်းများ 🫰',
     'home.popular_restaurants': 'Hype အဖြစ်ဆုံး🔥',
-    'home.top_places_nearby': 'ဘယ်မှာ Chill မလဲ 😎',
+    'home.top_places_nearby': 'ထိပ်တန်း နေရာများ',
+    'home.nothing_here_title': 'လက်ရှိတွင် မရှိသေးပါ',
+    'home.nothing_here_subtitle': 'ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများကို ဆက်လက်အသုံးပြုနိုင်ပါသည်',
     'home.trending_nearby': 'ဒီနေ့စားဖို့ 👀',
     'home.together_deals': 'Together Deals',
     'home.together_prefix': 'Together ',
@@ -1117,6 +1134,9 @@ class AppTranslations {
     'food.nearby_shops_sub': 'မြန်မြန်ရယူပါ',
     'food.for_you': 'ဘော်ဒါ့အတွက်',
     'food.for_you_sub': 'ဘော်ဒါ့အတွက် ရွေးချယ်ထား',
+    'food.for_you_guest_title': 'For You ကြည့်ရန် အကောင့်ဝင်ပါ',
+    'food.for_you_guest_message':
+        'သင့်အတွက် ရွေးချယ်ထားသော အကြောင်းအရာများကို မှာယူမှုမှ အခြေခံပါသည်။ အကောင့်ဖွင့်ပါ သို့မဟုတ် ဝင်ရောက်ပါ။',
     'food.trending': 'ခေတ်စား',
     'food.trending_sub': 'အများဆုံးမှာယူမှု',
     'food.popular': 'လူကြိုက်များ',
@@ -1949,6 +1969,11 @@ class AppTranslations {
     'guest.sign_in_prompt': 'เข้าสู่ระบบเพื่อปลดล็อกฟีเจอร์ทั้งหมด',
     'guest.location_current_only':
         'ใช้ตำแหน่งปัจจุบันสำหรับการเรียกดู ลงชื่อเข้าใช้เพื่อบันทึกและจัดการที่อยู่',
+    'guest.welcome_banner_lead': 'ยินดีต้อนรับสู่ MyTogether!',
+    'guest.welcome_banner_body': 'สนุกกับการสั่ง ',
+    'guest.welcome_banner_highlight': 'ออเดอร์แรก',
+    'guest.welcome_banner_tail': ' ของคุณวันนี้',
+    'guest.welcome_banner_cta': 'สมัครสมาชิก',
 
     // Common
     'common.cancel': 'ยกเลิก',
@@ -2035,7 +2060,9 @@ class AppTranslations {
     'home.promotions_ads': 'โปรโมชันและโฆษณา',
     'home.restaurants_nearby': 'ร้านอาหารใกล้เคียง',
     'home.popular_restaurants': 'ร้านอาหารยอดนิยม',
-    'home.top_places_nearby': 'สถานที่ยอดนิยมใกล้เคียง',
+    'home.top_places_nearby': 'สถานที่ยอดนิยม',
+    'home.nothing_here_title': 'ยังไม่มีรายการในขณะนี้',
+    'home.nothing_here_subtitle': 'คุณยังสามารถใช้บริการอื่นๆ ของเราได้',
     'home.trending_nearby': 'กำลังมาแรงใกล้คุณ',
     'home.together_deals': 'Together Deals',
     'home.together_prefix': 'Together ',
@@ -2055,6 +2082,9 @@ class AppTranslations {
     'food.nearby_shops_sub': 'รับได้เร็ว',
     'food.for_you': 'สำหรับคุณ',
     'food.for_you_sub': 'คัดสรรมาให้คุณ',
+    'food.for_you_guest_title': 'เข้าสู่ระบบเพื่อดูสำหรับคุณ',
+    'food.for_you_guest_message':
+        'รายการแนะนำอิงจากคำสั่งซื้อของคุณ สร้างบัญชีหรือเข้าสู่ระบบเพื่อเริ่มต้น',
     'food.trending': 'กำลังมาแรง',
     'food.trending_sub': 'สั่งมากที่สุด',
     'food.popular': 'ยอดนิยม',

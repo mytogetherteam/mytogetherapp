@@ -21,6 +21,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
+import '../widgets/guest_welcome_banner.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -200,7 +201,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
       floatingActionButton: const StyledCartFab(),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!AuthService().isLoggedIn)
+            GuestWelcomeBanner(
+              onAuthFlowComplete: () {
+                if (mounted) setState(() {});
+              },
+            ),
+          _buildBottomNavigationBar(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    return Container(
         height: 60 + (Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
         padding: EdgeInsets.only(bottom: Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
         decoration: BoxDecoration(
@@ -254,8 +271,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildNavItem(
