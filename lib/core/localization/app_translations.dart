@@ -66,7 +66,8 @@ class AppTranslations {
     'guest.need_account_message':
         'Create an account or sign in to use this feature.',
     'guest.create_or_login': 'Create account or sign in',
-    'guest.settings_subtitle': 'Sign in to access your profile and saved items.',
+    'guest.settings_subtitle':
+        'Sign in to access your profile and saved items.',
     'guest.sign_in_prompt': 'Sign in to unlock full features',
     'guest.location_current_only':
         'Browsing uses your current location. Sign in to save and manage delivery addresses.',
@@ -1001,13 +1002,14 @@ class AppTranslations {
     'auth.continue_guest': 'ဧည့်သည်အဖြစ် ဆက်သုံးမယ်',
 
     // Guest mode
-    'guest.need_account_title': 'အကောင့်လိုအပ်ပါသည်',
+    'guest.need_account_title': 'အကောင့်လိုအပ်ပါတယ် ခင်ဗျာ',
     'guest.need_account_message':
-        'ဤအင်္ဂါရပ်ကို အသုံးပြုရန် အကောင့်ဖွင့်ပါ သို့မဟုတ် အကောင့်ဝင်ပါ။',
+        'ဒီ feature ကို အသုံးပြုဖို့ အကောင့်ဖွင့် / ဝင်ဖို့ လိုမယ်နော် 😊',
     'guest.create_or_login': 'အကောင့်ဖွင့်မယ် / ဝင်မယ်',
     'guest.settings_subtitle':
         'ပရိုဖိုင်နှင့် သိမ်းထားသောအရာများကို သုံးရန် အကောင့်ဝင်ပါ။',
-    'guest.sign_in_prompt': 'အပြည့်အစုံ အင်္ဂါရပ်များကို သုံးရန် အကောင့်ဝင်ပါ',
+    'guest.sign_in_prompt':
+        'feature အစုံအလင် သုံးနိုင်ဖို့ အကောင့်ဝင်လိုက်နော် 🙌',
     'guest.location_current_only':
         'လက်ရှိတည်နေရာကို အသုံးပြုမည်။ လိပ်စာသိမ်းဆည်းရန် အကောင့်ဝင်ပါ။',
 
@@ -1837,7 +1839,8 @@ class AppTranslations {
     'order_status.checking_payment_shop':
         '{shop} သည် ဘော်ဒါ့ငွေပေးချေမှုကို စစ်ဆေးနေတယ်',
     'order_status.preparing_shop': '{shop} သည် ဘော်ဒါ့အော်ဒါကို ပြင်ဆင်နေတယ်',
-    'order_status.delivering_shop': '{shop} သည် ဘော်ဒါ့အော်ဒါကို ပို့ဆောင်နေတယ်',
+    'order_status.delivering_shop':
+        '{shop} သည် ဘော်ဒါ့အော်ဒါကို ပို့ဆောင်နေတယ်',
     'order_status.completing_shop':
         '{shop} သည် ဘော်ဒါ့အော်ဒါကို ပြီးမြောက်စေနေတယ်',
     'cart.place_order_failed': 'အော်ဒါတင်၍မရပါ: {error}',
@@ -1939,8 +1942,7 @@ class AppTranslations {
 
     // Guest mode
     'guest.need_account_title': 'ต้องมีบัญชีผู้ใช้',
-    'guest.need_account_message':
-        'สร้างบัญชีหรือเข้าสู่ระบบเพื่อใช้ฟีเจอร์นี้',
+    'guest.need_account_message': 'สร้างบัญชีหรือเข้าสู่ระบบเพื่อใช้ฟีเจอร์นี้',
     'guest.create_or_login': 'สร้างบัญชีหรือเข้าสู่ระบบ',
     'guest.settings_subtitle':
         'เข้าสู่ระบบเพื่อเข้าถึงโปรไฟล์และรายการที่บันทึกไว้',

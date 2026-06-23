@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -34,37 +33,45 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
     });
   }
 
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-          // Top Gradient Card
-          SafeArea(
-            bottom: false,
-            child: SizedBox(
-              height: size.height * 0.65 + 16,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    right: 16,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradientVertical,
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: _handleBack,
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradientVertical,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
                   // Fade line in background
                   Positioned(
                     top: -size.width * 0.3,
@@ -160,18 +167,12 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     right: 0,
                     child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
                   ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          
-          const Spacer(),
 
-          // Buttons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -280,11 +281,10 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
               ],
             ),
           ),
-          
-          const Spacer(),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
       ),
-    ));
+    );
   }
 
   Widget _buildDecorativePill(String title, String subtitle, IconData icon, double rotation, {Color backgroundColor = Colors.white, Color textColor = const Color(0xFF1E1E1E)}) {
