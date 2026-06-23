@@ -7,10 +7,11 @@ import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import 'restaurant_open_status.dart';
 
-/// Wraps a card/cover image with a soft fade when ordering is blocked.
+/// Wraps a card/cover image with a soft fade when the shop is closed.
 ///
 /// Uses opacity + a light veil only (no [ColorFiltered] or blend modes) so
-/// network images keep rendering correctly on web/PWA.
+/// network images keep rendering correctly on web/PWA. Delivery-disabled items
+/// keep the status badge but are not dimmed.
 class UnavailableImageDim extends StatelessWidget {
   final bool active;
   final Widget child;

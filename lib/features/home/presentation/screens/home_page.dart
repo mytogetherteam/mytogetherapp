@@ -23,6 +23,8 @@ import 'package:mytogetherapp/features/notifications/data/repositories/notificat
 import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
@@ -552,13 +554,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_currency'),
                                     assetPath:
                                         'assets/images/services/exchange_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const CurrencyExchangePage(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (GuestAuthGuard.isGuest) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AuthEntryPage(),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const CurrencyExchangePage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_visa'),

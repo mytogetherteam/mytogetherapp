@@ -187,6 +187,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                   ));
         final bool orderBlocked = availability.isBlocked;
         final showBadge = orderBlocked && !effectiveIsDisabled;
+        final shouldDimImage = showBadge && availability.shouldDimImage;
         final hintLine = widget.suppressOrderStatusLine || showBadge
             ? ''
             : availability.menuCardHintLine(context);
@@ -280,7 +281,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                     );
                                   },
                                   child: UnavailableImageDim(
-                                    active: showBadge,
+                                    active: shouldDimImage,
                                     child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),

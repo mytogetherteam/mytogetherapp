@@ -27,6 +27,8 @@ class RestaurantOrderAvailability {
 
   bool get canOrder => reason == OrderBlockReason.none;
   bool get isBlocked => !canOrder;
+  /// Gray image dim is shown only when the shop is closed — not for delivery-off.
+  bool get shouldDimImage => reason == OrderBlockReason.closed;
 
   static RestaurantOrderAvailability of(Restaurant restaurant) {
     return fromParts(

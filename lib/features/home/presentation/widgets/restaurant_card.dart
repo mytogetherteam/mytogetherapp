@@ -106,6 +106,7 @@ class RestaurantCard extends StatelessWidget {
   ) {
     final blockedLine = availability.cardStatusLine(context);
     final isBlocked = availability.isBlocked;
+    final shouldDimImage = availability.shouldDimImage;
     final showStatusLine = isBlocked && !compact && blockedLine.isNotEmpty;
     const imageHeight = 160.0;
 
@@ -130,7 +131,7 @@ class RestaurantCard extends StatelessWidget {
           Stack(
             children: [
               UnavailableImageDim(
-                active: isBlocked,
+                active: shouldDimImage,
                 borderRadius: BorderRadius.circular(24),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
@@ -204,7 +205,7 @@ class RestaurantCard extends StatelessWidget {
                 left: 12,
                 bottom: 12,
                 child: Opacity(
-                  opacity: isBlocked ? 0.55 : 1,
+                  opacity: shouldDimImage ? 0.55 : 1,
                   child: _buildLogoBadge(context),
                 ),
               ),
