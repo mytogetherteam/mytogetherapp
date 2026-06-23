@@ -343,7 +343,8 @@ class RemoteRestaurantDataSource {
   /// Backend (auth): GET /api/user/menu-items/discount
   /// (UserMenuItemsController.getDiscountMenuItems). Returns items whose
   /// discount is `<= percentage`, plus the section title and the actual max
-  /// discount among results. Requires login and a location.
+  /// discount among results. Location is required via query lat/lon or saved
+  /// user location when signed in.
   Future<DiscountDealsDto> getDiscountDeals({
     required double lat,
     required double lon,
@@ -353,13 +354,6 @@ class RemoteRestaurantDataSource {
     int size = 10,
     String? sectionTitle,
   }) async {
-    if (!AuthService().isLoggedIn) {
-      return DiscountDealsDto(
-        sectionTitle: '',
-        maxDiscountPercentage: 0,
-        items: const [],
-      );
-    }
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/menu-items/discount',
@@ -391,11 +385,8 @@ class RemoteRestaurantDataSource {
   /// Backend (auth): GET /api/user/home-discount-section
   /// (UserHomeDiscountSectionController). Returns all configured sections with
   /// their computed status plus the single `activeSection` (if any). Returns an
-  /// empty config for guests or auth errors so the carousel simply hides.
+  /// empty config on auth errors so the carousel simply hides.
   Future<HomeDiscountSectionListDto> getHomeDiscountSection() async {
-    if (!AuthService().isLoggedIn) {
-      return HomeDiscountSectionListDto.empty;
-    }
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/home-discount-section',
@@ -462,7 +453,6 @@ class RemoteRestaurantDataSource {
   Future<List<MasterCategoryDto>> getPopularMasterCategories({
     int limit = 10,
   }) async {
-    if (!AuthService().isLoggedIn) return [];
     try {
       final response = await _apiClient.dio.get(
         '${ApiClient.apiPrefix}/user/master-menu-categories/popular',

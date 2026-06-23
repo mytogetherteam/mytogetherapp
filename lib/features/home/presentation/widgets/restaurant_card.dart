@@ -12,6 +12,7 @@ import '../../data/models/shop_dto.dart' show OperatingHourDto;
 import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 
 class RestaurantCard extends StatelessWidget {
   final String name;
@@ -172,7 +173,10 @@ class RestaurantCard extends StatelessWidget {
                 right: 12,
                 child: GestureDetector(
                   onTap: onFavoriteToggle != null
-                      ? () {
+                      ? () async {
+                          if (!await GuestAuthGuard.requireAccount(context)) {
+                            return;
+                          }
                           final willBeSaved = !isFavorite;
                           onFavoriteToggle!.call();
                           if (showFavoriteToast) {

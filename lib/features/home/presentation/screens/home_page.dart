@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
-import '../widgets/home_discount_section.dart';
-import '../widgets/todays_overview_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_categories_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
 import '../widgets/trending_news_section.dart';
@@ -542,13 +542,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_lost_found'),
                                     assetPath:
                                         'assets/images/services/lost_found_3d.png',
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const LostAndFoundPage(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (GuestAuthGuard.isGuest) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AuthEntryPage(),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const LostAndFoundPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_currency'),
@@ -716,8 +728,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
 
-                            HomeDiscountSection(
-                              key: ValueKey('discount_$_refreshKey'),
+                            FoodCategoriesSection(
+                              key: ValueKey('categories_$_refreshKey'),
                             ),
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),

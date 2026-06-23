@@ -12,6 +12,7 @@ import 'image_skeleton_loader.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import 'order_unavailability_ui.dart';
 import '../../data/models/shop_dto.dart' show OperatingHourDto;
@@ -451,7 +452,9 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
     );
   }
 
-  void _handleFavoriteTap() {
+  Future<void> _handleFavoriteTap() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final willBeSaved = !widget.isFavorite;
     widget.onFavoriteToggle?.call();
     if (widget.showFavoriteToast) {

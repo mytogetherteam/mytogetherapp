@@ -8,6 +8,8 @@ import 'package:mytogetherapp/features/lost_and_found/data/repositories/item_pos
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_refresh_mixin.dart';
 import '../../../../features/news/data/models/news_item.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import '../../../../features/news/presentation/screens/news_detail_page.dart';
 
 class LostItemsNearbySection extends StatefulWidget {
@@ -62,9 +64,30 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection>
   }
 
   void _navigateToDetail(NewsItem item) {
+    if (GuestAuthGuard.isGuest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthEntryPage()),
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => NewsDetailPage(item: item)),
+    );
+  }
+
+  void _openLostAndFound() {
+    if (GuestAuthGuard.isGuest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthEntryPage()),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LostAndFoundPage()),
     );
   }
 
@@ -95,12 +118,7 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection>
                 ),
               ),
               ViewAllIconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LostAndFoundPage(),
-                  ),
-                ),
+                onPressed: _openLostAndFound,
               ),
             ],
           ),

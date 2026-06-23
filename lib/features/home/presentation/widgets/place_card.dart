@@ -6,6 +6,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 
 class PlaceCard extends StatelessWidget {
   final String name;
@@ -59,8 +60,14 @@ class PlaceCard extends StatelessWidget {
               top: 16,
               right: 16,
               child: GestureDetector(
-                onTap: onFavoriteToggle ??
-                    () => AppDialog.showUnavailable(context),
+                onTap: () async {
+                  if (onFavoriteToggle == null) {
+                    AppDialog.showUnavailable(context);
+                    return;
+                  }
+                  if (!await GuestAuthGuard.requireAccount(context)) return;
+                  onFavoriteToggle!();
+                },
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

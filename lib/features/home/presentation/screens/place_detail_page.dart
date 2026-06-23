@@ -13,6 +13,7 @@ import '../../data/models/place_dto.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceDto place;
@@ -116,6 +117,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   }
 
   Future<void> _toggleFavorite() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+
     final next = !_isFavorite;
     setState(() => _isFavorite = next);
     try {

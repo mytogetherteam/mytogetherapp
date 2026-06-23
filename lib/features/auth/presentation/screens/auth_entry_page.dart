@@ -34,17 +34,6 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
     });
   }
 
-  void _dismiss() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-      return;
-    }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-      (route) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -59,12 +48,12 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
           SafeArea(
             bottom: false,
             child: SizedBox(
-              height: size.height * 0.65 + 48,
+              height: size.height * 0.65 + 16,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
-                    top: 44,
+                    top: 16,
                     left: 16,
                     right: 16,
                     bottom: 0,
@@ -172,24 +161,6 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
                   ),
                         ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 8,
-                    child: Material(
-                      color: Colors.grey.shade200,
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        onPressed: _dismiss,
-                        tooltip: MaterialLocalizations.of(context)
-                            .closeButtonTooltip,
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: Colors.grey.shade700,
-                          size: 22,
-                        ),
                       ),
                     ),
                   ),
