@@ -24,7 +24,6 @@ import 'package:mytogetherapp/features/home/presentation/screens/food_for_you_pa
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -102,7 +101,10 @@ class _FoodPageState extends State<FoodPage> {
   }
 
   void _openPage(Widget page) {
-    GuestAuthGuard.pushIfSignedIn(context, page);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 
   Future<void> _onRefresh() async {

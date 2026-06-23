@@ -14,7 +14,6 @@ import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -84,12 +83,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Widget _newsTab(String localeKey) {
-    if (GuestAuthGuard.isGuest) {
-      return GuestAccountRequiredPage(
-        key: ValueKey('news_guest_$localeKey'),
-        title: LocaleController.instance.tr('home.trending_news'),
-      );
-    }
     return NewsPage(key: ValueKey('news_$localeKey'));
   }
 

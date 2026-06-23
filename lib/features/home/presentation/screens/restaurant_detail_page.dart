@@ -19,8 +19,6 @@ import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
 import '../../../../app.dart';
@@ -697,7 +695,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 10), // Overlap space
-                            if (GuestAuthGuard.isGuest) const GuestAuthBanner(),
                             // Action Buttons
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -768,21 +765,19 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     label: context.tr('restaurant.reviews'),
                                     onTap: () {
                                       if (_currentRestaurant != null) {
-                                        GuestAuthGuard.runIfSignedIn(context, () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  RestaurantReviewsPage(
-                                                shopId: int.parse(
-                                                  _currentRestaurant!.id,
-                                                ),
-                                                restaurantName:
-                                                    _currentRestaurant!.name,
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                RestaurantReviewsPage(
+                                              shopId: int.parse(
+                                                _currentRestaurant!.id,
                                               ),
+                                              restaurantName:
+                                                  _currentRestaurant!.name,
                                             ),
-                                          );
-                                        });
+                                          ),
+                                        );
                                       }
                                     },
                                   ),

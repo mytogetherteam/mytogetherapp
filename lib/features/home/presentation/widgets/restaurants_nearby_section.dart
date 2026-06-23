@@ -10,8 +10,6 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_refresh_mixin.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class RestaurantsNearbySection extends StatefulWidget {
   const RestaurantsNearbySection({super.key});
@@ -91,19 +89,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
 
   @override
   Widget build(BuildContext context) {
-    if (GuestAuthGuard.isGuest) {
-      return Column(
-        children: [
-          const SizedBox(height: 32),
-          GuestAccountRequiredSection(
-            title: context.tr('home.restaurants_nearby'),
-            subtitle: context.tr('guest.need_account_message'),
-          ),
-          const SizedBox(height: 24),
-        ],
-      );
-    }
-
     return FutureBuilder<List<Restaurant>>(
       future: _restaurantsFuture,
       builder: (context, snapshot) {

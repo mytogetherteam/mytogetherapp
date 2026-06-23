@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
@@ -50,11 +49,6 @@ class _FoodDiscountSelectionSectionState
   }
 
   Future<void> _loadConfig() async {
-    if (!AuthService().isLoggedIn) {
-      if (mounted) setState(() => _loadingConfig = false);
-      return;
-    }
-
     try {
       final config = await RestaurantRepository.instance
           .getHomeDiscountSectionConfig(forceRefresh: true)

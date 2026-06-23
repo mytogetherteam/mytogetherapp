@@ -6,9 +6,6 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/home/data/models/banner_image_dto.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
-import '../../../../core/localization/app_translations.dart';
 
 class FoodPromotionsCarousel extends StatefulWidget {
   const FoodPromotionsCarousel({super.key});
@@ -54,10 +51,6 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
   }
 
   Future<void> _fetchBanners() async {
-    if (GuestAuthGuard.isGuest) {
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
     try {
       final banners = await RestaurantRepository.instance.getBanners(
         position: 'Promotions',
@@ -84,14 +77,6 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    if (GuestAuthGuard.isGuest) {
-      return GuestAccountRequiredSection(
-        title: context.tr('home.promotions_ads'),
-        subtitle: context.tr('guest.need_account_message'),
-        height: 120,
-      );
-    }
-
     if (!_isLoading && _banners.isEmpty) return const SizedBox.shrink();
 
     return Padding(

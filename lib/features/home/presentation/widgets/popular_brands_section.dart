@@ -10,8 +10,6 @@ import '../../../../features/auth/data/repositories/user_location_repository.dar
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/location/location_service.dart';
 import 'image_skeleton_loader.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class PopularBrandsSection extends StatefulWidget {
   final String? title;
@@ -52,13 +50,6 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (GuestAuthGuard.isGuest) {
-      return GuestAccountRequiredSection(
-        title: widget.title ?? context.tr('home.popular_restaurants'),
-        subtitle: context.tr('guest.need_account_message'),
-      );
-    }
-
     return FutureBuilder<List<Restaurant>>(
       future: _restaurantsFuture,
       builder: (context, snapshot) {

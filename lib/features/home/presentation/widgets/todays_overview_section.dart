@@ -10,8 +10,6 @@ import '../../data/models/menu_item_dto.dart';
 import '../../data/models/trending_item_dto.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_service.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class TodaysOverviewSection extends StatefulWidget {
   final String? title;
@@ -116,13 +114,6 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (GuestAuthGuard.isGuest && widget.items == null) {
-      return GuestAccountRequiredSection(
-        title: widget.title ?? context.tr('home.trending_nearby'),
-        subtitle: context.tr('guest.need_account_message'),
-      );
-    }
-
     if (widget.items != null) {
       if (widget.items!.isEmpty) return const SizedBox.shrink();
       return _buildContent(context, widget.items!, widget.title ?? context.tr('home.trending_nearby'));

@@ -25,8 +25,6 @@ import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
-import '../../../../core/presentation/widgets/guest_account_required_section.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -428,7 +426,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (GuestAuthGuard.isGuest) const GuestAuthBanner(),
                         if (_orderAvailability != null &&
                             _orderAvailability!.isBlocked)
                           MenuItemOrderBanner(
