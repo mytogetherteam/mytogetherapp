@@ -74,10 +74,21 @@
 		<string>$(GOOGLE_MAPS_API_KEY)</string>
 		<key>NSSupportsLiveActivities</key>
 		<true/>
-		<key>NSAppTransportSecurity</key>
+	<key>CFBundleURLTypes</key>
+	<array>
 		<dict>
-			<key>NSAllowsArbitraryLoads</key>
-			<false/>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-972280179999-ios-8103298b60c9327a69542a</string>
+			</array>
 		</dict>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
 	</dict>
+</dict>
 </plist>

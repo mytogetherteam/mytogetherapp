@@ -91,7 +91,7 @@ class LockScreenWidgetManager {
       final data = {
         'shopName': order.displayShopName,
         'statusText': statusText,
-        'progress': progress,
+        'progress': progress.toString(),
       };
 
       try {
