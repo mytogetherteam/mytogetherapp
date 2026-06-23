@@ -223,10 +223,6 @@ class RemoteRestaurantDataSource {
     int page = 0,
     int size = 20,
   }) async {
-    if (!AuthService().isLoggedIn) {
-      return ShopFeedSectionDto(items: []);
-    }
-
     if (feedType == 'explore' || feedType == 'right-now') {
       return getExploreMenuItems(page: page + 1, size: size);
     }
@@ -324,9 +320,6 @@ class RemoteRestaurantDataSource {
     int page = 1,
     int size = 20,
   }) async {
-    if (!AuthService().isLoggedIn) {
-      return ShopFeedSectionDto(items: []);
-    }
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/menu-items',
       queryParameters: {

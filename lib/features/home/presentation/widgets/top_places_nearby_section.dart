@@ -10,7 +10,6 @@ import '../../data/models/place_dto.dart';
 import '../../data/repositories/places_repository.dart';
 import '../screens/place_detail_page.dart';
 import '../screens/places_list_page.dart';
-import '../../../../core/auth/guest_auth_guard.dart';
 
 class TopPlacesNearbySection extends StatefulWidget {
   const TopPlacesNearbySection({super.key});
@@ -81,8 +80,6 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
 
   @override
   Widget build(BuildContext context) {
-    if (GuestAuthGuard.isGuest) return const SizedBox.shrink();
-
     if (_isLoading) {
       return const SizedBox(
         height: 320,

@@ -34,6 +34,17 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
     });
   }
 
+  void _dismiss() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -57,6 +68,18 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
               ),
               child: Stack(
                 children: [
+                  Positioned(
+                    top: 8,
+                    left: 4,
+                    child: IconButton(
+                      onPressed: _dismiss,
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
                   // Fade line in background
                   Positioned(
                     top: -size.width * 0.3,
