@@ -4,18 +4,28 @@ import '../../localization/app_translations.dart';
 import 'primary_gradient_button.dart';
 
 class PermissionRationaleModal extends StatelessWidget {
-  const PermissionRationaleModal({super.key});
+  final bool locationOnly;
 
-  static Future<void> show(BuildContext context) async {
+  const PermissionRationaleModal({super.key, this.locationOnly = false});
+
+  static Future<void> show(
+    BuildContext context, {
+    bool locationOnly = false,
+  }) async {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const PermissionRationaleModal(),
+      builder: (context) => PermissionRationaleModal(locationOnly: locationOnly),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final titleKey =
+        locationOnly ? 'permission.title_location' : 'permission.title';
+    final descKey =
+        locationOnly ? 'permission.desc_location' : 'permission.desc';
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
@@ -41,7 +51,7 @@ class PermissionRationaleModal extends StatelessWidget {
             
             // Title
             Text(
-              context.tr('permission.title'),
+              context.tr(titleKey),
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 22,
@@ -53,7 +63,7 @@ class PermissionRationaleModal extends StatelessWidget {
             
             // Description (uses basic markdown-like replacements for bold)
             RichText(
-              text: _buildRichText(context, context.tr('permission.desc')),
+              text: _buildRichText(context, context.tr(descKey)),
             ),
             const SizedBox(height: 32),
             

@@ -158,16 +158,22 @@ class AuthService {
     _accessToken = null;
     _refreshToken = null;
     _currentUser = null;
+    _userLocations = null;
 
     // Clear tokens from secure storage
     await _secureStorage.delete(key: _keyAccessToken);
     await _secureStorage.delete(key: _keyRefreshToken);
 
-    // Clear remaining profile data from SharedPreferences
+    // Clear only auth/profile keys — keep onboarding, language, guest cart, etc.
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove(_keyUserId);
+    await prefs.remove(_keyUsername);
+    await prefs.remove(_keyEmail);
+    await prefs.remove(_keyFullName);
+    await prefs.remove(_keyRole);
+    await prefs.remove(_keyUserLocations);
+    await prefs.remove(_keyUserProfile);
 
-    // Navigate to login screen if a callback is registered
     if (navigate && onSessionExpired != null) {
       onSessionExpired!();
     }

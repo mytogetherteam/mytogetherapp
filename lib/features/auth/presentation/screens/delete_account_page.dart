@@ -5,7 +5,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 
 class DeleteAccountPage extends StatefulWidget {
   const DeleteAccountPage({super.key});
@@ -57,7 +57,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
         final successMessage = context.tr('delete.success');
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const LoginPage()),
+          MaterialPageRoute(builder: (_) => const AuthEntryPage()),
           (_) => false,
         );
         _showSuccessSnackbar(successMessage);

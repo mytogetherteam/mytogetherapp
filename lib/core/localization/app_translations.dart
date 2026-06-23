@@ -955,6 +955,9 @@ class AppTranslations {
     'permission.title': 'Allow Permissions',
     'permission.desc':
         'To provide you with the best experience, MyTogether needs access to:\n\n📍 **Location:** To show nearby restaurants and calculate accurate delivery fees.\n\n🔔 **Notifications:** To update you in real-time about your order status and important announcements.',
+    'permission.title_location': 'Allow Location',
+    'permission.desc_location':
+        'To show nearby restaurants and calculate accurate delivery fees, MyTogether needs access to your **location** while you use the app.',
     'permission.continue': 'Continue',
   };
 
@@ -1887,6 +1890,9 @@ class AppTranslations {
     'permission.title': 'ခွင့်ပြုချက် တောင်းခံခြင်း',
     'permission.desc':
         'အကောင်းဆုံး ဝန်ဆောင်မှုပေးနိုင်ဖို့ MyTogether မှ အောက်ပါအချက်တွေကို အသုံးပြုခွင့် လိုအပ်ပါတယ် -\n\n📍 **တည်နေရာ (Location):** အနီးအနားမှာရှိတဲ့ မြန်မာဆိုင် မိုက်မိုက်လေးတွေကို ပြပေးဖို့နဲ့ ပို့ဆောင်ခကို တွက်ချက်ပေးနိုင်ဖို့အတွက်ပါ။\n\n🔔 **အသိပေးချက် (Notifications):** အော်ဒါအခြေအနေတွေကို အချိန်နဲ့တပြေးညီ သိရအောင်နဲ့ အရေးကြီးတဲ့ သတင်းအချက်အလက်သစ်တွေကို လက်မလွတ်ရအောင်လို့ပါနော်။',
+    'permission.title_location': 'တည်နေရာ ခွင့်ပြုချက်',
+    'permission.desc_location':
+        'အနီးအနားရှိ စားသောက်ဆိုင်များကို ပြသရန်နှင့် ပို့ဆောင်ခ တွက်ချက်ရန် MyTogether သည် သင့်အက်ပ်အသုံးပြုနေစဉ် **တည်နေရာ** ခွင့်ပြုချက် လိုအပ်ပါသည်။',
     'permission.continue': 'ဆက်လုပ်မယ်',
   };
   // ---------------------------------------------------------------------------
@@ -2809,6 +2815,9 @@ class AppTranslations {
     'permission.title': 'อนุญาตการเข้าถึง',
     'permission.desc':
         'เพื่อให้คุณได้รับประสบการณ์ที่ดีที่สุด MyTogether ต้องการเข้าถึง:\n\n📍 **ตำแหน่ง:** เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่งอย่างถูกต้อง\n\n🔔 **การแจ้งเตือน:** เพื่ออัปเดตสถานะคำสั่งซื้อของคุณแบบเรียลไทม์และประกาศสำคัญ',
+    'permission.title_location': 'อนุญาตตำแหน่ง',
+    'permission.desc_location':
+        'เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่ง MyTogether ต้องการเข้าถึง **ตำแหน่ง** ของคุณขณะใช้งานแอป',
     'permission.continue': 'ดำเนินการต่อ',
   };
 }

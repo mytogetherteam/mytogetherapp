@@ -5,7 +5,7 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
+import 'package:mytogetherapp/features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/account_settings_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
@@ -488,9 +488,10 @@ class _ProfilePageState extends State<ProfilePage> {
         await AuthRepository.instance.logout();
         
         if (context.mounted) {
+          Navigator.of(context).pop(); // loading dialog
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
+            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
             (route) => false,
           );
         }

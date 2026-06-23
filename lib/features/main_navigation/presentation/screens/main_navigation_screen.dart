@@ -95,19 +95,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Future<void> _checkAndRequestPermissions() async {
     final locationStatus = await Permission.location.status;
+    final isGuest = GuestAuthGuard.isGuest;
+
+    if (isGuest) {
+      if (locationStatus.isDenied) {
+        if (!mounted) return;
+        await PermissionRationaleModal.show(context, locationOnly: true);
+        await Permission.location.request();
+      }
+      if (await Permission.location.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+      return;
+    }
+
     final notificationStatus = await Permission.notification.status;
-    
+
     // If either permission is implicitly denied (not yet asked or just denied), show rationale
     if (locationStatus.isDenied || notificationStatus.isDenied) {
       if (!mounted) return;
       await PermissionRationaleModal.show(context);
-      
+
       // Request them together
       await [
         Permission.location,
         Permission.notification,
       ].request();
-      
+
       // Trigger service initialization if granted
       if (await Permission.notification.isGranted) {
         await NotificationService().requestPermission();

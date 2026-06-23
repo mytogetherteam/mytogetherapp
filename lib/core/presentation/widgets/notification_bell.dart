@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import '../../auth/guest_auth_guard.dart';
 import '../../theme/app_colors.dart';
+import '../../../features/auth/presentation/screens/auth_entry_page.dart';
 import '../../../features/notifications/data/repositories/notification_repository.dart';
 import '../../../features/notifications/presentation/screens/notifications_page.dart';
 
@@ -15,6 +17,13 @@ class NotificationBell extends StatelessWidget {
       builder: (context, count, _) {
         return GestureDetector(
           onTap: () {
+            if (GuestAuthGuard.isGuest) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
