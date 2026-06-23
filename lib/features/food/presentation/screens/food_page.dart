@@ -101,7 +101,10 @@ class _FoodPageState extends State<FoodPage> {
   }
 
   void _openPage(Widget page) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 
   Future<void> _onRefresh() async {

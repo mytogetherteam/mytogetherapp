@@ -9,7 +9,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/home/data/models/master_category_dto.dart';
 import 'package:mytogetherapp/features/home/data/models/shop_dto.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
@@ -522,7 +522,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             ? null
             : () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  MaterialPageRoute(builder: (_) => const AuthEntryPage()),
                 ),
       );
     }

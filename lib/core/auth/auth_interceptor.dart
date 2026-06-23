@@ -1,9 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import '../network/websocket_service.dart';
-import '../../app.dart';
-import '../../features/auth/presentation/screens/login_page.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final Dio dio;

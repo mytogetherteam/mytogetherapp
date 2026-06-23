@@ -8,7 +8,6 @@ import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/time_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'dart:ui' as ui;
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -50,7 +49,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   String? _backendStatus;
   
   GoogleMapController? _mapController;
+  // ignore: unused_field
   Set<Marker> _markers = {};
+  // ignore: unused_field
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
@@ -264,6 +265,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     OrderCompletePage.navigateReplacing(context);
   }
 
+  // ignore: unused_element
   LatLng get _restaurantLatLng {
     final state = ActiveOrderState.instance;
     final lat = state.restaurantLatLng?.latitude;
@@ -384,6 +386,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     }
   }
 
+  // ignore: unused_element
   void _fitBounds() {
     if (_mapController == null) return;
     final state = ActiveOrderState.instance;

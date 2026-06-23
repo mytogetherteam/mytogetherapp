@@ -5,7 +5,7 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
-import 'package:mytogetherapp/features/auth/presentation/screens/login_page.dart';
+import 'package:mytogetherapp/features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/account_settings_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
@@ -22,6 +22,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
+import 'auth_entry_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -90,6 +92,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final isGuest = GuestAuthGuard.isGuest;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -99,104 +102,11 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: _scrollController,
             child: Column(
               children: [
-                // Header with Background
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    ClipRect(
-                      child: Container(
-                        height: 120,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
-                              ? DecorationImage(
-                                  image: CachedNetworkImageProvider(_bgImageUrl!),
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
-                                )
-                              : const DecorationImage(
-                                  image: AssetImage('assets/images/top-bannner.jpg'),
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
-                                ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -50,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: user?.avatarUrl != null
-                              ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
-                              : null,
-                          child: user?.avatarUrl == null
-                              ? Icon(PhosphorIcons.userBold,
-                                  size: 40, color: Colors.grey[400])
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 60),
-                
-                // User Info
-                Text(
-              user?.fullName ?? user?.username ?? context.tr('common.user_name'),
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            Text(
-              user?.email ?? 'email@example.com',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Profile Options
-            _buildOptionTile(
-              icon: PhosphorIcons.gearSix,
-              title: context.tr('profile.account_settings'),
-              subtitle: context.tr('profile.account_settings_sub'),
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AccountSettingsPage()),
-                );
-                if (mounted) setState(() {});
-              },
-            ),
-            _buildOptionTile(
-              icon: PhosphorIcons.heart,
-              title: context.tr('profile.saved_items'),
-              subtitle: context.tr('profile.saved_items_sub'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const WishlistPage()),
-              ),
-            ),
-            _buildOptionTile(
-              icon: PhosphorIcons.mapPin,
-              title: context.tr('profile.my_addresses'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LocationSearchPage()),
-              ),
-            ),
+                if (isGuest) ...[
+                  _buildGuestHeader(context),
+                ] else ...[
+                  _buildProfileHeader(context, user),
+                ],
             _buildOptionTile(
               icon: PhosphorIcons.bellRinging,
               title: context.tr('profile.app_permissions'),
@@ -236,31 +146,32 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
 
             // Logout Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: GestureDetector(
-                onTap: () => _handleLogout(context),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade100),
-                  ),
-                  child: Center(
-                    child: Text(
-                      context.tr('profile.logout'),
-                      style: GoogleFonts.poppins(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+            if (!isGuest)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: GestureDetector(
+                  onTap: () => _handleLogout(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.shade100),
+                    ),
+                    child: Center(
+                      child: Text(
+                        context.tr('profile.logout'),
+                        style: GoogleFonts.poppins(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
             if (_appVersion.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 40),
@@ -319,7 +230,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       Transform.translate(
                         offset: const Offset(0, 4),
                         child: Text(
-                          context.tr('nav.profile'),
+                          isGuest
+                              ? context.tr('nav.settings')
+                              : context.tr('nav.profile'),
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
@@ -329,11 +242,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ],
                   ),
-                  const NotificationBell(),
+                  if (!isGuest) const NotificationBell(),
                 ],
               ),
-              // Center small profile picture
-              AnimatedOpacity(
+              if (!isGuest)
+                AnimatedOpacity(
                 duration: const Duration(milliseconds: 150),
                 opacity: _headerOpacity > 0.8 ? 1.0 : 0.0,
                 child: CircleAvatar(
@@ -355,6 +268,159 @@ class _ProfilePageState extends State<ProfilePage> {
     ],
   ),
 );
+  }
+
+  Widget _buildGuestHeader(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 72,
+        left: 20,
+        right: 20,
+        bottom: 8,
+      ),
+      child: Column(
+        children: [
+          Icon(PhosphorIcons.gearSix, size: 48, color: AppColors.primary),
+          const SizedBox(height: 16),
+          Text(
+            context.tr('nav.settings'),
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr('guest.settings_subtitle'),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildOptionTile(
+            icon: PhosphorIcons.userPlus,
+            title: context.tr('auth.register_account'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+            ),
+          ),
+          _buildOptionTile(
+            icon: PhosphorIcons.signIn,
+            title: context.tr('auth.login_account'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(BuildContext context, user) {
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            ClipRect(
+              child: Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(_bgImageUrl!),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        )
+                      : const DecorationImage(
+                          image: AssetImage('assets/images/top-bannner.jpg'),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -50,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: user?.avatarUrl != null
+                      ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
+                      : null,
+                  child: user?.avatarUrl == null
+                      ? Icon(PhosphorIcons.userBold,
+                          size: 40, color: Colors.grey[400])
+                      : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 60),
+        Text(
+          user?.fullName ?? user?.username ?? context.tr('common.user_name'),
+          style: GoogleFonts.poppins(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        Text(
+          user?.email ?? 'email@example.com',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 30),
+        _buildOptionTile(
+          icon: PhosphorIcons.gearSix,
+          title: context.tr('profile.account_settings'),
+          subtitle: context.tr('profile.account_settings_sub'),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AccountSettingsPage()),
+            );
+            if (mounted) setState(() {});
+          },
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.heart,
+          title: context.tr('profile.saved_items'),
+          subtitle: context.tr('profile.saved_items_sub'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WishlistPage()),
+          ),
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.mapPin,
+          title: context.tr('profile.my_addresses'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LocationSearchPage()),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildOptionTile({
@@ -422,9 +488,10 @@ class _ProfilePageState extends State<ProfilePage> {
         await AuthRepository.instance.logout();
         
         if (context.mounted) {
+          Navigator.of(context).pop(); // loading dialog
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
+            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
             (route) => false,
           );
         }

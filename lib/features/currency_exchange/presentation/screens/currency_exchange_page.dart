@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:intl/intl.dart';
+import '../../../auth/presentation/screens/auth_entry_page.dart';
 import '../../data/models/currency_rate_model.dart';
 import '../../data/repositories/currency_exchange_repository.dart';
 
@@ -150,6 +152,15 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
     return NumberFormat('#,##0.##', 'en_US').format(value);
   }
 
+  bool get _isGuest => GuestAuthGuard.isGuest;
+
+  void _promptSignIn() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -243,139 +254,173 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
     final now = DateTime.now();
     final todayStr = DateFormat('dd MMM, yyyy').format(now);
 
+    final calculator = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Date
+        Text(
+          todayStr,
+          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 10),
+        // Welcome Row & Toggle
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              context.tr('currency.welcome'),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            _buildBuySellToggle(),
+          ],
+        ),
+        const SizedBox(height: 32),
+        // MMK Input Box
+        _buildInputCard(
+          controller: _mmkController,
+          suffixText: 'MMK',
+          readOnly: _isGuest,
+          onTap: _isGuest ? _promptSignIn : null,
+          onChanged: (v) => _recalculateMMKToForeign(),
+          trailingWidget: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🇲🇲', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Text(
+                  'MMK',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Equals Sign
+        Center(
+          child: Icon(PhosphorIcons.equals, color: Colors.white, size: 24),
+        ),
+        const SizedBox(height: 12),
+        // Foreign Input Box
+        _buildInputCard(
+          controller: _foreignController,
+          suffixText: _selectedCurrency?.currency ?? '',
+          readOnly: _isGuest,
+          onTap: _isGuest ? _promptSignIn : null,
+          onChanged: (v) => _recalculateForeignToMMK(),
+          trailingWidget: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<CurrencyRateModel>(
+                value: _selectedCurrency,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+                items: _rates.map((rate) {
+                  return DropdownMenuItem<CurrencyRateModel>(
+                    value: rate,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          rate.flagEmoji,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          rate.currency,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: _isGuest
+                    ? (_) => _promptSignIn()
+                    : (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedCurrency = val;
+                            _recalculateForeignToMMK();
+                          });
+                        }
+                      },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Info Info
+        if (_selectedCurrency != null && !_isGuest) ...[
+          Center(
+            child: Text(
+              '${_selectedCurrency!.flagEmoji} 1 ${_selectedCurrency!.currency} = 🇲🇲 ${_formatRate(_currentRate)} MMK',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              context.trArgs('currency.as_of', {'time': _timestamp}),
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+        ],
+        if (_isGuest) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: _promptSignIn,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                context.tr('guest.create_or_login'),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+
     return Container(
       decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Date
-          Text(
-            todayStr,
-            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 10),
-          // Welcome Row & Toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                context.tr('currency.welcome'),
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              _buildBuySellToggle(),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // MMK Input Box
-          _buildInputCard(
-            controller: _mmkController,
-            suffixText: 'MMK',
-            onChanged: (v) => _recalculateMMKToForeign(),
-            trailingWidget: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🇲🇲', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'MMK',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Equals Sign
-          Center(
-            child: Icon(PhosphorIcons.equals, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 12),
-          // Foreign Input Box
-          _buildInputCard(
-            controller: _foreignController,
-            suffixText: _selectedCurrency?.currency ?? '',
-            onChanged: (v) => _recalculateForeignToMMK(),
-            trailingWidget: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<CurrencyRateModel>(
-                  value: _selectedCurrency,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                  items: _rates.map((rate) {
-                    return DropdownMenuItem<CurrencyRateModel>(
-                      value: rate,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            rate.flagEmoji,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            rate.currency,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedCurrency = val;
-                        _recalculateForeignToMMK();
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Info Info
-          if (_selectedCurrency != null) ...[
-            Center(
-              child: Text(
-                '${_selectedCurrency!.flagEmoji} 1 ${_selectedCurrency!.currency} = 🇲🇲 ${_formatRate(_currentRate)} MMK',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                context.trArgs('currency.as_of', {'time': _timestamp}),
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-              ),
-            ),
-          ],
-        ],
-      ),
+      child: calculator,
     );
   }
 
@@ -390,7 +435,13 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           GestureDetector(
-            onTap: () => _onToggleBuySell(true),
+            onTap: () {
+              if (_isGuest) {
+                _promptSignIn();
+                return;
+              }
+              _onToggleBuySell(true);
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
@@ -415,7 +466,13 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             ),
           ),
           GestureDetector(
-            onTap: () => _onToggleBuySell(false),
+            onTap: () {
+              if (_isGuest) {
+                _promptSignIn();
+                return;
+              }
+              _onToggleBuySell(false);
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
@@ -449,6 +506,8 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
     required String suffixText,
     required Widget trailingWidget,
     required Function(String) onChanged,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
     return Row(
       children: [
@@ -462,7 +521,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             ),
             child: TextField(
               controller: controller,
-              onChanged: onChanged,
+              readOnly: readOnly,
+              onTap: onTap,
+              onChanged: readOnly ? null : onChanged,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

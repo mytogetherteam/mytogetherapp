@@ -12,6 +12,8 @@ import '../../../../features/cart/presentation/screens/order_complete_page.dart'
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/network/websocket_service.dart';
+import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -46,8 +48,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _lastStatus = ActiveOrderState.instance.orderStatus;
     ActiveOrderState.instance.addListener(_onOrderStateChanged);
 
-    // Connect WebSocket for real-time updates
-    WebSocketService().connect();
+    // Connect WebSocket for real-time updates (signed-in users only)
+    if (AuthService().isLoggedIn) {
+      WebSocketService().connect();
+    }
 
     // Show welcome modal if first time, then check permissions after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,26 +77,44 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomePage(key: ValueKey('home_$localeKey')),
       FoodPage(key: ValueKey('food_$localeKey')),
       OrderHistoryPage(key: ValueKey('orders_$localeKey')),
-      NewsPage(key: ValueKey('news_$localeKey')),
+      _newsTab(localeKey),
       ProfilePage(key: ValueKey('profile_$localeKey')),
     ];
   }
 
+  Widget _newsTab(String localeKey) {
+    return NewsPage(key: ValueKey('news_$localeKey'));
+  }
+
   Future<void> _checkAndRequestPermissions() async {
     final locationStatus = await Permission.location.status;
+    final isGuest = GuestAuthGuard.isGuest;
+
+    if (isGuest) {
+      if (locationStatus.isDenied) {
+        if (!mounted) return;
+        await PermissionRationaleModal.show(context, locationOnly: true);
+        await Permission.location.request();
+      }
+      if (await Permission.location.isGranted) {
+        LocationService().getCurrentPosition();
+      }
+      return;
+    }
+
     final notificationStatus = await Permission.notification.status;
-    
+
     // If either permission is implicitly denied (not yet asked or just denied), show rationale
     if (locationStatus.isDenied || notificationStatus.isDenied) {
       if (!mounted) return;
       await PermissionRationaleModal.show(context);
-      
+
       // Request them together
       await [
         Permission.location,
         Permission.notification,
       ].request();
-      
+
       // Trigger service initialization if granted
       if (await Permission.notification.isGranted) {
         await NotificationService().requestPermission();
@@ -221,9 +243,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
             _buildNavItem(
               4,
-              PhosphorIcons.user,
-              PhosphorIcons.userFill,
-              context.tr('nav.profile'),
+              GuestAuthGuard.isGuest
+                  ? PhosphorIcons.gearSix
+                  : PhosphorIcons.user,
+              GuestAuthGuard.isGuest
+                  ? PhosphorIcons.gearSixFill
+                  : PhosphorIcons.userFill,
+              GuestAuthGuard.isGuest
+                  ? context.tr('nav.settings')
+                  : context.tr('nav.profile'),
             ),
           ],
         ),

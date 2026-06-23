@@ -135,8 +135,16 @@ class RestaurantRepository {
             .map((dto) => _mapShopDtoToDomain(dto.shop))
             .toList();
       } else {
-        // Public nearby API was removed; guests must sign in to browse shops.
-        results = [];
+        final response = await SearchRepository.instance.searchNearby(
+          latitude: lat,
+          longitude: lon,
+          radiusKm: radius,
+          page: page + 1,
+          size: size,
+        );
+        results = response.shops
+            .map((dto) => _mapShopDtoToDomain(dto.shop))
+            .toList();
       }
 
       // Update cache

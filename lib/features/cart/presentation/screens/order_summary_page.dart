@@ -20,6 +20,7 @@ import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
 import 'package:dio/dio.dart';
 import '../../../../app.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/network/websocket_service.dart';
 import 'order_tracking_page.dart';
 import '../../data/active_order_state.dart';
@@ -904,6 +905,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   hasOngoingOrder)
                               ? null
                               : () async {
+                                  if (GuestAuthGuard.isGuest) {
+                                    await GuestAuthGuard.requireAccount(context);
+                                    return;
+                                  }
+
                                   if (ActiveOrderState.instance.hasActiveOrder) {
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(

@@ -68,6 +68,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     } else if (shopId != null) {
       await _submitShopReview(shopId);
     } else {
+      if (!mounted) return;
       final result = await ReviewSuccessBottomSheet.show(context);
       if (result == true && mounted) {
         Navigator.pop(context, true);
@@ -102,6 +103,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
       setState(() => _submitting = false);
 
+      if (!mounted) return;
       final ok = await ReviewSuccessBottomSheet.show(context);
       if (ok == true && mounted) {
         Navigator.pop(context, true);

@@ -5,6 +5,7 @@ import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/localization/app_language.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../main_navigation/presentation/screens/main_navigation_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -123,11 +124,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _completeOnboarding() async {
     await OnboardingPrefs.setHasSeenOnboarding(true);
     if (!mounted) return;
-    
+
     if (AuthService().isLoggedIn) {
       Navigator.of(context).pushReplacementNamed('/home');
     } else {
-      Navigator.of(context).pushReplacementNamed('/auth_entry');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      );
     }
   }
 

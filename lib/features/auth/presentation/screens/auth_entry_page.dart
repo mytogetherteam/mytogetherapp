@@ -13,6 +13,7 @@ import '../../../../core/localization/app_language.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'login_page.dart';
 import 'register_page.dart';
+import '../../../main_navigation/presentation/screens/main_navigation_screen.dart';
 
 class AuthEntryPage extends StatefulWidget {
   const AuthEntryPage({super.key});
@@ -31,6 +32,17 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
         FlutterNativeSplash.remove();
       });
     });
+  }
+
+  void _dismiss() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -55,6 +67,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                 borderRadius: BorderRadius.circular(32),
               ),
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   // Fade line in background
                   Positioned(
@@ -151,6 +164,23 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     right: 0,
                     child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
                   ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        onPressed: _dismiss,
+                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 ],
               ),
@@ -210,6 +240,25 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const MainNavigationScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  child: Text(
+                    context.tr('auth.continue_guest'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ),

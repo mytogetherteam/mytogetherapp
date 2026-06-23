@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/auth/auth_service.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
@@ -31,7 +30,6 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
   }
 
   Future<List<Restaurant>> _load() async {
-    if (!AuthService().isLoggedIn) return [];
     try {
       // Shop list is global; coordinates are only used for distance labels.
       final coords =

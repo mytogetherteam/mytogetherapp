@@ -59,6 +59,15 @@ class AppTranslations {
     'auth.pill_currency_sub': '#CheckAnytime',
     'auth.pill_support': 'Support this App!',
     'auth.pill_support_sub': '#GrowTogether',
+    'auth.continue_guest': 'Continue as Guest',
+
+    // Guest mode
+    'guest.need_account_title': 'Account required',
+    'guest.need_account_message':
+        'Create an account or sign in to use this feature.',
+    'guest.create_or_login': 'Create account or sign in',
+    'guest.settings_subtitle': 'Sign in to access your profile and saved items.',
+    'guest.sign_in_prompt': 'Sign in to unlock full features',
 
     // Common
     'common.cancel': 'Cancel',
@@ -91,6 +100,7 @@ class AppTranslations {
     'nav.orders': 'Orders',
     'nav.news': 'News',
     'nav.profile': 'Profile',
+    'nav.settings': 'Settings',
 
     // Profile page
     'profile.edit_profile': 'Edit Profile',
@@ -143,6 +153,7 @@ class AppTranslations {
     'home.category_store': 'Store',
     'home.brand_name': 'MyTogether',
     'home.special_promotion': 'Special Promotion',
+    'home.promotions_ads': 'Promotions & Ads',
     'home.restaurants_nearby': 'Restaurants Nearby',
     'home.popular_restaurants': 'Popular Restaurants',
     'home.top_places_nearby': 'Top Places Nearby',
@@ -944,6 +955,9 @@ class AppTranslations {
     'permission.title': 'Allow Permissions',
     'permission.desc':
         'To provide you with the best experience, MyTogether needs access to:\n\n📍 **Location:** To show nearby restaurants and calculate accurate delivery fees.\n\n🔔 **Notifications:** To update you in real-time about your order status and important announcements.',
+    'permission.title_location': 'Allow Location',
+    'permission.desc_location':
+        'To show nearby restaurants and calculate accurate delivery fees, MyTogether needs access to your **location** while you use the app.',
     'permission.continue': 'Continue',
   };
 
@@ -982,6 +996,16 @@ class AppTranslations {
     'auth.pill_currency_sub': '#ကြည့်မယ်',
     'auth.pill_support': 'ဒီ App သုံးမယ်',
     'auth.pill_support_sub': '#Support ပေးနိုင်ဖို့',
+    'auth.continue_guest': 'ဧည့်သည်အဖြစ် ဆက်သုံးမယ်',
+
+    // Guest mode
+    'guest.need_account_title': 'အကောင့်လိုအပ်ပါသည်',
+    'guest.need_account_message':
+        'ဤအင်္ဂါရပ်ကို အသုံးပြုရန် အကောင့်ဖွင့်ပါ သို့မဟုတ် အကောင့်ဝင်ပါ။',
+    'guest.create_or_login': 'အကောင့်ဖွင့်မယ် / ဝင်မယ်',
+    'guest.settings_subtitle':
+        'ပရိုဖိုင်နှင့် သိမ်းထားသောအရာများကို သုံးရန် အကောင့်ဝင်ပါ။',
+    'guest.sign_in_prompt': 'အပြည့်အစုံ အင်္ဂါရပ်များကို သုံးရန် အကောင့်ဝင်ပါ',
 
     // Common
     'common.cancel': 'မလုပ်တော့ပါ',
@@ -1014,6 +1038,7 @@ class AppTranslations {
     'nav.orders': 'အော်ဒါများ',
     'nav.news': 'သတင်း',
     'nav.profile': 'ပရိုဖိုင်',
+    'nav.settings': 'ဆက်တင်များ',
 
     // Profile page
     'profile.edit_profile': 'ပရိုဖိုင်ပြင်ဆင်ရန်',
@@ -1065,6 +1090,7 @@ class AppTranslations {
     'home.category_store': 'စတိုး',
     'home.brand_name': 'MyTogether',
     'home.special_promotion': 'အထူးပရိုမိုးရှင်း',
+    'home.promotions_ads': 'ပရိုမိုးရှင်းနှင့် ကြော်ငြာ',
     'home.restaurants_nearby': 'ဒီနားက ဆိုင်ကောင်းများ 🫰',
     'home.popular_restaurants': 'Hype အဖြစ်ဆုံး🔥',
     'home.top_places_nearby': 'ဘယ်မှာ Chill မလဲ 😎',
@@ -1864,6 +1890,9 @@ class AppTranslations {
     'permission.title': 'ခွင့်ပြုချက် တောင်းခံခြင်း',
     'permission.desc':
         'အကောင်းဆုံး ဝန်ဆောင်မှုပေးနိုင်ဖို့ MyTogether မှ အောက်ပါအချက်တွေကို အသုံးပြုခွင့် လိုအပ်ပါတယ် -\n\n📍 **တည်နေရာ (Location):** အနီးအနားမှာရှိတဲ့ မြန်မာဆိုင် မိုက်မိုက်လေးတွေကို ပြပေးဖို့နဲ့ ပို့ဆောင်ခကို တွက်ချက်ပေးနိုင်ဖို့အတွက်ပါ။\n\n🔔 **အသိပေးချက် (Notifications):** အော်ဒါအခြေအနေတွေကို အချိန်နဲ့တပြေးညီ သိရအောင်နဲ့ အရေးကြီးတဲ့ သတင်းအချက်အလက်သစ်တွေကို လက်မလွတ်ရအောင်လို့ပါနော်။',
+    'permission.title_location': 'တည်နေရာ ခွင့်ပြုချက်',
+    'permission.desc_location':
+        'အနီးအနားရှိ စားသောက်ဆိုင်များကို ပြသရန်နှင့် ပို့ဆောင်ခ တွက်ချက်ရန် MyTogether သည် သင့်အက်ပ်အသုံးပြုနေစဉ် **တည်နေရာ** ခွင့်ပြုချက် လိုအပ်ပါသည်။',
     'permission.continue': 'ဆက်လုပ်မယ်',
   };
   // ---------------------------------------------------------------------------
@@ -1902,6 +1931,16 @@ class AppTranslations {
     'auth.pill_currency_sub': '#เช็คได้ตลอดเวลา',
     'auth.pill_support': 'ช่วย Support App นี้!',
     'auth.pill_support_sub': '#เติบโตไปด้วยกัน',
+    'auth.continue_guest': 'ใช้งานต่อในฐานะผู้เยี่ยมชม',
+
+    // Guest mode
+    'guest.need_account_title': 'ต้องมีบัญชีผู้ใช้',
+    'guest.need_account_message':
+        'สร้างบัญชีหรือเข้าสู่ระบบเพื่อใช้ฟีเจอร์นี้',
+    'guest.create_or_login': 'สร้างบัญชีหรือเข้าสู่ระบบ',
+    'guest.settings_subtitle':
+        'เข้าสู่ระบบเพื่อเข้าถึงโปรไฟล์และรายการที่บันทึกไว้',
+    'guest.sign_in_prompt': 'เข้าสู่ระบบเพื่อปลดล็อกฟีเจอร์ทั้งหมด',
 
     // Common
     'common.cancel': 'ยกเลิก',
@@ -1933,6 +1972,7 @@ class AppTranslations {
     'nav.orders': 'คำสั่งซื้อ',
     'nav.news': 'ข่าวสาร',
     'nav.profile': 'โปรไฟล์',
+    'nav.settings': 'การตั้งค่า',
 
     // Profile page
     'profile.edit_profile': 'แก้ไขโปรไฟล์',
@@ -1984,6 +2024,7 @@ class AppTranslations {
     'home.category_store': 'ร้านค้า',
     'home.brand_name': 'MyTogether',
     'home.special_promotion': 'โปรโมชันพิเศษ',
+    'home.promotions_ads': 'โปรโมชันและโฆษณา',
     'home.restaurants_nearby': 'ร้านอาหารใกล้เคียง',
     'home.popular_restaurants': 'ร้านอาหารยอดนิยม',
     'home.top_places_nearby': 'สถานที่ยอดนิยมใกล้เคียง',
@@ -2774,6 +2815,9 @@ class AppTranslations {
     'permission.title': 'อนุญาตการเข้าถึง',
     'permission.desc':
         'เพื่อให้คุณได้รับประสบการณ์ที่ดีที่สุด MyTogether ต้องการเข้าถึง:\n\n📍 **ตำแหน่ง:** เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่งอย่างถูกต้อง\n\n🔔 **การแจ้งเตือน:** เพื่ออัปเดตสถานะคำสั่งซื้อของคุณแบบเรียลไทม์และประกาศสำคัญ',
+    'permission.title_location': 'อนุญาตตำแหน่ง',
+    'permission.desc_location':
+        'เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่ง MyTogether ต้องการเข้าถึง **ตำแหน่ง** ของคุณขณะใช้งานแอป',
     'permission.continue': 'ดำเนินการต่อ',
   };
 }

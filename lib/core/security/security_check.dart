@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 import 'dart:io';
@@ -11,8 +10,10 @@ class SecurityCheck {
     if (kDebugMode) return;
 
     try {
-      bool jailbroken = await FlutterJailbreakDetection.jailbroken;
-      bool developerMode = await FlutterJailbreakDetection.developerMode;
+      final bool jailbroken = await FlutterJailbreakDetection.jailbroken;
+      // Kept for the optional production developer-mode block below.
+      // ignore: unused_local_variable
+      final bool developerMode = await FlutterJailbreakDetection.developerMode;
 
       if (jailbroken) {
         // App is running on a rooted/jailbroken device

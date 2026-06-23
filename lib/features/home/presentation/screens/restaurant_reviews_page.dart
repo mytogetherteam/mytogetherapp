@@ -731,27 +731,39 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
+              final messenger = ScaffoldMessenger.of(context);
+              final blockedMessage = context.tr('news.blocked_success') !=
+                      'news.blocked_success'
+                  ? context.tr('news.blocked_success')
+                  : 'User blocked.';
+
               // Block the user locally
               final prefs = await SharedPreferences.getInstance();
-              final currentBlocked = prefs.getStringList('blocked_review_users') ?? [];
+              final currentBlocked =
+                  prefs.getStringList('blocked_review_users') ?? [];
               if (!currentBlocked.contains(review.userName)) {
                 currentBlocked.add(review.userName);
-                await prefs.setStringList('blocked_review_users', currentBlocked);
-              }
-
-              if (mounted) {
-                setState(() {
-                  _blockedUsers = currentBlocked;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(context.tr('news.blocked_success') != 'news.blocked_success' ? context.tr('news.blocked_success') : 'User blocked.', style: GoogleFonts.poppins(color: Colors.white)),
-                    backgroundColor: Colors.grey[800],
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                await prefs.setStringList(
+                  'blocked_review_users',
+                  currentBlocked,
                 );
               }
+
+              if (!mounted) return;
+              setState(() {
+                _blockedUsers = currentBlocked;
+              });
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    blockedMessage,
+                    style: GoogleFonts.poppins(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.grey[800],
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
             },
             child: Text(context.tr('news.block_action') != 'news.block_action' ? context.tr('news.block_action') : 'Block', style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
           ),

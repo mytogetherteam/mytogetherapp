@@ -770,12 +770,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 RestaurantReviewsPage(
-                                                  shopId: int.parse(
-                                                    _currentRestaurant!.id,
-                                                  ),
-                                                  restaurantName:
-                                                      _currentRestaurant!.name,
-                                                ),
+                                              shopId: int.parse(
+                                                _currentRestaurant!.id,
+                                              ),
+                                              restaurantName:
+                                                  _currentRestaurant!.name,
+                                            ),
                                           ),
                                         );
                                       }

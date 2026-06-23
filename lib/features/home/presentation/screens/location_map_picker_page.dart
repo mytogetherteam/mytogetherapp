@@ -87,8 +87,8 @@ class _LocationMapPickerPageState extends State<LocationMapPickerPage> {
       }
     }
 
-    final resolvedLat = lat ?? LocationService.defaultLat;
-    final resolvedLon = lon ?? LocationService.defaultLon;
+    final resolvedLat = lat;
+    final resolvedLon = lon;
     if (!mounted) return;
     final position = LatLng(resolvedLat, resolvedLon);
     setState(() {

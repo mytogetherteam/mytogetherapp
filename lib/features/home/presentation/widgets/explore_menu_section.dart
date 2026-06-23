@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
-import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'food_menu_item_card.dart';
@@ -51,6 +49,8 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
   bool _isLoadingMore = false;
   bool _hasMore = true;
 
+  bool _armedForNextPage = true;
+
   @override
   void initState() {
     super.initState();
@@ -83,9 +83,22 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
   void _onScroll() {
     if (!widget.scrollController.hasClients) return;
     final position = widget.scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 400) {
-      _loadMore();
+    final nearEnd = position.pixels >= position.maxScrollExtent - 400;
+
+    if (!nearEnd) {
+      _armedForNextPage = true;
+      return;
     }
+
+    if (!_armedForNextPage ||
+        _isLoadingMore ||
+        _isInitialLoading ||
+        !_hasMore) {
+      return;
+    }
+
+    _armedForNextPage = false;
+    _loadMore();
   }
 
   Future<List<ShopFeedItemDto>> _fetchPage(int page) async {
@@ -124,12 +137,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore || _isInitialLoading) return;
 
-    final wasNearEnd = PaginationScroll.wasNearEnd(widget.scrollController);
     setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      widget.scrollController,
-      wasNearEnd: wasNearEnd,
-    );
 
     try {
       final nextPage = _currentPage + 1;
@@ -141,17 +149,9 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
         _hasMore = moreItems.length >= _pageSize;
         _isLoadingMore = false;
       });
-      PaginationScroll.maintainAfterPageAppend(
-        widget.scrollController,
-        wasNearEnd: wasNearEnd,
-      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoadingMore = false);
-      PaginationScroll.maintainAfterPageAppend(
-        widget.scrollController,
-        wasNearEnd: wasNearEnd,
-      );
     }
   }
 
@@ -256,7 +256,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
           },
         ),
         if (showFooter)
-          PaginationListFooter(
+          _ExploreFooter(
             isLoading: _isLoadingMore,
             showEndMessage: !_hasMore,
           ),
@@ -297,6 +297,47 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
         ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+class _ExploreFooter extends StatelessWidget {
+  final bool isLoading;
+  final bool showEndMessage;
+
+  const _ExploreFooter({
+    required this.isLoading,
+    required this.showEndMessage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (!showEndMessage) return const SizedBox(height: 24);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20, top: 8),
+      child: Center(
+        child: Text(
+          context.tr('food.end_of_list'),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey[400],
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
     );
   }
 }

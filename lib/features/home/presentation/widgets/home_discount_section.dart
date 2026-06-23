@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
@@ -26,8 +25,7 @@ import 'view_all_icon_button.dart';
 ///   5. Render the carousel using the API's `sectionTitle` for the header.
 ///
 /// The whole section is hidden (renders nothing) when any precondition fails:
-/// not logged in, no sections, no active section, scheduled/expired, no
-/// location, or no items. Nothing about the percentage or title is hardcoded.
+/// no sections, no active section, scheduled/expired, no location, or no items.
 class HomeDiscountSection extends StatefulWidget {
   const HomeDiscountSection({super.key});
 
@@ -58,10 +56,6 @@ class _HomeDiscountSectionState extends State<HomeDiscountSection>
   }
 
   Future<_HomeDiscountData> _load() async {
-    if (!AuthService().isLoggedIn) {
-      return const _HomeDiscountData.hidden();
-    }
-
     try {
       final config = await RestaurantRepository.instance
           .getHomeDiscountSectionConfig()

@@ -29,12 +29,12 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
-    // Register callback so any clearSession() call navigates to login
+    // After session loss, return to the app as a guest (not the login wall).
     AuthService().onSessionExpired = () {
       final nav = App.navigatorKey.currentState;
       if (nav != null) {
         nav.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
           (route) => false,
         );
       }
@@ -80,9 +80,7 @@ class _AppState extends State<App> {
               upgrader: Upgrader(),
               child: !widget.hasSeenOnboarding
                   ? const OnboardingScreen()
-                  : AuthService().isLoggedIn
-                      ? const MainNavigationScreen()
-                      : const LoginPage(),
+                  : const MainNavigationScreen(),
             ),
             routes: {
               '/home': (context) => const MainNavigationScreen(),

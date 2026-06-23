@@ -82,7 +82,7 @@ class AuthRepository {
       // Main goal is ensuring the user is locally logged out.
     } finally {
       NotificationRepository().setUnreadCount(0);
-      await AuthService().clearSession();
+      await AuthService().clearSession(navigate: false);
     }
   }
 
@@ -131,7 +131,7 @@ class AuthRepository {
       throw _parseError(e);
     } finally {
       NotificationRepository().setUnreadCount(0);
-      await AuthService().clearSession();
+      await AuthService().clearSession(navigate: false);
     }
   }
 
