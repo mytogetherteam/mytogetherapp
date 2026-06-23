@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/file_url_util.dart';
 import 'cart_repository.dart';
@@ -120,7 +121,12 @@ class CartManager extends ChangeNotifier {
 
   static const _cacheKey = 'cart_cache_json';
   static const _cacheTimestampKey = 'cart_cache_ts';
+  static const _guestCartKey = 'guest_cart_v1';
   static const _cacheTtlMs = 5 * 60 * 1000; // 5 minutes
+
+  int _guestLineIdSeq = 0;
+
+  bool get _isGuest => !AuthService().isLoggedIn;
 
   List<CartStore> get stores => List.unmodifiable(_stores);
 
@@ -162,6 +168,11 @@ class CartManager extends ChangeNotifier {
   }
 
   Future<void> syncWithApi() async {
+    if (_isGuest) {
+      await _loadGuestCart();
+      return;
+    }
+
     // If cache is fresh, skip the API call entirely
     final hitCache = await _loadCachedCart();
     if (hitCache) return;
@@ -229,6 +240,309 @@ class CartManager extends ChangeNotifier {
       );
       }).toList(),
     );
+  }
+
+  Future<CartDto?> addMenuItem({
+    required AddToCartRequest request,
+    required double unitPrice,
+    required String itemNameEn,
+    String? itemNameMm,
+    String? itemNameTh,
+    required String shopNameEn,
+    String? shopNameMm,
+    String? shopNameTh,
+    String? imageUrl,
+    String? currency,
+    String? variantNameEn,
+    String? variantNameMm,
+    String? variantNameTh,
+    List<String>? optionNames,
+  }) async {
+    if (!_isGuest) {
+      final dto = await CartRepository.instance.addToCart(request);
+      updateCartFromDto(dto);
+      await invalidateCache();
+      try {
+        final carts = await CartRepository.instance.getAllCarts();
+        await _cacheCart(carts);
+      } catch (_) {}
+      return dto;
+    }
+
+    await _loadGuestCart();
+    final shopId = request.shopId;
+    if (shopId == null || shopId <= 0) {
+      throw Exception('Invalid shop');
+    }
+
+    final optionIds = request.optionIds ?? const <int>[];
+    final existing = findItemInCarts(
+      request.menuItemId,
+      variantId: request.variantId,
+      optionIds: optionIds.isEmpty ? null : optionIds,
+    );
+
+    final carts = _stores.map(_storeToDto).toList();
+    var cartIndex = carts.indexWhere((c) => c.shopId == shopId);
+    if (cartIndex == -1) {
+      carts.add(
+        CartDto(
+          shopId: shopId,
+          shopName: shopNameEn,
+          shopNameEn: shopNameEn,
+          shopNameMm: shopNameMm,
+          shopNameTh: shopNameTh,
+          items: const [],
+          subtotal: 0,
+          deliveryFee: 0,
+          total: 0,
+          totalItems: 0,
+          currency: currency,
+        ),
+      );
+      cartIndex = carts.length - 1;
+    }
+
+    final cart = carts[cartIndex];
+    final items = List<CartItemDto>.from(cart.items);
+
+    if (existing != null) {
+      final idx = items.indexWhere((i) => i.id.toString() == existing.id);
+      if (idx != -1) {
+        final old = items[idx];
+        final qty = old.quantity + request.quantity;
+        final lineTotal = unitPrice * qty;
+        items[idx] = CartItemDto(
+          id: old.id,
+          menuItemId: old.menuItemId,
+          name: old.nameKey,
+          nameEn: old.nameEn,
+          nameMm: old.nameMm,
+          nameTh: old.nameTh,
+          quantity: qty,
+          price: unitPrice,
+          total: lineTotal,
+          imageUrl: old.imageUrl,
+          variantName: old.variantNameKey,
+          variantNameEn: old.variantNameEn,
+          variantNameMm: old.variantNameMm,
+          variantNameTh: old.variantNameTh,
+          optionNames: old.optionNames,
+          optionIds: old.optionIds,
+          variantId: old.variantId,
+          specialInstructions:
+              request.specialInstructions ?? old.specialInstructions,
+          currency: old.currency,
+        );
+      }
+    } else {
+      final lineId = _nextGuestLineId();
+      final lineTotal = unitPrice * request.quantity;
+      items.add(
+        CartItemDto(
+          id: lineId,
+          menuItemId: request.menuItemId,
+          name: itemNameEn,
+          nameEn: itemNameEn,
+          nameMm: itemNameMm,
+          nameTh: itemNameTh,
+          quantity: request.quantity,
+          price: unitPrice,
+          total: lineTotal,
+          imageUrl: imageUrl,
+          variantName: variantNameEn,
+          variantNameEn: variantNameEn,
+          variantNameMm: variantNameMm,
+          variantNameTh: variantNameTh,
+          optionNames: optionNames,
+          optionIds: optionIds.isEmpty ? null : optionIds,
+          variantId: request.variantId,
+          specialInstructions: request.specialInstructions,
+          currency: currency,
+        ),
+      );
+    }
+
+    final rebuilt = _rebuildCartDto(cart, items);
+    if (cartIndex < carts.length) {
+      carts[cartIndex] = rebuilt;
+    }
+    await _persistGuestCarts(carts);
+    _updateFromCarts(carts);
+    return rebuilt;
+  }
+
+  CartDto _rebuildCartDto(CartDto cart, List<CartItemDto> items) {
+    final subtotal = items.fold<double>(0, (sum, i) => sum + i.total);
+    final totalItems = items.fold<int>(0, (sum, i) => sum + i.quantity);
+    return CartDto(
+      shopId: cart.shopId,
+      shopName: cart.shopNameKey,
+      shopNameEn: cart.shopNameEn,
+      shopNameMm: cart.shopNameMm,
+      shopNameTh: cart.shopNameTh,
+      shopImageUrl: cart.shopImageUrl,
+      items: items,
+      subtotal: subtotal,
+      deliveryFee: cart.deliveryFee,
+      total: subtotal + cart.deliveryFee,
+      totalItems: totalItems,
+      currency: cart.currency,
+    );
+  }
+
+  CartDto _storeToDto(CartStore store) {
+    return CartDto(
+      shopId: store.shopId,
+      shopName: store.nameKey,
+      shopNameEn: store.nameEn,
+      shopNameMm: store.nameMm,
+      shopNameTh: store.nameTh,
+      shopImageUrl: store.shopImageUrl,
+      items: store.items
+          .map(
+            (item) => CartItemDto(
+              id: int.tryParse(item.id) ?? 0,
+              menuItemId: item.menuItemId,
+              name: item.titleKey,
+              nameEn: item.titleEn,
+              nameMm: item.titleMm,
+              nameTh: item.titleTh,
+              quantity: item.quantity,
+              price: item.price,
+              total: item.total,
+              imageUrl: item.imageUrl ?? item.imagePath,
+              variantName: item.variantNameKey,
+              variantNameEn: item.variantNameEn,
+              variantNameMm: item.variantNameMm,
+              variantNameTh: item.variantNameTh,
+              optionNames: item.options?.split(', '),
+              optionIds: item.optionIds,
+              variantId: item.variantId,
+              specialInstructions: item.specialInstructions,
+            ),
+          )
+          .toList(),
+      subtotal: store.total,
+      deliveryFee: 0,
+      total: store.total,
+      totalItems: store.items.fold<int>(0, (sum, i) => sum + i.quantity),
+    );
+  }
+
+  Future<void> _loadGuestCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_guestCartKey);
+      if (raw == null) {
+        _stores.clear();
+        notifyListeners();
+        return;
+      }
+      final decoded = json.decode(raw) as List<dynamic>;
+      final carts = decoded
+          .map((e) => CartDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+      for (final cart in carts) {
+        for (final item in cart.items) {
+          if (item.id < _guestLineIdSeq) {
+            _guestLineIdSeq = item.id;
+          }
+        }
+      }
+      _updateFromCarts(carts);
+    } catch (_) {
+      _stores.clear();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _persistGuestCarts(List<CartDto> carts) async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = json.encode(carts.map((c) => c.toJson()).toList());
+    await prefs.setString(_guestCartKey, encoded);
+  }
+
+  int _nextGuestLineId() {
+    _guestLineIdSeq -= 1;
+    return _guestLineIdSeq;
+  }
+
+  Future<CartDto?> _updateGuestItemQuantity(
+    String storeName,
+    String itemId,
+    int newQuantity, {
+    String? specialInstructions,
+    int? variantId,
+    List<int>? optionIds,
+  }) async {
+    await _loadGuestCart();
+    final carts = _stores.map(_storeToDto).toList();
+    for (var c = 0; c < carts.length; c++) {
+      final cart = carts[c];
+      if (cart.shopNameKey != storeName && cart.shopName != storeName) {
+        continue;
+      }
+      final items = List<CartItemDto>.from(cart.items);
+      final idx = items.indexWhere((i) => i.id.toString() == itemId);
+      if (idx == -1) continue;
+
+      if (newQuantity <= 0) {
+        items.removeAt(idx);
+      } else {
+        final old = items[idx];
+        final unit = old.quantity > 0 ? old.total / old.quantity : old.price;
+        items[idx] = CartItemDto(
+          id: old.id,
+          menuItemId: old.menuItemId,
+          name: old.nameKey,
+          nameEn: old.nameEn,
+          nameMm: old.nameMm,
+          nameTh: old.nameTh,
+          quantity: newQuantity,
+          price: unit,
+          total: unit * newQuantity,
+          imageUrl: old.imageUrl,
+          variantName: old.variantNameKey,
+          variantNameEn: old.variantNameEn,
+          variantNameMm: old.variantNameMm,
+          variantNameTh: old.variantNameTh,
+          optionNames: old.optionNames,
+          optionIds: optionIds ?? old.optionIds,
+          variantId: variantId ?? old.variantId,
+          specialInstructions: specialInstructions ?? old.specialInstructions,
+          currency: old.currency,
+        );
+      }
+
+      CartDto? result;
+      if (items.isEmpty) {
+        carts.removeAt(c);
+        result = null;
+      } else {
+        result = _rebuildCartDto(cart, items);
+        carts[c] = result;
+      }
+      await _persistGuestCarts(carts);
+      _updateFromCarts(carts);
+      return result;
+    }
+    return null;
+  }
+
+  Future<void> _clearGuestCart({int? shopId}) async {
+    await _loadGuestCart();
+    List<CartDto> carts;
+    if (shopId != null) {
+      carts = _stores
+          .map(_storeToDto)
+          .where((c) => c.shopId != shopId)
+          .toList();
+    } else {
+      carts = [];
+    }
+    await _persistGuestCarts(carts);
+    _updateFromCarts(carts);
   }
 
   /// Updates the local state from a single shop's CartDto
@@ -366,6 +680,17 @@ class CartManager extends ChangeNotifier {
     }
     // ----------------------------
 
+    if (_isGuest) {
+      final result = await _updateGuestItemQuantity(
+        storeName,
+        itemId,
+        newQuantity,
+        specialInstructions: specialInstructions,
+        variantId: variantId,
+        optionIds: optionIds,
+      );
+      return result;
+    }
 
     try {
       CartDto? result;
@@ -416,6 +741,21 @@ class CartManager extends ChangeNotifier {
     final storeIndex = _indexForStore(storeName);
     if (storeIndex == -1) return;
 
+    if (_isGuest) {
+      final shopId = _stores[storeIndex].shopId;
+      if (shopId != null) {
+        await _clearGuestCart(shopId: shopId);
+      } else {
+        final carts = _stores.map(_storeToDto).toList()
+          ..removeWhere(
+            (c) => c.shopNameKey == storeName || c.shopName == storeName,
+          );
+        await _persistGuestCarts(carts);
+        _updateFromCarts(carts);
+      }
+      return;
+    }
+
     final itemsToRemove = List<CartItem>.from(_stores[storeIndex].items);
     
     try {
@@ -438,6 +778,10 @@ class CartManager extends ChangeNotifier {
   }
 
   Future<void> clearCart() async {
+    if (_isGuest) {
+      await _clearGuestCart();
+      return;
+    }
     await CartRepository.instance.clearCart();
     await invalidateCache();
     await syncWithApi();

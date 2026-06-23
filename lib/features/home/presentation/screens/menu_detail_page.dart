@@ -9,7 +9,6 @@ import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../cart/data/cart_repository.dart';
 import '../../../cart/data/cart_manager.dart';
 import '../../../cart/data/models/cart_dto.dart';
 import '../../data/restaurant_data.dart';
@@ -205,6 +204,51 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     } else {
       Navigator.pop(context);
     }
+  }
+
+  double _computeUnitPrice() {
+    final food = _currentFood;
+    if (food != null) {
+      double price;
+      if (_selectedVariantId != null) {
+        try {
+          price = food.variants
+              .firstWhere((v) => v.id == _selectedVariantId)
+              .price;
+        } catch (_) {
+          price = food.price;
+        }
+      } else {
+        final currentPrice = food.price;
+        final originalPrice = food.originalPrice ?? 0.0;
+        price = (currentPrice == 0 && originalPrice > 0)
+            ? originalPrice
+            : currentPrice;
+      }
+      for (final group in food.optionGroups) {
+        for (final optId in _selectedOptions[group.id] ?? const <int>[]) {
+          try {
+            price += group.options.firstWhere((o) => o.id == optId).price;
+          } catch (_) {}
+        }
+      }
+      return price;
+    }
+    return widget.price;
+  }
+
+  List<String> _selectedOptionNames() {
+    final names = <String>[];
+    final food = _currentFood;
+    if (food == null) return names;
+    for (final group in food.optionGroups) {
+      for (final optId in _selectedOptions[group.id] ?? const <int>[]) {
+        try {
+          names.add(group.options.firstWhere((o) => o.id == optId).name);
+        } catch (_) {}
+      }
+    }
+    return names;
   }
 
   void _syncWithCart() {
@@ -1085,26 +1129,52 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                       .trim(),
                                           );
                                     } else {
-                                      // Add new item
-                                      result = await CartRepository.instance
-                                          .addToCart(
-                                            AddToCartRequest(
-                                              menuItemId: menuItemId,
-                                              quantity: _quantity,
-                                              shopId: shopId,
-                                              variantId: _selectedVariantId,
-                                              specialInstructions:
-                                                  _instructionsController.text
-                                                      .trim()
-                                                      .isEmpty
-                                                  ? null
-                                                  : _instructionsController.text
-                                                        .trim(),
-                                              optionIds: allOptionIds.isNotEmpty
-                                                  ? allOptionIds
-                                                  : null,
-                                            ),
+                                      final food = _currentFood;
+                                      String? vName;
+                                      String? vNameMm;
+                                      if (_selectedVariantId != null && food != null) {
+                                        try {
+                                          final variant = food.variants.firstWhere(
+                                            (v) => v.id == _selectedVariantId,
                                           );
+                                          vName = variant.nameEn ?? variant.name;
+                                          vNameMm = variant.nameMm;
+                                        } catch (_) {}
+                                      }
+
+                                      result = await CartManager.instance.addMenuItem(
+                                        request: AddToCartRequest(
+                                          menuItemId: menuItemId,
+                                          quantity: _quantity,
+                                          shopId: shopId,
+                                          variantId: _selectedVariantId,
+                                          specialInstructions:
+                                              _instructionsController.text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? null
+                                              : _instructionsController.text
+                                                    .trim(),
+                                          optionIds: allOptionIds.isNotEmpty
+                                              ? allOptionIds
+                                              : null,
+                                        ),
+                                        unitPrice: _computeUnitPrice(),
+                                        itemNameEn:
+                                            food?.nameEn ?? food?.name ?? widget.title,
+                                        itemNameMm: food?.nameMm,
+                                        itemNameTh: food?.nameTh,
+                                        shopNameEn: food?.shopNameEn ??
+                                            food?.shopName ??
+                                            widget.restaurantName,
+                                        shopNameMm: food?.shopNameMm,
+                                        shopNameTh: food?.shopNameTh,
+                                        imageUrl: food?.imageUrl,
+                                        currency: food?.currency ?? widget.currency,
+                                        variantNameEn: vName,
+                                        variantNameMm: vNameMm,
+                                        optionNames: _selectedOptionNames(),
+                                      );
                                     }
 
                                     if (result != null) {

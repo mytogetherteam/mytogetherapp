@@ -67,19 +67,8 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                 borderRadius: BorderRadius.circular(32),
               ),
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Positioned(
-                    top: 8,
-                    left: 4,
-                    child: IconButton(
-                      onPressed: _dismiss,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
                   // Fade line in background
                   Positioned(
                     top: -size.width * 0.3,
@@ -174,6 +163,23 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     bottom: 20,
                     right: 0,
                     child: _buildDecorativePill(context.tr('auth.pill_support'), context.tr('auth.pill_support_sub'), Icons.storefront, 0.05),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        onPressed: _dismiss,
+                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
                   ),
 
                 ],
