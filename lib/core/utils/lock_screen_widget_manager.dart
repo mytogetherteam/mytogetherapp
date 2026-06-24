@@ -25,6 +25,7 @@ class LockScreenWidgetManager {
   String? _lastEstimatedTime;
   String? _lastRiderName;
   String? _lastLogoUrl;
+  LiveActivityFileFromMemory? _lastLogoFile;
 
   bool get _isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -32,9 +33,7 @@ class LockScreenWidgetManager {
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
-    if (kIsWeb) {
-      _isInitialized = true;
+    if (_isInitialized) {
       return;
     }
 
@@ -44,6 +43,7 @@ class LockScreenWidgetManager {
           appGroupId:
               'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
         );
+        await _liveActivitiesPlugin.endAllActivities();
       } catch (e) {
         debugPrint('Live Activities init failed: $e');
       }
@@ -74,12 +74,12 @@ class LockScreenWidgetManager {
         showOrUpdateWidget(order);
       }
     } else {
-      hideWidget();
+      cancelWidget();
     }
   }
 
   Future<void> showOrUpdateWidget(ActiveOrderItem order) async {
-    if (!_isInitialized) await initialize();
+    if (!_isInitialized) return;
 
     final statusText = _getStatusText(order);
     final progress = _getProgressValue(order);
@@ -94,7 +94,7 @@ class LockScreenWidgetManager {
         _lastEstimatedTime == estimatedTime &&
         _lastRiderName == riderName &&
         _lastLogoUrl == logoUrl) {
-      return; // No meaningful change, avoid spamming native widgets
+      return; // No changes to show
     }
 
     _lastStatusText = statusText;
@@ -114,30 +114,35 @@ class LockScreenWidgetManager {
       };
 
       if (logoUrl.isNotEmpty) {
-        try {
-          final response = await Dio().get(
-            logoUrl, 
-            options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 3)),
-          );
-          if (response.statusCode == 200 && response.data != null) {
-            data['shopLogoPath'] = LiveActivityFileFromMemory.image(
-              Uint8List.fromList(response.data),
-              'logo_${order.orderId}.png',
+        if (_lastLogoUrl == logoUrl && _lastLogoFile != null) {
+          data['shopLogoPath'] = _lastLogoFile;
+        } else {
+          try {
+            final response = await Dio().get(
+              logoUrl, 
+              options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 3)),
             );
+            if (response.statusCode == 200 && response.data != null) {
+              _lastLogoFile = LiveActivityFileFromMemory.image(
+                Uint8List.fromList(response.data),
+                'logo_${order.orderId}.png',
+              );
+              data['shopLogoPath'] = _lastLogoFile;
+            }
+          } catch (e) {
+            debugPrint('Failed to download logo for live activity: $e');
           }
-        } catch (e) {
-          debugPrint('Failed to download logo for live activity: $e');
         }
       }
 
       try {
         if (_currentLiveActivityId == null) {
-          _currentLiveActivityId = await _liveActivitiesPlugin.createOrUpdateActivity(
+          _currentLiveActivityId = await _liveActivitiesPlugin.createActivity(
             'order_${order.orderId}',
             data,
           );
         } else {
-          await _liveActivitiesPlugin.createOrUpdateActivity(
+          await _liveActivitiesPlugin.updateActivity(
             _currentLiveActivityId!,
             data,
           );
@@ -175,17 +180,18 @@ class LockScreenWidgetManager {
     }
   }
 
-  Future<void> hideWidget() async {
+  Future<void> cancelWidget() async {
     _lastStatusText = null;
     _lastProgress = null;
     _lastShopName = null;
     _lastEstimatedTime = null;
     _lastRiderName = null;
     _lastLogoUrl = null;
+    _lastLogoFile = null;
 
-    if (_isIOS && _currentLiveActivityId != null) {
+    if (_isIOS) {
       try {
-        await _liveActivitiesPlugin.endActivity(_currentLiveActivityId!);
+        await _liveActivitiesPlugin.endAllActivities();
       } catch (_) {}
       _currentLiveActivityId = null;
     } else if (_isAndroid) {

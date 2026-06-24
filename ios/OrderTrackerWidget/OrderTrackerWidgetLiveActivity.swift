@@ -50,17 +50,7 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                     .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    if let eta = getString(context: context, key: "estimatedTime"), !eta.isEmpty {
-                        Text(eta)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(primaryGradient)
-                            .padding(.trailing, 4)
-                    } else {
-                        Text("Soon")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(primaryGradient)
-                            .padding(.trailing, 4)
-                    }
+                    Spacer(minLength: 0)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -190,23 +180,7 @@ struct LiveActivityView: View {
                     }
                 }
                 
-                Spacer()
-                
-                // ETA Box
-                if !eta.isEmpty {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("ETA")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.gray)
-                        Text(eta)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(primaryGradient)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(8)
-                }
+                Spacer(minLength: 0)
             }
             
             // Progress Bar
@@ -225,7 +199,7 @@ struct ProgressBarView: View {
             ConnectorView(isActive: progress >= 2, isProcessing: progress == 0 || progress == 1)
             StepIconView(iconName: "doc.text.fill", isActive: progress >= 2)
             ConnectorView(isActive: progress >= 3, isProcessing: progress == 2)
-            StepIconView(iconName: "box.truck.fill", isActive: progress >= 3)
+            StepIconView(iconName: "bicycle", isActive: progress >= 3)
             ConnectorView(isActive: progress >= 4, isProcessing: progress == 3)
             StepIconView(iconName: "house.fill", isActive: progress >= 4)
         }
