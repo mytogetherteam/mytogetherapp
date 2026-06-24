@@ -306,6 +306,9 @@ class AppTranslations {
     'orders.start_ordering': 'Start Ordering',
     'orders.start_ordering_desc':
         'Discover delicious food near you and place your first order now!',
+    'orders.guest_title': 'Sign in to start ordering',
+    'orders.guest_desc':
+        'Sign in to place orders and track your order history here.',
     'orders.in_progress': 'In Progress',
     'orders.reorder': 'Re-order',
     'orders.buy_again': 'Buy Again',
@@ -1250,6 +1253,9 @@ class AppTranslations {
     'orders.start_ordering': 'အော်ဒါစတင်မှာယူရန်',
     'orders.start_ordering_desc':
         'နီးနီးနားနားရှိဆိုင်များမှ အရသာရှိသော အစားအစာများကို ယခုပဲမှာယူလိုက်ပါ!',
+    'orders.guest_title': 'အော်ဒါစတင်မှာယူရန် အကောင့်ဝင်ပါ',
+    'orders.guest_desc':
+        'အော်ဒါမှာယူရန်နှင့် အော်ဒါမှတ်တမ်းကြည့်ရှုရန် အကောင့်ဝင်ပါ။',
     'orders.in_progress': 'လုပ်ဆောင်နေပါတယ်',
     'orders.reorder': 'ထပ်မှာမယ်',
     'orders.buy_again': 'ထပ်ဝယ်မယ်',
@@ -2209,6 +2215,9 @@ class AppTranslations {
     'orders.start_ordering': 'เริ่มสั่งอาหาร',
     'orders.start_ordering_desc':
         'ค้นพบอาหารอร่อยใกล้คุณ และสั่งออเดอร์แรกของคุณเลยตอนนี้!',
+    'orders.guest_title': 'เข้าสู่ระบบเพื่อเริ่มสั่งอาหาร',
+    'orders.guest_desc':
+        'เข้าสู่ระบบเพื่อสั่งอาหารและติดตามประวัติคำสั่งซื้อของคุณที่นี่',
     'orders.in_progress': 'กำลังดำเนินการ',
     'orders.reorder': 'สั่งซื้ออีกครั้ง',
     'orders.buy_again': 'ซื้ออีกครั้ง',

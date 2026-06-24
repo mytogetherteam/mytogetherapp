@@ -52,6 +52,10 @@ class OrderHistoryDto {
   final double? itemPrice;
   final double? taxAmount;
   final String? displayTaxAmount;
+  final String? orderType;
+  final String? orderDeliveryType;
+  final int? waitingTimeMinutes;
+  final bool? taxEnable;
   final OrderReviewDto? orderReview;
 
   OrderHistoryDto({
@@ -76,8 +80,39 @@ class OrderHistoryDto {
     this.itemPrice,
     this.taxAmount,
     this.displayTaxAmount,
+    this.orderType,
+    this.orderDeliveryType,
+    this.waitingTimeMinutes,
+    this.taxEnable,
     this.orderReview,
   }) : _shopName = shopName;
+
+  bool get isPickupFulfillment {
+    final type = (orderType ?? '').toUpperCase();
+    return type == 'PICK_UP' || type == 'PICKUP';
+  }
+
+  bool get isFlexibleDelivery {
+    if (isPickupFulfillment) return false;
+    final type = (orderDeliveryType ?? '').toUpperCase();
+    if (type == 'FAST' || type == 'PREPAID') return false;
+    if (type == 'FLEXIBLE' || type == 'NORMAL') return true;
+    return type.isEmpty;
+  }
+
+  String? get prepTimeLabel {
+    final mins = waitingTimeMinutes;
+    if (mins == null || mins <= 0) return null;
+    return '$mins mins';
+  }
+
+  bool get resolvedTaxEnable {
+    if (taxEnable != null) return taxEnable!;
+    if (itemPrice != null && itemPrice! > 0 && taxAmount != null) {
+      return taxAmount! > 0;
+    }
+    return true;
+  }
 
   String? get shopName {
     final value = LocaleController.instance.localizedOr(
@@ -153,10 +188,23 @@ class OrderHistoryDto {
       itemPrice: (json['itemPrice'] as num?)?.toDouble(),
       taxAmount: (json['taxAmount'] as num?)?.toDouble(),
       displayTaxAmount: json['displayTaxAmount'] as String?,
+      orderType: json['orderType'] as String?,
+      orderDeliveryType: json['orderDeliveryType'] as String?,
+      waitingTimeMinutes: (json['waitingTimeMinutes'] as num?)?.toInt(),
+      taxEnable: _resolveTaxEnable(json, shop),
       orderReview: json['orderReview'] is Map<String, dynamic>
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,
     );
+  }
+
+  static bool? _resolveTaxEnable(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? shop,
+  ) {
+    if (json['taxEnable'] is bool) return json['taxEnable'] as bool;
+    if (shop?['taxEnable'] is bool) return shop!['taxEnable'] as bool;
+    return null;
   }
 
   static String? _resolveShopImageUrl(

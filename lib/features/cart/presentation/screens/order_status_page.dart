@@ -16,7 +16,6 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
-import '../widgets/flexible_delivery_note.dart';
 import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
@@ -447,7 +446,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         : context.tr('common.restaurant');
     final taxAmount = state.resolvedTaxAmount;
     final delivery = state.deliveryFee ?? widget.deliveryFee;
-    final total = state.isFlexibleDelivery
+    final total = state.usesPayNowTotal
         ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
         : (state.totalAmount ??
             state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
@@ -661,7 +660,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                       ),
-                    if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate)
+                    if (!state.isPickupFulfillment &&
+                        state.hasDeliveryFeeEstimate &&
+                        !state.isAwaitingShopConfirmation)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -816,7 +817,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              context.tr('cart.total'),
+                              state.usesPayNowTotal
+                                  ? context.tr('cart.total_pay_now')
+                                  : context.tr('cart.total'),
                               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                             ),
                                 Row(
@@ -972,7 +975,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                 ),
                               ],
                               if (!state.isPickupFulfillment &&
-                                  state.hasDeliveryFeeEstimate) ...[
+                                  state.hasDeliveryFeeEstimate &&
+                                  !state.isAwaitingShopConfirmation) ...[
                                 const SizedBox(height: 8),
                                 _buildSummaryRow(
                                   state.isFlexibleDelivery
@@ -982,20 +986,15 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       state.deliveryFee!.toFormattedPrice(),
                                 ),
                               ],
-                              if (state.isFlexibleDelivery &&
-                                  !state.isPickupFulfillment) ...[
-                                const SizedBox(height: 12),
-                                const FlexibleDeliveryNote(),
-                              ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
                               _buildSummaryRow(
-                                state.isFlexibleDelivery
+                                state.usesPayNowTotal
                                     ? context.tr('cart.total_pay_now')
                                     : context.tr('order_status.total_amount'),
-                                state.isFlexibleDelivery
+                                state.usesPayNowTotal
                                     ? total.toFormattedPrice()
                                     : (state.displayTotalAmount ??
                                         total.toFormattedPrice()),

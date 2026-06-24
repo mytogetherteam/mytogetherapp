@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import '../restaurant_data.dart';
 import '../models/banner_image_dto.dart';
@@ -14,6 +13,7 @@ import '../models/menu_category_dto.dart';
 import '../models/collection_dto.dart';
 import '../models/home_discount_section_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/location/geo_distance.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
@@ -132,7 +132,7 @@ class RestaurantRepository {
           );
         }
         results = response.shops
-            .map((dto) => _mapShopDtoToDomain(dto.shop))
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
             .toList();
       } else {
         final response = await SearchRepository.instance.searchNearby(
@@ -143,7 +143,7 @@ class RestaurantRepository {
           size: size,
         );
         results = response.shops
-            .map((dto) => _mapShopDtoToDomain(dto.shop))
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
             .toList();
       }
 
@@ -179,7 +179,9 @@ class RestaurantRepository {
         size: size,
       );
       return _prefetchAndReturn(
-        response.shops.map((dto) => _mapShopDtoToDomain(dto.shop)).toList(),
+        response.shops
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+            .toList(),
       );
     }
 
@@ -229,13 +231,9 @@ class RestaurantRepository {
         size: size,
         days: days,
       );
-      return response.shops.map((dto) {
-        final shop = dto.shop;
-        final dist = (shop.latitude != null && shop.longitude != null)
-            ? _haversineKm(lat, lon, shop.latitude!, shop.longitude!)
-            : null;
-        return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
-      }).toList();
+      return response.shops
+          .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+          .toList();
     }
 
     return getNearbyShops(
@@ -301,13 +299,10 @@ class RestaurantRepository {
     );
     return response.shops.map((dto) {
       final shop = dto.shop;
-      final hasOrigin = originLat != null && originLon != null;
-      final distance = (hasOrigin &&
-              shop.latitude != null &&
-              shop.longitude != null)
-          ? _haversineKm(originLat, originLon, shop.latitude!, shop.longitude!)
-          : null;
-      return _mapShopDtoToDomain(shop, distanceKmOverride: distance);
+      if (originLat != null && originLon != null) {
+        return _mapShopWithDistance(shop, lat: originLat, lon: originLon);
+      }
+      return _mapShopDtoToDomain(shop);
     }).toList();
   }
 
@@ -326,8 +321,8 @@ class RestaurantRepository {
         lon != null &&
         detail.latitude != null &&
         detail.longitude != null) {
-      final dist =
-          _haversineKm(lat, lon, detail.latitude!, detail.longitude!);
+      final dist = GeoDistance.haversineKm(
+          lat, lon, detail.latitude!, detail.longitude!);
       return detail.copyWith(distance: '${dist.toStringAsFixed(1)} km');
     }
     return detail;
@@ -338,22 +333,6 @@ class RestaurantRepository {
   Future<List<ShopPaymentTypeDto>> getShopPaymentMethods(int shopId) async {
     return _remoteDataSource.getShopPaymentMethods(shopId);
   }
-
-  /// Great-circle distance in kilometers (haversine).
-  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
-    const earthRadiusKm = 6371.0;
-    final dLat = _deg2rad(lat2 - lat1);
-    final dLon = _deg2rad(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_deg2rad(lat1)) *
-            math.cos(_deg2rad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadiusKm * c;
-  }
-
-  double _deg2rad(double deg) => deg * (math.pi / 180.0);
 
   Future<TrendingSectionDto> getTrendingItems({
     required double lat,
@@ -387,6 +366,21 @@ class RestaurantRepository {
     return result;
   }
 
+
+  Restaurant _mapShopWithDistance(
+    ShopListItemDto shop, {
+    required double lat,
+    required double lon,
+  }) {
+    final dist = GeoDistance.resolveDistanceKm(
+      originLat: lat,
+      originLon: lon,
+      apiDistanceKm: shop.distance > 0 ? shop.distance : null,
+      shopLat: shop.latitude,
+      shopLon: shop.longitude,
+    );
+    return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+  }
 
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {

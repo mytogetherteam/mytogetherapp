@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
-import '../widgets/flexible_delivery_note.dart';
 import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -372,11 +371,6 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                   order.hasDeliveryFeeEstimate) ...[
                                 const SizedBox(height: 12),
                                 _buildDeliveryFeeRow(context, order, deliveryFee),
-                              ],
-                              if (order?.isFlexibleDelivery == true &&
-                                  order?.isPickupFulfillment != true) ...[
-                                const SizedBox(height: 12),
-                                const FlexibleDeliveryNote(),
                               ],
                               if (orderItems.isNotEmpty) ...[
                                 const Padding(

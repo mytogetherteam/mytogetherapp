@@ -11,6 +11,7 @@ import '../../../core/localization/locale_controller.dart';
 import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../order/data/repositories/order_repository.dart';
+import '../../order/data/models/order_history_dto.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
 import '../../../core/auth/auth_service.dart';
@@ -192,6 +193,20 @@ class ActiveOrderItem {
     return normalized != '0' &&
         normalized != '0 mins' &&
         normalized != '0 min';
+  }
+
+  /// Shop has not confirmed delivery tier, fee, or prep time yet.
+  bool get isAwaitingShopConfirmation =>
+      orderStatus == 0 &&
+      (backendStatus == null ||
+          backendStatus == 'PENDING' ||
+          backendStatus == 'REVISED');
+
+  /// In-app total is food + tax only (flexible, or before shop confirms).
+  bool get usesPayNowTotal {
+    if (isPickupFulfillment) return false;
+    if (isAwaitingShopConfirmation) return true;
+    return isFlexibleDelivery;
   }
 
   ActiveOrderItem({
@@ -560,6 +575,9 @@ class ActiveOrderState extends ChangeNotifier {
   bool get hasDeliveryFeeEstimate =>
       _primary?.hasDeliveryFeeEstimate ?? false;
   bool get hasPrepTimeEstimate => _primary?.hasPrepTimeEstimate ?? false;
+  bool get isAwaitingShopConfirmation =>
+      _primary?.isAwaitingShopConfirmation ?? false;
+  bool get usesPayNowTotal => _primary?.usesPayNowTotal ?? false;
   bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
@@ -879,6 +897,10 @@ class ActiveOrderState extends ChangeNotifier {
     } else if (data['shop'] is Map &&
         (data['shop'] as Map)['taxEnable'] != null) {
       item.taxEnable = (data['shop'] as Map)['taxEnable'] == true;
+    } else if (item.taxAmount != null &&
+        item.itemPrice != null &&
+        item.itemPrice! > 0) {
+      item.taxEnable = item.taxAmount! > 0;
     }
     if (data['deliveryRiderName'] != null)
       item.riderName = _parseSafeString(data['deliveryRiderName']);
@@ -1483,6 +1505,64 @@ class ActiveOrderState extends ChangeNotifier {
     }
   }
 
+  ActiveOrderItem _buildActiveOrderItemFromHistory(OrderHistoryDto o) {
+    return ActiveOrderItem(
+      orderId: o.id,
+      lastOrderNo: o.lastOrderNo,
+      storeName: o.shopName,
+      restaurantName: o.shopName,
+      shopId: o.shopId?.toString(),
+      shopName: o.shopName,
+      shopNameEn: o.shopNameEn,
+      shopNameMm: o.shopNameMm,
+      shopNameTh: o.shopNameTh,
+      shopImageUrl: o.shopImageUrl,
+      orderType: o.orderType,
+      orderDeliveryType: o.orderDeliveryType,
+      estimatedTime: o.prepTimeLabel,
+      totalAmount: o.totalAmount,
+      itemPrice: o.itemPrice,
+      taxAmount: o.taxAmount,
+      displayTaxAmount: o.displayTaxAmount,
+      taxEnable: o.resolvedTaxEnable,
+      displayTotalAmount: o.displayTotalAmount,
+      deliveryFee:
+          (o.deliveryFee != null && o.deliveryFee! > 0) ? o.deliveryFee : null,
+      displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+          ? o.displayDeliveryFee
+          : null,
+    );
+  }
+
+  void _applyOrderHistorySnapshot(ActiveOrderItem item, OrderHistoryDto o) {
+    if (o.lastOrderNo != null && o.lastOrderNo!.isNotEmpty) {
+      item.lastOrderNo = o.lastOrderNo;
+    }
+    if (o.orderType != null) item.orderType = o.orderType;
+    if (o.orderDeliveryType != null) {
+      item.orderDeliveryType = o.orderDeliveryType;
+    }
+    final prepTime = o.prepTimeLabel;
+    if (prepTime != null) item.estimatedTime = prepTime;
+    if (o.itemPrice != null) item.itemPrice = o.itemPrice;
+    if (o.taxAmount != null) item.taxAmount = o.taxAmount;
+    if (o.displayTaxAmount != null) {
+      item.displayTaxAmount = o.displayTaxAmount;
+    }
+    item.taxEnable = o.resolvedTaxEnable;
+    if (o.totalAmount > 0) item.totalAmount = o.totalAmount;
+    if (o.displayTotalAmount != null) {
+      item.displayTotalAmount = o.displayTotalAmount;
+    }
+    if (o.deliveryFee != null && o.deliveryFee! > 0) {
+      item.deliveryFee = o.deliveryFee;
+      if (o.displayDeliveryFee != null) {
+        item.displayDeliveryFee = o.displayDeliveryFee;
+      }
+    }
+    applyStatusString(item, o.status);
+  }
+
   /// Seeds [_orders] from the backend so active orders survive cold starts,
   /// reinstalls, or cleared prefs (WebSocket/FCM alone can't hydrate an order
   /// the app has never heard of — see the guard in [updateFromSocket]).
@@ -1495,38 +1575,20 @@ class ActiveOrderState extends ChangeNotifier {
       final ongoing = all.where((o) => o.ongoing).toList();
       if (ongoing.isEmpty) return;
 
-      var added = false;
+      var changed = false;
       for (final o in ongoing) {
-        if (_orders.containsKey(o.id)) continue;
-        final item = ActiveOrderItem(
-          orderId: o.id,
-          storeName: o.shopName,
-          restaurantName: o.shopName,
-          shopId: o.shopId?.toString(),
-          shopName: o.shopName,
-          shopNameEn: o.shopNameEn,
-          shopNameMm: o.shopNameMm,
-          shopNameTh: o.shopNameTh,
-          shopImageUrl: o.shopImageUrl,
-          totalAmount: o.totalAmount,
-          itemPrice: o.itemPrice,
-          taxAmount: o.taxAmount,
-          displayTaxAmount: o.displayTaxAmount,
-          taxEnable: o.taxAmount == 0 && (o.itemPrice ?? 0) > 0 ? false : true,
-          displayTotalAmount: o.displayTotalAmount,
-          deliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
-              ? o.deliveryFee
-              : null,
-          displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
-              ? o.displayDeliveryFee
-              : null,
-        );
+        if (_orders.containsKey(o.id)) {
+          _applyOrderHistorySnapshot(_orders[o.id]!, o);
+          changed = true;
+          continue;
+        }
+        final item = _buildActiveOrderItemFromHistory(o);
         applyStatusString(item, o.status);
         _orders[o.id] = item;
-        added = true;
+        changed = true;
       }
 
-      if (added) {
+      if (changed) {
         _reassignPrimaryOrderId();
         saveToPrefs();
         notifyListeners();

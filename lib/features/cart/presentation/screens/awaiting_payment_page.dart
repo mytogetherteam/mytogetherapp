@@ -24,7 +24,6 @@ import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import 'revise_order_page.dart';
 import '../widgets/revise_unavailable_items_section.dart';
-import '../widgets/flexible_delivery_note.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -1007,7 +1006,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     ],
                     const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true &&
-                        order?.hasDeliveryFeeEstimate == true) ...[
+                        order?.hasDeliveryFeeEstimate == true &&
+                        order?.isAwaitingShopConfirmation != true) ...[
                       _summaryRow(
                         order?.isFlexibleDelivery == true
                             ? context.tr('payment.est_delivery_fee')
@@ -1037,27 +1037,23 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow(
-                      order?.isFlexibleDelivery == true
+                      order?.usesPayNowTotal == true
                           ? context.tr('cart.total_pay_now')
                           : context.tr('cart.total'),
-                      order?.isFlexibleDelivery == true
+                      order?.usesPayNowTotal == true
                           ? order!
                               .resolvedPayNowTotal(
                                 fallbackDeliveryFee: widget.deliveryFee,
                               )
                               .toFormattedPrice()
                           : (order?.displayTotalAmount ??
-                              (order?.isPickupFulfillment == true
-                                  ? order!
-                                      .resolvedGrandTotal()
-                                      .toFormattedPrice()
-                                  : order!
-                                      .resolvedGrandTotal(
-                                        fallbackDeliveryFee:
-                                            order.deliveryFee ??
-                                                widget.deliveryFee,
-                                      )
-                                      .toFormattedPrice())),
+                              order!
+                                  .resolvedGrandTotal(
+                                    fallbackDeliveryFee:
+                                        order.deliveryFee ??
+                                            widget.deliveryFee,
+                                  )
+                                  .toFormattedPrice()),
                       isValue: true,
                     ),
                     if (order?.hasPrepTimeEstimate == true) ...[
@@ -1071,10 +1067,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   ],
                 ),
               ),
-              if (order?.isFlexibleDelivery == true) ...[
-                const SizedBox(height: 12),
-                const FlexibleDeliveryNote(),
-              ],
               const SizedBox(height: 20),
 
               // ── Rider Info (if available) ──

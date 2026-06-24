@@ -98,6 +98,8 @@ class SearchRepository {
     );
     return TrendingSectionDto.fromTrendingNearbyResponse(
       response.data as Map<String, dynamic>,
+      originLat: latitude,
+      originLon: longitude,
     );
   }
 

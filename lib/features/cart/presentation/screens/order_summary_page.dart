@@ -18,7 +18,6 @@ import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
-import '../widgets/flexible_delivery_note.dart';
 import 'package:dio/dio.dart';
 import '../../../../app.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
@@ -673,9 +672,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ],
-                              const SizedBox(height: 16),
-                              const FlexibleDeliveryNote(),
-                              // TODO: re-enable priority / standard delivery selection
+                              // Delivery fee estimate appears after shop confirms.
                               /*
                               const SizedBox(height: 20),
                               const Divider(

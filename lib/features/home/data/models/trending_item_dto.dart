@@ -1,4 +1,5 @@
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/location/geo_distance.dart';
 import '../shop_order_state_parser.dart';
 import 'shop_dto.dart' show OperatingHourDto;
 
@@ -46,7 +47,10 @@ class TrendingItemDto {
       final int maxTime = minTime + 5;
       return '$minTime-$maxTime min';
     }
-    return _estimatedTime;
+    if (_estimatedTime != null && _estimatedTime.isNotEmpty) {
+      return _estimatedTime;
+    }
+    return GeoDistance.defaultDeliveryEta;
   }
 
   TrendingItemDto({
@@ -81,7 +85,11 @@ class TrendingItemDto {
         _shopName = shopName,
         _estimatedTime = estimatedTime;
 
-  factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
+  factory TrendingItemDto.fromJson(
+    Map<String, dynamic> json, {
+    double? originLat,
+    double? originLon,
+  }) {
     // `GET /user/search/trending-nearby` nests shop + rating; public feed is flat.
     final shop = json['shop'];
     final shopMap = shop is Map<String, dynamic> ? shop : null;
@@ -126,12 +134,20 @@ class TrendingItemDto {
           );
 
     double? distanceKm;
-    final rawDistance =
-        json['distanceKm'] ?? shopMap?['distanceKm'] ?? json['shopDistanceKm'];
-    if (rawDistance is num) {
-      distanceKm = rawDistance.toDouble();
-    } else if (rawDistance != null) {
-      distanceKm = double.tryParse(rawDistance.toString());
+    if (originLat != null && originLon != null) {
+      distanceKm = GeoDistance.shopDistanceFromJson(
+        json,
+        originLat: originLat,
+        originLon: originLon,
+      );
+    } else {
+      final rawDistance =
+          json['distanceKm'] ?? shopMap?['distanceKm'] ?? json['shopDistanceKm'];
+      if (rawDistance is num) {
+        distanceKm = rawDistance.toDouble();
+      } else if (rawDistance != null) {
+        distanceKm = double.tryParse(rawDistance.toString());
+      }
     }
 
     return TrendingItemDto(
@@ -233,13 +249,21 @@ class TrendingSectionDto {
 
   /// Parses `GET /api/user/search/trending-nearby` (menu items + meta + mealType).
   factory TrendingSectionDto.fromTrendingNearbyResponse(
-    Map<String, dynamic> json,
-  ) {
+    Map<String, dynamic> json, {
+    double? originLat,
+    double? originLon,
+  }) {
     final data = json['data'];
     final items = data is List
         ? data
             .whereType<Map<String, dynamic>>()
-            .map(TrendingItemDto.fromJson)
+            .map(
+              (e) => TrendingItemDto.fromJson(
+                e,
+                originLat: originLat,
+                originLon: originLon,
+              ),
+            )
             .toList()
         : <TrendingItemDto>[];
     final meta = json['meta'] is Map<String, dynamic>
