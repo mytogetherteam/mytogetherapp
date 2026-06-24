@@ -526,12 +526,36 @@ class RestaurantRepository {
         try {
           final dto = await SearchRepository.instance.getShopProfileById(shopId);
           if (dto == null) return;
-          ShopOrderStateCache.instance.rememberParts(
+          ShopOrderStateCache.instance.replaceParts(
             shopId,
             deliveryEnabled: dto.deliveryEnabled,
             operatingHours: dto.operatingHours,
             status: dto.isOpen ? 'Open' : 'Closed',
           );
+        } catch (_) {}
+      }),
+    );
+  }
+
+  /// Polls `GET /api/user/shop-profile/:id` for live open/closed and delivery
+  /// state when WebSocket updates are unavailable (e.g. guest / PWA).
+  Future<void> refreshOrderStatesForShopIds(Iterable<int> shopIds) async {
+    final ids = shopIds.where((id) => id > 0).toSet();
+    if (ids.isEmpty) return;
+
+    ShopOrderStateCache.instance.ensureListening();
+    await Future.wait(
+      ids.map((shopId) async {
+        try {
+          final dto = await SearchRepository.instance.getShopProfileById(shopId);
+          if (dto == null) return;
+          ShopOrderStateCache.instance.replaceParts(
+            shopId,
+            deliveryEnabled: dto.deliveryEnabled,
+            operatingHours: dto.operatingHours,
+            status: dto.isOpen ? 'Open' : 'Closed',
+          );
+          clearCache(shopId: shopId);
         } catch (_) {}
       }),
     );
