@@ -27,6 +27,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
 import '../widgets/order_unavailability_ui.dart';
 import '../widgets/restaurant_open_status.dart';
+import '../widgets/my_together_verified_badge.dart';
 import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import '../../data/models/shop_feed_item_dto.dart';
@@ -853,15 +854,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                       child: AnimatedOpacity(
                         duration: const Duration(milliseconds: 300),
                         opacity: _isScrolled ? 1.0 : 0.0,
-                        child: Text(
-                          _currentRestaurant?.name ?? '',
+                        child: VerifiedRestaurantNameRow(
+                          name: _currentRestaurant?.name ?? '',
+                          isVerified: _currentRestaurant?.isVerified ?? false,
+                          badgeSize: MyTogetherVerifiedBadge.detailSize,
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -1018,15 +1019,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        _currentRestaurant?.name ?? '',
+                                      VerifiedRestaurantNameRow(
+                                        name: _currentRestaurant?.name ?? '',
+                                        isVerified:
+                                            _currentRestaurant?.isVerified ??
+                                                false,
+                                        badgeSize:
+                                            MyTogetherVerifiedBadge.detailSize,
                                         style: GoogleFonts.poppins(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.black,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Wrap(
                                         crossAxisAlignment:

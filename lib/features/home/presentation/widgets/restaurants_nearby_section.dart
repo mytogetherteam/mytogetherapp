@@ -158,6 +158,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
                     operatingHours: data.operatingHours,
                     status: data.status,
                     shopId: data.id,
+                    isVerified: data.isVerified,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     onTap: () {

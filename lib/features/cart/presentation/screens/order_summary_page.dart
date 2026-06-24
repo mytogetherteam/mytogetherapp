@@ -18,6 +18,7 @@ import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
+import '../widgets/flexible_delivery_note.dart';
 import 'package:dio/dio.dart';
 import '../../../../app.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
@@ -375,8 +376,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   .toInt();
 
         final foodSubtotal = totalStorePrice.toDouble();
-        final taxAmount = OrderTax.calculateTax(foodSubtotal);
-        final checkoutTotal = OrderTax.calculateTotal(itemSubtotal: foodSubtotal);
+        final taxEnable = _restaurant?.taxEnable ?? true;
+        final taxAmount =
+            OrderTax.resolveTaxAmount(foodSubtotal, taxEnable);
+        final checkoutTotal = OrderTax.calculateTotal(
+          itemSubtotal: foodSubtotal,
+          taxEnable: taxEnable,
+        );
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -635,6 +641,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                               ),
+                              if (ActiveOrderState.instance.deliveryFee !=
+                                      null &&
+                                  ActiveOrderState.instance.deliveryFee! >
+                                      0) ...[
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsRegular.money,
+                                      color: Color(0xFF94A3B8),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      context.tr('cart.est_delivery_fee'),
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF94A3B8),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    GradientText(
+                                      ActiveOrderState
+                                          .instance.deliveryFee!
+                                          .toFormattedPrice(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              const FlexibleDeliveryNote(),
                               // TODO: re-enable priority / standard delivery selection
                               /*
                               const SizedBox(height: 20),
@@ -779,26 +819,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Delivery fee note
-                      if (_isDelivery)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 16,
-                          ),
-                          color: const Color(
-                            0xFFFEF3C7,
-                          ), // Yellowish orange background
-                          child: Text(
-                            context.tr('cart.delivery_fee_note'),
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFD97706), // Orange text
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 12, 28, 4),
                         child: Column(
@@ -807,43 +827,33 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               context.tr('order_status.food_total'),
                               foodSubtotal.toFormattedPrice(),
                             ),
-                            const SizedBox(height: 6),
-                            _buildCheckoutPriceRow(
-                              context.tr('order_status.tax'),
-                              taxAmount.toFormattedPrice(),
-                            ),
+                            if (taxEnable) ...[
+                              const SizedBox(height: 6),
+                              _buildCheckoutPriceRow(
+                                context.tr('order_status.tax'),
+                                taxAmount.toFormattedPrice(),
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  context.tr('cart.total'),
+                                  _isDelivery
+                                      ? context.tr('cart.total_pay_now')
+                                      : context.tr('cart.total'),
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFF64748B),
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    GradientText(
-                                      checkoutTotal.toFormattedPrice(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (_isDelivery)
-                                      GradientText(
-                                        context.tr('cart.plus_delivery_fee'),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                  ],
+                                GradientText(
+                                  checkoutTotal.toFormattedPrice(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1135,15 +1145,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         (responseData?['itemPrice'] as num?)
                                             ?.toDouble() ??
                                         foodTotal.toDouble();
+                                    final orderTaxEnable =
+                                        _restaurant?.taxEnable ?? true;
                                     final backendTaxAmount =
                                         (responseData?['taxAmount'] as num?)
                                             ?.toDouble() ??
-                                        OrderTax.calculateTax(backendItemPrice);
+                                        OrderTax.resolveTaxAmount(
+                                          backendItemPrice,
+                                          orderTaxEnable,
+                                        );
                                     final backendTotalAmount =
                                         (responseData?['totalAmount'] as num?)
                                             ?.toDouble() ??
                                         OrderTax.calculateTotal(
                                           itemSubtotal: backendItemPrice,
+                                          taxEnable: orderTaxEnable,
                                         );
                                     final backendDisplayTax =
                                         responseData?['displayTaxAmount']
@@ -1154,6 +1170,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       itemPrice: backendItemPrice,
                                       taxAmount: backendTaxAmount,
                                       displayTaxAmount: backendDisplayTax,
+                                      taxEnable: orderTaxEnable,
                                       paymentMethod:
                                           _selectedPaymentType?.displayName ??
                                           context.tr('cart.payment'),

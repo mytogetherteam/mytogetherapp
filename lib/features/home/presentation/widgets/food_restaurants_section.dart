@@ -146,6 +146,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
                     operatingHours: data.operatingHours,
                     status: data.status,
                     shopId: data.id,
+                    isVerified: data.isVerified,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),
                     width: double.infinity,

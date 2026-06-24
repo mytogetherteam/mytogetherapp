@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/time_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,6 +16,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
+import '../widgets/flexible_delivery_note.dart';
 import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
@@ -445,12 +445,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final storeName = state.displayShopName.isNotEmpty
         ? state.displayShopName
         : context.tr('common.restaurant');
-    final taxAmount =
-        state.taxAmount ?? OrderTax.calculateTax(widget.foodTotal);
+    final taxAmount = state.resolvedTaxAmount;
     final delivery = state.deliveryFee ?? widget.deliveryFee;
-    final total = state.isPickupFulfillment
-        ? widget.foodTotal + taxAmount
-        : widget.foodTotal + taxAmount + delivery;
+    final total = state.isFlexibleDelivery
+        ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
+        : (state.totalAmount ??
+            state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -665,7 +665,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            context.tr('order_status.delivery_fee'),
+                            state.isFlexibleDelivery
+                                ? context.tr('payment.est_delivery_fee')
+                                : context.tr('order_status.delivery_fee'),
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -961,22 +963,40 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ),
                               
                               _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
-                              const SizedBox(height: 8),
-                              _buildSummaryRow(
-                                context.tr('order_status.tax'),
-                                state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
-                              ),
+                              if (state.taxEnable) ...[
+                                const SizedBox(height: 8),
+                                _buildSummaryRow(
+                                  context.tr('order_status.tax'),
+                                  state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
+                                ),
+                              ],
                               if (!state.isPickupFulfillment) ...[
                                 const SizedBox(height: 8),
-                                _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
+                                _buildSummaryRow(
+                                  state.isFlexibleDelivery
+                                      ? context.tr('payment.est_delivery_fee')
+                                      : context.tr('order_status.delivery_fee'),
+                                  state.displayDeliveryFee ??
+                                      widget.deliveryFee.toFormattedPrice(),
+                                ),
+                              ],
+                              if (state.isFlexibleDelivery &&
+                                  !state.isPickupFulfillment) ...[
+                                const SizedBox(height: 12),
+                                const FlexibleDeliveryNote(),
                               ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Divider(),
                               ),
                               _buildSummaryRow(
-                                context.tr('order_status.total_amount'),
-                                state.displayTotalAmount ?? total.toFormattedPrice(),
+                                state.isFlexibleDelivery
+                                    ? context.tr('cart.total_pay_now')
+                                    : context.tr('order_status.total_amount'),
+                                state.isFlexibleDelivery
+                                    ? total.toFormattedPrice()
+                                    : (state.displayTotalAmount ??
+                                        total.toFormattedPrice()),
                                 isBold: true,
                               ),
                             ],

@@ -90,6 +90,7 @@ class ActiveOrderItem {
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  bool? taxEnable;
   // Photo the shop attaches when marking the order Delivered — shown to the
   // customer as proof the food was successfully delivered.
   String? proofPhotoUrl;
@@ -108,6 +109,7 @@ class ActiveOrderItem {
   bool hasNotifiedSlipRequest;
   bool isSlipRequested;
   String? deliveryType;
+  String? orderDeliveryType;
   String? orderType;
   String? backendStatus;
   String? lastOrderNo;
@@ -121,6 +123,19 @@ class ActiveOrderItem {
   bool get isReadyForPickup =>
       (backendStatus ?? '').toUpperCase() == 'READY_FOR_PICKUP';
 
+  /// Flexible delivery: food (+ tax) is paid in-app; delivery fee is estimated
+  /// and paid to the rider on arrival. FAST delivery includes fee in-app total.
+  bool get isFlexibleDelivery {
+    if (isPickupFulfillment) return false;
+    final type =
+        (orderDeliveryType ?? deliveryType ?? '').toUpperCase();
+    if (type == 'FAST') return false;
+    if (type == 'FLEXIBLE' || type == 'NORMAL') return true;
+    return true;
+  }
+
+  bool get resolvedTaxEnable => taxEnable ?? true;
+
   /// Food subtotal before tax and delivery — prefers backend `itemPrice`.
   double get resolvedItemSubtotal {
     if (itemPrice != null && itemPrice! > 0) return itemPrice!;
@@ -129,7 +144,11 @@ class ActiveOrderItem {
     }
     final total = totalAmount ?? 0;
     final delivery = deliveryFee ?? 0;
-    final tax = taxAmount ?? OrderTax.calculateTax(total - delivery);
+    final tax = taxAmount ??
+        OrderTax.resolveTaxAmount(
+          (total - delivery).clamp(0, double.infinity),
+          resolvedTaxEnable,
+        );
     final fromTotal = total - delivery - tax;
     if (fromTotal > 0) return fromTotal;
     return (total - delivery).clamp(0, double.infinity).toDouble();
@@ -137,7 +156,10 @@ class ActiveOrderItem {
 
   double get resolvedTaxAmount {
     if (taxAmount != null) return taxAmount!;
-    return OrderTax.calculateTax(resolvedItemSubtotal);
+    return OrderTax.resolveTaxAmount(
+      resolvedItemSubtotal,
+      resolvedTaxEnable,
+    );
   }
 
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) {
@@ -147,7 +169,16 @@ class ActiveOrderItem {
     return OrderTax.calculateTotal(
       itemSubtotal: resolvedItemSubtotal,
       deliveryFee: delivery,
+      taxEnable: resolvedTaxEnable,
     );
+  }
+
+  /// Amount the customer pays in-app. Flexible delivery excludes delivery fee.
+  double resolvedPayNowTotal({double fallbackDeliveryFee = 0}) {
+    if (isPickupFulfillment || !isFlexibleDelivery) {
+      return resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee);
+    }
+    return resolvedItemSubtotal + resolvedTaxAmount;
   }
 
   ActiveOrderItem({
@@ -194,6 +225,7 @@ class ActiveOrderItem {
     this.hasNotifiedSlipRequest = false,
     this.isSlipRequested = false,
     this.deliveryType,
+    this.orderDeliveryType,
     this.orderType,
     this.backendStatus,
     this.lastOrderNo,
@@ -208,6 +240,7 @@ class ActiveOrderItem {
     this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.taxEnable,
     this.proofPhotoUrl,
   });
 
@@ -283,8 +316,10 @@ class ActiveOrderItem {
     'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'taxEnable': taxEnable,
     'proofPhotoUrl': proofPhotoUrl,
     'deliveryType': deliveryType,
+    'orderDeliveryType': orderDeliveryType,
     'orderType': orderType,
     'backendStatus': backendStatus,
     'lastOrderNo': lastOrderNo,
@@ -346,8 +381,10 @@ class ActiveOrderItem {
     shopPhone: json['shopPhone'],
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
+    taxEnable: json['taxEnable'] as bool?,
     proofPhotoUrl: json['proofPhotoUrl'],
     deliveryType: json['deliveryType'],
+    orderDeliveryType: json['orderDeliveryType'] as String?,
     orderType: json['orderType'],
     backendStatus: json['backendStatus'],
     lastOrderNo: json['lastOrderNo'],
@@ -501,6 +538,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
   bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
+  bool get isFlexibleDelivery => _primary?.isFlexibleDelivery ?? false;
   bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
@@ -508,6 +546,13 @@ class ActiveOrderState extends ChangeNotifier {
   double? get itemPrice => _primary?.itemPrice;
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
+  double get resolvedTaxAmount => _primary?.resolvedTaxAmount ?? 0;
+  double resolvedGrandTotal({double fallbackDeliveryFee = 0}) =>
+      _primary?.resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee) ??
+      0;
+  double resolvedPayNowTotal({double fallbackDeliveryFee = 0}) =>
+      _primary?.resolvedPayNowTotal(fallbackDeliveryFee: fallbackDeliveryFee) ??
+      0;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
   bool get showUploadSection => _primary?.showUploadSection ?? false;
@@ -525,6 +570,7 @@ class ActiveOrderState extends ChangeNotifier {
   String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
+  bool get taxEnable => _primary?.resolvedTaxEnable ?? true;
   String? get cancelReason => _primary?.cancelReason;
   set cancelReason(String? val) { if (_primary != null) _primary!.cancelReason = val; }
 
@@ -621,6 +667,7 @@ class ActiveOrderState extends ChangeNotifier {
     double? itemPrice,
     double? taxAmount,
     String? displayTaxAmount,
+    bool? taxEnable,
     int? paymentMethodId,
     String? paymentMethodImageUrl,
     String? orderId,
@@ -633,6 +680,7 @@ class ActiveOrderState extends ChangeNotifier {
     if (itemPrice != null) item.itemPrice = itemPrice;
     if (taxAmount != null) item.taxAmount = taxAmount;
     if (displayTaxAmount != null) item.displayTaxAmount = displayTaxAmount;
+    if (taxEnable != null) item.taxEnable = taxEnable;
     item.paymentMethod = paymentMethod;
     item.paymentMethodId = paymentMethodId;
     item.paymentMethodImageUrl = paymentMethodImageUrl;
@@ -763,6 +811,11 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['itemPrice'] != null) item.itemPrice = _parseSafeDouble(data['itemPrice']);
     if (data['taxAmount'] != null) item.taxAmount = _parseSafeDouble(data['taxAmount']);
     if (data['totalAmount'] != null) item.totalAmount = _parseSafeDouble(data['totalAmount']);
+    if (data['taxEnable'] != null) {
+      item.taxEnable = data['taxEnable'] == true;
+    } else if (data['shop'] is Map && (data['shop'] as Map)['taxEnable'] != null) {
+      item.taxEnable = (data['shop'] as Map)['taxEnable'] == true;
+    }
     if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
     if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
 
@@ -822,6 +875,9 @@ class ActiveOrderState extends ChangeNotifier {
     
     if (data['deliveryType'] != null) {
       item.deliveryType = _parseSafeString(data['deliveryType']);
+    }
+    if (data['orderDeliveryType'] != null) {
+      item.orderDeliveryType = _parseSafeString(data['orderDeliveryType']);
     }
     if (data['orderType'] != null) {
       item.orderType = _parseSafeString(data['orderType']);
@@ -1347,6 +1403,7 @@ class ActiveOrderState extends ChangeNotifier {
           itemPrice: o.itemPrice,
           taxAmount: o.taxAmount,
           displayTaxAmount: o.displayTaxAmount,
+          taxEnable: o.taxAmount == 0 && (o.itemPrice ?? 0) > 0 ? false : true,
           displayTotalAmount: o.displayTotalAmount,
           deliveryFee: o.deliveryFee,
           displayDeliveryFee: o.displayDeliveryFee,

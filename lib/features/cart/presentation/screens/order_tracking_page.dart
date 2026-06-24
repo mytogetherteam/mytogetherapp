@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../data/cart_manager.dart';
 import '../../data/active_order_state.dart';
+import '../widgets/flexible_delivery_note.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import '../../../home/presentation/widgets/map_skeleton_loader.dart';
 import 'awaiting_payment_page.dart';
@@ -1210,29 +1211,35 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             valueColor: Colors.black,
                           ),
 
-                          const SizedBox(height: 12),
-
-                          _buildInfoRow(
-                            label: context.tr('order_status.tax'),
-                            value: ActiveOrderState.instance.displayTaxAmount ??
-                                (ActiveOrderState.instance.taxAmount ??
-                                        OrderTax.calculateTax(
-                                          widget.foodTotal.toDouble(),
-                                        ))
-                                    .toFormattedPrice(),
-                            valueColor: Colors.black,
-                          ),
+                          if (ActiveOrderState.instance.taxEnable) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              label: context.tr('order_status.tax'),
+                              value: ActiveOrderState.instance.displayTaxAmount ??
+                                  ActiveOrderState.instance.resolvedTaxAmount
+                                      .toFormattedPrice(),
+                              valueColor: Colors.black,
+                            ),
+                          ],
 
                           const SizedBox(height: 12),
 
                           if (!ActiveOrderState.instance.isPickupFulfillment)
                             _buildDeliveryFeeRow(),
 
+                          if (ActiveOrderState.instance.isFlexibleDelivery &&
+                              !ActiveOrderState.instance.isPickupFulfillment) ...[
+                            const SizedBox(height: 12),
+                            const FlexibleDeliveryNote(),
+                          ],
+
                           if (!ActiveOrderState.instance.isPickupFulfillment)
                             const SizedBox(height: 12),
 
                           _buildInfoRow(
-                            label: context.tr('order_status.total_amount'),
+                            label: ActiveOrderState.instance.isFlexibleDelivery
+                                ? context.tr('cart.total_pay_now')
+                                : context.tr('order_status.total_amount'),
                             value: _checkoutTotalLabel(),
                             isGradientValue: true,
                           ),
@@ -1307,11 +1314,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   String _checkoutTotalLabel() {
     final state = ActiveOrderState.instance;
+    final delivery = state.isPickupFulfillment
+        ? 0.0
+        : (_deliveryFee ?? state.deliveryFee ?? 0);
+
+    if (state.isFlexibleDelivery) {
+      return state
+          .resolvedPayNowTotal(fallbackDeliveryFee: delivery)
+          .toFormattedPrice();
+    }
+
     if (state.displayTotalAmount != null &&
         state.displayTotalAmount!.isNotEmpty &&
         !state.isPickupFulfillment &&
-        (_deliveryFee == null || _deliveryFee == 0)) {
-      // Before delivery fee is known, show food + tax from backend display if present.
+        delivery <= 0) {
       final backendTotal = state.totalAmount;
       if (backendTotal != null && backendTotal > 0) {
         return backendTotal.toFormattedPrice();
@@ -1324,13 +1340,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     }
 
     final food = widget.foodTotal.toDouble();
-    final delivery = state.isPickupFulfillment
-        ? 0.0
-        : (_deliveryFee ?? state.deliveryFee ?? 0);
+    final taxEnable = state.taxEnable;
     final total = state.totalAmount ??
-        OrderTax.calculateTotal(itemSubtotal: food, deliveryFee: delivery);
+        OrderTax.calculateTotal(
+          itemSubtotal: food,
+          deliveryFee: delivery,
+          taxEnable: taxEnable,
+        );
     if (!state.isPickupFulfillment && delivery <= 0) {
-      return OrderTax.calculateTotal(itemSubtotal: food).toFormattedPrice();
+      return OrderTax.calculateTotal(
+        itemSubtotal: food,
+        taxEnable: taxEnable,
+      ).toFormattedPrice();
     }
     return total.toFormattedPrice();
   }
@@ -1371,16 +1392,30 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildDeliveryFeeRow() {
-    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
+    final state = ActiveOrderState.instance;
+    final isPickup = state.isPickupFulfillment;
+    final fee = _deliveryFee ?? state.deliveryFee;
+    final feeLabel = isPickup
+        ? context.tr('order_status.pickup_fee')
+        : (state.isFlexibleDelivery
+            ? context.tr('payment.est_delivery_fee')
+            : context.tr('order_status.delivery_fee'));
+
+    if (!isPickup && fee != null && fee > 0) {
+      return _buildInfoRow(
+        label: feeLabel,
+        value: state.displayDeliveryFee ?? fee.toFormattedPrice(),
+        valueColor: Colors.black,
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
             Text(
-              isPickup
-                  ? context.tr('order_status.pickup_fee')
-                  : context.tr('order_status.delivery_fee'),
+              feeLabel,
               style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(width: 4),

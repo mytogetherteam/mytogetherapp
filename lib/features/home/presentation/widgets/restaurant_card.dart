@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
 import 'shop_item_metadata_row.dart';
 import 'order_unavailability_ui.dart';
+import 'my_together_verified_badge.dart';
 import '../../data/models/shop_dto.dart' show OperatingHourDto;
 import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
@@ -37,6 +38,7 @@ class RestaurantCard extends StatelessWidget {
   final List<OperatingHourDto> operatingHours;
   final String status;
   final String? shopId;
+  final bool isVerified;
   /// Horizontal carousel cards use a fixed height — keep copy on the image
   /// badge only to avoid overflow.
   final bool compact;
@@ -63,6 +65,7 @@ class RestaurantCard extends StatelessWidget {
     this.operatingHours = const [],
     this.status = 'Open',
     this.shopId,
+    this.isVerified = false,
     this.compact = false,
   });
 
@@ -223,16 +226,16 @@ class RestaurantCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(height: compact ? 8 : 12),
-                Text(
-                  name,
+                VerifiedRestaurantNameRow(
+                  name: name,
+                  isVerified: isVerified,
+                  badgeSize: MyTogetherVerifiedBadge.cardSize,
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
                     height: 1.2,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 if (showStatusLine)
                   OrderBlockedStatusLine(

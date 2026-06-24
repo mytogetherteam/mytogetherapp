@@ -118,6 +118,7 @@ class ShopListItemDto {
   final String? address;
   final bool isOpen;
   final bool deliveryEnabled;
+  final bool isVerified;
   final List<OperatingHourDto> operatingHours;
   final String? _estimatedTime;
   final bool isFavorite;
@@ -186,6 +187,7 @@ class ShopListItemDto {
     this.address,
     required this.isOpen,
     this.deliveryEnabled = true,
+    this.isVerified = false,
     this.operatingHours = const [],
     String? estimatedTime,
     required this.isFavorite,
@@ -245,6 +247,7 @@ class ShopListItemDto {
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,
       deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      isVerified: json['isVerified'] as bool? ?? false,
       operatingHours: (json['operatingHours'] as List? ?? [])
           .map((e) => OperatingHourDto.fromJson(e))
           .toList(),
@@ -361,6 +364,8 @@ class ShopDetailDto {
   final String? _estimatedTime;
   final bool isOpen;
   final bool deliveryEnabled;
+  final bool taxEnable;
+  final bool isVerified;
   final String? address;
   final String? addressMm;
   final String? addressTh;
@@ -437,6 +442,8 @@ class ShopDetailDto {
     String? estimatedTime,
     required this.isOpen,
     this.deliveryEnabled = true,
+    this.taxEnable = true,
+    this.isVerified = false,
     this.address,
     this.addressMm,
     this.addressTh,
@@ -484,6 +491,8 @@ class ShopDetailDto {
       estimatedTime: json['estimatedTime']?.toString(),
       isOpen: json['isOpen'] ?? false,
       deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      taxEnable: json['taxEnable'] as bool? ?? true,
+      isVerified: json['isVerified'] as bool? ?? false,
       address: json['address']?.toString(),
       addressMm: json['addressMm']?.toString(),
       addressTh: json['addressTh']?.toString(),

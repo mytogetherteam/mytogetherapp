@@ -18,13 +18,13 @@ import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
 import '../../data/active_order_state.dart';
 import '../../../../core/utils/navigation_controller.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/time_formatter.dart';
 import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import 'revise_order_page.dart';
 import '../widgets/revise_unavailable_items_section.dart';
+import '../widgets/flexible_delivery_note.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -996,26 +996,26 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           '฿ ${widget.foodTotal.toStringAsFixed(0)}',
                       isValue: false,
                     ),
-                    const SizedBox(height: 10),
-                    _summaryRow(
-                      context.tr('order_status.tax'),
-                      order?.displayTaxAmount ??
-                          (order?.taxAmount ??
-                                  OrderTax.calculateTax(widget.foodTotal))
-                              .toFormattedPrice(),
-                      isValue: false,
-                    ),
+                    if (order?.resolvedTaxEnable ?? true) ...[
+                      const SizedBox(height: 10),
+                      _summaryRow(
+                        context.tr('order_status.tax'),
+                        order?.displayTaxAmount ??
+                            (order?.resolvedTaxAmount ?? 0).toFormattedPrice(),
+                        isValue: false,
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true) ...[
                       _summaryRow(
-                        order?.deliveryType == 'NORMAL'
+                        order?.isFlexibleDelivery == true
                             ? context.tr('payment.est_delivery_fee')
                             : context.tr('order_status.delivery_fee'),
                         '',
                         customValue:
                             (order?.deliveryFee != null &&
                                 order!.deliveryFee! > 0)
-                            ? (order.deliveryType == 'NORMAL'
+                            ? (order.isFlexibleDelivery
                                   ? GradientText(
                                       '฿ ${order.deliveryFee!.toInt()}',
                                       style: GoogleFonts.poppins(
@@ -1031,7 +1031,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                         color: Colors.black,
                                       ),
                                     ))
-                            : (order?.deliveryType == 'NORMAL')
+                            : (order?.isFlexibleDelivery == true)
                             ? Text(
                                 context.tr('payment.calculate_later'),
                                 style: GoogleFonts.poppins(
@@ -1076,27 +1076,34 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         isValue: false,
                       ),
                     ],
-                    if (order?.isPickupFulfillment == true ||
-                        order?.deliveryType != 'NORMAL') ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: _DottedDivider(color: Color(0xFFCCCCCC)),
-                      ),
-                      _summaryRow(
-                        context.tr('cart.total'),
-                        order?.displayTotalAmount ??
-                            (order?.isPickupFulfillment == true
-                                ? OrderTax.calculateTotal(
-                                    itemSubtotal: widget.foodTotal,
-                                  ).toFormattedPrice()
-                                : OrderTax.calculateTotal(
-                                    itemSubtotal: widget.foodTotal,
-                                    deliveryFee:
-                                        order?.deliveryFee ?? widget.deliveryFee,
-                                  ).toFormattedPrice()),
-                        isValue: true,
-                      ),
-                    ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: _DottedDivider(color: Color(0xFFCCCCCC)),
+                    ),
+                    _summaryRow(
+                      order?.isFlexibleDelivery == true
+                          ? context.tr('cart.total_pay_now')
+                          : context.tr('cart.total'),
+                      order?.isFlexibleDelivery == true
+                          ? order!
+                              .resolvedPayNowTotal(
+                                fallbackDeliveryFee: widget.deliveryFee,
+                              )
+                              .toFormattedPrice()
+                          : (order?.displayTotalAmount ??
+                              (order?.isPickupFulfillment == true
+                                  ? order!
+                                      .resolvedGrandTotal()
+                                      .toFormattedPrice()
+                                  : order!
+                                      .resolvedGrandTotal(
+                                        fallbackDeliveryFee:
+                                            order.deliveryFee ??
+                                                widget.deliveryFee,
+                                      )
+                                      .toFormattedPrice())),
+                      isValue: true,
+                    ),
                     if (order?.estimatedTime != null &&
                         order!.estimatedTime!.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -1109,38 +1116,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   ],
                 ),
               ),
-              if (order?.deliveryType == 'NORMAL') ...[
+              if (order?.isFlexibleDelivery == true) ...[
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const GradientIcon(
-                        icon: PhosphorIconsFill.info,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GradientText(
-                          context.tr('payment.separate_delivery_note'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const FlexibleDeliveryNote(),
               ],
               const SizedBox(height: 20),
 

@@ -8,6 +8,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
+import '../widgets/my_together_verified_badge.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
@@ -178,9 +179,11 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               child: Column(
                 children: [
                   Center(
-                    child: Text(
-                      restaurant.name,
-                      textAlign: TextAlign.center,
+                    child: VerifiedRestaurantNameRow(
+                      name: restaurant.name,
+                      isVerified: restaurant.isVerified,
+                      badgeSize: MyTogetherVerifiedBadge.overviewSize,
+                      alignment: MainAxisAlignment.center,
                       style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,

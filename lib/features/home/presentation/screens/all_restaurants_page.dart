@@ -331,6 +331,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                             operatingHours: data.operatingHours,
                             status: data.status,
                             shopId: data.id,
+                            isVerified: data.isVerified,
                             isFavorite:
                                 _localFavorites[data.id] ?? data.isFavorite,
                             onFavoriteToggle: () => _toggleFavorite(data),

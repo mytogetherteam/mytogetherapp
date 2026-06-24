@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
+import '../widgets/flexible_delivery_note.dart';
 import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/time_formatter.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
@@ -161,12 +161,18 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final foodPrice = order?.itemPrice ??
         order?.resolvedItemSubtotal ??
         (foodFromItems > 0 ? foodFromItems : 0);
-    final taxAmount = order?.taxAmount ?? OrderTax.calculateTax(foodPrice);
-    final total = order?.totalAmount ??
-        OrderTax.calculateTotal(
-          itemSubtotal: foodPrice,
-          deliveryFee: order?.isPickupFulfillment == true ? 0 : deliveryFee,
-        );
+    final taxAmount = order?.resolvedTaxAmount ?? 0;
+    final total = order == null
+        ? 0.0
+        : (order.isFlexibleDelivery
+            ? order.resolvedPayNowTotal(
+                fallbackDeliveryFee: deliveryFee,
+              )
+            : (order.totalAmount ??
+                order.resolvedGrandTotal(
+                  fallbackDeliveryFee:
+                      order.isPickupFulfillment ? 0 : deliveryFee,
+                )));
     final displayTotal =
         order?.displayTotalAmount ?? total.toFormattedPrice();
     
@@ -344,14 +350,21 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 order?.displayFoodPrice ??
                                     foodPrice.toFormattedPrice(),
                               ),
-                              const SizedBox(height: 12),
-                              _buildSummaryRow(
-                                context.tr('order_status.tax'),
-                                order?.displayTaxAmount ??
-                                    taxAmount.toFormattedPrice(),
-                              ),
+                              if (order?.resolvedTaxEnable ?? true) ...[
+                                const SizedBox(height: 12),
+                                _buildSummaryRow(
+                                  context.tr('order_status.tax'),
+                                  order?.displayTaxAmount ??
+                                      taxAmount.toFormattedPrice(),
+                                ),
+                              ],
                               const SizedBox(height: 12),
                               _buildDeliveryFeeRow(context, order, deliveryFee),
+                              if (order?.isFlexibleDelivery == true &&
+                                  order?.isPickupFulfillment != true) ...[
+                                const SizedBox(height: 12),
+                                const FlexibleDeliveryNote(),
+                              ],
                               if (orderItems.isNotEmpty) ...[
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 12),
@@ -454,13 +467,14 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     ActiveOrderItem? order,
     double deliveryFee,
   ) {
+    final isFlexible = order?.isFlexibleDelivery == true;
     final isConfirmed = deliveryFee > 0;
-    final feeLabel = isConfirmed
-        ? context.tr('order_status.delivery_fee')
-        : context.tr('payment.est_delivery_fee');
-    final badgeLabel = isConfirmed
-        ? context.tr('payment.delivery_fee_badge_confirmed')
-        : context.tr('payment.delivery_fee_badge_estimate');
+    final feeLabel = isFlexible || !isConfirmed
+        ? context.tr('payment.est_delivery_fee')
+        : context.tr('order_status.delivery_fee');
+    final badgeLabel = isFlexible || !isConfirmed
+        ? context.tr('payment.delivery_fee_badge_estimate')
+        : context.tr('payment.delivery_fee_badge_confirmed');
     final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
         ? order!.displayDeliveryFee!
         : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');

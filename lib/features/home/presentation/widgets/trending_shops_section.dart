@@ -113,6 +113,7 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
                     operatingHours: data.operatingHours,
                     status: data.status,
                     shopId: data.id,
+                    isVerified: data.isVerified,
                     compact: true,
                     isFavorite: _localFavorites[data.id] ?? data.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(data),

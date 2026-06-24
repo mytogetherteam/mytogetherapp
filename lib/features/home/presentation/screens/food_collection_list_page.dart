@@ -311,6 +311,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
           operatingHours: data.operatingHours,
           status: data.status,
           shopId: data.id,
+          isVerified: data.isVerified,
           isFavorite: _localFavorites[data.id] ?? data.isFavorite,
           onFavoriteToggle: () => _toggleFavorite(data),
           width: double.infinity,
