@@ -17,6 +17,7 @@ import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
 import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -416,6 +417,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   }
 
   Future<void> _openReviewFlow({int initialRating = 0}) async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+
     final orderIdInt = int.tryParse(widget.order.id);
     if (orderIdInt == null) {
       AppDialog.showToast(

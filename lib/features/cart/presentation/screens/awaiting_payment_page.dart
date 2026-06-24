@@ -1006,72 +1006,28 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       ),
                     ],
                     const SizedBox(height: 10),
-                    if (order?.isPickupFulfillment != true) ...[
+                    if (order?.isPickupFulfillment != true &&
+                        order?.hasDeliveryFeeEstimate == true) ...[
                       _summaryRow(
                         order?.isFlexibleDelivery == true
                             ? context.tr('payment.est_delivery_fee')
                             : context.tr('order_status.delivery_fee'),
                         '',
-                        customValue:
-                            (order?.deliveryFee != null &&
-                                order!.deliveryFee! > 0)
-                            ? (order.isFlexibleDelivery
-                                  ? GradientText(
-                                      '฿ ${order.deliveryFee!.toInt()}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )
-                                  : Text(
-                                      '฿ ${order.deliveryFee!.toInt()}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                      ),
-                                    ))
-                            : (order?.isFlexibleDelivery == true)
-                            ? Text(
-                                context.tr('payment.calculate_later'),
+                        customValue: order!.isFlexibleDelivery
+                            ? GradientText(
+                                '฿ ${order.deliveryFee!.toInt()}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black54,
                                 ),
                               )
-                            : AnimatedBuilder(
-                                animation: _dotsAnimController,
-                                builder: (context, _) {
-                                  final dots =
-                                      '.' *
-                                      ((_dotsAnimController.value * 4).floor() %
-                                          4);
-                                  return Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        context.tr('order_tracking.calculating'),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 15,
-                                        child: Text(
-                                          dots,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
+                            : Text(
+                                '฿ ${order.deliveryFee!.toInt()}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
                               ),
                         isValue: false,
                       ),
@@ -1104,12 +1060,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                       .toFormattedPrice())),
                       isValue: true,
                     ),
-                    if (order?.estimatedTime != null &&
-                        order!.estimatedTime!.isNotEmpty) ...[
+                    if (order?.hasPrepTimeEstimate == true) ...[
                       const SizedBox(height: 12),
                       _summaryRow(
                         context.tr('payment.est_waiting_time'),
-                        TimeFormatter.normalizeDisplay(order.estimatedTime!),
+                        TimeFormatter.normalizeDisplay(order!.estimatedTime!),
                         isValue: false,
                       ),
                     ],
@@ -1153,41 +1108,39 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Timer dummy for now
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                PhosphorIcons.clock,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              GradientText(
-                                (order?.estimatedTime != null &&
-                                        order!.estimatedTime!.isNotEmpty)
-                                    ? TimeFormatter.normalizeDisplay(
-                                        order.estimatedTime!,
-                                      )
-                                    : '05:00',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                        if (order?.hasPrepTimeEstimate == true) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  PhosphorIcons.clock,
+                                  size: 16,
+                                  color: AppColors.primary,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                GradientText(
+                                  TimeFormatter.normalizeDisplay(
+                                    order!.estimatedTime!,
+                                  ),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
+                        ],
                         // Payment image
                         RepaintBoundary(
                           key: _qrKey,

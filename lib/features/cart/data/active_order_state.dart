@@ -127,10 +127,11 @@ class ActiveOrderItem {
   /// and paid to the rider on arrival. FAST delivery includes fee in-app total.
   bool get isFlexibleDelivery {
     if (isPickupFulfillment) return false;
-    final type = (orderDeliveryType ?? deliveryType ?? '').toUpperCase();
-    if (type == 'FAST') return false;
+    final type = (orderDeliveryType ?? '').toUpperCase();
+    if (type == 'FAST' || type == 'PREPAID') return false;
     if (type == 'FLEXIBLE' || type == 'NORMAL') return true;
-    return true;
+    // Tier is chosen by the shop on confirm; until then treat as flexible.
+    return type.isEmpty;
   }
 
   bool get resolvedTaxEnable => taxEnable ?? true;
@@ -177,6 +178,20 @@ class ActiveOrderItem {
       return resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee);
     }
     return resolvedItemSubtotal + resolvedTaxAmount;
+  }
+
+  bool get hasDeliveryFeeEstimate {
+    final fee = deliveryFee;
+    return fee != null && fee > 0;
+  }
+
+  bool get hasPrepTimeEstimate {
+    final time = estimatedTime?.trim();
+    if (time == null || time.isEmpty) return false;
+    final normalized = time.toLowerCase();
+    return normalized != '0' &&
+        normalized != '0 mins' &&
+        normalized != '0 min';
   }
 
   ActiveOrderItem({
@@ -385,7 +400,7 @@ class ActiveOrderItem {
         paymentMethodImageUrl: json['paymentMethodImageUrl'],
         taxEnable: json['taxEnable'] as bool?,
         proofPhotoUrl: json['proofPhotoUrl'],
-        deliveryType: json['deliveryType'] ?? json['orderDeliveryType'],
+        deliveryType: json['deliveryType'] as String?,
         orderDeliveryType: json['orderDeliveryType'] as String?,
         orderType: json['orderType'],
         backendStatus: json['backendStatus'],
@@ -542,6 +557,9 @@ class ActiveOrderState extends ChangeNotifier {
   int get orderStatus => _primary?.orderStatus ?? 0;
   bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
   bool get isFlexibleDelivery => _primary?.isFlexibleDelivery ?? false;
+  bool get hasDeliveryFeeEstimate =>
+      _primary?.hasDeliveryFeeEstimate ?? false;
+  bool get hasPrepTimeEstimate => _primary?.hasPrepTimeEstimate ?? false;
   bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
@@ -846,8 +864,10 @@ class ActiveOrderState extends ChangeNotifier {
     }
     if (item == null) return;
 
-    if (data['deliveryFee'] != null)
-      item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
+    if (data['deliveryFee'] != null) {
+      final fee = _parseSafeDouble(data['deliveryFee']);
+      if (fee != null) item.deliveryFee = fee;
+    }
     if (data['itemPrice'] != null)
       item.itemPrice = _parseSafeDouble(data['itemPrice']);
     if (data['taxAmount'] != null)
@@ -878,8 +898,11 @@ class ActiveOrderState extends ChangeNotifier {
     }
     if (data['deliveryCycleNo'] != null)
       item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
-    if (data['waitingTimeMinutes'] != null) {
-      item.estimatedTime = "${data['waitingTimeMinutes']} mins";
+    final waitMins = data['waitingTimeMinutes'] != null
+        ? _parseSafeInt(data['waitingTimeMinutes'])
+        : null;
+    if (waitMins != null && waitMins > 0) {
+      item.estimatedTime = '$waitMins mins';
     }
 
     var trackingUrl = _parseSafeString(
@@ -924,19 +947,11 @@ class ActiveOrderState extends ChangeNotifier {
       item.storeName = parsedShopNameEn;
     }
 
-    if (data['deliveryType'] != null || data['orderDeliveryType'] != null) {
-      item.deliveryType = _parseSafeString(
-        data['deliveryType'] ?? data['orderDeliveryType'],
-      );
-    }
     if (data['orderDeliveryType'] != null) {
       item.orderDeliveryType = _parseSafeString(data['orderDeliveryType']);
     }
-    if (data['orderDeliveryType'] != null) {
-      item.orderDeliveryType = _parseSafeString(data['orderDeliveryType']);
-    }
-    if (data['orderDeliveryType'] != null) {
-      item.orderDeliveryType = _parseSafeString(data['orderDeliveryType']);
+    if (data['deliveryType'] != null) {
+      item.deliveryType = _parseSafeString(data['deliveryType']);
     }
     if (data['orderType'] != null) {
       item.orderType = _parseSafeString(data['orderType']);
@@ -966,8 +981,12 @@ class ActiveOrderState extends ChangeNotifier {
       item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
     if (data['displayTaxAmount'] != null)
       item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
-    if (data['displayDeliveryFee'] != null)
-      item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+    if (data['displayDeliveryFee'] != null) {
+      final fee = item.deliveryFee ?? _parseSafeDouble(data['deliveryFee']);
+      if (fee != null && fee > 0) {
+        item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+      }
+    }
     if (data['displayTotalAmount'] != null)
       item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
     if (item.displayFoodPrice == null && item.itemPrice != null) {
@@ -1495,8 +1514,12 @@ class ActiveOrderState extends ChangeNotifier {
           displayTaxAmount: o.displayTaxAmount,
           taxEnable: o.taxAmount == 0 && (o.itemPrice ?? 0) > 0 ? false : true,
           displayTotalAmount: o.displayTotalAmount,
-          deliveryFee: o.deliveryFee,
-          displayDeliveryFee: o.displayDeliveryFee,
+          deliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+              ? o.deliveryFee
+              : null,
+          displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+              ? o.displayDeliveryFee
+              : null,
         );
         applyStatusString(item, o.status);
         _orders[o.id] = item;

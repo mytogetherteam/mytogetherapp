@@ -14,6 +14,7 @@ import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/time_formatter.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 import '../../../reviews/data/repositories/shop_review_repository.dart';
 
@@ -113,6 +114,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final shopId = int.tryParse(ActiveOrderState.instance.shopId ?? '');
 
     if (ratingValue > 0 && orderId != null) {
+      if (!await GuestAuthGuard.requireAccount(context)) return;
       setState(() => _isSubmitting = true);
       final result = await OrderReviewRepository.instance.create(
         orderId: orderId,
@@ -297,7 +299,15 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           children: List.generate(5, (index) {
                             final isSelected = _rating > index;
                             return GestureDetector(
-                              onTap: () => setState(() => _rating = index + 1),
+                              onTap: () async {
+                                if (!await GuestAuthGuard.requireAccount(
+                                  context,
+                                )) {
+                                  return;
+                                }
+                                if (!mounted) return;
+                                setState(() => _rating = index + 1);
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 6),
                                 child: Icon(
@@ -358,8 +368,11 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                       taxAmount.toFormattedPrice(),
                                 ),
                               ],
-                              const SizedBox(height: 12),
-                              _buildDeliveryFeeRow(context, order, deliveryFee),
+                              if (!order!.isPickupFulfillment &&
+                                  order.hasDeliveryFeeEstimate) ...[
+                                const SizedBox(height: 12),
+                                _buildDeliveryFeeRow(context, order, deliveryFee),
+                              ],
                               if (order?.isFlexibleDelivery == true &&
                                   order?.isPickupFulfillment != true) ...[
                                 const SizedBox(height: 12),

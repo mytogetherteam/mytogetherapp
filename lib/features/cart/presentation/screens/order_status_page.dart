@@ -495,15 +495,16 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             if (_currentStatus != -1) ...[
               Text(
                 state.isPickupFulfillment
-                    ? (state.estimatedTime != null &&
-                            state.estimatedTime!.isNotEmpty
+                    ? (state.hasPrepTimeEstimate
                         ? '${context.tr('order_status.est_waiting_time')}: ${TimeFormatter.normalizeDisplay(state.estimatedTime!)}'
                         : context.tr('order_status.preparing'))
-                    : context.trArgs('order_status.estimate_arrival', {
-                        'time': TimeFormatter.normalizeDisplay(
-                          state.estimatedTime ?? '21:45',
-                        ),
-                      }),
+                    : (state.hasPrepTimeEstimate
+                        ? context.trArgs('order_status.estimate_arrival', {
+                            'time': TimeFormatter.normalizeDisplay(
+                              state.estimatedTime!,
+                            ),
+                          })
+                        : context.tr('order_tracking.restaurant_reviewing')),
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
@@ -631,14 +632,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             ),
             
             // Est Waiting Time and Delivery Fee Gradient Section
-            if (_currentStatus != -1) ...[
+            if (_currentStatus != -1 &&
+                (state.hasPrepTimeEstimate || state.hasDeliveryFeeEstimate)) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (state.estimatedTime != null &&
-                        state.estimatedTime!.isNotEmpty)
+                    if (state.hasPrepTimeEstimate)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -660,7 +661,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                       ),
-                    if (!state.isPickupFulfillment)
+                    if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -677,7 +678,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                           GradientText(
                             state.displayDeliveryFee ??
-                                widget.deliveryFee.toFormattedPrice(),
+                                state.deliveryFee!.toFormattedPrice(),
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -970,14 +971,15 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
                                 ),
                               ],
-                              if (!state.isPickupFulfillment) ...[
+                              if (!state.isPickupFulfillment &&
+                                  state.hasDeliveryFeeEstimate) ...[
                                 const SizedBox(height: 8),
                                 _buildSummaryRow(
                                   state.isFlexibleDelivery
                                       ? context.tr('payment.est_delivery_fee')
                                       : context.tr('order_status.delivery_fee'),
                                   state.displayDeliveryFee ??
-                                      widget.deliveryFee.toFormattedPrice(),
+                                      state.deliveryFee!.toFormattedPrice(),
                                 ),
                               ],
                               if (state.isFlexibleDelivery &&

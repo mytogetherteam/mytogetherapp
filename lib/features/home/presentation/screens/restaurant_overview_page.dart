@@ -178,19 +178,17 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  Center(
-                    child: VerifiedRestaurantNameRow(
+                  VerifiedRestaurantNameRow(
                       name: restaurant.name,
                       isVerified: restaurant.isVerified,
                       badgeSize: MyTogetherVerifiedBadge.overviewSize,
-                      alignment: MainAxisAlignment.center,
+                      centered: true,
                       style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
-                  ),
                   const SizedBox(height: 4),
                   Center(
                     child: Row(

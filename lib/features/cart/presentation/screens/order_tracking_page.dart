@@ -1222,10 +1222,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             ),
                           ],
 
-                          const SizedBox(height: 12),
-
-                          if (!ActiveOrderState.instance.isPickupFulfillment)
+                          if (!ActiveOrderState.instance.isPickupFulfillment &&
+                              ActiveOrderState.instance.hasDeliveryFeeEstimate) ...[
+                            const SizedBox(height: 12),
                             _buildDeliveryFeeRow(),
+                          ],
 
                           if (ActiveOrderState.instance.isFlexibleDelivery &&
                               !ActiveOrderState.instance.isPickupFulfillment) ...[
@@ -1233,8 +1234,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             const FlexibleDeliveryNote(),
                           ],
 
-                          if (!ActiveOrderState.instance.isPickupFulfillment)
-                            const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
                           _buildInfoRow(
                             label: ActiveOrderState.instance.isFlexibleDelivery
@@ -1246,47 +1246,45 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 28),
 
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.access_time,
-                                  size: 16,
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.7,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: GradientText(
-                                    ActiveOrderState.instance.estimatedTime ?? context.tr(
-                                      _showLongWaitHint
-                                          ? 'order_tracking.taking_longer'
-                                          : 'order_tracking.usually_takes',
+                          if (ActiveOrderState.instance.hasPrepTimeEstimate)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 16,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.7,
                                     ),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: GradientText(
+                                      ActiveOrderState.instance.estimatedTime!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
 
-                          const SizedBox(height: 24),
+                          if (ActiveOrderState.instance.hasPrepTimeEstimate)
+                            const SizedBox(height: 24),
 
                           Center(
                             child: TextButton(
@@ -1393,50 +1391,19 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   Widget _buildDeliveryFeeRow() {
     final state = ActiveOrderState.instance;
-    final isPickup = state.isPickupFulfillment;
     final fee = _deliveryFee ?? state.deliveryFee;
-    final feeLabel = isPickup
-        ? context.tr('order_status.pickup_fee')
-        : (state.isFlexibleDelivery
-            ? context.tr('payment.est_delivery_fee')
-            : context.tr('order_status.delivery_fee'));
-
-    if (!isPickup && fee != null && fee > 0) {
-      return _buildInfoRow(
-        label: feeLabel,
-        value: state.displayDeliveryFee ?? fee.toFormattedPrice(),
-        valueColor: Colors.black,
-      );
+    if (state.isPickupFulfillment || fee == null || fee <= 0) {
+      return const SizedBox.shrink();
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Text(
-              feeLabel,
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
-          ],
-        ),
-        AnimatedBuilder(
-          animation: _dotsAnimController,
-          builder: (context, _) {
-            final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
-            return Text(
-              '${context.tr('order_tracking.calculating')}$dots',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            );
-          },
-        ),
-      ],
+    final feeLabel = state.isFlexibleDelivery
+        ? context.tr('payment.est_delivery_fee')
+        : context.tr('order_status.delivery_fee');
+
+    return _buildInfoRow(
+      label: feeLabel,
+      value: state.displayDeliveryFee ?? fee.toFormattedPrice(),
+      valueColor: Colors.black,
     );
   }
 
