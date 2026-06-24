@@ -1095,7 +1095,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             left: 0,
             right: 0,
             child: Container(
-              height: panelH,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1107,16 +1106,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 28),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                           GradientText(
                             context.tr('order_tracking.awaiting_confirmation'),
                             style: GoogleFonts.poppins(
@@ -1299,12 +1296,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           ),
                         ],
                       ),
-                    ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
