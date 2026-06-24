@@ -347,7 +347,7 @@ class ActiveOrderItem {
     paymentMethodId: json['paymentMethodId'],
     paymentMethodImageUrl: json['paymentMethodImageUrl'],
     proofPhotoUrl: json['proofPhotoUrl'],
-    deliveryType: json['deliveryType'],
+    deliveryType: json['deliveryType'] ?? json['orderDeliveryType'],
     orderType: json['orderType'],
     backendStatus: json['backendStatus'],
     lastOrderNo: json['lastOrderNo'],
@@ -820,8 +820,8 @@ class ActiveOrderState extends ChangeNotifier {
       item.storeName = parsedShopNameEn;
     }
     
-    if (data['deliveryType'] != null) {
-      item.deliveryType = _parseSafeString(data['deliveryType']);
+    if (data['deliveryType'] != null || data['orderDeliveryType'] != null) {
+      item.deliveryType = _parseSafeString(data['deliveryType'] ?? data['orderDeliveryType']);
     }
     if (data['orderType'] != null) {
       item.orderType = _parseSafeString(data['orderType']);

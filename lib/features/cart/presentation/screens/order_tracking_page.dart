@@ -1261,7 +1261,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: GradientText(
-                                    context.tr(
+                                    ActiveOrderState.instance.estimatedTime ?? context.tr(
                                       _showLongWaitHint
                                           ? 'order_tracking.taking_longer'
                                           : 'order_tracking.usually_takes',
