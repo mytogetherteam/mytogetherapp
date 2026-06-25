@@ -6,7 +6,14 @@ import '../screens/cart_page.dart';
 import '../../data/active_order_state.dart';
 
 class StyledCartFab extends StatelessWidget {
-  const StyledCartFab({super.key});
+  const StyledCartFab({super.key, this.liftAboveActiveOrderBar = true});
+
+  /// Whether to raise the cart above the active-order tracking card.
+  ///
+  /// Only tabs that actually render [ActiveOrderBar] (Home, Food) should set
+  /// this to true. On tabs without the tracking card (e.g. Order History) it
+  /// stays false so the cart rests in its original place.
+  final bool liftAboveActiveOrderBar;
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +22,14 @@ class StyledCartFab extends StatelessWidget {
       builder: (context, _) {
         final cartCount = CartManager.instance.totalItemCount;
         final hasActiveOrder = ActiveOrderState.instance.hasActiveOrder;
+        final lift = liftAboveActiveOrderBar && hasActiveOrder;
 
         if (cartCount <= 0) return const SizedBox.shrink();
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          margin: EdgeInsets.only(bottom: hasActiveOrder ? 130.0 : 0.0),
+          margin: EdgeInsets.only(bottom: lift ? 130.0 : 0.0),
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
             shape: BoxShape.circle,

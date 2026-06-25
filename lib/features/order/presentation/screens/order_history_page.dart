@@ -12,6 +12,8 @@ import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
+import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -169,19 +171,33 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 ],
               ),
       ),
-      body: isGuest
-          ? _buildGuestState()
-          : _isLoading
-              ? _buildSkeletonLoading()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOrdersList(
-                        _completedOrders, context.tr('orders.no_completed')),
-                    _buildOrdersList(
-                        _cancelledOrders, context.tr('orders.no_cancelled')),
-                  ],
-                ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: isGuest
+                ? _buildGuestState()
+                : _isLoading
+                    ? _buildSkeletonLoading()
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOrdersList(_completedOrders,
+                              context.tr('orders.no_completed')),
+                          _buildOrdersList(_cancelledOrders,
+                              context.tr('orders.no_cancelled')),
+                        ],
+                      ),
+          ),
+          // Active-order tracking card overlay (self-hides when idle), matching
+          // the Home and Food tabs.
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: ActiveOrderBar(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -272,19 +288,28 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: orders.length,
-        itemBuilder: (context, index) {
-          return OrderHistoryCard(
-            order: orders[index],
-            onReviewSubmitted: _loadData,
-          );
-        },
-      ),
+    return ListenableBuilder(
+      listenable: ActiveOrderState.instance,
+      builder: (context, _) {
+        // Reserve space at the bottom so the last card can scroll clear of the
+        // active-order tracking card when one is showing.
+        final bottomInset =
+            ActiveOrderState.instance.hasActiveOrder ? 128.0 : 8.0;
+        return RefreshIndicator(
+          onRefresh: _loadData,
+          color: AppColors.primary,
+          child: ListView.builder(
+            padding: EdgeInsets.only(top: 8, bottom: bottomInset),
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              return OrderHistoryCard(
+                order: orders[index],
+                onReviewSubmitted: _loadData,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
