@@ -1220,8 +1220,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             ),
                           ],
 
-                          if (!ActiveOrderState.instance.isPickupFulfillment &&
-                              ActiveOrderState.instance.hasDeliveryFeeEstimate) ...[
+                          if (!ActiveOrderState.instance.isPickupFulfillment) ...[
                             const SizedBox(height: 12),
                             _buildDeliveryFeeRow(),
                           ],
@@ -1238,45 +1237,50 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 28),
 
-                          if (ActiveOrderState.instance.hasPrepTimeEstimate)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    size: 16,
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: GradientText(
-                                      ActiveOrderState.instance.estimatedTime!,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          // During confirmation the shop hasn't set a prep time
+                          // yet, so show a reassuring hint ("usually takes…" /
+                          // "taking longer…") rather than a literal 0 mins.
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
                             ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 16,
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GradientText(
+                                    context.tr(
+                                      _showLongWaitHint
+                                          ? 'order_tracking.taking_longer'
+                                          : 'order_tracking.usually_takes',
+                                    ),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
 
-                          if (ActiveOrderState.instance.hasPrepTimeEstimate)
-                            const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
                           Center(
                             child: TextButton(
@@ -1348,20 +1352,37 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildDeliveryFeeRow() {
-    final state = ActiveOrderState.instance;
-    final fee = _deliveryFee ?? state.deliveryFee;
-    if (state.isPickupFulfillment || fee == null || fee <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    final feeLabel = state.isFlexibleDelivery
-        ? context.tr('payment.est_delivery_fee')
-        : context.tr('order_status.delivery_fee');
-
-    return _buildInfoRow(
-      label: feeLabel,
-      value: state.displayDeliveryFee ?? fee.toFormattedPrice(),
-      valueColor: Colors.black,
+    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Text(
+              isPickup
+                  ? context.tr('order_status.pickup_fee')
+                  : context.tr('order_status.delivery_fee'),
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
+          ],
+        ),
+        AnimatedBuilder(
+          animation: _dotsAnimController,
+          builder: (context, _) {
+            final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
+            return Text(
+              '${context.tr('order_tracking.calculating')}$dots',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 

@@ -16,6 +16,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
+import '../widgets/flexible_delivery_note.dart';
 import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
@@ -985,6 +986,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   state.displayDeliveryFee ??
                                       state.deliveryFee!.toFormattedPrice(),
                                 ),
+                              ],
+                              if (state.isFlexibleDelivery &&
+                                  !state.isAwaitingShopConfirmation) ...[
+                                const SizedBox(height: 12),
+                                const FlexibleDeliveryNote(),
                               ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),

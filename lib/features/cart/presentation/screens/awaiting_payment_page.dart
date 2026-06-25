@@ -24,6 +24,7 @@ import 'order_status_page.dart';
 import 'order_cancel_page.dart';
 import 'revise_order_page.dart';
 import '../widgets/revise_unavailable_items_section.dart';
+import '../widgets/flexible_delivery_note.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -1067,6 +1068,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                   ],
                 ),
               ),
+              // Flexible delivery: the customer pays food + tax now and the
+              // delivery fee to the rider later. Only relevant once the shop has
+              // confirmed (and locked in the flexible tier).
+              if (order?.isFlexibleDelivery == true &&
+                  order?.isAwaitingShopConfirmation != true) ...[
+                const SizedBox(height: 12),
+                const FlexibleDeliveryNote(),
+              ],
               const SizedBox(height: 20),
 
               // ── Rider Info (if available) ──
