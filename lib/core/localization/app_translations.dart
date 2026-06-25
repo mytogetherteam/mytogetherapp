@@ -126,6 +126,10 @@ class AppTranslations {
     'profile.delete_account_sub': 'Permanently delete your account',
     'profile.logout': 'Logout',
     'profile.logout_confirm': 'Are you sure you want to log out?',
+    'profile.logout_active_order_hint': 'Unavailable while an order is active',
+    'profile.logout_active_order_title': 'Order in progress',
+    'profile.logout_active_order_message':
+        'You can\'t log out while you have an active order. Please wait until it\'s completed or cancelled.',
     'profile.app_permissions': 'App Permissions',
     'profile.app_permissions_sub': 'Manage notifications and location access',
     'profile.privacy_policy': 'Privacy Policy',
@@ -1084,6 +1088,10 @@ class AppTranslations {
     'profile.delete_account_sub': 'ဘော်ဒါ့အကောင့်ကို အပြီးအပိုင်ဖျက်မယ်',
     'profile.logout': 'ထွက်မယ်',
     'profile.logout_confirm': 'အကောင့်မှ ထွက်ရန် သေချာပါသလား။',
+    'profile.logout_active_order_hint': 'အော်ဒါ ဆောင်ရွက်ဆဲဖြစ်နေစဉ် ထွက်၍မရပါ',
+    'profile.logout_active_order_title': 'အော်ဒါ ဆောင်ရွက်ဆဲ',
+    'profile.logout_active_order_message':
+        'အော်ဒါ ဆောင်ရွက်ဆဲဖြစ်နေစဉ် အကောင့်မှ ထွက်၍မရပါ။ အော်ဒါ ပြီးဆုံးခြင်း သို့မဟုတ် ပယ်ဖျက်ခြင်း ပြုလုပ်ပြီးသည်အထိ စောင့်ပါ။',
     'profile.app_permissions': 'အက်ပ်ခွင့်ပြုချက်များ',
     'profile.app_permissions_sub':
         'အသိပေးချက်နှင့် တည်နေရာ ခွင့်ပြုချက်များကို စီမံပါ',
@@ -2037,6 +2045,10 @@ class AppTranslations {
     'profile.delete_account_sub': 'ลบบัญชีของคุณอย่างถาวร',
     'profile.logout': 'ออกจากระบบ',
     'profile.logout_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
+    'profile.logout_active_order_hint': 'ออกจากระบบไม่ได้ขณะมีคำสั่งซื้อที่กำลังดำเนินการ',
+    'profile.logout_active_order_title': 'มีคำสั่งซื้อที่กำลังดำเนินการ',
+    'profile.logout_active_order_message':
+        'คุณไม่สามารถออกจากระบบได้ขณะมีคำสั่งซื้อที่กำลังดำเนินการ กรุณารอจนกว่าคำสั่งซื้อจะเสร็จสิ้นหรือถูกยกเลิก',
     'profile.app_permissions': 'สิทธิ์การเข้าถึงของแอป',
     'profile.app_permissions_sub': 'จัดการการแจ้งเตือนและการเข้าถึงตำแหน่ง',
     'profile.privacy_policy': 'นโยบายความเป็นส่วนตัว',

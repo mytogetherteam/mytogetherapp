@@ -23,6 +23,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../cart/data/active_order_state.dart';
 import 'auth_entry_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -145,32 +146,65 @@ class _ProfilePageState extends State<ProfilePage> {
             
             const SizedBox(height: 20),
 
-            // Logout Button
+            // Logout Button — blocked while an order is active.
             if (!isGuest)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: GestureDetector(
-                  onTap: () => _handleLogout(context),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.red.shade100),
-                    ),
-                    child: Center(
-                      child: Text(
-                        context.tr('profile.logout'),
-                        style: GoogleFonts.poppins(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+              ListenableBuilder(
+                listenable: ActiveOrderState.instance,
+                builder: (context, _) {
+                  final blocked = ActiveOrderState.instance.hasActiveOrder;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    child: GestureDetector(
+                      onTap: () => blocked
+                          ? _showLogoutBlockedDialog(context)
+                          : _handleLogout(context),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: blocked ? Colors.grey.shade100 : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: blocked
+                                ? Colors.grey.shade300
+                                : Colors.red.shade100,
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.tr('profile.logout'),
+                                style: GoogleFonts.poppins(
+                                  color: blocked
+                                      ? Colors.grey.shade400
+                                      : Colors.red,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (blocked) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  context.tr(
+                                      'profile.logout_active_order_hint'),
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             if (_appVersion.isNotEmpty)
               Padding(
@@ -461,7 +495,21 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _showLogoutBlockedDialog(BuildContext context) {
+    AppDialog.show(
+      context: context,
+      title: context.tr('profile.logout_active_order_title'),
+      content: context.tr('profile.logout_active_order_message'),
+      buttonText: context.tr('common.got_it'),
+    );
+  }
+
   void _handleLogout(BuildContext context) {
+    // Guard: never log out while an order is active.
+    if (ActiveOrderState.instance.hasActiveOrder) {
+      _showLogoutBlockedDialog(context);
+      return;
+    }
     AppDialog.show(
       context: context,
       title: context.tr('profile.logout'),
