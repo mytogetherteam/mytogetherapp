@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/media/image_crop_helper.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -61,10 +62,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         maxWidth: 1024,
       );
       if (picked != null) {
+        // Let the user frame their avatar with a square crop.
+        final cropped = await ImageCropHelper.crop(picked, square: true);
+        if (cropped == null) return;
         setState(
           () => _pickedImage = null,
         );
-        final image = await PickedImage.fromXFile(picked);
+        final image = await PickedImage.fromXFile(cropped);
         if (mounted) setState(() => _pickedImage = image);
       }
     } catch (e) {

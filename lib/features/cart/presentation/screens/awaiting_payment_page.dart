@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/media/image_bytes_saver.dart';
+import '../../../../core/media/image_crop_helper.dart';
 import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
@@ -406,7 +407,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
       if (picked == null || !mounted) return;
 
-      final image = await PickedImage.fromXFile(picked);
+      // Let the user crop the payment slip so the amount/reference is clear.
+      final cropped = await ImageCropHelper.crop(picked);
+      if (cropped == null || !mounted) return;
+
+      final image = await PickedImage.fromXFile(cropped);
       final sizeInMb = image.sizeInMb;
 
       if (sizeInMb > 5.0) {
