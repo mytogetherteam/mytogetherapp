@@ -680,14 +680,17 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 2),
                           GestureDetector(
                             onTap: () => _removeRecentSearch(term),
                             behavior: HitTestBehavior.opaque,
-                            child: Icon(
-                              PhosphorIcons.x,
-                              size: 14,
-                              color: Colors.black38,
+                            child: const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Icon(
+                                PhosphorIcons.x,
+                                size: 16,
+                                color: Colors.black54,
+                              ),
                             ),
                           ),
                         ],
