@@ -66,6 +66,18 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   List<NewsComment> _comments = [];
 
+  /// True once the comment list has been fetched at least once. After that the
+  /// counter is driven by the comments actually loaded (the source of truth for
+  /// the rendered list) rather than the feed payload's `commentsCount`, which
+  /// can be stale/0 and is what caused the icon to show 0 next to a visible
+  /// comment.
+  bool _commentsLoaded = false;
+
+  /// Count shown next to the comment icon. Falls back to the feed value until
+  /// the real comments arrive, then mirrors the loaded list exactly.
+  int get _displayCommentCount =>
+      _commentsLoaded ? _comments.length : widget.item.commentsCount;
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +119,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _commentsLoaded = true;
           _syncCommentCount();
         });
       } else if (widget.item.source == FeedSource.itemPost) {
@@ -125,6 +138,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _commentsLoaded = true;
           _syncCommentCount();
         });
       }
@@ -227,6 +241,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _commentsLoaded = true;
               _syncCommentCount();
             });
           }
@@ -248,6 +263,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _commentsLoaded = true;
               _syncCommentCount();
             });
           }
@@ -272,6 +288,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           timeAgo: context.tr('common.just_now'),
         ),
       );
+      _commentsLoaded = true;
+      _syncCommentCount();
     });
   }
 
@@ -713,7 +731,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _formatCount(widget.item.commentsCount),
+                                _formatCount(_displayCommentCount),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   color: Colors.black54,
