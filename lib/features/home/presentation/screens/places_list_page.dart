@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import '../widgets/place_card.dart';
 import '../../data/models/place_dto.dart';
 import '../../data/repositories/places_repository.dart';
@@ -36,8 +38,13 @@ class _PlacesListPageState extends State<PlacesListPage> {
         longitude: pos.longitude,
       );
       if (mounted) {
+        final repo = WishlistRepository.instance;
         setState(() {
-          _places = feed.items;
+          // The wishlist is the source of truth for the favorite heart so the
+          // saved state survives reloads even when the feed omits `isFavorite`.
+          _places = feed.items
+              .map((p) => p.copyWith(isFavorite: repo.isPlaceSaved(p.id)))
+              .toList();
           _isLoading = false;
         });
       }
@@ -56,6 +63,17 @@ class _PlacesListPageState extends State<PlacesListPage> {
     });
     try {
       await WishlistRepository.instance.togglePlace(place.id, next);
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr(next ? 'wishlist.saved' : 'wishlist.removed'),
+          actionLabel: next ? context.tr('wishlist.view_action') : null,
+          onAction: next
+              ? () => WishlistPage.open(context,
+                  initialTab: WishlistPage.tabPlaces)
+              : null,
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -130,6 +148,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
                         category: place.locationName,
                         distance: place.formattedDistance,
                         imagePath: image,
+                        placeId: place.id,
                         isFavorite: place.isFavorite,
                         onFavoriteToggle: () => _toggleFavorite(place),
                         onTap: () {

@@ -107,6 +107,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _syncCommentCount();
         });
       } else if (widget.item.source == FeedSource.itemPost) {
         final rows = await ItemPostRepository.instance.fetchComments(id);
@@ -124,9 +125,19 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _syncCommentCount();
         });
       }
     } catch (_) {}
+  }
+
+  /// Keeps the feed item's comment counter in sync with the comments actually
+  /// loaded/added/deleted here, so the count shown on the feed is correct when
+  /// the user navigates back (e.g. after deleting their only comment).
+  void _syncCommentCount() {
+    if (widget.item.isApiBacked) {
+      widget.item.commentsCount = _comments.length;
+    }
   }
 
   @override
@@ -216,6 +227,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _syncCommentCount();
             });
           }
         } else if (widget.item.source == FeedSource.itemPost) {
@@ -236,6 +248,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _syncCommentCount();
             });
           }
         }
@@ -346,7 +359,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     );
     if (confirmed != true) return;
 
-    setState(() => _comments.removeAt(index));
+    setState(() {
+      _comments.removeAt(index);
+      _syncCommentCount();
+    });
     try {
       if (widget.item.source == FeedSource.news) {
         await NewsRepository.instance.deleteComment(entityId, commentId);
@@ -355,7 +371,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _comments.insert(index, comment));
+      setState(() {
+        _comments.insert(index, comment);
+        _syncCommentCount();
+      });
       AppDialog.showToast(
         context,
         context.tr('comment.delete_failed'),

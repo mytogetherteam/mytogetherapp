@@ -98,7 +98,16 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
           autoFocusComment: autoFocusComment,
         ),
       ),
-    );
+    ).then((_) {
+      // Refresh likes/comment counts that may have changed in the detail page
+      // (e.g. the user deleted their comment), so the feed icons stay accurate.
+      if (mounted) {
+        setState(() {
+          _isLiked = widget.item.isLiked;
+          _likesCount = widget.item.likesCount;
+        });
+      }
+    });
   }
 
   Future<void> _openComments() async {

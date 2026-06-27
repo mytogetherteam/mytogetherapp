@@ -190,9 +190,17 @@ class AppDialog {
     );
   }
 
-  static void showToast(BuildContext context, String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+  static void showToast(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    final bool hasAction = actionLabel != null && onAction != null;
+    messenger.showSnackBar(
       SnackBar(
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -225,6 +233,33 @@ class AppDialog {
                   ),
                 ),
               ),
+              if (hasAction) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    messenger.hideCurrentSnackBar();
+                    onAction();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -233,7 +268,7 @@ class AppDialog {
         behavior: SnackBarBehavior.floating,
         padding: EdgeInsets.zero,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        duration: const Duration(seconds: 3),
+        duration: Duration(seconds: hasAction ? 5 : 3),
       ),
     );
   }

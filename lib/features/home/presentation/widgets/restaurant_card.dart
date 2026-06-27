@@ -14,6 +14,8 @@ import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../wishlist/data/repositories/wishlist_repository.dart';
+import '../../../wishlist/presentation/wishlist_favorite_action.dart';
 
 class RestaurantCard extends StatelessWidget {
   final String name;
@@ -31,6 +33,11 @@ class RestaurantCard extends StatelessWidget {
   /// When true (default) a "saved/removed" toast is shown automatically on
   /// favorite tap. Set false when the parent already shows its own toast.
   final bool showFavoriteToast;
+  /// When true (default) and a valid [shopId] is present, the heart manages
+  /// itself against the shared wishlist (instant, cross-page in sync) and the
+  /// [onFavoriteToggle] callback is treated as a no-op gate. Set false to keep
+  /// the legacy parent-driven behaviour (used by the wishlist screen).
+  final bool selfManageFavorite;
   final VoidCallback? onTap;
   final double? width;
   final EdgeInsetsGeometry? margin;
@@ -58,6 +65,7 @@ class RestaurantCard extends StatelessWidget {
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.showFavoriteToast = true,
+    this.selfManageFavorite = true,
     this.onTap,
     this.width,
     this.margin,
@@ -174,39 +182,7 @@ class RestaurantCard extends StatelessWidget {
               Positioned(
                 top: 12,
                 right: 12,
-                child: GestureDetector(
-                  onTap: onFavoriteToggle != null
-                      ? () async {
-                          if (!await GuestAuthGuard.requireAccount(context)) {
-                            return;
-                          }
-                          final willBeSaved = !isFavorite;
-                          onFavoriteToggle!.call();
-                          if (showFavoriteToast) {
-                            AppDialog.showToast(
-                              context,
-                              context.tr(
-                                willBeSaved
-                                    ? 'wishlist.saved'
-                                    : 'wishlist.removed',
-                              ),
-                            );
-                          }
-                        }
-                      : () => AppDialog.showUnavailable(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isFavorite ? PhosphorIcons.heartFill : PhosphorIcons.heart,
-                      color: isFavorite ? AppColors.primary : Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
+                child: _buildFavoriteButton(context),
               ),
               Positioned(
                 left: 12,
@@ -263,6 +239,76 @@ class RestaurantCard extends StatelessWidget {
         ],
       ),
     ),
+    );
+  }
+
+  /// Builds the favorite heart. When self-managing and a valid shop id is
+  /// present, the heart reflects the shared wishlist reactively and toggles
+  /// through it, so the saved state stays in sync across every screen.
+  Widget _buildFavoriteButton(BuildContext context) {
+    final int shopIdInt = int.tryParse(shopId ?? '') ?? 0;
+    final bool selfManaged =
+        selfManageFavorite && shopIdInt > 0 && onFavoriteToggle != null;
+
+    if (selfManaged) {
+      return ListenableBuilder(
+        listenable: WishlistRepository.instance,
+        builder: (context, _) {
+          final saved = WishlistFavoriteAction.isSaved(
+            WishlistKind.shop,
+            shopIdInt,
+            isFavorite,
+          );
+          return _favoriteIcon(
+            saved: saved,
+            onTap: () => WishlistFavoriteAction.toggle(
+              context,
+              WishlistKind.shop,
+              shopIdInt,
+              currentlySaved: saved,
+              showToast: showFavoriteToast,
+            ),
+          );
+        },
+      );
+    }
+
+    return _favoriteIcon(
+      saved: isFavorite,
+      onTap: onFavoriteToggle != null
+          ? () async {
+              if (!await GuestAuthGuard.requireAccount(context)) return;
+              if (!context.mounted) return;
+              final willBeSaved = !isFavorite;
+              onFavoriteToggle!.call();
+              if (showFavoriteToast) {
+                AppDialog.showToast(
+                  context,
+                  context.tr(
+                    willBeSaved ? 'wishlist.saved' : 'wishlist.removed',
+                  ),
+                );
+              }
+            }
+          : () => AppDialog.showUnavailable(context),
+    );
+  }
+
+  Widget _favoriteIcon({required bool saved, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          saved ? PhosphorIcons.heartFill : PhosphorIcons.heart,
+          color: saved ? AppColors.primary : Colors.white,
+          size: 20,
+        ),
+      ),
     );
   }
 

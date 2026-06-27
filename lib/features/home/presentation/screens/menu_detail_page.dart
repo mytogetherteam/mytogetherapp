@@ -25,6 +25,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../wishlist/presentation/screens/wishlist_page.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -914,12 +916,30 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           _isFavorite = !_isFavorite;
                         });
                         final messenger = ScaffoldMessenger.of(context);
+                        final savedNow = _isFavorite;
                         try {
                           await RestaurantRepository.instance
                               .toggleMenuFavorite(
                                 int.tryParse(widget.id) ?? 0,
                                 _isFavorite,
                               );
+                          if (context.mounted) {
+                            AppDialog.showToast(
+                              context,
+                              context.tr(savedNow
+                                  ? 'wishlist.saved'
+                                  : 'wishlist.removed'),
+                              actionLabel: savedNow
+                                  ? context.tr('wishlist.view_action')
+                                  : null,
+                              onAction: savedNow
+                                  ? () => WishlistPage.open(
+                                        context,
+                                        initialTab: WishlistPage.tabMenuItems,
+                                      )
+                                  : null,
+                            );
+                          }
                         } catch (e) {
                           // Rollback on error
                           if (!context.mounted) return;

@@ -1,19 +1,43 @@
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/utils/navigation_controller.dart';
+import 'package:mytogetherapp/features/home/data/models/place_dto.dart';
+import 'package:mytogetherapp/features/home/data/repositories/places_repository.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/place_detail_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/places_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_menu_item_card.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/place_card.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/restaurant_card.dart';
 
 import '../../data/models/wishlist_item_dto.dart';
 import '../../data/repositories/wishlist_repository.dart';
 
-/// "Saved Items" — shows the current user's wishlist for both menu items
-/// and shops. Backed by /api/user/wishlist/*.
+/// "Saved Items" — shows the current user's wishlist for menu items,
+/// shops and places. Backed by /api/user/wishlist/*.
 class WishlistPage extends StatefulWidget {
-  const WishlistPage({super.key});
+  /// Which tab to open initially (0 = menu items, 1 = restaurants, 2 = places).
+  final int initialTab;
+
+  const WishlistPage({super.key, this.initialTab = 0});
+
+  /// Tab index constants used by callers (e.g. the "View saved" toast action).
+  static const int tabMenuItems = 0;
+  static const int tabRestaurants = 1;
+  static const int tabPlaces = 2;
+
+  /// Convenience navigator that opens the wishlist on a specific tab.
+  static Future<void> open(BuildContext context, {int initialTab = 0}) {
+    return Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => WishlistPage(initialTab: initialTab)),
+    );
+  }
 
   @override
   State<WishlistPage> createState() => _WishlistPageState();
@@ -27,11 +51,16 @@ class _WishlistPageState extends State<WishlistPage>
   bool _loading = true;
   List<WishlistItemDto> _menuItems = [];
   List<WishlistItemDto> _shops = [];
+  List<WishlistItemDto> _places = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 2),
+    );
     _load();
   }
 
@@ -47,11 +76,13 @@ class _WishlistPageState extends State<WishlistPage>
       final results = await Future.wait([
         _repo.listMenuItems(size: 100),
         _repo.listShops(size: 100),
+        _repo.listPlaces(size: 100),
       ]);
       if (!mounted) return;
       setState(() {
         _menuItems = results[0];
         _shops = results[1];
+        _places = results[2];
         _loading = false;
       });
     } catch (_) {
@@ -67,6 +98,7 @@ class _WishlistPageState extends State<WishlistPage>
       setState(() {
         _menuItems.removeWhere((it) => it.id == item.id);
         _shops.removeWhere((it) => it.id == item.id);
+        _places.removeWhere((it) => it.id == item.id);
       });
       AppDialog.showToast(context, context.tr('wishlist.removed'));
     } catch (_) {
@@ -103,9 +135,12 @@ class _WishlistPageState extends State<WishlistPage>
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.tab,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(text: context.trArgs('wishlist.tab_menu', {'count': '${_menuItems.length}'})),
             Tab(text: context.trArgs('wishlist.tab_shops', {'count': '${_shops.length}'})),
+            Tab(text: context.trArgs('wishlist.tab_places', {'count': '${_places.length}'})),
           ],
         ),
       ),
@@ -116,6 +151,7 @@ class _WishlistPageState extends State<WishlistPage>
               children: [
                 _buildMenuItemList(),
                 _buildShopList(),
+                _buildPlaceList(),
               ],
             ),
     );
@@ -126,6 +162,8 @@ class _WishlistPageState extends State<WishlistPage>
       return _buildEmpty(
         title: context.tr('wishlist.empty_title'),
         subtitle: context.tr('wishlist.empty_sub'),
+        actionLabel: context.tr('wishlist.start_exploring'),
+        onAction: _goToFoodTab,
       );
     }
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
@@ -161,6 +199,9 @@ class _WishlistPageState extends State<WishlistPage>
             // and plays the highlight/float animation on this menu item.
             forceRestaurantNavigation: true,
             showFavoriteToast: false,
+            // This screen owns row removal precisely (by wishlist row id), so
+            // keep the parent-driven behaviour instead of self-managing.
+            selfManageFavorite: false,
             onFavoriteToggle: () => _removeItem(item),
           );
         },
@@ -173,6 +214,8 @@ class _WishlistPageState extends State<WishlistPage>
       return _buildEmpty(
         title: context.tr('wishlist.empty_shops_title'),
         subtitle: context.tr('wishlist.empty_shops_sub'),
+        actionLabel: context.tr('wishlist.start_exploring'),
+        onAction: _goToFoodTab,
       );
     }
     return RefreshIndicator(
@@ -197,6 +240,7 @@ class _WishlistPageState extends State<WishlistPage>
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
             showFavoriteToast: false,
+            selfManageFavorite: false,
             onFavoriteToggle: () => _removeItem(item),
             onTap: () {
               final shopId = shop?.id;
@@ -222,7 +266,93 @@ class _WishlistPageState extends State<WishlistPage>
     );
   }
 
-  Widget _buildEmpty({required String title, required String subtitle}) {
+  Widget _buildPlaceList() {
+    if (_places.isEmpty) {
+      return _buildEmpty(
+        title: context.tr('wishlist.empty_places_title'),
+        subtitle: context.tr('wishlist.empty_places_sub'),
+        actionLabel: context.tr('wishlist.start_exploring'),
+        onAction: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PlacesListPage()),
+        ),
+      );
+    }
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 3 : 2;
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      child: GridView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.75,
+        ),
+        itemCount: _places.length,
+        itemBuilder: (context, index) {
+          final item = _places[index];
+          final place = item.place;
+          return PlaceCard(
+            name: place?.displayName ?? context.tr('common.place'),
+            category: place?.locationName ?? '',
+            distance: '',
+            imagePath: resolveMediaUrl(place?.coverUrl),
+            isFavorite: true,
+            selfManageFavorite: false,
+            onFavoriteToggle: () => _removeItem(item),
+            onTap: () => _openPlace(item),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Opens the full place detail. The wishlist payload only carries a light
+  /// reference, so we fetch the full record first and fall back to a minimal
+  /// one if the network call fails.
+  Future<void> _openPlace(WishlistItemDto item) async {
+    final ref = item.place;
+    final placeId = ref?.id ?? item.placeId;
+    if (placeId == null) return;
+
+    PlaceDto? place;
+    try {
+      place = await PlacesRepository.instance.fetchPlace(placeId);
+    } catch (_) {
+      place = null;
+    }
+
+    final resolved = place ??
+        PlaceDto(
+          id: placeId,
+          titleEn: ref?.titleEn ?? ref?.displayName ?? '',
+          titleMm: ref?.titleMm,
+          titleTh: ref?.titleTh,
+          locationName: ref?.locationName ?? '',
+          coverUrl: ref?.coverUrl,
+          photoGallery: const [],
+          openingTime: '09:00',
+          closingTime: '21:00',
+          isFavorite: true,
+        );
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlaceDetailPage(place: resolved),
+      ),
+    );
+  }
+
+  Widget _buildEmpty({
+    required String title,
+    required String subtitle,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
@@ -231,45 +361,71 @@ class _WishlistPageState extends State<WishlistPage>
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.65,
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    shape: BoxShape.circle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.favorite_border_rounded,
+                      size: 60,
+                      color: Colors.grey[400],
+                    ),
                   ),
-                  child: Icon(
-                    Icons.favorite_border_rounded,
-                    size: 60,
-                    color: Colors.grey[400],
+                  const SizedBox(height: 20),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.grey[500],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
+                  if (actionLabel != null && onAction != null) ...[
+                    const SizedBox(height: 24),
+                    PrimaryGradientButton(
+                      onPressed: onAction,
+                      width: 220,
+                      child: Text(
+                        actionLabel,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// Sends the user to the Food tab to discover dishes and restaurants, then
+  /// pops the wishlist (pushed from the profile) back to the root navigator.
+  void _goToFoodTab() {
+    NavigationController.instance.goToFoodTab();
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

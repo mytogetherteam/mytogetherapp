@@ -101,6 +101,7 @@ class AppTranslations {
     'common.unavailable': 'Unavailable',
     'common.out_of_stock': 'Out of Stock',
     'common.shop': 'Shop',
+    'common.place': 'Place',
 
     // Bottom navigation
     'nav.home': 'Home',
@@ -113,7 +114,8 @@ class AppTranslations {
     // Profile page
     'profile.edit_profile': 'Edit Profile',
     'profile.saved_items': 'Saved Items',
-    'profile.saved_items_sub': 'Your wishlist of foods and restaurants',
+    'profile.saved_items_sub':
+        'Your wishlist of foods, restaurants and places',
     'profile.my_addresses': 'My Addresses',
     'profile.notifications': 'Notifications',
     'profile.account_settings': 'Account Settings',
@@ -699,7 +701,10 @@ class AppTranslations {
     'lost.updated': 'Post updated',
     'lost.update_failed': 'Failed to update post',
     'lost.my_posts': 'My Posts',
-    'lost.my_posts_empty': 'You have no posts yet',
+    'lost.my_posts_empty': 'No posts yet',
+    'lost.my_posts_empty_sub':
+        'Lost something or found an item? Post it here to help your community reconnect with what matters.',
+    'lost.my_posts_empty_cta': 'Report a Lost or Found Item',
     'lost.delete_title': 'Delete post?',
     'lost.delete_confirm': 'This post will be permanently removed.',
     'lost.deleted': 'Post deleted',
@@ -806,12 +811,17 @@ class AppTranslations {
     'wishlist.empty_shops_title': 'No saved restaurants yet',
     'wishlist.empty_sub': 'Tap the heart on any dish to keep it here.',
     'wishlist.empty_title': 'No saved items yet',
+    'wishlist.empty_places_title': 'No saved places yet',
+    'wishlist.empty_places_sub': 'Tap the heart on any place to keep it here.',
     'wishlist.menu_item': 'Menu item',
     'wishlist.remove_failed': 'Could not remove item. Please try again.',
     'wishlist.removed': 'Removed from saved items.',
     'wishlist.saved': 'Saved to your items.',
     'wishlist.tab_menu': 'Menu Items ({count})',
     'wishlist.tab_shops': 'Restaurants ({count})',
+    'wishlist.tab_places': 'Places ({count})',
+    'wishlist.view_action': 'View',
+    'wishlist.start_exploring': 'Start Exploring',
     'common.day_friday': 'Friday',
     'common.day_monday': 'Monday',
     'common.day_saturday': 'Saturday',
@@ -1063,6 +1073,7 @@ class AppTranslations {
     'common.unavailable': 'မရရှိနိုင်ပါ',
     'common.out_of_stock': 'ကုန်သွားပြီ',
     'common.shop': 'ဆိုင်',
+    'common.place': 'နေရာ',
 
     // Bottom navigation
     'nav.home': 'ပင်မ',
@@ -1075,7 +1086,7 @@ class AppTranslations {
     // Profile page
     'profile.edit_profile': 'ပရိုဖိုင်ပြင်ဆင်ရန်',
     'profile.saved_items': 'သိမ်းဆည်းထားသည်များ',
-    'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာနှင့် ဆိုင်များ',
+    'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာ၊ ဆိုင်နှင့် နေရာများ',
     'profile.my_addresses': 'ကျွန်ုပ်၏လိပ်စာများ',
     'profile.notifications': 'အသိပေးချက်များ',
     'profile.account_settings': 'အကောင့်ဆက်တင်များ',
@@ -1649,6 +1660,9 @@ class AppTranslations {
     'lost.update_failed': 'ပို့စ် ပြင်ဆင်၍မရပါ',
     'lost.my_posts': 'ကျွန်ုပ်၏ ပို့စ်များ',
     'lost.my_posts_empty': 'ပို့စ်မရှိသေးပါ',
+    'lost.my_posts_empty_sub':
+        'တစ်ခုခု ပျောက်ဆုံးနေပါသလား၊ သို့မဟုတ် ပစ္စည်းတစ်ခု တွေ့ရှိထားပါသလား။ ဤနေရာတွင် တင်ပြီး အသိုင်းအဝိုင်းကို ကူညီပါ။',
+    'lost.my_posts_empty_cta': 'ပျောက်ဆုံး/တွေ့ရှိ ပစ္စည်း တင်ရန်',
     'lost.delete_title': 'ပို့စ်ဖျက်မလား?',
     'lost.delete_confirm': 'ဤပို့စ်ကို အပြီးအပိုင် ဖျက်ပါမယ်။',
     'lost.deleted': 'ပို့စ် ဖျက်ပြီးပါပြီ',
@@ -1752,6 +1766,11 @@ class AppTranslations {
     'visa.title': 'ထိုင်းဗီဇာ',
     'visa.visa_types': 'ဗီဇာအမျိုးအစားများ',
     'wishlist.currently_unavailable': 'လက်ရှိ မရရှိနိုင်ပါ',
+    'wishlist.empty_places_title': 'သိမ်းထားသော နေရာ မရှိသေးပါ',
+    'wishlist.empty_places_sub': 'နေရာတစ်ခုခုတွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
+    'wishlist.tab_places': 'နေရာများ ({count})',
+    'wishlist.view_action': 'ကြည့်ရန်',
+    'wishlist.start_exploring': 'စတင်ရှာဖွေရန်',
     'wishlist.empty_shops_sub':
         'စားသောက်ဆိုင်တွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
     'wishlist.empty_shops_title': 'သိမ်းထားသော စားသောက်ဆိုင် မရှိသေးပါ',
@@ -2020,6 +2039,7 @@ class AppTranslations {
     'common.unavailable': 'ไม่พร้อมใช้งาน',
     'common.out_of_stock': 'สินค้าหมด',
     'common.shop': 'ร้านค้า',
+    'common.place': 'สถานที่',
 
     // Bottom navigation
     'nav.home': 'หน้าแรก',
@@ -2032,7 +2052,7 @@ class AppTranslations {
     // Profile page
     'profile.edit_profile': 'แก้ไขโปรไฟล์',
     'profile.saved_items': 'รายการที่บันทึก',
-    'profile.saved_items_sub': 'รายการโปรดอาหารและร้านค้าของคุณ',
+    'profile.saved_items_sub': 'รายการโปรดอาหาร ร้านค้า และสถานที่ของคุณ',
     'profile.my_addresses': 'ที่อยู่ของฉัน',
     'profile.notifications': 'การแจ้งเตือน',
     'profile.account_settings': 'การตั้งค่าบัญชี',
@@ -2609,7 +2629,10 @@ class AppTranslations {
     'lost.updated': 'อัปเดตโพสต์แล้ว',
     'lost.update_failed': 'อัปเดตโพสต์ไม่สำเร็จ',
     'lost.my_posts': 'โพสต์ของฉัน',
-    'lost.my_posts_empty': 'คุณยังไม่มีโพสต์',
+    'lost.my_posts_empty': 'ยังไม่มีโพสต์',
+    'lost.my_posts_empty_sub':
+        'ทำของหายหรือเก็บของได้? โพสต์ที่นี่เพื่อช่วยให้ชุมชนได้กลับมาเจอสิ่งที่สำคัญอีกครั้ง',
+    'lost.my_posts_empty_cta': 'แจ้งของหายหรือของที่พบ',
     'lost.delete_title': 'ลบโพสต์?',
     'lost.delete_confirm': 'โพสต์นี้จะถูกลบอย่างถาวร',
     'lost.deleted': 'ลบโพสต์แล้ว',
@@ -2709,6 +2732,11 @@ class AppTranslations {
     'visa.title': 'วีซ่าประเทศไทย',
     'visa.visa_types': 'ประเภทวีซ่า',
     'wishlist.currently_unavailable': 'ไม่พร้อมให้บริการในขณะนี้',
+    'wishlist.empty_places_title': 'ยังไม่มีสถานที่ที่บันทึก',
+    'wishlist.empty_places_sub': 'แตะหัวใจที่สถานที่เพื่อบันทึกไว้ที่นี่',
+    'wishlist.tab_places': 'สถานที่ ({count})',
+    'wishlist.view_action': 'ดู',
+    'wishlist.start_exploring': 'เริ่มสำรวจ',
     'wishlist.empty_shops_sub': 'แตะหัวใจที่ร้านอาหารเพื่อบันทึกไว้ที่นี่',
     'wishlist.empty_shops_title': 'ยังไม่มีร้านอาหารที่บันทึก',
     'wishlist.empty_sub': 'แตะหัวใจที่เมนูเพื่อเก็บไว้ที่นี่',

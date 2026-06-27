@@ -12,6 +12,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../../wishlist/data/repositories/wishlist_repository.dart';
+import '../../../wishlist/presentation/screens/wishlist_page.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
@@ -1439,6 +1440,14 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         AppDialog.showToast(
           context,
           context.tr(newStatus ? 'wishlist.saved' : 'wishlist.removed'),
+          actionLabel:
+              newStatus ? context.tr('wishlist.view_action') : null,
+          onAction: newStatus
+              ? () => WishlistPage.open(
+                    context,
+                    initialTab: WishlistPage.tabRestaurants,
+                  )
+              : null,
         );
       }
     } catch (_) {
