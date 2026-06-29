@@ -1010,6 +1010,22 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         isValue: false,
                       ),
                     ],
+                    if ((order?.discountAmount ?? 0) > 0) ...[
+                      const SizedBox(height: 10),
+                      _summaryRow(
+                        context.tr('order_status.discount'),
+                        '',
+                        customValue: Text(
+                          '- ${order!.displayDiscountAmount ?? order.discountAmount!.toFormattedPrice()}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFED3973),
+                          ),
+                        ),
+                        isValue: false,
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true &&
                         order?.hasDeliveryFeeEstimate == true &&

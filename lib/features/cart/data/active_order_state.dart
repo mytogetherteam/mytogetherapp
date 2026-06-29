@@ -171,11 +171,15 @@ class ActiveOrderItem {
     final delivery = isPickupFulfillment
         ? 0.0
         : (deliveryFee ?? fallbackDeliveryFee);
-    return OrderTax.calculateTotal(
-      itemSubtotal: resolvedItemSubtotal,
-      deliveryFee: delivery,
-      taxEnable: resolvedTaxEnable,
-    );
+    // Subtract any coupon discount so the fallback matches the backend total.
+    final discount = discountAmount ?? 0;
+    final total = OrderTax.calculateTotal(
+          itemSubtotal: resolvedItemSubtotal,
+          deliveryFee: delivery,
+          taxEnable: resolvedTaxEnable,
+        ) -
+        discount;
+    return total < 0 ? 0 : total;
   }
 
   /// Amount the customer pays in-app. Flexible delivery excludes delivery fee.

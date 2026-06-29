@@ -372,6 +372,32 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 const SizedBox(height: 12),
                                 _buildDeliveryFeeRow(context, order, deliveryFee),
                               ],
+                              if ((order.discountAmount ?? 0) > 0) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        context.tr('order_status.discount'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '- ${order.displayDiscountAmount ?? order.discountAmount!.toFormattedPrice()}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFED3973),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                               if (orderItems.isNotEmpty) ...[
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 12),

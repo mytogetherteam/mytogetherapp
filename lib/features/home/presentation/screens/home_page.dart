@@ -731,12 +731,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
                             ),
-                            PopularBrandsSection(
-                              key: ValueKey('brands_$_refreshKey'),
-                            ),
-                            TodaysOverviewSection(
-                              key: ValueKey('overview_$_refreshKey'),
-                            ),
                             const SizedBox(height: 24),
                             CouponRailSection(
                               key: ValueKey('eb_coupons_$_refreshKey'),
@@ -748,6 +742,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               key: ValueKey('coupons_$_refreshKey'),
                               title: context.tr('coupon.coupons_title'),
                               target: 'all',
+                            ),
+                            const SizedBox(height: 24),
+                            PopularBrandsSection(
+                              key: ValueKey('brands_$_refreshKey'),
+                            ),
+                            TodaysOverviewSection(
+                              key: ValueKey('overview_$_refreshKey'),
                             ),
                             const SizedBox(height: 24),
                             LostItemsNearbySection(
