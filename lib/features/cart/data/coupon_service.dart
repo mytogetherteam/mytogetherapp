@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
+import '../../search/data/search_repository.dart';
 
 /// A BUY / GET item attached to a coupon (used for BUY_X_GET_FREE coupons).
 class CouponItem {
@@ -72,6 +73,7 @@ class CouponModel {
   final List<CouponItem> items;
   final int? shopId;
   final CouponShop? shop;
+  final DateTime? validFrom;
   final DateTime? validUntil;
 
   const CouponModel({
@@ -88,6 +90,7 @@ class CouponModel {
     this.items = const [],
     this.shopId,
     this.shop,
+    this.validFrom,
     this.validUntil,
   });
 
@@ -110,6 +113,7 @@ class CouponModel {
         shop: json['shop'] is Map
             ? CouponShop.fromJson(Map<String, dynamic>.from(json['shop'] as Map))
             : null,
+        validFrom: DateTime.tryParse(json['validFrom']?.toString() ?? ''),
         validUntil: DateTime.tryParse(json['validUntil']?.toString() ?? ''),
       );
 
@@ -127,11 +131,16 @@ class CouponModel {
         items: items,
         shopId: shopId,
         shop: shop,
+        validFrom: validFrom,
         validUntil: validUntil,
       );
 
   /// The shop id to navigate to, preferring the top-level field, then [shop].
   int? get resolvedShopId => shopId ?? shop?.id;
+
+  /// Items the customer must buy to unlock a BUY_X_GET_FREE coupon.
+  List<CouponItem> get buyItems =>
+      items.where((i) => i.type.toUpperCase() == 'BUY').toList();
 
   bool get isFreeItem => promotionType.toUpperCase() == 'BUY_X_GET_FREE';
   bool get isPercentage => (discountType ?? '').toUpperCase() == 'PERCENTAGE';
@@ -276,6 +285,33 @@ class CouponService {
     } catch (_) {
       return const [];
     }
+  }
+
+  /// In-memory cache of resolved shop logo URLs, keyed by shopId, so the two
+  /// coupon rails and the details sheet share a single lookup per shop.
+  final Map<int, Future<String?>> _shopLogoCache = {};
+
+  /// Resolves a shop's logo URL from the existing shop-profile endpoint, since
+  /// the coupon list endpoint doesn't include it. Cached and de-duped per shop;
+  /// returns null on any failure (the card falls back to a letter avatar).
+  Future<String?> fetchShopLogo(int shopId) {
+    return _shopLogoCache.putIfAbsent(shopId, () async {
+      try {
+        final shop = await SearchRepository.instance.getShopProfileById(shopId);
+        return _resolveImageUrl(shop?.logoUrl ?? shop?.coverUrl);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  static String? _resolveImageUrl(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('assets/')) return null;
+    if (trimmed.startsWith('http')) return trimmed;
+    return '${ApiClient.baseUrl}/'
+        '${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}';
   }
 
   /// Issues a fresh rotating redeem QR token for the current user (for the

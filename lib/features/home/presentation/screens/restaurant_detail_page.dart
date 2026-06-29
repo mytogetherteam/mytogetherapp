@@ -22,6 +22,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
+import '../../../coupons/presentation/widgets/shop_promotions_sheet.dart';
 import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -786,8 +787,21 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   _buildActionButton(
                                     imageAsset: 'assets/images/detail_chat.png',
                                     label: context.tr('restaurant.chat'),
-                                    onTap: () =>
-                                        AppDialog.showUnavailable(context),
+                                    onTap: () {
+                                      final restaurant = _currentRestaurant;
+                                      final shopId = restaurant == null
+                                          ? null
+                                          : int.tryParse(restaurant.id);
+                                      if (restaurant == null || shopId == null) {
+                                        AppDialog.showUnavailable(context);
+                                        return;
+                                      }
+                                      ShopPromotionsSheet.show(
+                                        context,
+                                        shopId: shopId,
+                                        shopName: restaurant.name,
+                                      );
+                                    },
                                   ),
                                 ],
                               ),

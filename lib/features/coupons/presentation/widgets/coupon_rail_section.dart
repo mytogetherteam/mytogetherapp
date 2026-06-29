@@ -99,7 +99,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 124,
+              height: 138,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -128,7 +128,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 124,
+          height: 138,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -136,11 +136,35 @@ class _CouponRailSectionState extends State<CouponRailSection> {
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (_, _) => ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: const ImageSkeletonLoader(width: 240, height: 124),
+              child: const ImageSkeletonLoader(width: 240, height: 138),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DiscountPill extends StatelessWidget {
+  final String label;
+  const _DiscountPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }
@@ -184,7 +208,12 @@ class _CouponBrowseCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CouponHeadlineBadge(coupon: coupon),
+            CouponShopLogo(
+              key: ValueKey('coupon_logo_${coupon.resolvedShopId}'),
+              shopId: coupon.resolvedShopId,
+              shopName: shopName,
+              size: 48,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -197,20 +226,28 @@ class _CouponBrowseCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  if (shopName.isNotEmpty)
-                    Text(
-                      shopName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      _DiscountPill(label: couponDiscountLabel(context, coupon)),
+                      const SizedBox(width: 6),
+                      if (shopName.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            shopName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
                   const Spacer(),
                   if (validity != null)
                     Text(

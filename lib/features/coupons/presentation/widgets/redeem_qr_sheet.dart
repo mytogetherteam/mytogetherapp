@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -217,17 +217,24 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             children: [
               Opacity(
                 opacity: expired ? 0.15 : 1,
-                child: QrImageView(
-                  data: _token!.qrPayload,
-                  version: QrVersions.auto,
-                  size: 220,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: Colors.black87,
-                  ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: Colors.black87,
+                child: SizedBox(
+                  width: 220,
+                  height: 220,
+                  // Same renderer/style as the order pickup QR
+                  // (PickupOrderQrCard) so both QRs look identical.
+                  child: PrettyQrView.data(
+                    data: _token!.qrPayload,
+                    decoration: const PrettyQrDecoration(
+                      shape: PrettyQrSmoothSymbol(
+                        color: Colors.black,
+                        roundFactor: 0.5,
+                      ),
+                      background: Colors.white,
+                      image: PrettyQrDecorationImage(
+                        image: AssetImage('assets/images/app_icon_small.png'),
+                        position: PrettyQrDecorationImagePosition.embedded,
+                      ),
+                    ),
                   ),
                 ),
               ),
