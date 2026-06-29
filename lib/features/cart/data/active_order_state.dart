@@ -59,6 +59,11 @@ class ActiveOrderItem {
   double? itemPrice;
   double? taxAmount;
   double? totalAmount;
+  // Applied shop coupon (if any). discountAmount = ฿ taken off the subtotal.
+  double? discountAmount;
+  String? displayDiscountAmount;
+  String? couponName;
+  String? couponCode;
   String? paymentMethod;
   String? cancelReason;
   // Set when the shop sends the order back for revision (status REVISED).
@@ -178,7 +183,10 @@ class ActiveOrderItem {
     if (isPickupFulfillment || !isFlexibleDelivery) {
       return resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee);
     }
-    return resolvedItemSubtotal + resolvedTaxAmount;
+    // Food + tax, less any coupon discount applied to the subtotal.
+    final discount = discountAmount ?? 0;
+    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount;
+    return payNow < 0 ? 0 : payNow;
   }
 
   bool get hasDeliveryFeeEstimate {
@@ -223,6 +231,10 @@ class ActiveOrderItem {
     this.itemPrice,
     this.taxAmount,
     this.totalAmount,
+    this.discountAmount,
+    this.displayDiscountAmount,
+    this.couponName,
+    this.couponCode,
     this.paymentMethod,
     this.cancelReason,
     this.isRevised = false,
@@ -308,6 +320,10 @@ class ActiveOrderItem {
     'itemPrice': itemPrice,
     'taxAmount': taxAmount,
     'totalAmount': totalAmount,
+    'discountAmount': discountAmount,
+    'displayDiscountAmount': displayDiscountAmount,
+    'couponName': couponName,
+    'couponCode': couponCode,
     'paymentMethod': paymentMethod,
     'cancelReason': cancelReason,
     'isRevised': isRevised,
@@ -369,6 +385,10 @@ class ActiveOrderItem {
         itemPrice: json['itemPrice'],
         taxAmount: json['taxAmount'],
         totalAmount: json['totalAmount'],
+        discountAmount: (json['discountAmount'] as num?)?.toDouble(),
+        displayDiscountAmount: json['displayDiscountAmount']?.toString(),
+        couponName: json['couponName']?.toString(),
+        couponCode: json['couponCode']?.toString(),
         paymentMethod: json['paymentMethod'],
         cancelReason: json['cancelReason'],
         isRevised: json['isRevised'] ?? false,
@@ -585,6 +605,10 @@ class ActiveOrderState extends ChangeNotifier {
   double? get itemPrice => _primary?.itemPrice;
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
+  double get discountAmount => _primary?.discountAmount ?? 0;
+  bool get hasDiscount => (_primary?.discountAmount ?? 0) > 0;
+  String? get displayDiscountAmount => _primary?.displayDiscountAmount;
+  String? get couponName => _primary?.couponName;
   double get resolvedTaxAmount => _primary?.resolvedTaxAmount ?? 0;
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) =>
       _primary?.resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee) ??
@@ -753,6 +777,34 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Records a coupon applied to a pending order during checkout, updating the
+  /// stored totals so the tracking screen shows the discounted amount.
+  void applyCoupon({
+    required double discountAmount,
+    required double itemPrice,
+    required double taxAmount,
+    required double totalAmount,
+    required String couponName,
+    String? couponCode,
+    String? orderId,
+  }) {
+    final targetId = orderId ?? this.orderId;
+    if (targetId == null || !_orders.containsKey(targetId)) return;
+
+    final item = _orders[targetId]!;
+    item.discountAmount = discountAmount;
+    item.displayDiscountAmount = '฿${discountAmount.toStringAsFixed(0)}';
+    item.couponName = couponName;
+    item.couponCode = couponCode;
+    item.itemPrice = itemPrice;
+    item.taxAmount = taxAmount;
+    item.totalAmount = totalAmount;
+    item.displayTotalAmount = null;
+
+    saveToPrefs();
+    notifyListeners();
+  }
+
   void setOrderStatus(int status, {String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
@@ -892,6 +944,22 @@ class ActiveOrderState extends ChangeNotifier {
       item.taxAmount = _parseSafeDouble(data['taxAmount']);
     if (data['totalAmount'] != null)
       item.totalAmount = _parseSafeDouble(data['totalAmount']);
+    if (data['discountAmount'] != null) {
+      item.discountAmount = _parseSafeDouble(data['discountAmount']);
+    }
+    if (data['displayDiscountAmount'] != null) {
+      item.displayDiscountAmount =
+          _parseSafeString(data['displayDiscountAmount']);
+    }
+    if (data['shopCoupon'] is Map) {
+      final coupon = Map<String, dynamic>.from(data['shopCoupon'] as Map);
+      item.couponName = _parseSafeString(coupon['name']);
+      item.couponCode = _parseSafeString(coupon['code']);
+      final couponDiscount = _parseSafeDouble(coupon['discountAmount']);
+      if (couponDiscount != null && couponDiscount > 0) {
+        item.discountAmount = couponDiscount;
+      }
+    }
     if (data['taxEnable'] != null) {
       item.taxEnable = data['taxEnable'] == true;
     } else if (data['shop'] is Map &&

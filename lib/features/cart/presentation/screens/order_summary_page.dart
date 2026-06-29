@@ -24,6 +24,8 @@ import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/network/websocket_service.dart';
 import 'order_tracking_page.dart';
 import '../../data/active_order_state.dart';
+import '../../data/coupon_service.dart';
+import '../widgets/coupon_ticket_sheet.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/user_model.dart';
@@ -1193,7 +1195,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     // Start WebSocket tracking immediately upon successful order creation
                                     WebSocketService().connect();
 
+                                    // 4b. Offer any coupons that apply to this
+                                    // freshly created PENDING order (movie-ticket
+                                    // bottom sheet). Purely additive — failures
+                                    // never block reaching the tracking page.
+                                    await _maybeOfferCoupons(orderId);
+
                                     // 5. Navigate to tracking page
+                                    if (!context.mounted) return;
                                     nav.pushReplacement(
                                       MaterialPageRoute(
                                         builder: (context) => OrderTrackingPage(
@@ -1254,6 +1263,37 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         );
       },
     );
+  }
+
+  /// Fetches coupons available on the just-created PENDING order and, if any
+  /// exist, shows the movie-ticket coupon sheet. Applying one updates the
+  /// active order's stored totals. Skipping (or any error) is a no-op.
+  Future<void> _maybeOfferCoupons(String? orderId) async {
+    final couponOrderId = int.tryParse((orderId ?? '').replaceAll('#', ''));
+    if (couponOrderId == null) return;
+    try {
+      final coupons =
+          await CouponService.instance.fetchAvailable(couponOrderId);
+      if (coupons.isEmpty || !mounted) return;
+      final applied = await showCouponTicketSheet(
+        context: context,
+        orderId: couponOrderId,
+        coupons: coupons,
+      );
+      if (applied != null) {
+        ActiveOrderState.instance.applyCoupon(
+          discountAmount: applied.discountAmount,
+          itemPrice: applied.itemPrice,
+          taxAmount: applied.taxAmount,
+          totalAmount: applied.totalAmount,
+          couponName: applied.couponName,
+          couponCode: applied.couponCode,
+          orderId: orderId,
+        );
+      }
+    } catch (_) {
+      // Coupons are optional; never block checkout on a failure here.
+    }
   }
 
   /// The currently selected payment method, or the first active one.

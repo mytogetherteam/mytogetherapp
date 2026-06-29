@@ -1220,6 +1220,20 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             ),
                           ],
 
+                          if (ActiveOrderState.instance.hasDiscount) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              label: ActiveOrderState.instance.couponName
+                                          ?.isNotEmpty ==
+                                      true
+                                  ? ActiveOrderState.instance.couponName!
+                                  : context.tr('order_status.discount'),
+                              value:
+                                  '- ${(ActiveOrderState.instance.displayDiscountAmount ?? ActiveOrderState.instance.discountAmount.toFormattedPrice())}',
+                              valueColor: AppColors.primary,
+                            ),
+                          ],
+
                           if (!ActiveOrderState.instance.isPickupFulfillment) ...[
                             const SizedBox(height: 12),
                             _buildDeliveryFeeRow(),
