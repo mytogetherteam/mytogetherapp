@@ -32,6 +32,31 @@ class CouponItem {
   bool get isGet => type.toUpperCase() == 'GET';
 }
 
+/// The shop a coupon belongs to (returned by the cross-shop coupon list).
+class CouponShop {
+  final int id;
+  final String nameEn;
+  final String? nameMm;
+  final String? nameTh;
+  final String? slug;
+
+  const CouponShop({
+    required this.id,
+    required this.nameEn,
+    this.nameMm,
+    this.nameTh,
+    this.slug,
+  });
+
+  factory CouponShop.fromJson(Map<String, dynamic> json) => CouponShop(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        nameEn: json['nameEn']?.toString() ?? '',
+        nameMm: json['nameMm']?.toString(),
+        nameTh: json['nameTh']?.toString(),
+        slug: json['slug']?.toString(),
+      );
+}
+
 /// A coupon the user can apply to a pending order, with the previewed discount.
 class CouponModel {
   final int id;
@@ -45,6 +70,9 @@ class CouponModel {
   final String limitType; // ONE_TIME | PERMANENT
   final double discountPreview;
   final List<CouponItem> items;
+  final int? shopId;
+  final CouponShop? shop;
+  final DateTime? validUntil;
 
   const CouponModel({
     required this.id,
@@ -58,6 +86,9 @@ class CouponModel {
     this.limitType = 'ONE_TIME',
     this.discountPreview = 0,
     this.items = const [],
+    this.shopId,
+    this.shop,
+    this.validUntil,
   });
 
   factory CouponModel.fromJson(Map<String, dynamic> json) => CouponModel(
@@ -75,6 +106,11 @@ class CouponModel {
                 ?.map((e) => CouponItem.fromJson(Map<String, dynamic>.from(e as Map)))
                 .toList() ??
             const [],
+        shopId: (json['shopId'] as num?)?.toInt(),
+        shop: json['shop'] is Map
+            ? CouponShop.fromJson(Map<String, dynamic>.from(json['shop'] as Map))
+            : null,
+        validUntil: DateTime.tryParse(json['validUntil']?.toString() ?? ''),
       );
 
   CouponModel copyWith({double? discountPreview}) => CouponModel(
@@ -89,7 +125,13 @@ class CouponModel {
         limitType: limitType,
         discountPreview: discountPreview ?? this.discountPreview,
         items: items,
+        shopId: shopId,
+        shop: shop,
+        validUntil: validUntil,
       );
+
+  /// The shop id to navigate to, preferring the top-level field, then [shop].
+  int? get resolvedShopId => shopId ?? shop?.id;
 
   bool get isFreeItem => promotionType.toUpperCase() == 'BUY_X_GET_FREE';
   bool get isPercentage => (discountType ?? '').toUpperCase() == 'PERCENTAGE';
@@ -153,6 +195,29 @@ class CouponApplyException implements Exception {
   String toString() => message;
 }
 
+/// A rotating, short-lived redeem QR token issued for in-shop redemption.
+class RedeemTokenResult {
+  final int userId;
+  final String token;
+  final int expiresInSec;
+
+  const RedeemTokenResult({
+    required this.userId,
+    required this.token,
+    required this.expiresInSec,
+  });
+
+  factory RedeemTokenResult.fromJson(Map<String, dynamic> json) =>
+      RedeemTokenResult(
+        userId: (json['userId'] as num?)?.toInt() ?? 0,
+        token: json['token']?.toString() ?? '',
+        expiresInSec: (json['expiresInSec'] as num?)?.toInt() ?? 0,
+      );
+
+  /// The payload encoded into the QR. The shop app reads `userId` + `token`.
+  String get qrPayload => '{"userId":$userId,"token":"$token"}';
+}
+
 /// A cart line used to preview a coupon's discount client-side.
 typedef CouponCartLine = ({int menuItemId, int quantity, double price});
 
@@ -179,6 +244,54 @@ class CouponService {
           .toList();
     } catch (_) {
       return const [];
+    }
+  }
+
+  /// Active coupons across all shops the user can still use, paginated.
+  /// [target] filters by `all` or `earlybird`; omit for default backend rules
+  /// (early-bird users see ALL + EARLY_BIRD). Returns [] on any failure so the
+  /// home/food rails simply hide instead of breaking the feed.
+  Future<List<CouponModel>> fetchAllCoupons({
+    String? target,
+    int page = 1,
+    int size = 20,
+  }) async {
+    try {
+      final response = await ApiClient().dio.get(
+        '${ApiClient.apiPrefix}/user/coupons',
+        queryParameters: {
+          'page': page,
+          'size': size,
+          if (target != null && target.isNotEmpty) 'target': target,
+        },
+      );
+      final body = response.data;
+      if (body is! Map) return const [];
+      final list = body['data'];
+      if (list is! List) return const [];
+      return list
+          .whereType<Map>()
+          .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Issues a fresh rotating redeem QR token for the current user (for the
+  /// in-shop "Use now" flow). Throws [CouponApplyException] on failure.
+  Future<RedeemTokenResult> issueRedeemToken() async {
+    try {
+      final response = await ApiClient().dio.post(
+        '${ApiClient.apiPrefix}/user/coupons/redeem-token',
+      );
+      final data = _unwrap(response.data);
+      if (data == null) {
+        throw const CouponApplyException('Could not generate a QR code');
+      }
+      return RedeemTokenResult.fromJson(data);
+    } on DioException catch (e) {
+      throw CouponApplyException(_messageFromDio(e));
     }
   }
 
