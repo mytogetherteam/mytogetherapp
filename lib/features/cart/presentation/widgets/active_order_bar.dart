@@ -110,12 +110,14 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         _shimmerCtrl.stop();
         OrderTrackerChannel.stopTracker();
       }
-      
+
       if (isActive && state.activeOrdersList.isNotEmpty) {
-        final order = widget.shopId != null 
-          ? state.activeOrdersList.firstWhere((o) => o.shopId == widget.shopId?.toString())
-          : state.activeOrdersList.first;
-        
+        final order = widget.shopId != null
+            ? state.activeOrdersList.firstWhere(
+                (o) => o.shopId == widget.shopId?.toString(),
+              )
+            : state.activeOrdersList.first;
+
         final logoUrl = resolveMediaUrl(order.shopLogo ?? order.logoPath);
         OrderTrackerChannel.startOrUpdateTracker(
           shopName: order.displayShopName.isNotEmpty
@@ -124,7 +126,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
           shopLogoUrl: logoUrl.isNotEmpty ? logoUrl : null,
         );
       }
-      
+
       _wasActive = isActive;
     }
   }
@@ -420,7 +422,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       ),
       child: ClipOval(
         child: (logoPath ?? '').isNotEmpty
-            ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+            ? CachedNetworkImage(
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
                 imageUrl: logoPath!,
                 fit: BoxFit.cover,
                 errorWidget: (c, u, e) =>
@@ -600,4 +604,3 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
     );
   }
 }
-
