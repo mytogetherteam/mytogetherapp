@@ -9,31 +9,32 @@ import '../../data/coupon_service.dart';
 
 /// Shows the movie-ticket style coupon picker as a bottom sheet.
 ///
-/// Returns the [CouponApplyResult] when the user applies a coupon, or `null`
-/// when they skip / dismiss. Coupons are an optional enhancement of checkout,
-/// so callers should treat `null` as "continue without a coupon".
-Future<CouponApplyResult?> showCouponTicketSheet({
+/// Returns the chosen [CouponModel] when the user selects one (the coupon is
+/// applied to the order later, at "Place Order"), or `null` when they skip /
+/// dismiss. Pass [selectedId] to pre-highlight a previously chosen coupon.
+Future<CouponModel?> showCouponTicketSheet({
   required BuildContext context,
-  required int orderId,
   required List<CouponModel> coupons,
+  int? selectedId,
 }) {
-  return showModalBottomSheet<CouponApplyResult>(
+  return showModalBottomSheet<CouponModel>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.55),
-    builder: (_) => CouponTicketSheet(orderId: orderId, coupons: coupons),
+    builder: (_) =>
+        CouponTicketSheet(coupons: coupons, initialSelectedId: selectedId),
   );
 }
 
 class CouponTicketSheet extends StatefulWidget {
-  final int orderId;
   final List<CouponModel> coupons;
+  final int? initialSelectedId;
 
   const CouponTicketSheet({
     super.key,
-    required this.orderId,
     required this.coupons,
+    this.initialSelectedId,
   });
 
   @override
@@ -45,7 +46,6 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
   late final AnimationController _tearController;
   int? _selectedId;
   int? _tearingId;
-  bool _busy = false;
 
   @override
   void initState() {
@@ -54,9 +54,8 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    if (widget.coupons.length == 1) {
-      _selectedId = widget.coupons.first.id;
-    }
+    _selectedId = widget.initialSelectedId ??
+        (widget.coupons.length == 1 ? widget.coupons.first.id : null);
   }
 
   @override
@@ -74,39 +73,19 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
     return null;
   }
 
-  Future<void> _applySelected() async {
+  /// Plays the ticket-tear animation as the "this is my coupon" gesture, then
+  /// returns the chosen coupon to the summary page (no network call here — the
+  /// coupon is applied to the real order when the user places it).
+  Future<void> _confirmSelected() async {
     final coupon = _selected;
-    if (coupon == null || _busy) return;
+    if (coupon == null || _tearingId != null) return;
 
-    setState(() => _busy = true);
-    try {
-      final result = await CouponService.instance.apply(
-        orderId: widget.orderId,
-        couponId: coupon.id,
-      );
-      if (!mounted) return;
-      // Play the satisfying ticket-tearing animation, then return the result.
-      setState(() => _tearingId = coupon.id);
-      HapticFeedback.mediumImpact();
-      await _tearController.forward();
-      await Future.delayed(const Duration(milliseconds: 180));
-      if (!mounted) return;
-      Navigator.of(context).pop(result);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _tearingId = null;
-      });
-      String message = context.tr('coupon.apply_failed');
-      if (e is CouponApplyException) message = e.message;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message, style: GoogleFonts.poppins()),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-    }
+    setState(() => _tearingId = coupon.id);
+    HapticFeedback.mediumImpact();
+    await _tearController.forward();
+    await Future.delayed(const Duration(milliseconds: 180));
+    if (!mounted) return;
+    Navigator.of(context).pop(coupon);
   }
 
   @override
@@ -194,7 +173,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                       selected: isSelected,
                       tearProgress: isTearing ? _tearController.value : 0,
                       dimmed: _tearingId != null && !isTearing,
-                      onTap: (_busy || _tearingId != null)
+                      onTap: (_tearingId != null)
                           ? null
                           : () => setState(() => _selectedId = coupon.id),
                     );
@@ -220,7 +199,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
             Expanded(
               flex: 4,
               child: TextButton(
-                onPressed: (_busy || _tearingId != null)
+                onPressed: (_tearingId != null)
                     ? null
                     : () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
@@ -251,33 +230,23 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: TextButton(
-                    onPressed: (!hasSelection || _busy || _tearingId != null)
+                    onPressed: (!hasSelection || _tearingId != null)
                         ? null
-                        : _applySelected,
+                        : _confirmSelected,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: _busy
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            context.tr('coupon.use_coupon'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                    child: Text(
+                      context.tr('coupon.use_coupon'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -346,7 +315,7 @@ class CouponTicket extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        context.tr('coupon.applied'),
+                        context.tr('coupon.selected'),
                         style: GoogleFonts.poppins(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,

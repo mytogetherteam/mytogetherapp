@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 
@@ -76,6 +77,20 @@ class CouponModel {
             const [],
       );
 
+  CouponModel copyWith({double? discountPreview}) => CouponModel(
+        id: id,
+        code: code,
+        name: name,
+        description: description,
+        promotionType: promotionType,
+        discountType: discountType,
+        discountValue: discountValue,
+        target: target,
+        limitType: limitType,
+        discountPreview: discountPreview ?? this.discountPreview,
+        items: items,
+      );
+
   bool get isFreeItem => promotionType.toUpperCase() == 'BUY_X_GET_FREE';
   bool get isPercentage => (discountType ?? '').toUpperCase() == 'PERCENTAGE';
   bool get isFixed => (discountType ?? '').toUpperCase() == 'FIXED_AMOUNT';
@@ -138,10 +153,91 @@ class CouponApplyException implements Exception {
   String toString() => message;
 }
 
+/// A cart line used to preview a coupon's discount client-side.
+typedef CouponCartLine = ({int menuItemId, int quantity, double price});
+
 /// Talks to the user-facing coupon endpoints for the in-app checkout flow.
 class CouponService {
   CouponService._();
   static final CouponService instance = CouponService._();
+
+  /// Eligible coupons for a shop (active, in-window, target-eligible, not used).
+  /// Used to let the user pick a coupon on the summary page *before* the order
+  /// exists; the precise discount is previewed client-side via [computePreview]
+  /// and re-validated server-side on apply. Returns [] on any failure.
+  Future<List<CouponModel>> fetchByShop(int shopId) async {
+    try {
+      final response = await ApiClient().dio.get(
+        '${ApiClient.apiPrefix}/user/coupons/shops/$shopId',
+      );
+      final data = _unwrap(response.data);
+      final coupons = data?['coupons'];
+      if (coupons is! List) return const [];
+      return coupons
+          .whereType<Map>()
+          .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Mirrors the backend's discount calculation so the summary page can show an
+  /// accurate, live preview before the order is created. The authoritative value
+  /// is still computed server-side when the coupon is applied to the order.
+  static double computePreview({
+    required CouponModel coupon,
+    required double subtotal,
+    required List<CouponCartLine> items,
+  }) {
+    if (subtotal <= 0) return 0;
+
+    if (!coupon.isFreeItem) {
+      if (coupon.isPercentage) {
+        return _round2(math.min(subtotal, subtotal * coupon.discountValue / 100));
+      }
+      if (coupon.isFixed) {
+        return _round2(math.min(coupon.discountValue, subtotal));
+      }
+      return 0;
+    }
+
+    // BUY_X_GET_FREE: GET items are made free (cheapest matching units) only
+    // when every required BUY item is present in the cart at its quantity.
+    final buyItems =
+        coupon.items.where((i) => i.type.toUpperCase() == 'BUY').toList();
+    final getItems = coupon.items.where((i) => i.isGet).toList();
+    if (getItems.isEmpty) return 0;
+
+    final orderedQty = <int, int>{};
+    for (final it in items) {
+      orderedQty[it.menuItemId] = (orderedQty[it.menuItemId] ?? 0) + it.quantity;
+    }
+
+    final hasAllBuy =
+        buyItems.every((b) => (orderedQty[b.menuItemId] ?? 0) >= b.quantity);
+    if (!hasAllBuy) return 0;
+
+    double freeValue = 0;
+    for (final get in getItems) {
+      final unitPrices = <double>[];
+      for (final it in items) {
+        if (it.menuItemId != get.menuItemId) continue;
+        for (var k = 0; k < it.quantity; k++) {
+          unitPrices.add(it.price);
+        }
+      }
+      unitPrices.sort();
+      final freeUnits = math.min(get.quantity, unitPrices.length);
+      for (var k = 0; k < freeUnits; k++) {
+        freeValue += unitPrices[k];
+      }
+    }
+    if (freeValue <= 0) return 0;
+    return _round2(math.min(freeValue, subtotal));
+  }
+
+  static double _round2(double n) => (n * 100).round() / 100;
 
   /// Coupons that apply to a freshly created PENDING order, with a discount
   /// preview for each. Returns an empty list on any failure (coupons are an

@@ -60,6 +60,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isLoadingLocation = true;
   List<ShopPaymentTypeDto>? _paymentTypes;
 
+  // Coupons eligible for this shop (raw); the precise discount per coupon is
+  // previewed client-side against the current cart. _selectedCoupon is the one
+  // the user picked on this page; it's applied to the order at place-order time.
+  List<CouponModel> _shopCoupons = const [];
+  CouponModel? _selectedCoupon;
+
   @override
   void initState() {
     super.initState();
@@ -93,7 +99,80 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
         _loadShopPaymentMethods(restaurantId);
+
+        // 4. Pre-load this shop's coupons so the "Apply Coupon" row can show
+        //    immediately on this page.
+        _loadShopCoupons(restaurantId);
       }
+    }
+  }
+
+  Future<void> _loadShopCoupons(int shopId) async {
+    final coupons = await CouponService.instance.fetchByShop(shopId);
+    if (!mounted || coupons.isEmpty) return;
+    setState(() => _shopCoupons = coupons);
+  }
+
+  /// Coupons that actually apply to the current cart, each with a live,
+  /// client-computed discount preview (mirrors the backend).
+  List<CouponModel> _applicableCoupons(double subtotal, List<CartItem> items) {
+    if (_shopCoupons.isEmpty) return const [];
+    final lines = items
+        .map<CouponCartLine>(
+          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
+        )
+        .toList();
+    final out = <CouponModel>[];
+    for (final c in _shopCoupons) {
+      final discount = CouponService.computePreview(
+        coupon: c,
+        subtotal: subtotal,
+        items: lines,
+      );
+      if (discount > 0) out.add(c.copyWith(discountPreview: discount));
+    }
+    return out;
+  }
+
+  double _discountForSelected(double subtotal, List<CartItem> items) {
+    final coupon = _selectedCoupon;
+    if (coupon == null) return 0;
+    final lines = items
+        .map<CouponCartLine>(
+          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
+        )
+        .toList();
+    return CouponService.computePreview(
+      coupon: coupon,
+      subtotal: subtotal,
+      items: lines,
+    );
+  }
+
+  Future<void> _openCouponSheet(
+    double subtotal,
+    List<CartItem> items,
+  ) async {
+    final applicable = _applicableCoupons(subtotal, items);
+    if (applicable.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('coupon.none'),
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+    final chosen = await showCouponTicketSheet(
+      context: context,
+      coupons: applicable,
+      selectedId: _selectedCoupon?.id,
+    );
+    if (chosen != null && mounted) {
+      setState(() => _selectedCoupon = chosen);
     }
   }
 
@@ -384,6 +463,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           itemSubtotal: foodSubtotal,
           taxEnable: taxEnable,
         );
+        final couponDiscount =
+            _discountForSelected(foodSubtotal, currentStore.items);
+        final payableTotal =
+            (checkoutTotal - couponDiscount).clamp(0, double.infinity).toDouble();
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -798,6 +881,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
+
+                      // Apply Coupon entry (opens the movie-ticket sheet).
+                      _buildCouponSection(foodSubtotal, currentStore.items),
                     ],
                   ),
                 ),
@@ -833,6 +919,37 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 taxAmount.toFormattedPrice(),
                               ),
                             ],
+                            if (couponDiscount > 0) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _selectedCoupon?.name.isNotEmpty == true
+                                          ? _selectedCoupon!.name
+                                          : context.tr('order_status.discount'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        color: AppColors.primary,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '- ${couponDiscount.toFormattedPrice()}',
+                                    style: GoogleFonts.poppins(
+                                      color: AppColors.primary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -848,7 +965,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                                 GradientText(
-                                  checkoutTotal.toFormattedPrice(),
+                                  payableTotal.toFormattedPrice(),
                                   style: GoogleFonts.poppins(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -1195,11 +1312,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     // Start WebSocket tracking immediately upon successful order creation
                                     WebSocketService().connect();
 
-                                    // 4b. Offer any coupons that apply to this
-                                    // freshly created PENDING order (movie-ticket
-                                    // bottom sheet). Purely additive — failures
-                                    // never block reaching the tracking page.
-                                    await _maybeOfferCoupons(orderId);
+                                    // 4b. Apply the coupon the user chose on this
+                                    // page (if any) to the freshly created PENDING
+                                    // order. Purely additive — a failure here
+                                    // never blocks reaching the tracking page.
+                                    await _applySelectedCoupon(
+                                      orderId,
+                                      foodTotal.toDouble(),
+                                      storeItems,
+                                    );
 
                                     // 5. Navigate to tracking page
                                     if (!context.mounted) return;
@@ -1265,35 +1386,151 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  /// Fetches coupons available on the just-created PENDING order and, if any
-  /// exist, shows the movie-ticket coupon sheet. Applying one updates the
-  /// active order's stored totals. Skipping (or any error) is a no-op.
-  Future<void> _maybeOfferCoupons(String? orderId) async {
+  /// Applies the coupon the user selected on the summary page to the
+  /// just-created PENDING order, then stores the authoritative totals. Any
+  /// failure is surfaced as a toast but never blocks reaching the tracking page.
+  Future<void> _applySelectedCoupon(
+    String? orderId,
+    double subtotal,
+    List<CartItem> items,
+  ) async {
+    final coupon = _selectedCoupon;
+    if (coupon == null) return;
     final couponOrderId = int.tryParse((orderId ?? '').replaceAll('#', ''));
     if (couponOrderId == null) return;
+
+    // Skip if the selection no longer applies to the final cart.
+    if (_discountForSelected(subtotal, items) <= 0) return;
+
     try {
-      final coupons =
-          await CouponService.instance.fetchAvailable(couponOrderId);
-      if (coupons.isEmpty || !mounted) return;
-      final applied = await showCouponTicketSheet(
-        context: context,
+      final result = await CouponService.instance.apply(
         orderId: couponOrderId,
-        coupons: coupons,
+        couponId: coupon.id,
       );
-      if (applied != null) {
-        ActiveOrderState.instance.applyCoupon(
-          discountAmount: applied.discountAmount,
-          itemPrice: applied.itemPrice,
-          taxAmount: applied.taxAmount,
-          totalAmount: applied.totalAmount,
-          couponName: applied.couponName,
-          couponCode: applied.couponCode,
-          orderId: orderId,
-        );
-      }
-    } catch (_) {
-      // Coupons are optional; never block checkout on a failure here.
+      ActiveOrderState.instance.applyCoupon(
+        discountAmount: result.discountAmount,
+        itemPrice: result.itemPrice,
+        taxAmount: result.taxAmount,
+        totalAmount: result.totalAmount,
+        couponName: result.couponName,
+        couponCode: result.couponCode,
+        orderId: orderId,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final message =
+          e is CouponApplyException ? e.message : context.tr('coupon.apply_failed');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: GoogleFonts.poppins()),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     }
+  }
+
+  /// The "Apply Coupon" card shown on the summary page. Hidden when the shop has
+  /// no coupons that apply to the current cart (and none is selected).
+  Widget _buildCouponSection(double subtotal, List<CartItem> items) {
+    final applicable = _applicableCoupons(subtotal, items);
+    final discount = _discountForSelected(subtotal, items);
+    final hasSelection = _selectedCoupon != null && discount > 0;
+
+    if (applicable.isEmpty && !hasSelection) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hasSelection
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1.5,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openCouponSheet(subtotal, items),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    PhosphorIconsFill.ticket,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('coupon.apply_title'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasSelection
+                            ? '${_selectedCoupon!.name}  •  - ${discount.toFormattedPrice()}'
+                            : context.tr('coupon.apply_hint'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.5,
+                          fontWeight:
+                              hasSelection ? FontWeight.w600 : FontWeight.w400,
+                          color: hasSelection
+                              ? AppColors.primary
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (hasSelection)
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedCoupon = null),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      color: Colors.transparent,
+                      child: Icon(
+                        PhosphorIcons.x,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    PhosphorIconsRegular.caretRight,
+                    size: 18,
+                    color: Colors.grey[400],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// The currently selected payment method, or the first active one.
