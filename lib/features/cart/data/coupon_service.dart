@@ -258,33 +258,33 @@ class CouponService {
 
   /// Active coupons across all shops the user can still use, paginated.
   /// [target] filters by `all` or `earlybird`; omit for default backend rules
-  /// (early-bird users see ALL + EARLY_BIRD). Returns [] on any failure so the
-  /// home/food rails simply hide instead of breaking the feed.
+  /// (early-bird users see ALL + EARLY_BIRD).
+  ///
+  /// Throws on a request/parse failure so callers can tell a genuine empty
+  /// result (hide the rail) apart from a transient error (retry). This matters
+  /// on the Home tab, where many sections fetch at once and a swallowed failure
+  /// would otherwise make the early-bird rail silently vanish until refresh.
   Future<List<CouponModel>> fetchAllCoupons({
     String? target,
     int page = 1,
     int size = 20,
   }) async {
-    try {
-      final response = await ApiClient().dio.get(
-        '${ApiClient.apiPrefix}/user/coupons',
-        queryParameters: {
-          'page': page,
-          'size': size,
-          if (target != null && target.isNotEmpty) 'target': target,
-        },
-      );
-      final body = response.data;
-      if (body is! Map) return const [];
-      final list = body['data'];
-      if (list is! List) return const [];
-      return list
-          .whereType<Map>()
-          .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    } catch (_) {
-      return const [];
-    }
+    final response = await ApiClient().dio.get(
+      '${ApiClient.apiPrefix}/user/coupons',
+      queryParameters: {
+        'page': page,
+        'size': size,
+        if (target != null && target.isNotEmpty) 'target': target,
+      },
+    );
+    final body = response.data;
+    if (body is! Map) return const [];
+    final list = body['data'];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   /// In-memory cache of resolved shop logo URLs, keyed by shopId, so the two
