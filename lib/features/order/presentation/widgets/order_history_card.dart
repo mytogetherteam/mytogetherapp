@@ -10,6 +10,7 @@ import 'package:mytogetherapp/features/reviews/presentation/screens/write_review
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/utils/file_url_util.dart';
+import 'package:mytogetherapp/core/utils/price_formatter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
 import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
@@ -169,7 +170,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             GradientText(
-              widget.order.displayTotalAmount ?? '฿${widget.order.totalAmount}',
+              widget.order.displayTotalAmount?.toFormattedPrice() ??
+                  widget.order.totalAmount.toFormattedPrice(),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

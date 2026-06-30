@@ -28,6 +28,7 @@ import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart'
 import 'places_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
@@ -730,6 +731,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
                             ),
+                            const SizedBox(height: 24),
+                            CouponRailSection(
+                              key: ValueKey('eb_coupons_$_refreshKey'),
+                              title: context.tr('coupon.discounts_title'),
+                              target: 'earlybird',
+                            ),
+                            const SizedBox(height: 24),
+                            CouponRailSection(
+                              key: ValueKey('coupons_$_refreshKey'),
+                              title: context.tr('coupon.coupons_title'),
+                              target: 'all',
+                            ),
+                            const SizedBox(height: 24),
                             PopularBrandsSection(
                               key: ValueKey('brands_$_refreshKey'),
                             ),

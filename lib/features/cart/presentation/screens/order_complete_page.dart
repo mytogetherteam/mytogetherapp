@@ -176,7 +176,8 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                       order.isPickupFulfillment ? 0 : deliveryFee,
                 )));
     final displayTotal =
-        order?.displayTotalAmount ?? total.toFormattedPrice();
+        order?.displayTotalAmount?.toFormattedPrice() ??
+            total.toFormattedPrice();
     
     final arrivalTime = TimeFormatter.formatClock(DateTime.now());
     final logoPath = order?.logoPath;
@@ -368,14 +369,14 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             children: [
                               _buildSummaryRow(
                                 context.tr('payment.food_price'),
-                                order?.displayFoodPrice ??
+                                order?.displayFoodPrice?.toFormattedPrice() ??
                                     foodPrice.toFormattedPrice(),
                               ),
                               if (order?.resolvedTaxEnable ?? true) ...[
                                 const SizedBox(height: 12),
                                 _buildSummaryRow(
                                   context.tr('order_status.tax'),
-                                  order?.displayTaxAmount ??
+                                  order?.displayTaxAmount?.toFormattedPrice() ??
                                       taxAmount.toFormattedPrice(),
                                 ),
                               ],
@@ -384,6 +385,32 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                   !order.isFlexibleDelivery) ...[
                                 const SizedBox(height: 12),
                                 _buildDeliveryFeeRow(context, order, deliveryFee),
+                              ],
+                              if ((order.discountAmount ?? 0) > 0) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        context.tr('order_status.discount'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '- ${order.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFED3973),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                               if (orderItems.isNotEmpty) ...[
                                 const Padding(
@@ -497,7 +524,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
         ? context.tr('payment.delivery_fee_badge_estimate')
         : context.tr('payment.delivery_fee_badge_confirmed');
     final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
-        ? order!.displayDeliveryFee!
+        ? order!.displayDeliveryFee!.toFormattedPrice()
         : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
 
     return Row(

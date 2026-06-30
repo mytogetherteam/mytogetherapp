@@ -1264,16 +1264,32 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     const SizedBox(height: 14),
                     _summaryRow(
                       context.tr('payment.food_price'),
-                      order?.displayFoodPrice ??
-                          '฿ ${widget.foodTotal.toStringAsFixed(0)}',
+                      order?.displayFoodPrice?.toFormattedPrice() ??
+                          widget.foodTotal.toFormattedPrice(),
                       isValue: false,
                     ),
                     if ((order?.resolvedTaxEnable ?? true) && (order?.resolvedTaxAmount ?? 0) > 0) ...[
                       const SizedBox(height: 10),
                       _summaryRow(
                         context.tr('order_status.tax'),
-                        order?.displayTaxAmount ??
+                        order?.displayTaxAmount?.toFormattedPrice() ??
                             (order?.resolvedTaxAmount ?? 0).toFormattedPrice(),
+                        isValue: false,
+                      ),
+                    ],
+                    if ((order?.discountAmount ?? 0) > 0) ...[
+                      const SizedBox(height: 10),
+                      _summaryRow(
+                        context.tr('order_status.discount'),
+                        '',
+                        customValue: Text(
+                          '- ${order!.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFED3973),
+                          ),
+                        ),
                         isValue: false,
                       ),
                     ],
@@ -1285,8 +1301,16 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       _summaryRow(
                         context.tr('order_status.delivery_fee'),
                         '',
-                        customValue: Text(
-                                '฿ ${order!.deliveryFee!.toInt()}',
+                        customValue: order!.isFlexibleDelivery
+                            ? GradientText(
+                                order.deliveryFee!.toFormattedPrice(),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            : Text(
+                                order.deliveryFee!.toFormattedPrice(),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1338,7 +1362,34 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         );
                       },
                     ),
-
+                    _summaryRow(
+                      order?.usesPayNowTotal == true
+                          ? context.tr('cart.total_pay_now')
+                          : context.tr('cart.total'),
+                      order?.usesPayNowTotal == true
+                          ? order!
+                              .resolvedPayNowTotal(
+                                fallbackDeliveryFee: widget.deliveryFee,
+                              )
+                              .toFormattedPrice()
+                          : (order?.displayTotalAmount?.toFormattedPrice() ??
+                              order!
+                                  .resolvedGrandTotal(
+                                    fallbackDeliveryFee:
+                                        order.deliveryFee ??
+                                            widget.deliveryFee,
+                                  )
+                                  .toFormattedPrice()),
+                      isValue: true,
+                    ),
+                    if (order?.hasPrepTimeEstimate == true) ...[
+                      const SizedBox(height: 12),
+                      _summaryRow(
+                        context.tr('payment.est_waiting_time'),
+                        TimeFormatter.normalizeDisplay(order!.estimatedTime!),
+                        isValue: false,
+                      ),
+                    ],
                   ],
                 ),
               ),
