@@ -260,6 +260,39 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     return count.toString();
   }
 
+  Widget _buildDefaultAvatar(String authorName) {
+    if (authorName.toLowerCase().contains('super admin')) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+        ),
+        child: Image.asset(
+          'assets/images/super_admin.png',
+          cacheWidth: 100,
+          cacheHeight: 100,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Image.asset(
+            'assets/images/logo_3d.png',
+            cacheWidth: 100,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/logo_3d.png',
+          cacheWidth: 100,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isBlocked) {
@@ -268,9 +301,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
     const double outerPadding = 16.0;
     const double avatarRadius = 24.0;
     const double avatarGap = 14.0;
-    final double leftContentOffset = widget.showProfile
-        ? outerPadding + (avatarRadius * 2) + avatarGap
-        : outerPadding;
+    final double leftContentOffset = outerPadding;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,15 +326,34 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (widget.showProfile) ...[
-                          CircleAvatar(
-                            radius: avatarRadius,
-                            backgroundImage: widget.item.authorAvatar.isNotEmpty
-                                ? CachedNetworkImageProvider(widget.item.authorAvatar)
-                                : null,
-                            backgroundColor: Colors.grey[100],
-                            child: widget.item.authorAvatar.isEmpty
-                                ? Icon(PhosphorIcons.user, size: 22, color: Colors.grey[400])
-                                : null,
+                          Container(
+                            width: avatarRadius * 2,
+                            height: avatarRadius * 2,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: AppColors.primaryGradient.colors,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: widget.item.authorAvatar.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: widget.item.authorAvatar,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(color: Colors.grey[200]),
+                                      errorWidget: (context, url, error) => _buildDefaultAvatar(widget.item.authorName),
+                                    )
+                                  : _buildDefaultAvatar(widget.item.authorName),
+                            ),
                           ),
                           const SizedBox(width: avatarGap),
                         ],
@@ -370,8 +420,19 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 4),
-                        LayoutBuilder(
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+                padding: const EdgeInsets.only(
+                  left: outerPadding,
+                  right: outerPadding,
+                  top: 8.0,
+                ),
+                child: LayoutBuilder(
                           builder: (context, constraints) {
                             final content = widget.item.content;
                             const int charLimit = 120;
@@ -384,7 +445,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                     TextSpan(
                                       text: '$content ',
                                       style: GoogleFonts.notoSansMyanmar(
-                                        fontSize: 14,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.black87,
                                         height: 1.5,
@@ -416,7 +477,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               return Text(
                                 content,
                                 style: GoogleFonts.notoSansMyanmar(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w400,
                                   color: Colors.black87,
                                   height: 1.5,
@@ -430,7 +491,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                   TextSpan(
                                     text: '${content.substring(0, charLimit)}... ',
                                     style: GoogleFonts.notoSansMyanmar(
-                                      fontSize: 14,
+                                      fontSize: 13,
                                       height: 1.5,
                                       fontWeight: FontWeight.w400,
                                       color: Colors.black87,
@@ -460,12 +521,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             );
                           },
                         ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
 
             // Middle Section: Single or Multiple Images
                   if (widget.item.imageUrls.isNotEmpty)
@@ -479,6 +535,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                   PageRouteBuilder(
                                     opaque: false,
                                     transitionDuration: const Duration(milliseconds: 300),
+                                    reverseTransitionDuration: Duration.zero,
                                     pageBuilder: (context, _, _) => NewsImageViewer(
                                       imageUrls: widget.item.imageUrls,
                                       initialIndex: 0,
@@ -500,9 +557,8 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               child: Hero(
                                 tag: widget.item.imageUrls[0],
                                 child: Padding(
-                                  padding: EdgeInsets.only(
-                                    left: leftContentOffset,
-                                    right: 40.0,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: outerPadding,
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
@@ -510,7 +566,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                       imageUrl: widget.item.imageUrls[0],
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      height: 180,
+                                      height: 200,
                                       placeholder: (context, url) =>
                                           Container(color: Colors.grey[100]),
                                       errorWidget: (context, url, error) =>
@@ -527,7 +583,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               ),
                             )
                           : SizedBox(
-                              height: 190,
+                              height: 210,
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
@@ -542,6 +598,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                         PageRouteBuilder(
                                           opaque: false,
                                           transitionDuration: const Duration(milliseconds: 300),
+                                          reverseTransitionDuration: Duration.zero,
                                           pageBuilder: (context, _, _) => NewsImageViewer(
                                             imageUrls: widget.item.imageUrls,
                                             initialIndex: index,

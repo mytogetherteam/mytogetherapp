@@ -91,6 +91,8 @@ class ActiveOrderItem {
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  String? paymentAccountNumber;
+  String? paymentAccountName;
   bool? taxEnable;
   // Photo the shop attaches when marking the order Delivered — shown to the
   // customer as proof the food was successfully delivered.
@@ -268,6 +270,8 @@ class ActiveOrderItem {
     this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.paymentAccountNumber,
+    this.paymentAccountName,
     this.taxEnable,
     this.proofPhotoUrl,
   });
@@ -345,6 +349,8 @@ class ActiveOrderItem {
     'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'paymentAccountNumber': paymentAccountNumber,
+    'paymentAccountName': paymentAccountName,
     'taxEnable': taxEnable,
     'proofPhotoUrl': proofPhotoUrl,
     'deliveryType': deliveryType,
@@ -413,6 +419,8 @@ class ActiveOrderItem {
         shopPhone: json['shopPhone'],
         paymentMethodId: json['paymentMethodId'],
         paymentMethodImageUrl: json['paymentMethodImageUrl'],
+        paymentAccountNumber: json['paymentAccountNumber'],
+        paymentAccountName: json['paymentAccountName'],
         taxEnable: json['taxEnable'] as bool?,
         proofPhotoUrl: json['proofPhotoUrl'],
         deliveryType: json['deliveryType'] as String?,
@@ -609,6 +617,8 @@ class ActiveOrderState extends ChangeNotifier {
   String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
+  String? get paymentAccountNumber => _primary?.paymentAccountNumber;
+  String? get paymentAccountName => _primary?.paymentAccountName;
   bool get taxEnable => _primary?.resolvedTaxEnable ?? true;
   String? get cancelReason => _primary?.cancelReason;
   set cancelReason(String? val) {
@@ -869,16 +879,18 @@ class ActiveOrderState extends ChangeNotifier {
       return;
     }
 
-    final ownerId = OrderOwnership.parseUserId(data);
+
     var item = _findTrackedOrder(rawId);
     if (item == null) {
-      // Never adopt a brand-new order from realtime unless ownership is explicit.
-      if (ownerId == null || !OrderOwnership.isOwnedByCurrentUser(data)) return;
+      if (OrderOwnership.isForeignOrder(data)) return;
       final id = rawId;
       if (id == null || id.isEmpty) return;
       _orders[id] = ActiveOrderItem(orderId: id);
       _primaryOrderId ??= id;
       item = _orders[id];
+      // The WS payload might be a partial update (e.g. status only).
+      // Trigger a full REST sync in the background to backfill missing fields.
+      Future.microtask(() => syncActiveOrder(orderId: id));
     }
     if (item == null) return;
 
@@ -942,6 +954,12 @@ class ActiveOrderState extends ChangeNotifier {
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
+
+    final accNumber = _parseSafeString(data['paymentAccountNumber'] ?? data['shopPaymentAccountNumber'] ?? data['accountNumber']);
+    if (accNumber != null) item.paymentAccountNumber = accNumber;
+    
+    final accName = _parseSafeString(data['paymentAccountName'] ?? data['shopPaymentAccountName'] ?? data['accountName']);
+    if (accName != null) item.paymentAccountName = accName;
 
     // Delivery proof photo attached by the shop on the "Delivered" step.
     final proofUrl = _parseSafeString(data['proofPhotoUrl']);
@@ -1304,10 +1322,13 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updatePaymentMethodImage(String url, {String? orderId}) {
+  void updatePaymentMethodDetails({String? imageUrl, String? accountNumber, String? accountName, String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
-    _orders[targetId]!.paymentMethodImageUrl = url;
+    final item = _orders[targetId]!;
+    if (imageUrl != null && imageUrl.isNotEmpty) item.paymentMethodImageUrl = imageUrl;
+    if (accountNumber != null && accountNumber.isNotEmpty) item.paymentAccountNumber = accountNumber;
+    if (accountName != null && accountName.isNotEmpty) item.paymentAccountName = accountName;
     saveToPrefs();
     notifyListeners();
   }

@@ -398,7 +398,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               ? _galleryImages.first.trim()
                               : '';
                           return GestureDetector(
-                            onTap: () {
+                            onTap: img.isEmpty ? null : () {
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
@@ -603,22 +603,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Tags
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              if (_currentFood?.cuisineType != null) ...[
-                                _buildTag(
-                                  _currentFood!.cuisineType!.displayName,
-                                ),
-                              ] else ...[
-                                _buildTag(context.tr('menu.default_cuisine_tag')),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+
 
                         // Variants
                         if (_currentFood != null &&

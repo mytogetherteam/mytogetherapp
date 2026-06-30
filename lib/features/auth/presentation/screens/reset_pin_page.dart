@@ -8,20 +8,23 @@ import '../../../../core/utils/firebase_error_handler.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:flutter/services.dart';
-import 'forgot_password_page.dart';
+import 'login_pin_page.dart';
 
-class LoginPinPage extends StatefulWidget {
+class ResetPinPage extends StatefulWidget {
   final String phone;
+  final String idToken;
 
-  const LoginPinPage({super.key, required this.phone});
+  const ResetPinPage({super.key, required this.phone, required this.idToken});
 
   @override
-  State<LoginPinPage> createState() => _LoginPinPageState();
+  State<ResetPinPage> createState() => _ResetPinPageState();
 }
 
-class _LoginPinPageState extends State<LoginPinPage>
+class _ResetPinPageState extends State<ResetPinPage>
     with SingleTickerProviderStateMixin {
   String _pin = '';
+  String _confirmPin = '';
+  bool _isConfirming = false;
   bool _isLoading = false;
   bool _hasError = false;
 
@@ -36,7 +39,6 @@ class _LoginPinPageState extends State<LoginPinPage>
       duration: const Duration(milliseconds: 400),
     );
 
-    // Creates a shaking effect by oscillating between -1 and 1
     _shakeAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
       TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
@@ -53,89 +55,132 @@ class _LoginPinPageState extends State<LoginPinPage>
   }
 
   void _onDigitPress(String digit) {
-    if (_pin.length < 6 && !_isLoading) {
+    String currentPin = _isConfirming ? _confirmPin : _pin;
+    
+    if (currentPin.length < 6 && !_isLoading) {
       HapticFeedback.lightImpact();
       setState(() {
-        _pin += digit;
+        if (_isConfirming) {
+          _confirmPin += digit;
+        } else {
+          _pin += digit;
+        }
         _hasError = false;
       });
 
-      if (_pin.length == 6) {
+      if (_isConfirming && _confirmPin.length == 6) {
         _submitPin();
+      } else if (!_isConfirming && _pin.length == 6) {
+        // Proceed to confirm step
+        setState(() {
+          _isConfirming = true;
+        });
       }
     }
   }
 
   void _onDeletePress() {
-    if (_pin.isNotEmpty && !_isLoading) {
+    if (!_isLoading) {
       HapticFeedback.lightImpact();
       setState(() {
-        _pin = _pin.substring(0, _pin.length - 1);
+        if (_isConfirming) {
+          if (_confirmPin.isNotEmpty) {
+            _confirmPin = _confirmPin.substring(0, _confirmPin.length - 1);
+          } else {
+            // Go back to step 1
+            _isConfirming = false;
+            _pin = '';
+          }
+        } else {
+          if (_pin.isNotEmpty) {
+            _pin = _pin.substring(0, _pin.length - 1);
+          }
+        }
         _hasError = false;
       });
     }
   }
 
   Future<void> _submitPin() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (_pin != _confirmPin) {
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _hasError = true;
+        _confirmPin = '';
+      });
+      await _shakeController.forward(from: 0);
+      if (mounted) {
+        AppDialog.showToast(context, 'Passcodes do not match', isError: true);
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
-      await AuthRepository.instance.login(
+      await AuthRepository.instance.resetPassword(
         phone: widget.phone,
-        pin: _pin,
+        idToken: widget.idToken,
+        newPin: _pin,
       );
       if (!mounted) return;
-      // Login successful, go to home
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      
+      AppDialog.showToast(context, 'Passcode successfully reset!');
+      
+      // Go back to LoginPinPage to login with new pin
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => LoginPinPage(phone: widget.phone),
+        ),
+        (route) => route.isFirst,
+      );
     } catch (e) {
       if (!mounted) return;
       HapticFeedback.heavyImpact();
       setState(() {
         _hasError = true;
+        _isLoading = false;
+        _confirmPin = ''; // Clear confirm PIN on error
       });
-      // Play shake animation
       await _shakeController.forward(from: 0);
       
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _pin = ''; // Clear PIN on error
-      });
       AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    String currentPin = _isConfirming ? _confirmPin : _pin;
+    String titleText = _isConfirming ? 'Confirm New Passcode' : 'Create New Passcode';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            'assets/images/app_icon_small.png',
-            height: 40,
-            width: 40,
-            fit: BoxFit.cover,
-          ),
-        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (_isConfirming) {
+              setState(() {
+                _isConfirming = false;
+                _pin = '';
+                _confirmPin = '';
+              });
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Title
             GradientText(
-              context.tr('auth.enter_passcode'),
+              titleText,
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
@@ -143,7 +188,7 @@ class _LoginPinPageState extends State<LoginPinPage>
             ),
             const SizedBox(height: 8),
             Text(
-              widget.phone,
+              'Please enter a 6-digit PIN.',
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[600],
@@ -152,7 +197,6 @@ class _LoginPinPageState extends State<LoginPinPage>
             ),
             const SizedBox(height: 40),
             
-            // Indicator Dots with Shake Animation
             AnimatedBuilder(
               animation: _shakeAnimation,
               builder: (context, child) {
@@ -164,7 +208,7 @@ class _LoginPinPageState extends State<LoginPinPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(6, (index) {
-                  final isFilled = index < _pin.length;
+                  final isFilled = index < currentPin.length;
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 10),
                     width: 16,
@@ -197,11 +241,10 @@ class _LoginPinPageState extends State<LoginPinPage>
                 child: CustomLoadingIndicator(size: 32),
               )
             else
-              const SizedBox(height: 56), // Placeholder for spinner
+              const SizedBox(height: 56),
 
             const Spacer(),
             
-            // Numpad
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
               child: Column(
@@ -214,24 +257,6 @@ class _LoginPinPageState extends State<LoginPinPage>
                   const SizedBox(height: 24),
                   _buildNumpadRow(['', '0', 'delete']),
                 ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ForgotPasswordPage(phone: widget.phone),
-                  ),
-                );
-              },
-              child: Text(
-                context.tr('auth.forgot_passcode'), // We'll add this to translation or just use string
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
               ),
             ),
             const SizedBox(height: 30),
@@ -276,7 +301,7 @@ class _LoginPinPageState extends State<LoginPinPage>
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primary.withValues(alpha: 0.08), // Primary color with low opacity
+          color: AppColors.primary.withValues(alpha: 0.08),
         ),
         child: Center(
           child: GradientText(

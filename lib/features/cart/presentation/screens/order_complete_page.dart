@@ -16,6 +16,7 @@ import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 import '../../../reviews/data/repositories/shop_review_repository.dart';
+import '../widgets/flexible_delivery_note.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -322,6 +323,17 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFFE5E7EB), indent: 20, endIndent: 20),
+                  if (order?.isFlexibleDelivery == true) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: FlexibleDeliveryNote(
+                        estimatedFee: order?.displayDeliveryFee?.isNotEmpty == true
+                            ? order!.displayDeliveryFee!
+                            : (deliveryFee > 0 ? deliveryFee.toFormattedPrice() : '+฿ 0'),
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFE5E7EB), indent: 20, endIndent: 20),
+                  ],
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
@@ -368,7 +380,8 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 ),
                               ],
                               if (!order!.isPickupFulfillment &&
-                                  order.hasDeliveryFeeEstimate) ...[
+                                  order.hasDeliveryFeeEstimate &&
+                                  !order.isFlexibleDelivery) ...[
                                 const SizedBox(height: 12),
                                 _buildDeliveryFeeRow(context, order, deliveryFee),
                               ],
@@ -423,6 +436,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
             // "Done" button: submit rating (if any), clear order, go home
             PrimaryGradientButton(

@@ -86,6 +86,23 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<void> resetPassword({required String idToken, required String newPin}) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/auth/reset-password',
+      data: {'firebaseToken': idToken, 'newPin': newPin},
+    );
+    if (response.data['success'] == false) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 400,
+          data: response.data,
+        ),
+      );
+    }
+  }
+
   Future<void> logout() async {
     try {
       final token = AuthService().refreshToken;

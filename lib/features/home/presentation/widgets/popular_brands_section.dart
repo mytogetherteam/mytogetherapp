@@ -59,9 +59,11 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
         final List<Restaurant> brands = (snapshot.data ?? []).take(20).toList();
         if (brands.isEmpty) return const SizedBox.shrink();
 
+        final itemsPerPage = MediaQuery.of(context).size.width > 600 ? 16 : 8;
+        
         final List<List<Restaurant>> pages = [];
-        for (var i = 0; i < brands.length; i += 8) {
-          pages.add(brands.sublist(i, i + 8 > brands.length ? brands.length : i + 8));
+        for (var i = 0; i < brands.length; i += itemsPerPage) {
+          pages.add(brands.sublist(i, i + itemsPerPage > brands.length ? brands.length : i + itemsPerPage));
         }
 
         return Container(
@@ -114,8 +116,8 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                     return GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 8 : 4,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 8,
                         childAspectRatio: 0.8, // Adjusted to fit 4 columns
@@ -192,13 +194,13 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: 8,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 8 : 4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.8,
+            ),
+            itemCount: MediaQuery.of(context).size.width > 600 ? 16 : 8,
               itemBuilder: (context, index) => const _ShimmerCardSquare(),
             ),
           ),

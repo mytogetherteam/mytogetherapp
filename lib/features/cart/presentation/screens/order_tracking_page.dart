@@ -240,27 +240,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
             if (!state.hasNotifiedSlipRequest) {
               state.setNotifiedSlipRequest(true);
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(
-              //     content: Row(
-              //       children: [
-              //         Icon(PhosphorIcons.warningCircleFill, color: Colors.white, size: 20),
-              //         const SizedBox(width: 10),
-              //         Expanded(
-              //           child: Text('New payment slip requested by restaurant',
-              //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
-              //         ),
-              //       ],
-              //     ),
-              //     backgroundColor: AppColors.primary,
-              //     behavior: SnackBarBehavior.floating,
-              //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              //   ),
-              // );
             }
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToPayment();
+          });
+        } else if (upperStatus == 'CANCELLED' || upperStatus == 'CANCELED' || status == '-1') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _navigateToCancelPage();
           });
         }
       }
@@ -408,7 +395,36 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _navigateToPayment();
       });
+    } else if (status == -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _navigateToCancelPage();
+      });
     }
+  }
+
+  void _navigateToCancelPage() {
+    if (!mounted) return;
+    _statusPollTimer?.cancel();
+    final cancelledOrder = ActiveOrderState.instance.getOrder(ActiveOrderState.instance.orderId);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderCancelPage(
+          orderId: cancelledOrder?.orderId ?? '',
+          reason: cancelledOrder?.cancelReason,
+          shopId: cancelledOrder?.shopId,
+          shopName: cancelledOrder?.shopNameEn ??
+              cancelledOrder?.shopName ??
+              cancelledOrder?.restaurantName ??
+              cancelledOrder?.storeName,
+          shopNameMm: cancelledOrder?.shopNameMm,
+          shopNameTh: cancelledOrder?.shopNameTh,
+          shopLogo: cancelledOrder?.shopLogo ?? cancelledOrder?.logoPath,
+          shopImageUrl: cancelledOrder?.shopImageUrl,
+          cancelledByUser: ActiveOrderState.instance.wasCancelledByUser(cancelledOrder?.orderId),
+        ),
+      ),
+    );
   }
 
   @override
@@ -838,7 +854,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       northeast: LatLng(maxLat, maxLng),
     );
 
-    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 150));
   }
 
   Future<void> _fetchRoute(LatLng start) async {
@@ -1225,15 +1241,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             _buildDeliveryFeeRow(),
                           ],
 
-                          const SizedBox(height: 12),
-
-                          _buildInfoRow(
-                            label: !ActiveOrderState.instance.isPickupFulfillment
-                                ? context.tr('cart.total_pay_now')
-                                : context.tr('order_status.total_amount'),
-                            value: _checkoutTotalLabel(),
-                            isGradientValue: true,
-                          ),
 
                           const SizedBox(height: 28),
 
@@ -1306,15 +1313,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 
-  String _checkoutTotalLabel() {
-    final state = ActiveOrderState.instance;
-    if (state.isPickupFulfillment) {
-      return state.displayTotalAmount?.isNotEmpty == true
-          ? state.displayTotalAmount!
-          : state.resolvedGrandTotal().toFormattedPrice();
-    }
-    return state.resolvedPayNowTotal().toFormattedPrice();
-  }
+
 
   Widget _buildInfoRow({
     required String label,
@@ -1459,12 +1458,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 () => {},
                               ); // Rebuild button to show disabled state
 
-                              // Snapshot shop/order details before cancelling.
-                              // cancelActiveOrder() clears the order from state
-                              // on success, so capture it now for the
-                              // cancellation screen.
-                              final cancelledOrder = ActiveOrderState.instance
-                                  .getOrder(ActiveOrderState.instance.orderId);
 
                               // Delayed loading indicator (500ms)
                               Future.delayed(
@@ -1503,28 +1496,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 // the sheet's) with the cancellation screen.
                                 if (context.mounted) Navigator.pop(context);
                                 if (mounted) {
-                                  _statusPollTimer?.cancel();
-                                  Navigator.pushReplacement(
-                                    this.context,
-                                    MaterialPageRoute(
-                                      builder: (_) => OrderCancelPage(
-                                        orderId: cancelledOrder?.orderId ?? '',
-                                        reason: cancelledOrder?.cancelReason,
-                                        shopId: cancelledOrder?.shopId,
-                                        shopName: cancelledOrder?.shopNameEn ??
-                                            cancelledOrder?.shopName ??
-                                            cancelledOrder?.restaurantName ??
-                                            cancelledOrder?.storeName,
-                                        shopNameMm: cancelledOrder?.shopNameMm,
-                                        shopNameTh: cancelledOrder?.shopNameTh,
-                                        shopLogo: cancelledOrder?.shopLogo ??
-                                            cancelledOrder?.logoPath,
-                                        shopImageUrl:
-                                            cancelledOrder?.shopImageUrl,
-                                        cancelledByUser: true,
-                                      ),
-                                    ),
-                                  );
+                                  _navigateToCancelPage();
                                 }
                               } finally {
                                 if (mounted) {
