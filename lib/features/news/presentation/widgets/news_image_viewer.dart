@@ -31,6 +31,8 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
   final TransformationController _transformationController =
       TransformationController();
   TapDownDetails? _doubleTapDetails;
+  double _initialPositionY = 0.0;
+  bool _isDismissing = false;
 
   @override
   void initState() {
@@ -39,6 +41,22 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
     _pageController = PageController(initialPage: widget.initialIndex);
     _isLiked = widget.item.isLiked;
     _likesCount = widget.item.likesCount;
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _initialPositionY = event.position.dy;
+    _isDismissing = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_isDismissing) return;
+    if (_transformationController.value.getMaxScaleOnAxis() <= 1.05) {
+      final double distance = event.position.dy - _initialPositionY;
+      if (distance > 50 || distance < -50) {
+        _isDismissing = true;
+        Navigator.pop(context);
+      }
+    }
   }
 
   void _handleDoubleTap() {
@@ -83,9 +101,12 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
         fit: StackFit.expand,
         children: [
           // Blurred Backdrop
@@ -271,7 +292,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

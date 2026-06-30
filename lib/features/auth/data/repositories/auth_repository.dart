@@ -72,6 +72,14 @@ class AuthRepository {
     }
   }
 
+  Future<void> resetPassword({required String phone, required String idToken, required String newPin}) async {
+    try {
+      await _dataSource.resetPassword(idToken: idToken, newPin: newPin);
+    } on DioException catch (e) {
+      throw _parseError(e);
+    }
+  }
+
   Future<void> logout() async {
     try {
       if (AuthService().isLoggedIn) {

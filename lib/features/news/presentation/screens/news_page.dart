@@ -165,7 +165,12 @@ class _NewsPageState extends State<NewsPage> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => NewsFeedItem(item: _newsItems[index], showProfile: false),
+                  (context, index) => Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 680),
+                      child: NewsFeedItem(item: _newsItems[index]),
+                    ),
+                  ),
                   childCount: _newsItems.length,
                 ),
               ),

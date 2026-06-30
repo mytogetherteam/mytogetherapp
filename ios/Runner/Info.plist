@@ -67,6 +67,9 @@
 		<key>LSApplicationQueriesSchemes</key>
 		<array>
 			<string>tel</string>
+			<string>kplus</string>
+			<string>scbeasy</string>
+			<string>ktbnext</string>
 		</array>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>

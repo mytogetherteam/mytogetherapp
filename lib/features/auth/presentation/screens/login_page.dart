@@ -11,6 +11,7 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'register_page.dart';
 import 'login_pin_page.dart';
+import 'forgot_password_page.dart';
 import 'auth_entry_page.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';

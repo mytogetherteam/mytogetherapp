@@ -652,12 +652,28 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               letterSpacing: 0.5,
                             ),
                           ),
-                          GradientText(
-                            TimeFormatter.normalizeDisplay(state.estimatedTime!),
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              GradientText(
+                                TimeFormatter.normalizeDisplay(state.estimatedTime!),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 40,
+                                height: 4,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -860,6 +876,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  if (state.isFlexibleDelivery &&
+                      !state.isAwaitingShopConfirmation) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: FlexibleDeliveryNote(
+                        estimatedFee: state.displayDeliveryFee ??
+                            state.deliveryFee!.toFormattedPrice(),
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  ],
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
@@ -985,20 +1012,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               ],
                               if (!state.isPickupFulfillment &&
                                   state.hasDeliveryFeeEstimate &&
-                                  !state.isAwaitingShopConfirmation) ...[
+                                  !state.isAwaitingShopConfirmation &&
+                                  !state.isFlexibleDelivery) ...[
                                 const SizedBox(height: 8),
                                 _buildSummaryRow(
-                                  state.isFlexibleDelivery
-                                      ? context.tr('payment.est_delivery_fee')
-                                      : context.tr('order_status.delivery_fee'),
+                                  context.tr('order_status.delivery_fee'),
                                   state.displayDeliveryFee ??
                                       state.deliveryFee!.toFormattedPrice(),
                                 ),
-                              ],
-                              if (state.isFlexibleDelivery &&
-                                  !state.isAwaitingShopConfirmation) ...[
-                                const SizedBox(height: 12),
-                                const FlexibleDeliveryNote(),
                               ],
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -1014,6 +1035,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         total.toFormattedPrice()),
                                 isBold: true,
                               ),
+
                             ],
                           ),
                         ),
@@ -1024,6 +1046,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               ),
             ),
             const SizedBox(height: 16),
+
 
             // Delivery Info Card
             if (!state.isPickupFulfillment &&
