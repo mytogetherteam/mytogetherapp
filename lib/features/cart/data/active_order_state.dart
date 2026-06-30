@@ -10,6 +10,7 @@ import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
+import '../../../core/utils/price_formatter.dart';
 import '../../order/data/repositories/order_repository.dart';
 import '../../order/data/models/order_history_dto.dart';
 import '../presentation/utils/revise_reason_parser.dart';
@@ -611,7 +612,8 @@ class ActiveOrderState extends ChangeNotifier {
   double? get totalAmount => _primary?.totalAmount;
   double get discountAmount => _primary?.discountAmount ?? 0;
   bool get hasDiscount => (_primary?.discountAmount ?? 0) > 0;
-  String? get displayDiscountAmount => _primary?.displayDiscountAmount;
+  String? get displayDiscountAmount =>
+      _primary?.displayDiscountAmount?.toFormattedPrice();
   String? get couponName => _primary?.couponName;
   double get resolvedTaxAmount => _primary?.resolvedTaxAmount ?? 0;
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) =>
@@ -680,22 +682,24 @@ class ActiveOrderState extends ChangeNotifier {
     if (_primary != null) _primary!.userLocation = val;
   }
 
-  String? get displayFoodPrice => _primary?.displayFoodPrice;
+  String? get displayFoodPrice => _primary?.displayFoodPrice?.toFormattedPrice();
   set displayFoodPrice(String? val) {
     if (_primary != null) _primary!.displayFoodPrice = val;
   }
 
-  String? get displayTaxAmount => _primary?.displayTaxAmount;
+  String? get displayTaxAmount => _primary?.displayTaxAmount?.toFormattedPrice();
   set displayTaxAmount(String? val) {
     if (_primary != null) _primary!.displayTaxAmount = val;
   }
 
-  String? get displayDeliveryFee => _primary?.displayDeliveryFee;
+  String? get displayDeliveryFee =>
+      _primary?.displayDeliveryFee?.toFormattedPrice();
   set displayDeliveryFee(String? val) {
     if (_primary != null) _primary!.displayDeliveryFee = val;
   }
 
-  String? get displayTotalAmount => _primary?.displayTotalAmount;
+  String? get displayTotalAmount =>
+      _primary?.displayTotalAmount?.toFormattedPrice();
   set displayTotalAmount(String? val) {
     if (_primary != null) _primary!.displayTotalAmount = val;
   }
@@ -797,7 +801,7 @@ class ActiveOrderState extends ChangeNotifier {
 
     final item = _orders[targetId]!;
     item.discountAmount = discountAmount;
-    item.displayDiscountAmount = '฿${discountAmount.toStringAsFixed(0)}';
+    item.displayDiscountAmount = discountAmount.toFormattedPrice();
     item.couponName = couponName;
     item.couponCode = couponCode;
     item.itemPrice = itemPrice;

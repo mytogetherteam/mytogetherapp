@@ -192,6 +192,9 @@ class _CouponBrowseCard extends StatelessWidget {
       onTap: () => CouponDetailsSheet.show(context, coupon),
       child: Container(
         width: 240,
+        // Fill the rail's height so every card is the same size regardless of
+        // how much content it has (e.g. a coupon with no expiry date).
+        height: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,

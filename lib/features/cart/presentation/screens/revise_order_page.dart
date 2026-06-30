@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/utils/price_formatter.dart';
 import '../../data/active_order_state.dart';
 import '../../data/cart_manager.dart';
 import '../../../order/data/repositories/order_repository.dart';
@@ -309,7 +310,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                     isLoading: _isSubmitting,
                     child: Text(
                       context.trArgs('revise.resubmit', {
-                        'total': _estimatedTotal.toStringAsFixed(0),
+                        'total': _estimatedTotal.toStringAsFixed(2),
                       }),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
@@ -442,7 +443,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                   ),
                 const SizedBox(height: 2),
                 Text(
-                  '฿${(c.price * item.quantity).toStringAsFixed(0)}',
+                  (c.price * item.quantity).toFormattedPrice(),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

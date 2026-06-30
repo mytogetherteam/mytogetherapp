@@ -778,7 +778,7 @@ class AppTranslations {
     'revise.reason_default': 'Some items were updated by the shop.',
     'revise.items_title': 'Items',
     'revise.no_items': 'No items to revise',
-    'revise.resubmit': 'Re-submit Order · ฿{total}',
+    'revise.resubmit': 'Re-submit Order · ฿ {total}',
     'revise.resubmitted': 'Order re-submitted',
     'revise.resubmit_failed': 'Failed to re-submit order',
 
@@ -1791,7 +1791,7 @@ class AppTranslations {
     'revise.reason_default': 'အချို့ပစ္စည်းများကို ဆိုင်မှ ပြင်ဆင်ထားတယ်။',
     'revise.items_title': 'ပစ္စည်းများ',
     'revise.no_items': 'ပြန်ပြင်ရန် ပစ္စည်းမရှိပါ',
-    'revise.resubmit': 'အော်ဒါ ပြန်တင်မည် · ฿{total}',
+    'revise.resubmit': 'အော်ဒါ ပြန်တင်မည် · ฿ {total}',
     'revise.resubmitted': 'အော်ဒါ ပြန်တင်ပြီးပါပြီ',
     'revise.resubmit_failed': 'အော်ဒါ ပြန်တင်၍မရပါ',
 
@@ -2816,7 +2816,7 @@ class AppTranslations {
     'revise.reason_default': 'ร้านค้าได้แก้ไขรายการบางรายการ',
     'revise.items_title': 'รายการ',
     'revise.no_items': 'ไม่มีรายการให้แก้ไข',
-    'revise.resubmit': 'ส่งคำสั่งซื้อใหม่ · ฿{total}',
+    'revise.resubmit': 'ส่งคำสั่งซื้อใหม่ · ฿ {total}',
     'revise.resubmitted': 'ส่งคำสั่งซื้อใหม่แล้ว',
     'revise.resubmit_failed': 'ส่งคำสั่งซื้อใหม่ไม่สำเร็จ',
 

@@ -975,6 +975,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
                                 ),
                               ],
+                              if (state.hasDiscount) ...[
+                                const SizedBox(height: 8),
+                                _buildSummaryRow(
+                                  context.tr('order_status.discount'),
+                                  '- ${state.displayDiscountAmount ?? state.discountAmount.toFormattedPrice()}',
+                                  valueColor: const Color(0xFFED3973),
+                                ),
+                              ],
                               if (!state.isPickupFulfillment &&
                                   state.hasDeliveryFeeEstimate &&
                                   !state.isAwaitingShopConfirmation) ...[
@@ -1489,7 +1497,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isBold = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1506,7 +1519,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: Colors.black,
+            color: valueColor ?? Colors.black,
           ),
         ),
       ],

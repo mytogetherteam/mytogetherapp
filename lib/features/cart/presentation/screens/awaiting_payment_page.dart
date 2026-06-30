@@ -997,15 +997,15 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     const SizedBox(height: 14),
                     _summaryRow(
                       context.tr('payment.food_price'),
-                      order?.displayFoodPrice ??
-                          '฿ ${widget.foodTotal.toStringAsFixed(0)}',
+                      order?.displayFoodPrice?.toFormattedPrice() ??
+                          widget.foodTotal.toFormattedPrice(),
                       isValue: false,
                     ),
                     if (order?.resolvedTaxEnable ?? true) ...[
                       const SizedBox(height: 10),
                       _summaryRow(
                         context.tr('order_status.tax'),
-                        order?.displayTaxAmount ??
+                        order?.displayTaxAmount?.toFormattedPrice() ??
                             (order?.resolvedTaxAmount ?? 0).toFormattedPrice(),
                         isValue: false,
                       ),
@@ -1016,7 +1016,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         context.tr('order_status.discount'),
                         '',
                         customValue: Text(
-                          '- ${order!.displayDiscountAmount ?? order.discountAmount!.toFormattedPrice()}',
+                          '- ${order!.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1037,14 +1037,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         '',
                         customValue: order!.isFlexibleDelivery
                             ? GradientText(
-                                '฿ ${order.deliveryFee!.toInt()}',
+                                order.deliveryFee!.toFormattedPrice(),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               )
                             : Text(
-                                '฿ ${order.deliveryFee!.toInt()}',
+                                order.deliveryFee!.toFormattedPrice(),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1068,7 +1068,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 fallbackDeliveryFee: widget.deliveryFee,
                               )
                               .toFormattedPrice()
-                          : (order?.displayTotalAmount ??
+                          : (order?.displayTotalAmount?.toFormattedPrice() ??
                               order!
                                   .resolvedGrandTotal(
                                     fallbackDeliveryFee:
