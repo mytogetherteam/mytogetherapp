@@ -209,106 +209,271 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _DiscountPill extends StatelessWidget {
-  final String label;
-  const _DiscountPill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
 class _PromoCard extends StatelessWidget {
   final CouponModel coupon;
   final VoidCallback onTap;
 
   const _PromoCard({required this.coupon, required this.onTap});
 
-  String _shopName(BuildContext context) {
-    final shop = coupon.shop;
-    if (shop == null) return '';
-    return context.localized(
-      en: shop.nameEn,
-      mm: shop.nameMm,
-      th: shop.nameTh,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final shopName = _shopName(context);
     final validity = couponValidityLabel(context, coupon);
+    final discountText = couponDiscountLabel(context, coupon);
+    final hasDesc = coupon.description != null && coupon.description!.trim().isNotEmpty;
+    
+    final gradient = AppColors.primaryGradient;
+    final borderColor = AppColors.primary.withOpacity(0.4);
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
+        constraints: const BoxConstraints(minHeight: 85),
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEDEDED)),
-        ),
-        child: Row(
-          children: [
-            CouponShopLogo(
-              key: ValueKey('promo_logo_${coupon.resolvedShopId}'),
-              shopId: coupon.resolvedShopId,
-              shopName: shopName,
-              size: 48,
+          shape: const CouponShapeBorder(
+            holePosition: 36.75, // Centered on dashed line (36 width + 0.75 half dashed width)
+            holeRadius: 6.5,
+            borderRadius: 8.0,
+          ),
+          shadows: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    coupon.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  _DiscountPill(label: couponDiscountLabel(context, coupon)),
-                  if (validity != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      context.trArgs('coupon.until_short', {'date': validity}),
-                      style: GoogleFonts.poppins(
-                        fontSize: 10.5,
-                        color: Colors.grey.shade500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                size: 20, color: Colors.grey.shade400),
           ],
+        ),
+        child: ClipPath(
+          clipper: ShapeBorderClipper(
+            shape: const CouponShapeBorder(
+              holePosition: 36.75,
+              holeRadius: 6.5,
+              borderRadius: 8.0,
+            ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left strip (Rotated 'COUPON')
+                SizedBox(
+                  width: 36,
+                  child: Center(
+                    child: RotatedBox(
+                      quarterTurns: 3,
+                      child: Text(
+                        'COUPON',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Vertical Dashed separator
+                SizedBox(
+                  width: 1.5,
+                  child: CustomPaint(
+                    painter: _DashedLinePainter(color: borderColor),
+                  ),
+                ),
+
+                // Middle (Title + Description)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          coupon.name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (hasDesc) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            coupon.description!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade600,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (validity != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade500),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  context.trArgs('coupon.until_short', {'date': validity}),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Far Right (Discount Amount + Use text with Gradient Background)
+                Container(
+                  width: 100, // slightly wider to fit text comfortably
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        discountText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+class CouponShapeBorder extends ShapeBorder {
+  final double holeRadius;
+  final double holePosition;
+  final double borderRadius;
+
+  const CouponShapeBorder({
+    this.holeRadius = 7.0, 
+    this.holePosition = 36.0,
+    this.borderRadius = 8.0,
+  });
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final path = Path();
+    // Top left
+    path.moveTo(borderRadius, 0);
+    
+    // Top edge and top cutout
+    path.lineTo(holePosition - holeRadius, 0);
+    path.arcToPoint(
+      Offset(holePosition + holeRadius, 0),
+      radius: Radius.circular(holeRadius),
+      clockwise: false,
+    );
+    path.lineTo(rect.width - borderRadius, 0);
+    
+    // Top right
+    path.arcToPoint(
+      Offset(rect.width, borderRadius),
+      radius: Radius.circular(borderRadius),
+    );
+    
+    // Right edge
+    path.lineTo(rect.width, rect.height - borderRadius);
+    
+    // Bottom right
+    path.arcToPoint(
+      Offset(rect.width - borderRadius, rect.height),
+      radius: Radius.circular(borderRadius),
+    );
+    
+    // Bottom edge and bottom cutout
+    path.lineTo(holePosition + holeRadius, rect.height);
+    path.arcToPoint(
+      Offset(holePosition - holeRadius, rect.height),
+      radius: Radius.circular(holeRadius),
+      clockwise: false,
+    );
+    path.lineTo(borderRadius, rect.height);
+    
+    // Bottom left
+    path.arcToPoint(
+      Offset(0, rect.height - borderRadius),
+      radius: Radius.circular(borderRadius),
+    );
+    
+    // Left edge
+    path.lineTo(0, borderRadius);
+    
+    // Close back to top left
+    path.arcToPoint(
+      Offset(borderRadius, 0),
+      radius: Radius.circular(borderRadius),
+    );
+    
+    path.close();
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double dashHeight = 4, dashSpace = 3, startY = 0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5;
+    while (startY < size.height) {
+      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
