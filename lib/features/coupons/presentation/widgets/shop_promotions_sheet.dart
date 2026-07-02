@@ -188,22 +188,27 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 46, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 13.5,
-              color: Colors.grey.shade600,
+    // Reserve a consistent block of height so the message is vertically
+    // centered in the sheet instead of hugging the header. Mirrors the rough
+    // height of the loaded/skeleton state so the sheet doesn't jump in size.
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 46, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13.5,
+                color: Colors.grey.shade600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

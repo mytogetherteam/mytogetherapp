@@ -213,13 +213,12 @@ class _FoodPageState extends State<FoodPage> {
                               ),
                               const SizedBox(height: 28),
                               const FoodPromotionsCarousel(),
-                              const SizedBox(height: 28),
                               CouponRailSection(
                                 key: ValueKey('food_eb_coupons_$_refreshKey'),
                                 title: context.tr('coupon.discounts_title'),
                                 target: 'earlybird',
+                                topGap: 28,
                               ),
-                              const SizedBox(height: 24),
                               CouponRailSection(
                                 key: ValueKey('food_coupons_$_refreshKey'),
                                 title: context.tr('coupon.coupons_title'),

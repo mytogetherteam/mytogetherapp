@@ -20,10 +20,16 @@ class CouponRailSection extends StatefulWidget {
   /// API target filter: `all`, `earlybird`, or null for the default rules.
   final String? target;
 
+  /// Leading gap above the section. Kept *inside* the widget so it collapses
+  /// together with the rail when there's nothing to show (an empty rail renders
+  /// nothing at all, avoiding a doubled gap between the surrounding sections).
+  final double topGap;
+
   const CouponRailSection({
     super.key,
     required this.title,
     this.target,
+    this.topGap = 24,
   });
 
   @override
@@ -31,11 +37,22 @@ class CouponRailSection extends StatefulWidget {
 }
 
 class _CouponRailSectionState extends State<CouponRailSection> {
+  /// How many times to re-issue the request after a transient failure before
+  /// giving up and hiding the rail. The Home tab fires many section requests at
+  /// once, so the coupon call can occasionally fail/cancel under load.
+  static const int _maxAttempts = 3;
+
   late Future<List<CouponModel>> _future;
+  int _attempts = 0;
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  void _load() {
+    _attempts++;
     // Coupons require an authenticated user (the endpoints are JWT-guarded and
     // redemption is per-user), so skip the request entirely for guests instead
     // of firing a 401 and showing a rail they can't act on.
@@ -53,12 +70,24 @@ class _CouponRailSectionState extends State<CouponRailSection> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton();
         }
+        // A transient failure (vs a genuinely empty list) shouldn't make the
+        // rail disappear: retry a couple of times before giving up.
+        if (snapshot.hasError) {
+          if (_attempts < _maxAttempts) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(_load);
+            });
+            return _buildSkeleton();
+          }
+          return const SizedBox.shrink();
+        }
         final coupons = snapshot.data ?? const [];
         if (coupons.isEmpty) return const SizedBox.shrink();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: widget.topGap),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -119,6 +148,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(height: widget.topGap),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ClipRRect(
