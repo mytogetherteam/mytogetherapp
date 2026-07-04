@@ -16,10 +16,36 @@ import 'features/onboarding/data/onboarding_prefs.dart';
 import 'core/utils/lock_screen_widget_manager.dart';
 import 'core/security/security_check.dart';
 import 'app.dart';
+import 'dart:convert';
+import 'core/auth/order_ownership.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+
+  try {
+    final String? type = message.data['type'] ?? message.data['notificationType'];
+    if (type == 'ORDER_STATUS' && message.data['order'] != null) {
+      final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
+      if (!OrderOwnership.isForeignOrder(rawOrder)) {
+        await ActiveOrderState.instance.loadFromPrefs();
+        ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
+        
+        await LockScreenWidgetManager.instance.initialize();
+        final order = ActiveOrderState.instance.activeOrdersList.isNotEmpty
+            ? ActiveOrderState.instance.activeOrdersList.first
+            : null;
+        if (order != null) {
+          await LockScreenWidgetManager.instance.showOrUpdateWidget(order);
+        } else {
+          await LockScreenWidgetManager.instance.cancelWidget();
+        }
+      }
+    }
+  } catch (e) {
+    debugPrint('Background live activity update failed: $e');
+  }
+
   await NotificationService().initialize();
   await NotificationService().showLocalNotification(message);
 }
