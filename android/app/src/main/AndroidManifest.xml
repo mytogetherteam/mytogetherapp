@@ -16,8 +16,7 @@
         android:icon="@mipmap/launcher_icon"
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:enableOnBackInvokedCallback="true"
-        android:extractNativeLibs="true">
+        android:enableOnBackInvokedCallback="true">
 
         <!-- Prevent live_activities plugin from intercepting Firebase messages and crashing on Android -->
         <service
