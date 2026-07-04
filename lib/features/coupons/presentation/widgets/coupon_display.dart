@@ -6,9 +6,12 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/data/coupon_service.dart';
 
-/// Short discount headline for a coupon, e.g. "40% OFF", "฿50 OFF", "FREE".
+/// Short discount headline for a coupon, e.g. "40% OFF", "฿50 OFF", "1+1", "FREE".
 String couponDiscountLabel(BuildContext context, CouponModel coupon) {
-  if (coupon.isFreeItem) return context.tr('coupon.free');
+  if (coupon.isFreeItem) {
+    if (coupon.isBogoAllItems) return context.tr('coupon.bogo_all');
+    return context.tr('coupon.free');
+  }
   if (coupon.isPercentage) {
     return context.trArgs('coupon.percent_off', {
       'value': _trimNum(coupon.discountValue),
@@ -38,7 +41,10 @@ String? formatCouponDate(DateTime? d) {
 
 /// A full sentence describing what the coupon gives, e.g. "10% off your order".
 String couponOfferLabel(BuildContext context, CouponModel coupon) {
-  if (coupon.isFreeItem) return context.tr('coupon.offer_free');
+  if (coupon.isFreeItem) {
+    if (coupon.isBogoAllItems) return context.tr('coupon.bogo_on_order');
+    return context.tr('coupon.offer_free');
+  }
   if (coupon.isPercentage) {
     return context.trArgs('coupon.offer_percent', {
       'value': _trimNum(coupon.discountValue),
@@ -47,6 +53,33 @@ String couponOfferLabel(BuildContext context, CouponModel coupon) {
   return context.trArgs('coupon.offer_amount', {
     'value': _trimNum(coupon.discountValue),
   });
+}
+
+/// BOGO / gift-menu summary for the order-flow ticket and summary row.
+String couponBogoGiftSummary(BuildContext context, CouponModel coupon) {
+  if (!coupon.isFreeItem) return '';
+  if (coupon.isBogoAllItems) return context.tr('coupon.bogo_on_order');
+
+  final buyNames =
+      coupon.buyItems.map((e) => e.name).where((e) => e.isNotEmpty);
+  final freeNames =
+      coupon.freeItems.map((e) => e.name).where((e) => e.isNotEmpty);
+
+  if (buyNames.isNotEmpty && freeNames.isNotEmpty) {
+    return context.trArgs('coupon.buy_get_summary', {
+      'buy': buyNames.join(', '),
+      'free': freeNames.join(', '),
+    });
+  }
+  if (freeNames.isNotEmpty) {
+    return context.trArgs('coupon.free_items', {'items': freeNames.join(', ')});
+  }
+  if (buyNames.isNotEmpty) {
+    return context.trArgs('coupon.required_items_summary', {
+      'items': buyNames.join(', '),
+    });
+  }
+  return context.tr('coupon.free_item_generic');
 }
 
 String _trimNum(double v) =>
@@ -126,8 +159,9 @@ class CouponHeadlineBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFree = coupon.isFreeItem;
+    final isBogo = coupon.isBogoAllItems;
     final big = isFree
-        ? context.tr('coupon.free')
+        ? (isBogo ? '1+1' : context.tr('coupon.free'))
         : coupon.isPercentage
             ? '${_trimNum(coupon.discountValue)}%'
             : '฿${_trimNum(coupon.discountValue)}';
@@ -144,9 +178,11 @@ class CouponHeadlineBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            isFree
-                ? Icons.card_giftcard_rounded
-                : Icons.local_offer_rounded,
+            isBogo
+                ? Icons.redeem_rounded
+                : isFree
+                    ? Icons.card_giftcard_rounded
+                    : Icons.local_offer_rounded,
             color: Colors.white.withValues(alpha: 0.9),
             size: 16,
           ),

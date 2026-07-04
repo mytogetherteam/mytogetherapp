@@ -55,6 +55,7 @@ class VerifiedRestaurantNameRow extends StatelessWidget {
   final TextStyle style;
   final double badgeSize;
   final int maxLines;
+
   /// When true, the name+badge group is centered (overview). When false, the
   /// row spans the full available width (cards, detail headers).
   final bool centered;
@@ -100,7 +101,7 @@ class VerifiedRestaurantNameRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Flexible(child: nameText),
-                  if (badge != null) badge,
+                  ?badge,
                 ],
               ),
             ),
@@ -113,7 +114,7 @@ class VerifiedRestaurantNameRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: nameText),
-        if (badge != null) badge,
+        ?badge,
       ],
     );
   }

@@ -18,6 +18,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
 import '../../data/active_order_state.dart';
+import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/time_formatter.dart';
@@ -1291,20 +1292,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         isValue: false,
                       ),
                     ],
-                    if ((order?.discountAmount ?? 0) > 0) ...[
+                    if (order?.hasAppliedCoupon == true) ...[
                       const SizedBox(height: 10),
-                      _summaryRow(
-                        context.tr('order_status.discount'),
-                        '',
-                        customValue: Text(
-                          '- ${order!.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFED3973),
-                          ),
-                        ),
-                        isValue: false,
+                      OrderCouponDiscountSection(
+                        couponName: order?.couponName,
+                        discountAmount: order?.discountAmount ?? 0,
+                        displayDiscountAmount: order?.displayDiscountAmount,
+                        shopCoupon: order?.shopCoupon,
                       ),
                     ],
                     const SizedBox(height: 10),

@@ -18,6 +18,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
+import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../widgets/flexible_delivery_note.dart';
 import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
@@ -1069,9 +1070,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           const SizedBox(height: 8),
                           _buildSummaryRow(context.tr('order_status.tax'), state.displayTaxAmount ?? taxAmount.toFormattedPrice()),
                         ],
-                        if (state.hasDiscount) ...[
+                        if (state.hasAppliedCoupon) ...[
                           const SizedBox(height: 8),
-                          _buildSummaryRow(context.tr('order_status.discount'), '- ${state.displayDiscountAmount ?? state.discountAmount.toFormattedPrice()}', valueColor: const Color(0xFFED3973)),
+                          OrderCouponDiscountSection(
+                            couponName: state.couponName,
+                            discountAmount: state.discountAmount,
+                            displayDiscountAmount: state.displayDiscountAmount,
+                            shopCoupon: state.shopCoupon,
+                          ),
                         ],
                         if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate && !state.isAwaitingShopConfirmation && !state.isFlexibleDelivery) ...[
                           const SizedBox(height: 8),
