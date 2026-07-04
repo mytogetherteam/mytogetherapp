@@ -5,6 +5,7 @@ import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
 import '../../features/announcements/data/repositories/announcement_repository.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
+import '../../features/chat/data/services/chat_unread_controller.dart';
 
 class LifecycleObserver extends StatefulWidget {
   final Widget child;
@@ -70,6 +71,12 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
       // could have been missed), so the badges are accurate on resume.
       NotificationRepository().getUnreadCount();
       AnnouncementRepository().getUnreadCount();
+      
+      final activeOrderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
+      final activeOrderId = activeOrderIdStr != null ? int.tryParse(activeOrderIdStr) : null;
+      if (activeOrderId != null) {
+        ChatUnreadController.instance.refreshOrder(activeOrderId);
+      }
 
       // 2. RECONNECT: After sync, safe to listen for new events
       WebSocketService().connect();

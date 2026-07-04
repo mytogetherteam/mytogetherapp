@@ -106,6 +106,7 @@ class AuthRepository {
     String? name,
     String? username,
     String? phone,
+    String? email,
     String? address,
     PickedImage? profilePhoto,
   }) async {
@@ -114,6 +115,7 @@ class AuthRepository {
         name: name,
         username: username,
         phone: phone,
+        email: email,
         address: address,
         profilePhoto: profilePhoto,
       );

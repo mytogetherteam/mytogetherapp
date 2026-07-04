@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
@@ -23,6 +24,8 @@ import '../../../../core/auth/guest_auth_guard.dart';
 import 'restaurant_overview_page.dart';
 import 'restaurant_reviews_page.dart';
 import '../../../coupons/presentation/widgets/shop_promotions_sheet.dart';
+import '../../../../core/auth/auth_service.dart';
+import '../../../cart/data/coupon_service.dart';
 import '../../../../app.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -84,10 +87,11 @@ class RestaurantDetailPage extends StatefulWidget {
 }
 
 class _RestaurantDetailPageState extends State<RestaurantDetailPage>
-    with SingleTickerProviderStateMixin, RouteAware {
+    with TickerProviderStateMixin, RouteAware {
   final ScrollController _scrollController = ScrollController();
   late AnimationController _basketAnimationController;
   late Animation<Offset> _basketSlideAnimation;
+  late AnimationController _promoAnimationController;
   bool _showBasket = false;
   bool _isScrolled = false;
   bool _isFavorite = false;
@@ -113,6 +117,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   static const int _pageSize = 20;
   final Map<int, bool> _localFavorites = {};
   final GlobalKey _targetMenuKey = GlobalKey();
+  int _promotionCount = 0;
   bool _hasScrolledToTarget = false;
   String? _targetMenuItemId;
 
@@ -141,6 +146,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             curve: Curves.easeOutBack, // Floating and bounce effect
           ),
         );
+
+    _promoAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
 
     // Seed UI immediately from constructor data
     _isFavorite = widget.isFavorite ?? false;
@@ -173,6 +183,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       WebSocketService().connect();
       _fetchCategories(shopId);
       _loadInitialMenu();
+      _fetchPromotionCount(shopId);
     }
 
     // Also refresh the shop detail header (name, logo, rating etc.)
@@ -295,6 +306,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     _hoursRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _fetchPromotionCount(int shopId) async {
+    if (!AuthService().isLoggedIn) return;
+    try {
+      final coupons = await CouponService.instance.fetchByShop(shopId);
+      if (mounted) {
+        setState(() => _promotionCount = coupons.length);
+      }
+    } catch (_) {}
   }
 
   void _maybeShowUnavailableSheet() {
@@ -535,6 +556,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     ShopOrderStateCache.instance.removeListener(_orderStateListener);
     WebSocketService().connectionStatus.removeListener(_wsReconnectListener);
     _scrollController.dispose();
+    _basketAnimationController.dispose();
+    _promoAnimationController.dispose();
     // Clear shop context
     ActiveOrderState.instance.setCurrentShopId(null);
     super.dispose();
@@ -645,20 +668,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           );
                                         }
                                       },
-                                      child: Image.network(
-                                        resolveMediaUrl(
+                                      child: CachedNetworkImage(
+                                        imageUrl: resolveMediaUrl(
                                           _currentRestaurant!.imagePath,
                                         ),
                                         fit: BoxFit.cover,
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                              if (loadingProgress == null) {
-                                                return child;
-                                              }
-                                              return const ImageSkeletonLoader();
-                                            },
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
+                                        placeholder: (context, url) =>
+                                            const ImageSkeletonLoader(),
+                                        errorWidget:
+                                            (context, url, error) =>
                                                 Container(
                                                   color: Colors.grey[200],
                                                   child: const Center(
@@ -784,24 +802,36 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                       }
                                     },
                                   ),
-                                  _buildActionButton(
-                                    imageAsset: 'assets/images/detail_chat.png',
-                                    label: context.tr('restaurant.chat'),
-                                    onTap: () {
-                                      final restaurant = _currentRestaurant;
-                                      final shopId = restaurant == null
-                                          ? null
-                                          : int.tryParse(restaurant.id);
-                                      if (restaurant == null || shopId == null) {
-                                        AppDialog.showUnavailable(context);
-                                        return;
-                                      }
-                                      ShopPromotionsSheet.show(
-                                        context,
-                                        shopId: shopId,
-                                        shopName: restaurant.name,
+                                  AnimatedBuilder(
+                                    animation: _promoAnimationController,
+                                    builder: (context, child) {
+                                      return Opacity(
+                                        opacity: (_orderAvailability?.isBlocked ?? false) ? 0.5 : 1.0,
+                                        child: _buildActionButton(
+                                          imageAsset: 'assets/images/detail_chat.png',
+                                          label: context.tr('restaurant.chat'),
+                                          badgeCount: _promotionCount,
+                                          shineValue: _promoAnimationController.value,
+                                          onTap: (_orderAvailability?.isBlocked ?? false)
+                                              ? null
+                                              : () {
+                                                  final restaurant = _currentRestaurant;
+                                                  final shopId = restaurant == null
+                                                      ? null
+                                                      : int.tryParse(restaurant.id);
+                                                  if (restaurant == null || shopId == null) {
+                                                    AppDialog.showUnavailable(context);
+                                                    return;
+                                                  }
+                                                  ShopPromotionsSheet.show(
+                                                    context,
+                                                    shopId: shopId,
+                                                    shopName: restaurant.name,
+                                                  );
+                                                },
+                                        ),
                                       );
-                                    },
+                                    }
                                   ),
                                 ],
                               ),
@@ -1368,32 +1398,102 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     required String label,
     bool isActive = false,
     VoidCallback? onTap,
+    int badgeCount = 0,
+    double shineValue = 0.0,
   }) {
+    double badgeRotation = 0.0;
+    // Bell ringing animation at the start of the loop (0 to 0.2)
+    if (shineValue > 0.0 && shineValue < 0.2) {
+      // 0.2 represents 500ms in a 2500ms duration.
+      // A quick back-and-forth wiggling motion:
+      badgeRotation = math.sin(shineValue * 5 * math.pi * 6) * 0.4;
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
-          // Gradient Border Circular Container
-          Container(
-            width: 65,
-            height: 65,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
-            ),
-            child: Container(
-              margin: const EdgeInsets.all(
-                1.5,
-              ), // This creates the border thickness
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              padding: const EdgeInsets.all(8),
-              child: imageAsset != null
-                  ? Image.asset(imageAsset, fit: BoxFit.contain)
-                  : Icon(icon, color: AppColors.primary, size: 26),
-            ),
+            // Gradient Border Circular Container
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 65,
+                  height: 65,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppColors.primaryGradient,
+                  ),
+                  child: Container(
+                    margin: const EdgeInsets.all(
+                      1.5,
+                    ), // This creates the border thickness
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: imageAsset != null
+                        ? Image.asset(imageAsset, fit: BoxFit.contain)
+                        : Icon(icon, color: AppColors.primary, size: 26),
+                  ),
+                ),
+                if (shineValue > 0)
+                  Positioned.fill(
+                    child: ClipOval(
+                      child: FractionalTranslation(
+                        translation: Offset(-1.5 + (3 * shineValue), 0),
+                        child: Transform.rotate(
+                          angle: 0.3,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.6),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.3, 0.5, 0.7],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              if (badgeCount > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Transform.rotate(
+                    angle: badgeRotation,
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$badgeCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            height: 1.0,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
@@ -1407,8 +1507,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             ),
           ),
         ],
-      ),
-    );
+      ), // Column
+    ); // GestureDetector
   }
 
   /// Ensures the global wishlist index is loaded, then reflects the saved

@@ -11,6 +11,8 @@ import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
+import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 /// Order-scoped chat screen wired to `user/chat` REST + `/user/queue/chat-updates`.
@@ -37,7 +39,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with RouteAware {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -63,11 +65,47 @@ class _ChatPageState extends State<ChatPage> {
     // Opening a thread marks the shop's messages as read; clear its badge.
     ChatUnreadController.instance.start();
     ChatUnreadController.instance.clear(widget.orderId);
+    
     _bootstrap();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      App.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    // Entered ChatPage -> Hide chat head
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPopNext() {
+    // Returned to ChatPage -> Hide chat head
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPushNext() {
+    // Opened another page from ChatPage -> Show chat head
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
+  }
+
+  @override
+  void didPop() {
+    // Exited ChatPage -> Show chat head
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
+  }
+
+  @override
   void dispose() {
+    App.routeObserver.unsubscribe(this);
+    
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();

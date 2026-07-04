@@ -93,6 +93,7 @@ class ActiveOrderItem {
   double? deliveryFee;
   String? riderName;
   String? riderPhone;
+  String? riderProfileUrl;
   String? deliveryTrackingUrl;
   String? shopPaymentQrUrl;
   int? paymentMethodId;
@@ -257,6 +258,7 @@ class ActiveOrderItem {
     this.deliveryFee,
     this.riderName,
     this.riderPhone,
+    this.riderProfileUrl,
     this.deliveryTrackingUrl,
     this.shopPaymentQrUrl,
     this.deliveryAddress,
@@ -346,6 +348,7 @@ class ActiveOrderItem {
     'deliveryFee': deliveryFee,
     'riderName': riderName,
     'riderPhone': riderPhone,
+    'riderProfileUrl': riderProfileUrl,
     'deliveryTrackingUrl': deliveryTrackingUrl,
     'shopPaymentQrUrl': shopPaymentQrUrl,
     'deliveryAddress': deliveryAddress,
@@ -379,6 +382,7 @@ class ActiveOrderItem {
     'orderType': orderType,
     'backendStatus': backendStatus,
     'lastOrderNo': lastOrderNo,
+    'riderVehicleNumber': riderVehicleNumber,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) =>
@@ -415,8 +419,10 @@ class ActiveOrderItem {
         routeDistanceKm: json['routeDistanceKm'],
         routeDurationMins: json['routeDurationMins'],
         deliveryFee: json['deliveryFee'],
-        riderName: json['riderName'],
-        riderPhone: json['riderPhone'],
+        riderName: json['riderName'] ?? json['deliveryRiderName'] ?? (json['driver'] != null ? json['driver']['name'] : null),
+        riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
+        riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
+        riderVehicleNumber: json['riderVehicleNumber'] ?? (json['driver'] != null ? json['driver']['vehicleNo'] : null),
         deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
         shopPaymentQrUrl: json['shopPaymentQrUrl'],
         deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
@@ -642,6 +648,8 @@ class ActiveOrderState extends ChangeNotifier {
   int? get routeDurationMins => _primary?.routeDurationMins;
   String? get riderName => _primary?.riderName;
   String? get riderPhone => _primary?.riderPhone;
+  String? get riderProfileUrl => _primary?.riderProfileUrl;
+  String? get riderVehicleNumber => _primary?.riderVehicleNumber;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
   String? get proofPhotoUrl => _primary?.proofPhotoUrl;
@@ -990,10 +998,21 @@ class ActiveOrderState extends ChangeNotifier {
         item.itemPrice! > 0) {
       item.taxEnable = item.taxAmount! > 0;
     }
-    if (data['deliveryRiderName'] != null)
+    if (data['deliveryRiderName'] != null) {
       item.riderName = _parseSafeString(data['deliveryRiderName']);
-    if (data['deliveryPhoneNo'] != null)
+    } else if (data['driver'] != null) {
+      item.riderName = _parseSafeString(data['driver']['name']);
+    }
+    
+    if (data['deliveryPhoneNo'] != null) {
       item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+    } else if (data['driver'] != null) {
+      item.riderPhone = _parseSafeString(data['driver']['phone']);
+    }
+    
+    if (data['driver'] != null && data['driver']['profileUrl'] != null) {
+      item.riderProfileUrl = _parseSafeString(data['driver']['profileUrl']);
+    }
 
     // Shop contact number. The backend exposes it under a few shapes depending
     // on the endpoint (flat field or nested `shop` object), so try each.
@@ -1006,8 +1025,11 @@ class ActiveOrderState extends ChangeNotifier {
     if (parsedShopPhone != null && parsedShopPhone.isNotEmpty) {
       item.shopPhone = parsedShopPhone;
     }
-    if (data['deliveryCycleNo'] != null)
+    if (data['deliveryCycleNo'] != null) {
       item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
+    } else if (data['driver'] != null) {
+      item.riderVehicleNumber = _parseSafeString(data['driver']['vehicleNo']);
+    }
     final waitMins = data['waitingTimeMinutes'] != null
         ? _parseSafeInt(data['waitingTimeMinutes'])
         : null;
@@ -1036,6 +1058,21 @@ class ActiveOrderState extends ChangeNotifier {
     
     final accName = _parseSafeString(data['paymentAccountName'] ?? data['shopPaymentAccountName'] ?? data['accountName']);
     if (accName != null) item.paymentAccountName = accName;
+
+    final pm = data['paymentMethod'];
+    if (pm is Map) {
+      final pmQr = _parseSafeString(pm['qr']);
+      if (pmQr != null && _isValidUrl(pmQr)) item.shopPaymentQrUrl = pmQr;
+
+      final pmIcon = _parseSafeString(pm['iconUrl']);
+      if (pmIcon != null && _isValidUrl(pmIcon)) item.paymentMethodImageUrl = pmIcon;
+
+      final pmAccNumber = _parseSafeString(pm['accountNumber']);
+      if (pmAccNumber != null && pmAccNumber.isNotEmpty) item.paymentAccountNumber = pmAccNumber;
+
+      final pmAccName = _parseSafeString(pm['accountName']);
+      if (pmAccName != null && pmAccName.isNotEmpty) item.paymentAccountName = pmAccName;
+    }
 
     // Delivery proof photo attached by the shop on the "Delivered" step.
     final proofUrl = _parseSafeString(data['proofPhotoUrl']);

@@ -95,7 +95,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
                   Icon(Icons.local_activity_rounded,
                       size: 20, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  Expanded(
+                  Flexible(
                     child: Text(
                       widget.title,
                       style: GoogleFonts.poppins(
@@ -107,6 +107,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
@@ -128,10 +129,10 @@ class _CouponRailSectionState extends State<CouponRailSection> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 138,
+              height: 136,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: coupons.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) =>
@@ -158,15 +159,15 @@ class _CouponRailSectionState extends State<CouponRailSection> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 138,
+          height: 136,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: 3,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (_, _) => ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: const ImageSkeletonLoader(width: 240, height: 138),
+              child: const ImageSkeletonLoader(width: 250, height: 120),
             ),
           ),
         ),
@@ -221,94 +222,89 @@ class _CouponBrowseCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => CouponDetailsSheet.show(context, coupon),
       child: Container(
-        width: 240,
-        // Fill the rail's height so every card is the same size regardless of
-        // how much content it has (e.g. a coupon with no expiry date).
-        height: double.infinity,
+        width: 250,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEDEDED)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: AppColors.primary.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CouponShopLogo(
-              key: ValueKey('coupon_logo_${coupon.resolvedShopId}'),
-              shopId: coupon.resolvedShopId,
-              shopName: shopName,
-              size: 48,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    coupon.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CouponShopLogo(
+                  key: ValueKey('coupon_logo_${coupon.resolvedShopId}'),
+                  shopId: coupon.resolvedShopId,
+                  shopName: shopName,
+                  size: 40,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DiscountPill(label: couponDiscountLabel(context, coupon)),
-                      const SizedBox(width: 6),
-                      if (shopName.isNotEmpty)
-                        Expanded(
-                          child: Text(
-                            shopName,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      Text(
+                        shopName.isNotEmpty ? shopName : context.tr('coupon.all_shops'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                          height: 1.2,
                         ),
+                        // Display full text for restaurant name up to 3 lines
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
-                  const Spacer(),
-                  if (validity != null)
-                    Text(
-                      context.trArgs('coupon.until_short', {'date': validity}),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      coupon.name.toUpperCase(),
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        context.tr('coupon.view_details'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded,
-                          size: 16, color: AppColors.primary),
-                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                if (validity != null)
+                  Text(
+                    context.trArgs('coupon.until_short', {'date': validity}),
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

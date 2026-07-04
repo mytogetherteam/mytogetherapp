@@ -109,6 +109,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
 
     return Column(
       children: [
+        const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(

@@ -94,14 +94,15 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -155,6 +156,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             _buildQrArea(context),
             const SizedBox(height: 24),
           ],
+        ),
         ),
       ),
     );

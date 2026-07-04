@@ -216,13 +216,13 @@ class _FoodPageState extends State<FoodPage> {
                               CouponRailSection(
                                 key: ValueKey('food_eb_coupons_$_refreshKey'),
                                 title: context.tr('coupon.discounts_title'),
-                                target: 'earlybird',
+                                target: 'EARLY_BIRD',
                                 topGap: 28,
                               ),
                               CouponRailSection(
                                 key: ValueKey('food_coupons_$_refreshKey'),
                                 title: context.tr('coupon.coupons_title'),
-                                target: 'all',
+                                target: 'ALL',
                               ),
                               if (_showDiscountAndCollectionRails) ...[
                                 const SizedBox(height: 28),

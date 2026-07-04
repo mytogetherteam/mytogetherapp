@@ -693,12 +693,12 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? Image.network(
-              iconUrl,
+          ? CachedNetworkImage(
+              imageUrl: iconUrl,
               width: 24,
               height: 24,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) =>
+              errorWidget: (context, url, error) =>
                   _fallbackPaymentIcon(method),
             )
           : _fallbackPaymentIcon(method),

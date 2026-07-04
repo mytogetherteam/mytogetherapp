@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import '../screens/food_collection_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -290,10 +291,10 @@ class _BrandCardSquare extends StatelessWidget {
                       color: Colors.grey.shade400,
                       size: 28,
                     )
-                  : Image.network(
-                      imageUrl,
+                  : CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Icon(
+                      errorWidget: (_, _, _) => Icon(
                         Icons.store_rounded,
                         color: Colors.grey.shade400,
                         size: 28,

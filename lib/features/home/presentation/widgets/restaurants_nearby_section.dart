@@ -106,7 +106,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
 
         return Column(
           children: [
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -135,7 +135,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 256,
+              height: 232,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),

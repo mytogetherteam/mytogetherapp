@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
@@ -417,14 +418,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               if (img.isEmpty) {
                                 return MenuImagePlaceholder(title: widget.title);
                               }
-                              return Image.network(
-                                img,
+                              return CachedNetworkImage(
+                                imageUrl: img,
                                 fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const ImageSkeletonLoader();
-                                },
-                                errorBuilder: (context, error, stackTrace) =>
+                                placeholder: (context, url) => const ImageSkeletonLoader(),
+                                errorWidget: (context, url, error) =>
                                     MenuImagePlaceholder(title: widget.title),
                               );
                             })(),
@@ -1530,16 +1528,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
                     height: 150,
                     width: 150,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const ImageSkeletonLoader(width: 150, height: 150);
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
+                    placeholder: (context, url) => const ImageSkeletonLoader(width: 150, height: 150),
+                    errorWidget: (context, url, error) =>
                         MenuImagePlaceholder(title: title),
                   ),
                 ),

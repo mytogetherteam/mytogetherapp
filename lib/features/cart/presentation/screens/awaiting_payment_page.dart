@@ -187,7 +187,21 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus == -1) {
       _hasNavigated = true;
-      // [OrderActionPresenter] shows the shop-cancel page (pushReplacement).
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderCancelPage(
+            orderId: widget.orderId ?? order.orderId,
+            reason: order.cancelReason,
+            shopId: order.shopId,
+            shopName: order.shopName ?? order.restaurantName ?? order.storeName,
+            shopNameMm: order.shopNameMm ?? order.statusLabelMm,
+            shopNameTh: order.shopNameTh ?? order.statusLabelTh,
+            shopLogo: order.shopLogo ?? order.logoPath,
+            shopImageUrl: order.shopImageUrl,
+          ),
+        ),
+      );
       return;
     }
   }
@@ -1320,47 +1334,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         isValue: false,
                       ),
                     ],
-                    Builder(
-                      builder: (context) {
-                        final bool hasTax = (order?.resolvedTaxEnable ?? true) && (order?.resolvedTaxAmount ?? 0) > 0;
-                        final bool hasDelivery = order?.isPickupFulfillment != true &&
-                            order?.hasDeliveryFeeEstimate == true &&
-                            order?.isAwaitingShopConfirmation != true &&
-                            order?.isFlexibleDelivery != true;
-                        final bool showExtraFees = hasTax || hasDelivery;
-
-                        if (!showExtraFees) return const SizedBox.shrink();
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: _DottedDivider(color: Color(0xFFCCCCCC)),
-                            ),
-                            _summaryRow(
-                              order?.usesPayNowTotal == true
-                                  ? context.tr('cart.total_pay_now')
-                                  : context.tr('cart.total'),
-                              order?.usesPayNowTotal == true
-                                  ? order!
-                                      .resolvedPayNowTotal(
-                                        fallbackDeliveryFee: widget.deliveryFee,
-                                      )
-                                      .toFormattedPrice()
-                                  : (order?.displayTotalAmount ??
-                                      order!
-                                          .resolvedGrandTotal(
-                                            fallbackDeliveryFee:
-                                                order.deliveryFee ??
-                                                    widget.deliveryFee,
-                                          )
-                                          .toFormattedPrice()),
-                              isValue: true,
-                            ),
-                          ],
-                        );
-                      },
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: _DottedDivider(color: Color(0xFFCCCCCC)),
                     ),
                     _summaryRow(
                       order?.usesPayNowTotal == true
@@ -1382,14 +1358,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                   .toFormattedPrice()),
                       isValue: true,
                     ),
-                    if (order?.hasPrepTimeEstimate == true) ...[
-                      const SizedBox(height: 12),
-                      _summaryRow(
-                        context.tr('payment.est_waiting_time'),
-                        TimeFormatter.normalizeDisplay(order!.estimatedTime!),
-                        isValue: false,
-                      ),
-                    ],
+
                   ],
                 ),
               ),
@@ -1427,75 +1396,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (order?.hasPrepTimeEstimate == true) ...[
-                          IntrinsicWidth(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.05),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      ShaderMask(
-                                        shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                                        blendMode: BlendMode.srcIn,
-                                        child: const Icon(
-                                          PhosphorIconsFill.clock,
-                                          size: 14,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      GradientText(
-                                        '${context.tr('order_status.est_waiting_time')} : ${TimeFormatter.normalizeDisplay(order!.estimatedTime!)}',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: SizedBox(
-                                      height: 3,
-                                      child: Stack(
-                                        children: [
-                                          Container(
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                            color: AppColors.primary.withValues(alpha: 0.1),
-                                          ),
-                                          ShaderMask(
-                                            shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                                            blendMode: BlendMode.srcIn,
-                                            child: const _SlowProgressIndicator(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+
                         // Header of the card (QR Code and Actions)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1729,6 +1630,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                             },
                             child: Text(
                               context.tr('payment.done_payment'),
+                              textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1767,14 +1669,23 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: isValue ? 15 : 14,
-            color: Colors.black87,
-            fontWeight: isValue ? FontWeight.bold : FontWeight.normal,
+        if (isValue)
+          GradientText(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          )
+        else
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.black87,
+              fontWeight: FontWeight.normal,
+            ),
           ),
-        ),
         if (customValue != null)
           customValue
         else if (isValue)

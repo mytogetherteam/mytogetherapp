@@ -26,6 +26,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _usernameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
 
   bool _isSaving = false;
 
@@ -40,6 +41,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController = TextEditingController(text: user?.fullName ?? '');
     _usernameController = TextEditingController(text: user?.username ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
+    _emailController = TextEditingController(text: user?.email ?? '');
     _currentAvatarUrl = user?.avatarUrl;
   }
 
@@ -83,6 +85,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController.dispose();
     _usernameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -98,6 +101,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
         phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
         profilePhoto: _pickedImage,
       );
       if (mounted) {
@@ -159,9 +163,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   _buildField(
                     controller: _phoneController,
-                    label: context.tr('auth.phone'),
+                    label: context.tr('lost.phone_number'),
                     icon: PhosphorIcons.phone,
                     keyboardType: TextInputType.phone,
+                    readOnly: true,
+                  ),
+                  _buildField(
+                    controller: _emailController,
+                    label: context.tr('auth.email'),
+                    icon: PhosphorIcons.envelope,
+                    keyboardType: TextInputType.emailAddress,
                   ),
                 ],
               ),
@@ -266,6 +277,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String? Function(String?)? validator,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -292,8 +304,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
             validator: validator,
             keyboardType: keyboardType,
             maxLines: maxLines,
+            readOnly: readOnly,
             textAlignVertical: TextAlignVertical.top,
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+            style: GoogleFonts.poppins(fontSize: 14, color: readOnly ? Colors.grey[600] : Colors.black87),
             decoration: InputDecoration(
               isDense: true,
               filled: true,

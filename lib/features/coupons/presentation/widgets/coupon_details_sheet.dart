@@ -167,44 +167,33 @@ class CouponDetailsView extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CouponHeadlineBadge(coupon: coupon),
+                    CouponShopLogo(
+                      shopId: coupon.resolvedShopId,
+                      shopName: shopName,
+                      size: 54,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
+                            shopName.isNotEmpty ? shopName : context.tr('coupon.all_shops'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
                             coupon.name,
                             style: GoogleFonts.poppins(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Colors.black87,
                             ),
                           ),
-                          if (shopName.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                CouponShopLogo(
-                                  shopId: coupon.resolvedShopId,
-                                  shopName: shopName,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    shopName,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12.5,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -245,12 +234,6 @@ class CouponDetailsView extends StatelessWidget {
                 const Divider(height: 1, color: Color(0xFFEDEDED)),
                 const SizedBox(height: 14),
                 _InfoRow(
-                  icon: Icons.confirmation_number_outlined,
-                  label: context.tr('coupon.code'),
-                  value: coupon.code,
-                ),
-                const SizedBox(height: 10),
-                _InfoRow(
                   icon: Icons.groups_outlined,
                   label: context.tr('coupon.eligibility'),
                   value: coupon.isEarlyBird
@@ -280,6 +263,7 @@ class CouponDetailsView extends StatelessWidget {
                   value: coupon.limitType.toUpperCase() == 'ONE_TIME'
                       ? context.tr('coupon.one_time')
                       : context.tr('coupon.reusable'),
+                  isHighlight: true,
                 ),
                 const SizedBox(height: 16),
                 const _HowToUse(),
@@ -288,50 +272,63 @@ class CouponDetailsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        const SizedBox(height: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: OutlinedButton(
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
                 onPressed: coupon.resolvedShopId == null
                     ? null
                     : () => _onOrder(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: Text(
-                  context.tr('coupon.order'),
+                icon: const Icon(Icons.shopping_bag_outlined, size: 20),
+                label: Text(
+                  'Order Online',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 15,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _onUseNow(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _onUseNow(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                label: Text(
-                  context.tr('coupon.use_now'),
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+              ),
+              icon: const Icon(Icons.qr_code_2_rounded, size: 20),
+              label: Text(
+                'Scan QR at Shop',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
                 ),
               ),
             ),
@@ -382,30 +379,32 @@ class _OfferBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.10),
-            AppColors.primary.withValues(alpha: 0.03),
-          ],
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.15),
+          width: 1,
         ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.celebration_rounded, size: 18, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+      child: ShaderMask(
+        shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+        blendMode: BlendMode.srcIn,
+        child: Row(
+          children: [
+            const Icon(Icons.discount_rounded, size: 22, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -516,7 +515,7 @@ class _HowToUse extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            context.tr('coupon.how_to_use_desc'),
+            "Tap 'Order Online' to use it on a delivery order, or 'Scan QR at Shop' to redeem it in-store.",
             style: GoogleFonts.poppins(
               fontSize: 12,
               height: 1.4,
@@ -533,11 +532,13 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isHighlight;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.isHighlight = false,
   });
 
   @override
@@ -555,17 +556,36 @@ class _InfoRow extends StatelessWidget {
         ),
         const Spacer(),
         Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: GoogleFonts.poppins(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: isHighlight
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              : Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
         ),
       ],
     );

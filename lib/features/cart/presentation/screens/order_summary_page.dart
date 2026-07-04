@@ -13,6 +13,7 @@ import '../../../home/data/restaurant_data.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
@@ -111,6 +112,25 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final coupons = await CouponService.instance.fetchByShop(shopId);
     if (!mounted || coupons.isEmpty) return;
     setState(() => _shopCoupons = coupons);
+
+    // Auto-open coupon sheet if none is selected
+    if (_selectedCoupon == null) {
+      final currentStoreIdx = CartManager.instance.stores.indexWhere(
+        (s) => s.nameKey == widget.store.nameKey,
+      );
+      final currentStore = (currentStoreIdx != -1)
+          ? CartManager.instance.stores[currentStoreIdx]
+          : widget.store;
+      final totalStorePrice = (currentStoreIdx != -1)
+          ? CartManager.instance.getStoreTotal(currentStore.nameKey)
+          : widget.store.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toInt();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedCoupon == null) {
+          _openCouponSheet(totalStorePrice.toDouble(), currentStore.items);
+        }
+      });
+    }
   }
 
   /// Coupons that actually apply to the current cart, each with a live,
@@ -129,7 +149,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         subtotal: subtotal,
         items: lines,
       );
-      if (discount > 0) out.add(c.copyWith(discountPreview: discount));
+      out.add(c.copyWith(discountPreview: discount));
     }
     return out;
   }
@@ -506,6 +526,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Notice to check before order
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFCA5A5),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              PhosphorIconsFill.info,
+                              color: Color(0xFFEF4444),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                context.tr('cart.check_order_notice'),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF991B1B),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       // Store Header inside a Card-like container
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -1434,9 +1488,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Widget _buildCouponSection(double subtotal, List<CartItem> items) {
     final applicable = _applicableCoupons(subtotal, items);
     final discount = _discountForSelected(subtotal, items);
-    final hasSelection = _selectedCoupon != null && discount > 0;
+    final hasSelection = _selectedCoupon != null;
+    final hasCoupons = _shopCoupons.isNotEmpty;
+    final isHighlighted = hasSelection || hasCoupons;
 
-    if (applicable.isEmpty && !hasSelection) {
+    if (_shopCoupons.isEmpty && !hasSelection) {
       return const SizedBox.shrink();
     }
 
@@ -1444,11 +1500,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       padding: const EdgeInsets.only(top: 24),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isHighlighted 
+              ? AppColors.primary.withValues(alpha: 0.04) 
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: hasSelection
-                ? AppColors.primary.withValues(alpha: 0.4)
+            color: isHighlighted
+                ? AppColors.primary.withValues(alpha: 0.35)
                 : Colors.black.withValues(alpha: 0.05),
             width: 1.5,
           ),
@@ -1483,21 +1541,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          color: isHighlighted ? AppColors.primary : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         hasSelection
                             ? '${_selectedCoupon!.name}  •  - ${discount.toFormattedPrice()}'
-                            : context.tr('coupon.apply_hint'),
+                            : (hasCoupons ? '✨ ${context.tr('coupon.apply_hint')}' : context.tr('coupon.apply_hint')),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.poppins(
                           fontSize: 12.5,
                           fontWeight:
-                              hasSelection ? FontWeight.w600 : FontWeight.w400,
-                          color: hasSelection
+                              isHighlighted ? FontWeight.w600 : FontWeight.w400,
+                          color: isHighlighted
                               ? AppColors.primary
                               : const Color(0xFF94A3B8),
                         ),
@@ -1520,10 +1578,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     ),
                   )
                 else
-                  Icon(
-                    PhosphorIconsRegular.caretRight,
-                    size: 18,
-                    color: Colors.grey[400],
+                  Container(
+                    padding: EdgeInsets.all(isHighlighted ? 4 : 0),
+                    decoration: isHighlighted ? BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ) : null,
+                    child: Icon(
+                      PhosphorIconsRegular.caretRight,
+                      size: isHighlighted ? 14 : 18,
+                      color: isHighlighted ? Colors.white : Colors.grey[400],
+                    ),
                   ),
               ],
             ),
@@ -1605,12 +1670,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? Image.network(
-              iconUrl,
+          ? CachedNetworkImage(
+              imageUrl: iconUrl,
               width: 24,
               height: 24,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) =>
+              errorWidget: (context, url, error) =>
                   _fallbackPaymentIcon(type),
             )
           : _fallbackPaymentIcon(type),
@@ -1895,10 +1960,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       child: ClipOval(
         child: logoPath.isEmpty
             ? Icon(PhosphorIcons.storefront, size: 24, color: Colors.grey)
-            : Image.network(
-                logoPath,
+            : CachedNetworkImage(
+                imageUrl: logoPath,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Icon(
+                width: 48,
+                height: 48,
+                errorWidget: (context, url, error) => Icon(
                   PhosphorIcons.storefront,
                   size: 24,
                   color: Colors.grey,
@@ -1967,19 +2034,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                item.imagePath,
+              child: CachedNetworkImage(
+                imageUrl: item.imagePath,
                 fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded) return child;
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: frame != null
-                        ? SizedBox(width: 70, height: 70, child: child)
-                        : const ImageSkeletonLoader(width: 70, height: 70),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                width: 70,
+                height: 70,
+                placeholder: (context, url) => const ImageSkeletonLoader(width: 70, height: 70),
+                errorWidget: (context, url, error) => Container(
                   width: 70,
                   height: 70,
                   color: Colors.grey[100],

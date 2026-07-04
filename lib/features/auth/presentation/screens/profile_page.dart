@@ -12,6 +12,7 @@ import 'package:mytogetherapp/features/auth/presentation/screens/language_page.d
 import 'package:mytogetherapp/features/settings/presentation/screens/app_permissions_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/location_search_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -378,22 +379,31 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             Positioned(
               bottom: -50,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: user?.avatarUrl != null
-                      ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
-                      : null,
-                  child: user?.avatarUrl == null
-                      ? Icon(PhosphorIcons.userBold,
-                          size: 40, color: Colors.grey[400])
-                      : null,
+              child: GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  );
+                  if (mounted) setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: user?.avatarUrl != null
+                        ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
+                        : null,
+                    child: user?.avatarUrl == null
+                        ? Icon(PhosphorIcons.userBold,
+                            size: 40, color: Colors.grey[400])
+                        : null,
+                  ),
                 ),
               ),
             ),

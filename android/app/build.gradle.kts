@@ -20,6 +20,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     signingConfigs {
         create("release") {
             val keystorePropertiesFile = rootProject.file("app/key.properties")
