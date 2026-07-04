@@ -180,7 +180,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             mainAxisSpacing: 12,
             childAspectRatio: 0.88,
           ),
-          itemCount: MediaQuery.of(context).size.width > 600 ? 4 : 4,
+          itemCount: MediaQuery.of(context).size.width > 600 ? 8 : 4,
           itemBuilder: (_, index) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -213,8 +213,8 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
     List<TrendingItemDto> displayItems,
     String displayTitle,
   ) {
-    final maxItems = MediaQuery.of(context).size.width > 600 ? 5 : 6;
-    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 5 : 2;
+    final maxItems = MediaQuery.of(context).size.width > 600 ? 8 : 6;
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
 
     return Column(
       children: [
@@ -331,12 +331,12 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 12,
               childAspectRatio: 0.88,
             ),
-          itemCount: displayItems.length > (MediaQuery.of(context).size.width > 600 ? 5 : 6) ? (MediaQuery.of(context).size.width > 600 ? 5 : 6) : displayItems.length,
+          itemCount: displayItems.length > (MediaQuery.of(context).size.width > 600 ? 8 : 6) ? (MediaQuery.of(context).size.width > 600 ? 8 : 6) : displayItems.length,
           itemBuilder: (context, index) {
             final item = displayItems[index];
             return FoodMenuItemCard(

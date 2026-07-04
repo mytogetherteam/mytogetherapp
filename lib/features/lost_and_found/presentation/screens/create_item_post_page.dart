@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/media/image_crop_helper.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -100,7 +101,10 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
         final picked = await _picker.pickMultiImage(imageQuality: 85);
         for (final file in picked) {
           if (_totalPhotoCount >= 10) break;
-          _photos.add(await PickedImage.fromXFile(file));
+          // Let the user crop each photo; skip any they back out of.
+          final cropped = await ImageCropHelper.crop(file);
+          if (cropped == null) continue;
+          _photos.add(await PickedImage.fromXFile(cropped));
         }
       } else {
         final picked = await _picker.pickImage(
@@ -108,7 +112,10 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
           imageQuality: 85,
         );
         if (picked != null && _totalPhotoCount < 10) {
-          _photos.add(await PickedImage.fromXFile(picked));
+          final cropped = await ImageCropHelper.crop(picked);
+          if (cropped != null) {
+            _photos.add(await PickedImage.fromXFile(cropped));
+          }
         }
       }
       setState(() {});

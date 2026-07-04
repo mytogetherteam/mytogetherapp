@@ -8,6 +8,7 @@ import 'features/main_navigation/presentation/screens/main_navigation_screen.dar
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 
 class App extends StatefulWidget {
   final bool hasSeenOnboarding;
@@ -67,7 +68,27 @@ class _AppState extends State<App> {
                 data: MediaQuery.of(context).copyWith(
                   alwaysUse24HourFormat: true,
                 ),
-                child: child ?? const SizedBox.shrink(),
+                child: Stack(
+                  textDirection: TextDirection.ltr,
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: FloatingChatHead.isHiddenNotifier,
+                      builder: (context, isHidden, child) {
+                        print('ValueListenableBuilder in app.dart: isHidden = $isHidden');
+                        return IgnorePointer(
+                          ignoring: isHidden,
+                          child: AnimatedOpacity(
+                            opacity: isHidden ? 0.0 : 1.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: const FloatingChatHead(),
+                    ),
+                  ],
+                ),
               );
             },
             navigatorObservers: [App.routeObserver],

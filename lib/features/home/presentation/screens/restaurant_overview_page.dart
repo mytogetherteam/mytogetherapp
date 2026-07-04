@@ -8,6 +8,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
+import '../widgets/my_together_verified_badge.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
@@ -177,17 +178,17 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  Center(
-                    child: Text(
-                      restaurant.name,
-                      textAlign: TextAlign.center,
+                  VerifiedRestaurantNameRow(
+                      name: restaurant.name,
+                      isVerified: restaurant.isVerified,
+                      badgeSize: MyTogetherVerifiedBadge.overviewSize,
+                      centered: true,
                       style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
-                  ),
                   const SizedBox(height: 4),
                   Center(
                     child: Row(
@@ -692,12 +693,12 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? Image.network(
-              iconUrl,
+          ? CachedNetworkImage(
+              imageUrl: iconUrl,
               width: 24,
               height: 24,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) =>
+              errorWidget: (context, url, error) =>
                   _fallbackPaymentIcon(method),
             )
           : _fallbackPaymentIcon(method),

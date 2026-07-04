@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../data/repositories/order_review_repository.dart';
 import '../../data/repositories/shop_review_repository.dart';
@@ -59,6 +60,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
   Future<void> _submitReview() async {
     if (_submitting) return;
     if (_rating <= 0) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
 
     final orderId = widget.orderId;
     final shopId = widget.shopId;

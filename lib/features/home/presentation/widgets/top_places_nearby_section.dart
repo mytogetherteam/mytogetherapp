@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_refresh_mixin.dart';
 import 'place_card.dart';
@@ -46,8 +48,13 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
         longitude: coords.lon,
       );
       if (mounted) {
+        final repo = WishlistRepository.instance;
         setState(() {
-          _places = feed.items;
+          // Merge the saved state from the wishlist so the heart stays in sync
+          // and persistent across reloads, even if the feed omits `isFavorite`.
+          _places = feed.items
+              .map((p) => p.copyWith(isFavorite: repo.isPlaceSaved(p.id)))
+              .toList();
           _isLoading = false;
         });
       }
@@ -66,6 +73,17 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
     });
     try {
       await WishlistRepository.instance.togglePlace(place.id, next);
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr(next ? 'wishlist.saved' : 'wishlist.removed'),
+          actionLabel: next ? context.tr('wishlist.view_action') : null,
+          onAction: next
+              ? () => WishlistPage.open(context,
+                  initialTab: WishlistPage.tabPlaces)
+              : null,
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -91,6 +109,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
 
     return Column(
       children: [
+        const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -142,6 +161,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
                     category: place.locationName,
                     distance: place.formattedDistance,
                     imagePath: image,
+                    placeId: place.id,
                     isFavorite: place.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(place),
                     onTap: () {

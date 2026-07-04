@@ -448,6 +448,16 @@ class _RegisterPageState extends State<RegisterPage>
             return null;
           },
         ),
+        const SizedBox(height: 18),
+
+        _buildLabel('${context.tr('auth.email')} ${context.tr('auth.optional')}'),
+        const SizedBox(height: 8),
+        _buildTextField(
+          controller: _emailController,
+          hint: context.tr('auth.email_hint'),
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
 
       ],
     );

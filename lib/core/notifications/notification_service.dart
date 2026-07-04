@@ -16,6 +16,8 @@ import '../../features/cart/data/active_order_state.dart';
 import '../../features/cart/data/cart_manager.dart';
 import '../../features/cart/presentation/screens/order_tracking_page.dart';
 import '../../features/cart/presentation/screens/awaiting_payment_page.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/home_page.dart';
+import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
 import '../../features/cart/presentation/screens/order_status_page.dart';
 import '../../features/cart/presentation/screens/order_complete_page.dart';
 
@@ -61,7 +63,34 @@ class NotificationService {
       await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (details) {
-          _handleNotificationClick(null); // Simple navigation for now
+          if (details.payload != null && details.payload != 'item_id') {
+            try {
+              final Map<String, dynamic> map = json.decode(details.payload!);
+              
+              final dataMap = <String, String>{};
+              if (map['data'] is Map) {
+                for (final entry in (map['data'] as Map).entries) {
+                  dataMap[entry.key.toString()] = entry.value?.toString() ?? '';
+                }
+              }
+
+              // Also extract type from payload itself for safety
+              final msgType = map['type']?.toString();
+
+              // Mock RemoteMessage
+              final message = RemoteMessage(
+                data: dataMap,
+                messageType: msgType,
+                // Passing a RemoteNotification here would require it, 
+                // but we only use data in _handleNotificationClick
+              );
+              _handleNotificationClick(message);
+              return;
+            } catch (e) {
+              debugPrint('Payload decode error: $e');
+            }
+          }
+          _handleNotificationClick(null);
         },
       );
 
@@ -152,10 +181,12 @@ class NotificationService {
       // Since the backend now sends 'STANDARD' mode with a 'notification' object,
       // Firebase will NOT show a banner automatically in the foreground.
       // We manual handle it here for consistency.
-      if (message.notification != null) {
+      if (type == 'SILENT_SYNC') {
+        cancelAllNotifications();
+      } else if (message.notification != null) {
         NotificationRepository().incrementCount();
         showLocalNotification(message);
-      } else if (message.data.isNotEmpty && type != 'SILENT_SYNC') {
+      } else if (message.data.isNotEmpty) {
         // Fallback for data-only legacy/other pushes
         NotificationRepository().getUnreadCount();
         showLocalNotification(message);
@@ -178,6 +209,28 @@ class NotificationService {
       }
     } catch (_) {
       // Ignore timeout or initialization errors
+    }
+
+    // Check if opened from LOCAL notification (when terminated)
+    try {
+      final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+      if (launchDetails != null && launchDetails.didNotificationLaunchApp && launchDetails.notificationResponse != null) {
+        final payload = launchDetails.notificationResponse!.payload;
+        if (payload != null && payload != 'item_id') {
+          final Map<String, dynamic> map = json.decode(payload);
+          final dataMap = <String, String>{};
+          if (map['data'] is Map) {
+            for (final entry in (map['data'] as Map).entries) {
+              dataMap[entry.key.toString()] = entry.value?.toString() ?? '';
+            }
+          }
+          final msgType = map['type']?.toString();
+          final message = RemoteMessage(data: dataMap, messageType: msgType);
+          _handleNotificationClick(message);
+        }
+      }
+    } catch (e) {
+      debugPrint('Local notif launch details error: $e');
     }
 
     // Register token if already logged in
@@ -331,8 +384,20 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: platformChannelSpecifics,
-      payload: 'item_id',
+      payload: json.encode({
+        'data': message.data,
+        'type': message.messageType ?? message.data['type'] ?? message.data['notificationType'],
+        'title': title,
+      }),
     );
+  }
+
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+    } catch (e) {
+      debugPrint('Error cancelling notifications: $e');
+    }
   }
 
   /// Builds an [AnnouncementModel] from a BROADCAST push. FCM data values are
@@ -366,10 +431,38 @@ class NotificationService {
     if (message != null && type == 'BROADCAST') {
       final announcement = _announcementFromMessage(message);
       if (announcement != null) {
-        // Not a fresh foreground arrival — reconcile count, don't double-bump.
-        AnnouncementPresenter.present(announcement, isNewArrival: false);
+        _navigateWhenReady((nav) {
+          // Not a fresh foreground arrival — reconcile count, don't double-bump.
+          AnnouncementPresenter.present(announcement, isNewArrival: false);
+        });
       }
       return;
+    }
+
+    final String? subType = message?.data['subType']?.toString().toUpperCase();
+    final bool isChat = type == 'CHAT' || type == 'CHAT_MESSAGE' || type == 'MESSAGE' || type == 'NEW_MESSAGE' ||
+                        (type != null && type.contains('CHAT')) || 
+                        (subType != null && subType.contains('CHAT')) || 
+                        (message?.data.containsKey('conversationId') ?? false);
+
+    if (message != null && isChat) {
+      try {
+        final orderIdStr = message.data['orderId']?.toString() ?? message.data['referenceId']?.toString();
+        final orderId = orderIdStr != null ? int.tryParse(orderIdStr) : null;
+        if (orderId != null) {
+          final shopName = message.data['senderName'] ?? message.data['title'] ?? message.notification?.title ?? 'Restaurant';
+          _navigateWhenReady((nav) {
+            nav.push(MaterialPageRoute(
+              builder: (_) => ChatPage(
+                orderId: orderId,
+                peerName: shopName,
+                peerSubtitle: 'Restaurant',
+              ),
+            ));
+          });
+          return; // Handled chat routing
+        }
+      } catch (_) {}
     }
 
     if (message != null && type == 'ORDER_STATUS') {
@@ -386,50 +479,103 @@ class NotificationService {
           unawaited(ActiveOrderState.instance.adoptOrderIfOwned(refId));
         }
         
-        final context = App.navigatorKey.currentState?.context;
-        if (context == null) return;
-        final state = ActiveOrderState.instance;
-        final s = state.orderStatus;
+        
+        _navigateWhenReady((nav) {
+          final state = ActiveOrderState.instance;
+          final s = state.orderStatus;
 
-        if (s == 0) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderTrackingPage(
-              store: CartStore(
-                nameKey: state.shopNameEn ?? state.storeName ?? '',
-                nameEn: state.shopNameEn ?? state.storeName,
-                nameMm: state.shopNameMm,
-                nameTh: state.shopNameTh,
-                items: state.orderItems,
+          if (s == 0) {
+            nav.push(MaterialPageRoute(
+              builder: (_) => OrderTrackingPage(
+                store: CartStore(
+                  nameKey: state.shopNameEn ?? state.storeName ?? '',
+                  nameEn: state.shopNameEn ?? state.storeName,
+                  nameMm: state.shopNameMm,
+                  nameTh: state.shopNameTh,
+                  items: state.orderItems,
+                ),
+                foodTotal: (_primaryFoodSubtotal(state)).round(),
               ),
-              foodTotal: (_primaryFoodSubtotal(state)).round(),
-            ),
-          ));
-        } else if (s == 1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => AwaitingPaymentPage(
-              orderId: state.orderId,
-              foodTotal: _primaryFoodSubtotal(state),
-              deliveryFee: state.deliveryFee ?? 0,
-            ),
-          ));
-        } else if (s == 2 || s == 3 || s == -1) {
-          App.navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => OrderStatusPage(
-              foodTotal: _primaryFoodSubtotal(state),
-              deliveryFee: state.deliveryFee ?? 0,
-            ),
-          ));
-        } else if (s == 4) {
-          OrderCompletePage.navigateWithState(App.navigatorKey.currentState);
-        }
+            ));
+          } else if (s == 1) {
+            nav.push(MaterialPageRoute(
+              builder: (_) => AwaitingPaymentPage(
+                orderId: state.orderId,
+                foodTotal: _primaryFoodSubtotal(state),
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
+            ));
+          } else if (s == 2 || s == 3 || s == -1) {
+            nav.push(MaterialPageRoute(
+              builder: (_) => OrderStatusPage(
+                foodTotal: _primaryFoodSubtotal(state),
+                deliveryFee: state.deliveryFee ?? 0,
+              ),
+            ));
+          } else if (s == 4) {
+            OrderCompletePage.navigateWithState(nav);
+          }
+        });
         return; // Handled order routing
       } catch (e) {
           // Ignore FCM routing errors
         }
     }
 
-    App.navigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (context) => const NotificationsPage()),
-    );
+    _navigateWhenReady((nav) {
+      if (message != null) {
+        showDialog(
+          context: nav.context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('⚠️ PLEASE SEND THIS TO ME! ⚠️'),
+            content: SingleChildScrollView(
+              child: Text("FCM Data: ${message.data}\n\nType: $type\nsubType: $subType\nisChat: $isChat\n\nPlease screenshot this!"),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  nav.push(
+                    MaterialPageRoute(builder: (context) => const NotificationsPage()),
+                  );
+                },
+                child: const Text('Go to Noti Page'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        showDialog(
+          context: nav.context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('⚠️ Payload was NULL ⚠️'),
+            content: const Text('The notification payload was completely null.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+  }
+
+  void _navigateWhenReady(void Function(NavigatorState nav) action, {int attempts = 0}) {
+    if (App.navigatorKey.currentState != null && App.navigatorKey.currentState!.mounted) {
+      // Delay slightly to ensure MaterialApp has finished setting up its home route
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (App.navigatorKey.currentState != null) {
+          action(App.navigatorKey.currentState!);
+        }
+      });
+    } else if (attempts < 60) { // Increased to 30 seconds (60 * 500ms)
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _navigateWhenReady(action, attempts: attempts + 1);
+      });
+    }
   }
 }

@@ -71,18 +71,31 @@ class UserLocationModel {
   /// Stored in backend `label` (legacy nickname slot) so myshop shows the address.
   String? get myshopLabel => streetAddress;
 
-  /// Primary line for in-app location lists (never a user nickname).
-  String displayTitle(String fallback) => streetAddress ?? fallback;
+  /// Primary line for in-app location lists (shows building name if available, else street address).
+  String displayTitle(String fallback) {
+    if (buildingName != null && buildingName!.trim().isNotEmpty) {
+      return buildingName!.trim();
+    }
+    return streetAddress ?? fallback;
+  }
 
-  /// Optional second line (building / floor).
+  /// Optional second line (street address if building name is title, plus floor).
   String? get detailSubtitle {
     final parts = <String>[];
     final building = buildingName?.trim();
     final floorLabel = floor?.trim();
-    if (building != null && building.isNotEmpty) parts.add(building);
+    
+    // If building name is the primary title, show the street address in the subtitle
+    if (building != null && building.isNotEmpty) {
+      if (streetAddress != null && streetAddress!.isNotEmpty) {
+        parts.add(streetAddress!);
+      }
+    }
+    
     if (floorLabel != null && floorLabel.isNotEmpty) {
       parts.add('Floor $floorLabel');
     }
+    
     return parts.isEmpty ? null : parts.join(' · ');
   }
 

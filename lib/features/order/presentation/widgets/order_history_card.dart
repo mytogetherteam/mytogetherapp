@@ -10,6 +10,7 @@ import 'package:mytogetherapp/features/reviews/presentation/screens/write_review
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/utils/file_url_util.dart';
+import 'package:mytogetherapp/core/utils/price_formatter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/cart/data/cart_repository.dart';
 import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
@@ -17,6 +18,7 @@ import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
 import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -168,7 +170,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             GradientText(
-              widget.order.displayTotalAmount ?? '฿${widget.order.totalAmount}',
+              widget.order.displayTotalAmount?.toFormattedPrice() ??
+                  widget.order.totalAmount.toFormattedPrice(),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -416,6 +419,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   }
 
   Future<void> _openReviewFlow({int initialRating = 0}) async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+
     final orderIdInt = int.tryParse(widget.order.id);
     if (orderIdInt == null) {
       AppDialog.showToast(

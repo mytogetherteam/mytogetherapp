@@ -13,6 +13,7 @@ import '../../../home/data/restaurant_data.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
@@ -24,6 +25,8 @@ import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/network/websocket_service.dart';
 import 'order_tracking_page.dart';
 import '../../data/active_order_state.dart';
+import '../../data/coupon_service.dart';
+import '../widgets/coupon_ticket_sheet.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/user_model.dart';
@@ -58,6 +61,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isLoadingLocation = true;
   List<ShopPaymentTypeDto>? _paymentTypes;
 
+  // Coupons eligible for this shop (raw); the precise discount per coupon is
+  // previewed client-side against the current cart. _selectedCoupon is the one
+  // the user picked on this page; it's applied to the order at place-order time.
+  List<CouponModel> _shopCoupons = const [];
+  CouponModel? _selectedCoupon;
+
   @override
   void initState() {
     super.initState();
@@ -91,7 +100,99 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
         _loadShopPaymentMethods(restaurantId);
+
+        // 4. Pre-load this shop's coupons so the "Apply Coupon" row can show
+        //    immediately on this page.
+        _loadShopCoupons(restaurantId);
       }
+    }
+  }
+
+  Future<void> _loadShopCoupons(int shopId) async {
+    final coupons = await CouponService.instance.fetchByShop(shopId);
+    if (!mounted || coupons.isEmpty) return;
+    setState(() => _shopCoupons = coupons);
+
+    // Auto-open coupon sheet if none is selected
+    if (_selectedCoupon == null) {
+      final currentStoreIdx = CartManager.instance.stores.indexWhere(
+        (s) => s.nameKey == widget.store.nameKey,
+      );
+      final currentStore = (currentStoreIdx != -1)
+          ? CartManager.instance.stores[currentStoreIdx]
+          : widget.store;
+      final totalStorePrice = (currentStoreIdx != -1)
+          ? CartManager.instance.getStoreTotal(currentStore.nameKey)
+          : widget.store.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toInt();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedCoupon == null) {
+          _openCouponSheet(totalStorePrice.toDouble(), currentStore.items);
+        }
+      });
+    }
+  }
+
+  /// Coupons that actually apply to the current cart, each with a live,
+  /// client-computed discount preview (mirrors the backend).
+  List<CouponModel> _applicableCoupons(double subtotal, List<CartItem> items) {
+    if (_shopCoupons.isEmpty) return const [];
+    final lines = items
+        .map<CouponCartLine>(
+          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
+        )
+        .toList();
+    final out = <CouponModel>[];
+    for (final c in _shopCoupons) {
+      final discount = CouponService.computePreview(
+        coupon: c,
+        subtotal: subtotal,
+        items: lines,
+      );
+      out.add(c.copyWith(discountPreview: discount));
+    }
+    return out;
+  }
+
+  double _discountForSelected(double subtotal, List<CartItem> items) {
+    final coupon = _selectedCoupon;
+    if (coupon == null) return 0;
+    final lines = items
+        .map<CouponCartLine>(
+          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
+        )
+        .toList();
+    return CouponService.computePreview(
+      coupon: coupon,
+      subtotal: subtotal,
+      items: lines,
+    );
+  }
+
+  Future<void> _openCouponSheet(
+    double subtotal,
+    List<CartItem> items,
+  ) async {
+    final applicable = _applicableCoupons(subtotal, items);
+    if (applicable.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('coupon.none'),
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+    final chosen = await showCouponTicketSheet(
+      context: context,
+      coupons: applicable,
+      selectedId: _selectedCoupon?.id,
+    );
+    if (chosen != null && mounted) {
+      setState(() => _selectedCoupon = chosen);
     }
   }
 
@@ -375,8 +476,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   .toInt();
 
         final foodSubtotal = totalStorePrice.toDouble();
-        final taxAmount = OrderTax.calculateTax(foodSubtotal);
-        final checkoutTotal = OrderTax.calculateTotal(itemSubtotal: foodSubtotal);
+        final taxEnable = _restaurant?.taxEnable ?? true;
+        final taxAmount =
+            OrderTax.resolveTaxAmount(foodSubtotal, taxEnable);
+        final checkoutTotal = OrderTax.calculateTotal(
+          itemSubtotal: foodSubtotal,
+          taxEnable: taxEnable,
+        );
+        final couponDiscount =
+            _discountForSelected(foodSubtotal, currentStore.items);
+        final payableTotal =
+            (checkoutTotal - couponDiscount).clamp(0, double.infinity).toDouble();
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -416,6 +526,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Notice to check before order
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFCA5A5),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              PhosphorIconsFill.info,
+                              color: Color(0xFFEF4444),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                context.tr('cart.check_order_notice'),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF991B1B),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       // Store Header inside a Card-like container
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -635,7 +779,39 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                               ),
-                              // TODO: re-enable priority / standard delivery selection
+                              if (ActiveOrderState.instance.deliveryFee !=
+                                      null &&
+                                  ActiveOrderState.instance.deliveryFee! >
+                                      0) ...[
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsRegular.money,
+                                      color: Color(0xFF94A3B8),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      context.tr('cart.est_delivery_fee'),
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF94A3B8),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    GradientText(
+                                      ActiveOrderState
+                                          .instance.deliveryFee!
+                                          .toFormattedPrice(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              // Delivery fee estimate appears after shop confirms.
                               /*
                               const SizedBox(height: 20),
                               const Divider(
@@ -759,6 +935,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
+
+                      // Apply Coupon entry (opens the movie-ticket sheet).
+                      _buildCouponSection(foodSubtotal, currentStore.items),
                     ],
                   ),
                 ),
@@ -779,26 +958,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Delivery fee note
-                      if (_isDelivery)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 16,
-                          ),
-                          color: const Color(
-                            0xFFFEF3C7,
-                          ), // Yellowish orange background
-                          child: Text(
-                            context.tr('cart.delivery_fee_note'),
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFD97706), // Orange text
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 12, 28, 4),
                         child: Column(
@@ -807,43 +966,64 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               context.tr('order_status.food_total'),
                               foodSubtotal.toFormattedPrice(),
                             ),
-                            const SizedBox(height: 6),
-                            _buildCheckoutPriceRow(
-                              context.tr('order_status.tax'),
-                              taxAmount.toFormattedPrice(),
-                            ),
+                            if (taxEnable) ...[
+                              const SizedBox(height: 6),
+                              _buildCheckoutPriceRow(
+                                context.tr('order_status.tax'),
+                                taxAmount.toFormattedPrice(),
+                              ),
+                            ],
+                            if (couponDiscount > 0) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _selectedCoupon?.name.isNotEmpty == true
+                                          ? _selectedCoupon!.name
+                                          : context.tr('order_status.discount'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        color: AppColors.primary,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '- ${couponDiscount.toFormattedPrice()}',
+                                    style: GoogleFonts.poppins(
+                                      color: AppColors.primary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  context.tr('cart.total'),
+                                  _isDelivery
+                                      ? context.tr('cart.total_pay_now')
+                                      : context.tr('cart.total'),
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFF64748B),
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    GradientText(
-                                      checkoutTotal.toFormattedPrice(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (_isDelivery)
-                                      GradientText(
-                                        context.tr('cart.plus_delivery_fee'),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                  ],
+                                GradientText(
+                                  payableTotal.toFormattedPrice(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1135,15 +1315,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         (responseData?['itemPrice'] as num?)
                                             ?.toDouble() ??
                                         foodTotal.toDouble();
+                                    final orderTaxEnable =
+                                        _restaurant?.taxEnable ?? true;
                                     final backendTaxAmount =
                                         (responseData?['taxAmount'] as num?)
                                             ?.toDouble() ??
-                                        OrderTax.calculateTax(backendItemPrice);
+                                        OrderTax.resolveTaxAmount(
+                                          backendItemPrice,
+                                          orderTaxEnable,
+                                        );
                                     final backendTotalAmount =
                                         (responseData?['totalAmount'] as num?)
                                             ?.toDouble() ??
                                         OrderTax.calculateTotal(
                                           itemSubtotal: backendItemPrice,
+                                          taxEnable: orderTaxEnable,
                                         );
                                     final backendDisplayTax =
                                         responseData?['displayTaxAmount']
@@ -1154,6 +1340,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       itemPrice: backendItemPrice,
                                       taxAmount: backendTaxAmount,
                                       displayTaxAmount: backendDisplayTax,
+                                      taxEnable: orderTaxEnable,
                                       paymentMethod:
                                           _selectedPaymentType?.displayName ??
                                           context.tr('cart.payment'),
@@ -1179,7 +1366,18 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     // Start WebSocket tracking immediately upon successful order creation
                                     WebSocketService().connect();
 
+                                    // 4b. Apply the coupon the user chose on this
+                                    // page (if any) to the freshly created PENDING
+                                    // order. Purely additive — a failure here
+                                    // never blocks reaching the tracking page.
+                                    await _applySelectedCoupon(
+                                      orderId,
+                                      foodTotal.toDouble(),
+                                      storeItems,
+                                    );
+
                                     // 5. Navigate to tracking page
+                                    if (!context.mounted) return;
                                     nav.pushReplacement(
                                       MaterialPageRoute(
                                         builder: (context) => OrderTrackingPage(
@@ -1239,6 +1437,164 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           ),
         );
       },
+    );
+  }
+
+  /// Applies the coupon the user selected on the summary page to the
+  /// just-created PENDING order, then stores the authoritative totals. Any
+  /// failure is surfaced as a toast but never blocks reaching the tracking page.
+  Future<void> _applySelectedCoupon(
+    String? orderId,
+    double subtotal,
+    List<CartItem> items,
+  ) async {
+    final coupon = _selectedCoupon;
+    if (coupon == null) return;
+    final couponOrderId = int.tryParse((orderId ?? '').replaceAll('#', ''));
+    if (couponOrderId == null) return;
+
+    // Skip if the selection no longer applies to the final cart.
+    if (_discountForSelected(subtotal, items) <= 0) return;
+
+    try {
+      final result = await CouponService.instance.apply(
+        orderId: couponOrderId,
+        couponId: coupon.id,
+      );
+      ActiveOrderState.instance.applyCoupon(
+        discountAmount: result.discountAmount,
+        itemPrice: result.itemPrice,
+        taxAmount: result.taxAmount,
+        totalAmount: result.totalAmount,
+        couponName: result.couponName,
+        couponCode: result.couponCode,
+        orderId: orderId,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final message =
+          e is CouponApplyException ? e.message : context.tr('coupon.apply_failed');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: GoogleFonts.poppins()),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
+  /// The "Apply Coupon" card shown on the summary page. Hidden when the shop has
+  /// no coupons that apply to the current cart (and none is selected).
+  Widget _buildCouponSection(double subtotal, List<CartItem> items) {
+    final applicable = _applicableCoupons(subtotal, items);
+    final discount = _discountForSelected(subtotal, items);
+    final hasSelection = _selectedCoupon != null;
+    final hasCoupons = _shopCoupons.isNotEmpty;
+    final isHighlighted = hasSelection || hasCoupons;
+
+    if (_shopCoupons.isEmpty && !hasSelection) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isHighlighted 
+              ? AppColors.primary.withValues(alpha: 0.04) 
+              : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isHighlighted
+                ? AppColors.primary.withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1.5,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openCouponSheet(subtotal, items),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    PhosphorIconsFill.ticket,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('coupon.apply_title'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isHighlighted ? AppColors.primary : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasSelection
+                            ? '${_selectedCoupon!.name}  •  - ${discount.toFormattedPrice()}'
+                            : (hasCoupons ? '✨ ${context.tr('coupon.apply_hint')}' : context.tr('coupon.apply_hint')),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.5,
+                          fontWeight:
+                              isHighlighted ? FontWeight.w600 : FontWeight.w400,
+                          color: isHighlighted
+                              ? AppColors.primary
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (hasSelection)
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedCoupon = null),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      color: Colors.transparent,
+                      child: Icon(
+                        PhosphorIcons.x,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: EdgeInsets.all(isHighlighted ? 4 : 0),
+                    decoration: isHighlighted ? BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ) : null,
+                    child: Icon(
+                      PhosphorIconsRegular.caretRight,
+                      size: isHighlighted ? 14 : 18,
+                      color: isHighlighted ? Colors.white : Colors.grey[400],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1314,12 +1670,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? Image.network(
-              iconUrl,
+          ? CachedNetworkImage(
+              imageUrl: iconUrl,
               width: 24,
               height: 24,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) =>
+              errorWidget: (context, url, error) =>
                   _fallbackPaymentIcon(type),
             )
           : _fallbackPaymentIcon(type),
@@ -1604,10 +1960,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       child: ClipOval(
         child: logoPath.isEmpty
             ? Icon(PhosphorIcons.storefront, size: 24, color: Colors.grey)
-            : Image.network(
-                logoPath,
+            : CachedNetworkImage(
+                imageUrl: logoPath,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Icon(
+                width: 48,
+                height: 48,
+                errorWidget: (context, url, error) => Icon(
                   PhosphorIcons.storefront,
                   size: 24,
                   color: Colors.grey,
@@ -1676,19 +2034,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                item.imagePath,
+              child: CachedNetworkImage(
+                imageUrl: item.imagePath,
                 fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded) return child;
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: frame != null
-                        ? SizedBox(width: 70, height: 70, child: child)
-                        : const ImageSkeletonLoader(width: 70, height: 70),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                width: 70,
+                height: 70,
+                placeholder: (context, url) => const ImageSkeletonLoader(width: 70, height: 70),
+                errorWidget: (context, url, error) => Container(
                   width: 70,
                   height: 70,
                   color: Colors.grey[100],

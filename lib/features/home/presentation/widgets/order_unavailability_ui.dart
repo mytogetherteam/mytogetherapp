@@ -45,10 +45,20 @@ class UnavailableImageDim extends StatelessWidget {
 }
 
 /// Small pill on the menu-item image — visible but not repetitive.
+///
+/// When [inset] is true the badge spans the bottom of the image (for small
+/// search thumbnails) so long labels like "No delivery" stay inside the clip.
 class OrderStatusImageBadge extends StatelessWidget {
   final OrderBlockReason reason;
+  final bool inset;
+  final BorderRadius imageBorderRadius;
 
-  const OrderStatusImageBadge({super.key, required this.reason});
+  const OrderStatusImageBadge({
+    super.key,
+    required this.reason,
+    this.inset = false,
+    this.imageBorderRadius = const BorderRadius.all(Radius.circular(8)),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +72,37 @@ class OrderStatusImageBadge extends StatelessWidget {
         label = context.tr('common.closed');
       case OrderBlockReason.none:
         label = '';
+    }
+
+    if (inset) {
+      return ClipRRect(
+        borderRadius: BorderRadius.only(
+          bottomLeft: imageBorderRadius.bottomLeft,
+          bottomRight: imageBorderRadius.bottomRight,
+        ),
+        child: ColoredBox(
+          color: Colors.black.withValues(alpha: 0.72),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return Container(

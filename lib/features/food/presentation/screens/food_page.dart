@@ -22,6 +22,7 @@ import 'package:mytogetherapp/features/home/presentation/screens/restaurant_near
 import 'package:mytogetherapp/features/home/presentation/screens/food_collection_list_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/food_for_you_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
 
@@ -212,6 +213,17 @@ class _FoodPageState extends State<FoodPage> {
                               ),
                               const SizedBox(height: 28),
                               const FoodPromotionsCarousel(),
+                              CouponRailSection(
+                                key: ValueKey('food_eb_coupons_$_refreshKey'),
+                                title: context.tr('coupon.discounts_title'),
+                                target: 'EARLY_BIRD',
+                                topGap: 28,
+                              ),
+                              CouponRailSection(
+                                key: ValueKey('food_coupons_$_refreshKey'),
+                                title: context.tr('coupon.coupons_title'),
+                                target: 'ALL',
+                              ),
                               if (_showDiscountAndCollectionRails) ...[
                                 const SizedBox(height: 28),
                                 FoodDiscountSelectionSection(

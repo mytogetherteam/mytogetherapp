@@ -15,6 +15,7 @@ class ChatUnreadController {
   static final ChatUnreadController instance = ChatUnreadController._();
 
   final Map<int, ValueNotifier<int>> _notifiers = {};
+  final Map<int, DateTime> _lastClearTime = {};
   StreamSubscription<Map<String, dynamic>>? _chatSub;
   bool _started = false;
 
@@ -56,14 +57,25 @@ class ChatUnreadController {
 
   /// Fetches the authoritative unread count for [orderId] from the backend.
   Future<void> refreshOrder(int orderId) async {
+    final fetchStartTime = DateTime.now();
     final count = await ChatService.instance.getUnreadCountForOrder(orderId);
+    
+    // Discard stale fetches if a clear happened while we were waiting
+    final clearTime = _lastClearTime[orderId];
+    if (clearTime != null && clearTime.isAfter(fetchStartTime)) {
+      return;
+    }
+
     if (count != null) {
       _set(orderId, count);
     }
   }
 
   /// Marks an order's conversation as read locally (badge -> 0).
-  void clear(int orderId) => _set(orderId, 0);
+  void clear(int orderId) {
+    _lastClearTime[orderId] = DateTime.now();
+    _set(orderId, 0);
+  }
 
   void dispose() {
     _chatSub?.cancel();

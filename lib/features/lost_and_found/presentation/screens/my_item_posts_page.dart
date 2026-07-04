@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/models/item_post_dto.dart';
 import '../../data/repositories/item_post_repository.dart';
@@ -103,6 +104,19 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
     }
   }
 
+  Future<void> _createPost() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateItemPostPage(),
+      ),
+    );
+    if (created == true) {
+      _changed = true;
+      await _loadInitial();
+    }
+  }
+
   Future<void> _deletePost(ItemPostDto post) async {
     final confirmed = await AppDialog.show<bool>(
       context: context,
@@ -175,11 +189,58 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          const SizedBox(height: 160),
-          Center(
-            child: Text(
-              context.tr('lost.my_posts_empty'),
-              style: const TextStyle(color: Colors.black54),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.travel_explore_rounded,
+                    size: 56,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  context.tr('lost.my_posts_empty'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr('lost.my_posts_empty_sub'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey[500],
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                PrimaryGradientButton(
+                  onPressed: _createPost,
+                  width: 260,
+                  child: Text(
+                    context.tr('lost.my_posts_empty_cta'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

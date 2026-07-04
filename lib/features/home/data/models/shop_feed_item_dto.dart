@@ -1,3 +1,4 @@
+import '../../../../core/location/geo_distance.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../shop_order_state_parser.dart';
@@ -58,7 +59,10 @@ class ShopFeedItemDto {
       final int maxTime = minTime + 5;
       return '$minTime-$maxTime min';
     }
-    return _estimatedTime;
+    if (_estimatedTime != null && _estimatedTime.isNotEmpty) {
+      return _estimatedTime;
+    }
+    return GeoDistance.defaultDeliveryEta;
   }
 
   ShopFeedItemDto({
@@ -95,7 +99,11 @@ class ShopFeedItemDto {
         _shopName = shopName,
         _estimatedTime = estimatedTime;
 
-  factory ShopFeedItemDto.fromJson(Map<String, dynamic> json) {
+  factory ShopFeedItemDto.fromJson(
+    Map<String, dynamic> json, {
+    double? originLat,
+    double? originLon,
+  }) {
     final shopMap =
         json['shop'] is Map<String, dynamic> ? json['shop'] as Map<String, dynamic> : null;
     final orderState = ShopOrderStateFields.fromJson(json, shop: shopMap);
@@ -111,6 +119,14 @@ class ShopFeedItemDto {
         status: orderState.status,
       );
     }
+
+    final distanceKm = originLat != null && originLon != null
+        ? GeoDistance.shopDistanceFromJson(
+            json,
+            originLat: originLat,
+            originLon: originLon,
+          )
+        : _parseDistanceKm(json, shopMap);
 
     return ShopFeedItemDto(
       id: int.tryParse(json['id'].toString()) ?? 0,
@@ -131,9 +147,7 @@ class ShopFeedItemDto {
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
       displayPrice: json['displayPrice'] as String?,
-      distanceKm: json['distanceKm'] != null 
-          ? double.tryParse(json['distanceKm'].toString()) 
-          : (json['shopDistanceKm'] != null ? double.tryParse(json['shopDistanceKm'].toString()) : null),
+      distanceKm: distanceKm,
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
       deliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
@@ -168,6 +182,17 @@ class ShopFeedItemDto {
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
+  }
+
+  static double? _parseDistanceKm(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? shopMap,
+  ) {
+    final raw =
+        json['distanceKm'] ?? shopMap?['distanceKm'] ?? json['shopDistanceKm'];
+    if (raw is num) return raw.toDouble();
+    if (raw != null) return double.tryParse(raw.toString());
+    return null;
   }
 
   bool get hasDiscount =>
@@ -258,7 +283,11 @@ class DiscountDealsDto {
 
   bool get isEmpty => items.isEmpty;
 
-  factory DiscountDealsDto.fromJson(Map<String, dynamic> json) {
+  factory DiscountDealsDto.fromJson(
+    Map<String, dynamic> json, {
+    double? originLat,
+    double? originLon,
+  }) {
     final data = json['data'] is Map<String, dynamic>
         ? json['data'] as Map<String, dynamic>
         : json;
@@ -266,7 +295,13 @@ class DiscountDealsDto {
     final items = rawItems is List
         ? rawItems
             .whereType<Map<String, dynamic>>()
-            .map((e) => ShopFeedItemDto.fromJson(e))
+            .map(
+              (e) => ShopFeedItemDto.fromJson(
+                e,
+                originLat: originLat,
+                originLon: originLon,
+              ),
+            )
             .toList()
         : <ShopFeedItemDto>[];
     final totalCount = (data['totalCount'] as num?)?.toInt();

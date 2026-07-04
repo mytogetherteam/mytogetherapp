@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -23,7 +25,6 @@ import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/price_formatter.dart';
 
 class OrderTrackingPage extends StatefulWidget {
@@ -64,6 +65,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   double? _deliveryFee;
   bool _isCancelling = false;
   bool _showCancelLoading = false;
+
+  int _currentImageIndex = 0;
+  Timer? _slideshowTimer;
+  List<String> _slideImages = [];
 
   late final Dio _dio;
 
@@ -167,8 +172,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   void initState() {
     super.initState();
+    _initSlideImages();
     _waitingStartedAt = DateTime.now();
-    _waitingHintTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _waitingHintTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted) return;
       final longWait = DateTime.now().difference(_waitingStartedAt).inMinutes >= 5;
       if (longWait != _showLongWaitHint) {
@@ -241,27 +247,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
             if (!state.hasNotifiedSlipRequest) {
               state.setNotifiedSlipRequest(true);
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(
-              //     content: Row(
-              //       children: [
-              //         Icon(PhosphorIcons.warningCircleFill, color: Colors.white, size: 20),
-              //         const SizedBox(width: 10),
-              //         Expanded(
-              //           child: Text('New payment slip requested by restaurant',
-              //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
-              //         ),
-              //       ],
-              //     ),
-              //     backgroundColor: AppColors.primary,
-              //     behavior: SnackBarBehavior.floating,
-              //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              //   ),
-              // );
             }
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToPayment();
+          });
+        } else if (upperStatus == 'CANCELLED' || upperStatus == 'CANCELED' || status == '-1') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _navigateToCancelPage();
           });
         }
       }
@@ -398,9 +391,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     }
   }
 
-  /// Pulls the authoritative order status from the backend and advances to the
-  /// payment screen once the shop has confirmed (status >= 1), even if the live
-  /// WebSocket frame never arrived.
   Future<void> _reconcileWithBackend() async {
     await ActiveOrderState.instance.syncActiveOrder();
     if (!mounted) return;
@@ -409,22 +399,75 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _navigateToPayment();
       });
+    } else if (status == -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          if (ActiveOrderState.instance.wasCancelledByUser(ActiveOrderState.instance.orderId)) {
+            Navigator.popUntil(context, (route) => route.isFirst);
+          } else {
+            _navigateToCancelPage();
+          }
+        }
+      });
     }
+  }
+
+  void _navigateToCancelPage() {
+    if (!mounted) return;
+    _statusPollTimer?.cancel();
+    final cancelledOrder = ActiveOrderState.instance.getOrder(ActiveOrderState.instance.orderId);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderCancelPage(
+          orderId: cancelledOrder?.orderId ?? '',
+          reason: cancelledOrder?.cancelReason,
+          shopId: cancelledOrder?.shopId,
+          shopName: cancelledOrder?.shopNameEn ??
+              cancelledOrder?.shopName ??
+              cancelledOrder?.restaurantName ??
+              cancelledOrder?.storeName,
+          shopNameMm: cancelledOrder?.shopNameMm,
+          shopNameTh: cancelledOrder?.shopNameTh,
+          shopLogo: cancelledOrder?.shopLogo ?? cancelledOrder?.logoPath,
+          shopImageUrl: cancelledOrder?.shopImageUrl,
+          cancelledByUser: ActiveOrderState.instance.wasCancelledByUser(cancelledOrder?.orderId),
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _waitingHintTimer?.cancel();
-    _idleSequenceTimer?.cancel();
-    _statusPollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _idleSolidController.dispose();
     _lightProgressController.dispose();
-    _orderSubscription?.cancel();
+    _idleSequenceTimer?.cancel();
+    _waitingHintTimer?.cancel();
+    _slideshowTimer?.cancel();
     _positionStreamSubscription?.cancel();
+    _orderSubscription?.cancel();
     _mapController?.dispose();
     _dotsAnimController.dispose();
     super.dispose();
+  }
+
+  void _initSlideImages() {
+    final urls = <String>{};
+    for (final item in widget.store.items) {
+      final url = FileUrlUtil.resolve(item.imageUrl ?? item.imagePath);
+      if (url.isNotEmpty) urls.add(url);
+    }
+    if (urls.isEmpty && _restaurantLogoUrl != null) {
+      urls.add(_restaurantLogoUrl!);
+    }
+    _slideImages = urls.toList();
+    
+    if (_slideImages.length > 1) {
+      _slideshowTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (mounted) setState(() => _currentImageIndex++);
+      });
+    }
   }
 
   Future<void> _initLocationAndRoute() async {
@@ -839,7 +882,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       northeast: LatLng(maxLat, maxLng),
     );
 
-    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 150));
   }
 
   Future<void> _fetchRoute(LatLng start) async {
@@ -982,90 +1025,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── MAP ──────────────────────────────────────────────────────────
+          // ── SHOP IMAGE BACKGROUND ──────────────────────────────────────────
           Positioned.fill(
-            child: ActiveOrderState.instance.isPickupFulfillment && !_showMap
-                ? ColoredBox(
-                    color: const Color(0xFFF8FAFC),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/pickup_bag.png',
-                        height: 180,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  )
-                : _showMap
-                ? GoogleMap(
-                    padding: EdgeInsets.only(
-                      bottom: panelH * 1.1,
-                    ), // Push camera up to stay above the bottom panel
-                    initialCameraPosition: CameraPosition(
-                      target: _restaurantLatLng,
-                      zoom: 14,
-                    ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      _updateMarkersAndPolylines();
-                      if (_routePoints.isNotEmpty) {
-                        _fitBounds(_routePoints);
-                      }
-                    },
-                    markers: _markers,
-                    polylines: _polylines,
-                    myLocationEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    compassEnabled: false,
-                    tiltGesturesEnabled: false,
-                    rotateGesturesEnabled: false,
-                    style: AppMapTheme.defaultStyle,
-                  )
-                : const MapSkeletonLoader(),
+            child: _buildShopImageBackground(),
           ),
-
-          if (_showMap && _isRouting)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CustomLoadingIndicator(size: 14),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.tr('order_tracking.finding_route'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
@@ -1210,35 +1173,42 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             valueColor: Colors.black,
                           ),
 
-                          const SizedBox(height: 12),
-
-                          _buildInfoRow(
-                            label: context.tr('order_status.tax'),
-                            value: ActiveOrderState.instance.displayTaxAmount ??
-                                (ActiveOrderState.instance.taxAmount ??
-                                        OrderTax.calculateTax(
-                                          widget.foodTotal.toDouble(),
-                                        ))
-                                    .toFormattedPrice(),
-                            valueColor: Colors.black,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          if (!ActiveOrderState.instance.isPickupFulfillment)
-                            _buildDeliveryFeeRow(),
-
-                          if (!ActiveOrderState.instance.isPickupFulfillment)
+                          if (ActiveOrderState.instance.taxEnable) ...[
                             const SizedBox(height: 12),
+                            _buildInfoRow(
+                              label: context.tr('order_status.tax'),
+                              value: ActiveOrderState.instance.displayTaxAmount ??
+                                  ActiveOrderState.instance.resolvedTaxAmount
+                                      .toFormattedPrice(),
+                              valueColor: Colors.black,
+                            ),
+                          ],
 
-                          _buildInfoRow(
-                            label: context.tr('order_status.total_amount'),
-                            value: _checkoutTotalLabel(),
-                            isGradientValue: true,
-                          ),
+                          if (ActiveOrderState.instance.hasDiscount) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              label: ActiveOrderState.instance.couponName
+                                          ?.isNotEmpty ==
+                                      true
+                                  ? ActiveOrderState.instance.couponName!
+                                  : context.tr('order_status.discount'),
+                              value:
+                                  '- ${(ActiveOrderState.instance.displayDiscountAmount ?? ActiveOrderState.instance.discountAmount.toFormattedPrice())}',
+                              valueColor: AppColors.primary,
+                            ),
+                          ],
+
+                          if (!ActiveOrderState.instance.isPickupFulfillment) ...[
+                            const SizedBox(height: 12),
+                            _buildDeliveryFeeRow(),
+                          ],
+
 
                           const SizedBox(height: 28),
 
+                          // During confirmation the shop hasn't set a prep time
+                          // yet, so show a reassuring hint ("usually takes…" /
+                          // "taking longer…") rather than a literal 0 mins.
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -1305,35 +1275,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 
-  String _checkoutTotalLabel() {
-    final state = ActiveOrderState.instance;
-    if (state.displayTotalAmount != null &&
-        state.displayTotalAmount!.isNotEmpty &&
-        !state.isPickupFulfillment &&
-        (_deliveryFee == null || _deliveryFee == 0)) {
-      // Before delivery fee is known, show food + tax from backend display if present.
-      final backendTotal = state.totalAmount;
-      if (backendTotal != null && backendTotal > 0) {
-        return backendTotal.toFormattedPrice();
-      }
-    }
-    if (state.displayTotalAmount != null &&
-        state.displayTotalAmount!.isNotEmpty &&
-        state.isPickupFulfillment) {
-      return state.displayTotalAmount!;
-    }
 
-    final food = widget.foodTotal.toDouble();
-    final delivery = state.isPickupFulfillment
-        ? 0.0
-        : (_deliveryFee ?? state.deliveryFee ?? 0);
-    final total = state.totalAmount ??
-        OrderTax.calculateTotal(itemSubtotal: food, deliveryFee: delivery);
-    if (!state.isPickupFulfillment && delivery <= 0) {
-      return OrderTax.calculateTotal(itemSubtotal: food).toFormattedPrice();
-    }
-    return total.toFormattedPrice();
-  }
 
   Widget _buildInfoRow({
     required String label,
@@ -1391,17 +1333,178 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           animation: _dotsAnimController,
           builder: (context, _) {
             final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
-            return Text(
-              '${context.tr('order_tracking.calculating')}$dots',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.tr('order_tracking.calculating'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+                SizedBox(
+                  width: 16,
+                  child: Text(
+                    dots,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildShopImageBackground() {
+    if (_slideImages.isEmpty) {
+      return Container(
+        color: const Color(0xFFF8FAFC),
+        child: Center(
+          child: Image.asset(
+            'assets/images/pickup_bag.png',
+            height: 180,
+            fit: BoxFit.contain,
+          ),
+        ),
+      );
+    }
+
+    final currentUrl = _slideImages[_currentImageIndex % _slideImages.length];
+    
+    return Container(
+      color: const Color(0xFFF8FAFC),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Slideshow Background (Heavily Blurred, Fill Screen)
+          ..._slideImages.map((url) {
+            final isActive = url == currentUrl;
+            return AnimatedOpacity(
+              opacity: isActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.easeInOut,
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
+            );
+          }),
+          
+          // Darken overlay to make the center image pop and text readable
+          Container(
+            color: Colors.black.withValues(alpha: 0.3),
+          ),
+          
+          // Gradient overlay to blend with bottom sheet (Placed behind the crisp image)
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: 0.1),
+                  Colors.white.withValues(alpha: 0.8),
+                  Colors.white,
+                ],
+                stops: const [0.0, 0.6, 1.0],
+              ),
+            ),
+          ),
+          
+          // Slideshow Foreground (Original Size, Crisp)
+          Align(
+            alignment: const Alignment(0, -0.6), // Center perfectly in the top visible half
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Restaurant Info
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_restaurantLogoUrl != null)
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: CachedNetworkImageProvider(_restaurantLogoUrl!),
+                        backgroundColor: Colors.white,
+                      ),
+                    if (_restaurantLogoUrl != null)
+                      const SizedBox(height: 8),
+                    Text(
+                      _restaurantName,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Food Image Slideshow
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.28, // Reduced size (28% of screen)
+                  child: AspectRatio(
+                    aspectRatio: 1.0, // Force a perfect square (1:1)
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: _slideImages.map((url) {
+                            final isActive = url == currentUrl;
+                            return AnimatedOpacity(
+                              opacity: isActive ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 1500),
+                              curve: Curves.easeInOut,
+                              child: CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1478,12 +1581,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 () => {},
                               ); // Rebuild button to show disabled state
 
-                              // Snapshot shop/order details before cancelling.
-                              // cancelActiveOrder() clears the order from state
-                              // on success, so capture it now for the
-                              // cancellation screen.
-                              final cancelledOrder = ActiveOrderState.instance
-                                  .getOrder(ActiveOrderState.instance.orderId);
 
                               // Delayed loading indicator (500ms)
                               Future.delayed(
@@ -1522,28 +1619,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 // the sheet's) with the cancellation screen.
                                 if (context.mounted) Navigator.pop(context);
                                 if (mounted) {
-                                  _statusPollTimer?.cancel();
-                                  Navigator.pushReplacement(
-                                    this.context,
-                                    MaterialPageRoute(
-                                      builder: (_) => OrderCancelPage(
-                                        orderId: cancelledOrder?.orderId ?? '',
-                                        reason: cancelledOrder?.cancelReason,
-                                        shopId: cancelledOrder?.shopId,
-                                        shopName: cancelledOrder?.shopNameEn ??
-                                            cancelledOrder?.shopName ??
-                                            cancelledOrder?.restaurantName ??
-                                            cancelledOrder?.storeName,
-                                        shopNameMm: cancelledOrder?.shopNameMm,
-                                        shopNameTh: cancelledOrder?.shopNameTh,
-                                        shopLogo: cancelledOrder?.shopLogo ??
-                                            cancelledOrder?.logoPath,
-                                        shopImageUrl:
-                                            cancelledOrder?.shopImageUrl,
-                                        cancelledByUser: true,
-                                      ),
-                                    ),
-                                  );
+                                  Navigator.popUntil(context, (route) => route.isFirst);
                                 }
                               } finally {
                                 if (mounted) {

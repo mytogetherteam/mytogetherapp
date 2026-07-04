@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/presentation/screens/write_review_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/models/shop_review_dto.dart';
@@ -118,6 +119,8 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
   }
 
   Future<void> _writeReview() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
     final submitted = await Navigator.push<bool>(
       context,
       MaterialPageRoute(

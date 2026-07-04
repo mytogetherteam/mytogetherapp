@@ -66,6 +66,18 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   List<NewsComment> _comments = [];
 
+  /// True once the comment list has been fetched at least once. After that the
+  /// counter is driven by the comments actually loaded (the source of truth for
+  /// the rendered list) rather than the feed payload's `commentsCount`, which
+  /// can be stale/0 and is what caused the icon to show 0 next to a visible
+  /// comment.
+  bool _commentsLoaded = false;
+
+  /// Count shown next to the comment icon. Falls back to the feed value until
+  /// the real comments arrive, then mirrors the loaded list exactly.
+  int get _displayCommentCount =>
+      _commentsLoaded ? _comments.length : widget.item.commentsCount;
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +119,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _commentsLoaded = true;
+          _syncCommentCount();
         });
       } else if (widget.item.source == FeedSource.itemPost) {
         final rows = await ItemPostRepository.instance.fetchComments(id);
@@ -124,9 +138,20 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ),
               )
               .toList();
+          _commentsLoaded = true;
+          _syncCommentCount();
         });
       }
     } catch (_) {}
+  }
+
+  /// Keeps the feed item's comment counter in sync with the comments actually
+  /// loaded/added/deleted here, so the count shown on the feed is correct when
+  /// the user navigates back (e.g. after deleting their only comment).
+  void _syncCommentCount() {
+    if (widget.item.isApiBacked) {
+      widget.item.commentsCount = _comments.length;
+    }
   }
 
   @override
@@ -216,6 +241,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _commentsLoaded = true;
+              _syncCommentCount();
             });
           }
         } else if (widget.item.source == FeedSource.itemPost) {
@@ -236,6 +263,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   isMine: true,
                 ),
               );
+              _commentsLoaded = true;
+              _syncCommentCount();
             });
           }
         }
@@ -259,6 +288,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           timeAgo: context.tr('common.just_now'),
         ),
       );
+      _commentsLoaded = true;
+      _syncCommentCount();
     });
   }
 
@@ -346,7 +377,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     );
     if (confirmed != true) return;
 
-    setState(() => _comments.removeAt(index));
+    setState(() {
+      _comments.removeAt(index);
+      _syncCommentCount();
+    });
     try {
       if (widget.item.source == FeedSource.news) {
         await NewsRepository.instance.deleteComment(entityId, commentId);
@@ -355,13 +389,42 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _comments.insert(index, comment));
+      setState(() {
+        _comments.insert(index, comment);
+        _syncCommentCount();
+      });
       AppDialog.showToast(
         context,
         context.tr('comment.delete_failed'),
         isError: true,
       );
     }
+  }
+
+  Widget _buildDefaultAvatar(String authorName) {
+    if (authorName.toLowerCase().contains('super admin')) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+        ),
+        child: Image.asset(
+          'assets/images/super_admin.png',
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/logo_3d.png',
+          cacheWidth: 80,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
   }
 
   String _formatCount(int count) {
@@ -391,19 +454,29 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
             ),
             title: Row(
               children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundImage: widget.item.authorAvatar.isNotEmpty
-                      ? CachedNetworkImageProvider(widget.item.authorAvatar)
-                      : null,
-                  backgroundColor: Colors.grey[100],
-                  child: widget.item.authorAvatar.isEmpty
-                      ? Icon(
-                          PhosphorIcons.user,
-                          size: 14,
-                          color: Colors.grey[400],
-                        )
-                      : null,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: widget.item.authorAvatar.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: widget.item.authorAvatar,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(color: Colors.grey[200]),
+                            errorWidget: (context, url, error) => _buildDefaultAvatar(widget.item.authorName),
+                          )
+                        : _buildDefaultAvatar(widget.item.authorName),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -540,6 +613,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               PageRouteBuilder(
                                 opaque: false,
                                 transitionDuration: const Duration(milliseconds: 300),
+                                reverseTransitionDuration: Duration.zero,
                                 pageBuilder: (context, _, _) => NewsImageViewer(
                                   imageUrls: widget.item.imageUrls,
                                   initialIndex: 0,
@@ -566,7 +640,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 imageUrl: widget.item.imageUrls[0],
                                 fit: BoxFit.cover,
                                 width: double.infinity,
-                                height: 180,
+                                height: 200,
                                 placeholder: (context, url) =>
                                     Container(color: Colors.grey[100]),
                                 errorWidget: (context, url, error) => Container(
@@ -582,7 +656,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         ),
                       )
                     : SizedBox(
-                        height: 190,
+                        height: 210,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
@@ -599,6 +673,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   PageRouteBuilder(
                                     opaque: false,
                                     transitionDuration: const Duration(milliseconds: 300),
+                                    reverseTransitionDuration: Duration.zero,
                                     pageBuilder: (context, _, _) => NewsImageViewer(
                                       imageUrls: widget.item.imageUrls,
                                       initialIndex: index,
@@ -694,7 +769,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _formatCount(widget.item.commentsCount),
+                                _formatCount(_displayCommentCount),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   color: Colors.black54,

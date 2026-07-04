@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
 import '../../data/cart_manager.dart';
@@ -10,12 +11,13 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/time_formatter.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/gradient_icon.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 import '../../../reviews/data/repositories/shop_review_repository.dart';
+import '../widgets/flexible_delivery_note.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -113,6 +115,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final shopId = int.tryParse(ActiveOrderState.instance.shopId ?? '');
 
     if (ratingValue > 0 && orderId != null) {
+      if (!await GuestAuthGuard.requireAccount(context)) return;
       setState(() => _isSubmitting = true);
       final result = await OrderReviewRepository.instance.create(
         orderId: orderId,
@@ -161,14 +164,21 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     final foodPrice = order?.itemPrice ??
         order?.resolvedItemSubtotal ??
         (foodFromItems > 0 ? foodFromItems : 0);
-    final taxAmount = order?.taxAmount ?? OrderTax.calculateTax(foodPrice);
-    final total = order?.totalAmount ??
-        OrderTax.calculateTotal(
-          itemSubtotal: foodPrice,
-          deliveryFee: order?.isPickupFulfillment == true ? 0 : deliveryFee,
-        );
+    final taxAmount = order?.resolvedTaxAmount ?? 0;
+    final total = order == null
+        ? 0.0
+        : (order.isFlexibleDelivery
+            ? order.resolvedPayNowTotal(
+                fallbackDeliveryFee: deliveryFee,
+              )
+            : (order.totalAmount ??
+                order.resolvedGrandTotal(
+                  fallbackDeliveryFee:
+                      order.isPickupFulfillment ? 0 : deliveryFee,
+                )));
     final displayTotal =
-        order?.displayTotalAmount ?? total.toFormattedPrice();
+        order?.displayTotalAmount?.toFormattedPrice() ??
+            total.toFormattedPrice();
     
     final arrivalTime = TimeFormatter.formatClock(DateTime.now());
     final logoPath = order?.logoPath;
@@ -195,25 +205,69 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              context.tr('order_complete.title'),
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+            // Success Header
+            Center(
+              child: Column(
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.elasticOut,
+                    builder: (context, scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: child,
+                      );
+                    },
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 54,
+                          height: 54,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: AppColors.primaryGradient,
+                          ),
+                          child: const Icon(PhosphorIconsBold.check, color: Colors.white, size: 28),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    context.tr('order_complete.title'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(PhosphorIconsRegular.clock, size: 16, color: Color(0xFF64748B)),
+                      const SizedBox(width: 6),
+                      Text(
+                        context.trArgs('order_complete.arrived_at', {'time': arrivalTime}),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14, 
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              context.trArgs('order_complete.arrived_at', {'time': arrivalTime}),
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            
-            // Progress Bar (all filled)
-            _buildProgressBar(),
             const SizedBox(height: 32),
 
             // Delivery proof photo (if the shop attached one on delivery)
@@ -227,95 +281,133 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFF1F5F9)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Logo with lazy-load and no-image fallback
+                    ClipOval(
+                      child: SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: (logoPath != null && logoPath.isNotEmpty)
+                          ? CachedNetworkImage(
+                              imageUrl: logoPath,
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: const Center(child: CustomLoadingIndicator(size: 24)),
+                              ),
+                              errorWidget: (context, url, error) => _buildNoImageAvatar(),
+                            )
+                          : _buildNoImageAvatar(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      context.trArgs('order_complete.rate_experience', {'shop': storeName}),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      context.tr('order_complete.rate_subtitle'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: const Color(0xFF64748B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 28),
+                    // Stars
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final isSelected = _rating > index;
+                        return GestureDetector(
+                          onTap: () async {
+                            if (!await GuestAuthGuard.requireAccount(
+                              context,
+                            )) {
+                              return;
+                            }
+                            if (!mounted) return;
+                            setState(() => _rating = index + 1);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                Icons.star_rounded,
+                                size: isSelected ? 48 : 44,
+                                color: isSelected ? const Color(0xFFFBBF24) : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Order Summary Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFF1F5F9)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 15,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-                    child: Column(
-                      children: [
-                        // Logo with lazy-load and no-image fallback
-                        ClipOval(
-                          child: SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: (logoPath != null && logoPath.isNotEmpty)
-                              ? Image.network(
-                                  logoPath,
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                                    if (wasSynchronouslyLoaded || frame != null) return child;
-                                    return Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(child: CustomLoadingIndicator(size: 24)),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) => _buildNoImageAvatar(),
-                                )
-                              : _buildNoImageAvatar(),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          context.trArgs('order_complete.rate_experience', {'shop': storeName}),
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          context.tr('order_complete.rate_subtitle'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        // Stars
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            final isSelected = _rating > index;
-                            return GestureDetector(
-                              onTap: () => setState(() => _rating = index + 1),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: Icon(
-                                  Icons.star_rounded,
-                                  size: 44,
-                                  color: isSelected ? const Color(0xFFFBBF24) : const Color(0xFFCBD5E1),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
+                  if (order?.isFlexibleDelivery == true) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: FlexibleDeliveryNote(
+                        estimatedFee: order?.displayDeliveryFee?.isNotEmpty == true
+                            ? order!.displayDeliveryFee!
+                            : (deliveryFee > 0 ? deliveryFee.toFormattedPrice() : '+฿ 0'),
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB), indent: 20, endIndent: 20),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  ],
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       title: Text(
                         context.tr('cart.total'),
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
                         ),
                       ),
                       trailing: Row(
@@ -324,44 +416,76 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           Text(
                             displayTotal,
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                               color: AppColors.primary,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(PhosphorIcons.caretDown, size: 16, color: Colors.grey[600]),
+                          Icon(PhosphorIcons.caretDown, size: 18, color: Colors.grey[500]),
                         ],
                       ),
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildSummaryRow(
                                 context.tr('payment.food_price'),
-                                order?.displayFoodPrice ??
+                                order?.displayFoodPrice?.toFormattedPrice() ??
                                     foodPrice.toFormattedPrice(),
                               ),
-                              const SizedBox(height: 12),
-                              _buildSummaryRow(
-                                context.tr('order_status.tax'),
-                                order?.displayTaxAmount ??
-                                    taxAmount.toFormattedPrice(),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildDeliveryFeeRow(context, order, deliveryFee),
+                              if (order?.resolvedTaxEnable ?? true) ...[
+                                const SizedBox(height: 12),
+                                _buildSummaryRow(
+                                  context.tr('order_status.tax'),
+                                  order?.displayTaxAmount?.toFormattedPrice() ??
+                                      taxAmount.toFormattedPrice(),
+                                ),
+                              ],
+                              if (!order!.isPickupFulfillment &&
+                                  order.hasDeliveryFeeEstimate &&
+                                  !order.isFlexibleDelivery) ...[
+                                const SizedBox(height: 12),
+                                _buildDeliveryFeeRow(context, order, deliveryFee),
+                              ],
+                              if ((order.discountAmount ?? 0) > 0) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        context.tr('order_status.discount'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '- ${order.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFED3973),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                               if (orderItems.isNotEmpty) ...[
                                 const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  padding: EdgeInsets.symmetric(vertical: 16),
                                   child: Divider(
                                     height: 1,
-                                    color: Color(0xFFE5E7EB),
+                                    color: Color(0xFFF1F5F9),
                                   ),
                                 ),
                                 ...orderItems.map((item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.only(bottom: 12),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -370,17 +494,17 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                             child: Text(
                                               '${item.quantity}x ${item.title}',
                                               style: GoogleFonts.poppins(
-                                                fontSize: 13,
-                                                color: Colors.grey[700],
+                                                fontSize: 14,
+                                                color: const Color(0xFF475569),
                                               ),
                                             ),
                                           ),
                                           Text(
                                             item.total.toFormattedPrice(),
                                             style: GoogleFonts.poppins(
-                                              fontSize: 13,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.black87,
+                                              color: const Color(0xFF1E293B),
                                             ),
                                           ),
                                         ],
@@ -390,8 +514,8 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 Text(
                                   context.tr('order_complete.items_placeholder'),
                                   style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                    color: const Color(0xFF94A3B8),
                                   ),
                                 ),
                             ],
@@ -403,6 +527,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
             // "Done" button: submit rating (if any), clear order, go home
             PrimaryGradientButton(
@@ -454,22 +579,20 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     ActiveOrderItem? order,
     double deliveryFee,
   ) {
+    final isFlexible = order?.isFlexibleDelivery == true;
     final isConfirmed = deliveryFee > 0;
-    final feeLabel = isConfirmed
-        ? context.tr('order_status.delivery_fee')
-        : context.tr('payment.est_delivery_fee');
-    final badgeLabel = isConfirmed
-        ? context.tr('payment.delivery_fee_badge_confirmed')
-        : context.tr('payment.delivery_fee_badge_estimate');
+    final feeLabel = isFlexible || !isConfirmed
+        ? context.tr('payment.est_delivery_fee')
+        : context.tr('order_status.delivery_fee');
     final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
-        ? order!.displayDeliveryFee!
+        ? order!.displayDeliveryFee!.toFormattedPrice()
         : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
 
     return Row(
       children: [
         const GradientIcon(icon: PhosphorIconsFill.moped, size: 20),
         const SizedBox(width: 8),
-        Flexible(
+        Expanded(
           child: Text(
             feeLabel,
             style: GoogleFonts.poppins(
@@ -478,23 +601,6 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFEF2F2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            badgeLabel,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFFEF4444),
-            ),
-          ),
-        ),
-        const Spacer(),
         GradientText(
           feeAmount,
           style: GoogleFonts.poppins(
@@ -555,17 +661,14 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
             child: AspectRatio(
               aspectRatio: 4 / 3,
-              child: Image.network(
-                url,
+              child: CachedNetworkImage(
+                imageUrl: url,
                 fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded || frame != null) return child;
-                  return Container(
-                    color: Colors.grey[200],
-                    child: const Center(child: CustomLoadingIndicator(size: 24)),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[200],
+                  child: const Center(child: CustomLoadingIndicator(size: 24)),
+                ),
+                errorWidget: (context, url, error) => Container(
                   color: Colors.grey[200],
                   alignment: Alignment.center,
                   child: const Icon(

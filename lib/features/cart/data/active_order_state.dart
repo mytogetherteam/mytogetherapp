@@ -10,7 +10,9 @@ import 'dart:convert';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/utils/file_url_util.dart';
 import '../../../core/utils/image_utils.dart';
+import '../../../core/utils/price_formatter.dart';
 import '../../order/data/repositories/order_repository.dart';
+import '../../order/data/models/order_history_dto.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
 import '../../../core/auth/auth_service.dart';
@@ -58,6 +60,11 @@ class ActiveOrderItem {
   double? itemPrice;
   double? taxAmount;
   double? totalAmount;
+  // Applied shop coupon (if any). discountAmount = ฿ taken off the subtotal.
+  double? discountAmount;
+  String? displayDiscountAmount;
+  String? couponName;
+  String? couponCode;
   String? paymentMethod;
   String? cancelReason;
   // Set when the shop sends the order back for revision (status REVISED).
@@ -68,7 +75,7 @@ class ActiveOrderItem {
   List<CartItem> orderItems;
   bool showUploadSection;
   bool isPaymentChecking;
-  
+
   // Refined shop details from WS
   String? shopId;
   String? shopName;
@@ -78,7 +85,7 @@ class ActiveOrderItem {
   String? shopLogo;
   String? shopImageUrl;
   String? shopPhone;
-  
+
   // Tracking data
   List<LatLng> routePoints;
   double? routeDistanceKm;
@@ -86,10 +93,14 @@ class ActiveOrderItem {
   double? deliveryFee;
   String? riderName;
   String? riderPhone;
+  String? riderProfileUrl;
   String? deliveryTrackingUrl;
   String? shopPaymentQrUrl;
   int? paymentMethodId;
   String? paymentMethodImageUrl;
+  String? paymentAccountNumber;
+  String? paymentAccountName;
+  bool? taxEnable;
   // Photo the shop attaches when marking the order Delivered — shown to the
   // customer as proof the food was successfully delivered.
   String? proofPhotoUrl;
@@ -108,6 +119,7 @@ class ActiveOrderItem {
   bool hasNotifiedSlipRequest;
   bool isSlipRequested;
   String? deliveryType;
+  String? orderDeliveryType;
   String? orderType;
   String? backendStatus;
   String? lastOrderNo;
@@ -121,6 +133,19 @@ class ActiveOrderItem {
   bool get isReadyForPickup =>
       (backendStatus ?? '').toUpperCase() == 'READY_FOR_PICKUP';
 
+  /// Flexible delivery: food (+ tax) is paid in-app; delivery fee is estimated
+  /// and paid to the rider on arrival. FAST delivery includes fee in-app total.
+  bool get isFlexibleDelivery {
+    if (isPickupFulfillment) return false;
+    final type = (orderDeliveryType ?? '').toUpperCase();
+    if (type == 'FAST' || type == 'PREPAID') return false;
+    if (type == 'FLEXIBLE' || type == 'NORMAL') return true;
+    // Tier is chosen by the shop on confirm; until then treat as flexible.
+    return type.isEmpty;
+  }
+
+  bool get resolvedTaxEnable => taxEnable ?? true;
+
   /// Food subtotal before tax and delivery — prefers backend `itemPrice`.
   double get resolvedItemSubtotal {
     if (itemPrice != null && itemPrice! > 0) return itemPrice!;
@@ -129,7 +154,12 @@ class ActiveOrderItem {
     }
     final total = totalAmount ?? 0;
     final delivery = deliveryFee ?? 0;
-    final tax = taxAmount ?? OrderTax.calculateTax(total - delivery);
+    final tax =
+        taxAmount ??
+        OrderTax.resolveTaxAmount(
+          (total - delivery).clamp(0, double.infinity),
+          resolvedTaxEnable,
+        );
     final fromTotal = total - delivery - tax;
     if (fromTotal > 0) return fromTotal;
     return (total - delivery).clamp(0, double.infinity).toDouble();
@@ -137,17 +167,62 @@ class ActiveOrderItem {
 
   double get resolvedTaxAmount {
     if (taxAmount != null) return taxAmount!;
-    return OrderTax.calculateTax(resolvedItemSubtotal);
+    return OrderTax.resolveTaxAmount(resolvedItemSubtotal, resolvedTaxEnable);
   }
 
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) {
     if (totalAmount != null && totalAmount! > 0) return totalAmount!;
-    final delivery =
-        isPickupFulfillment ? 0.0 : (deliveryFee ?? fallbackDeliveryFee);
-    return OrderTax.calculateTotal(
-      itemSubtotal: resolvedItemSubtotal,
-      deliveryFee: delivery,
-    );
+    final delivery = isPickupFulfillment
+        ? 0.0
+        : (deliveryFee ?? fallbackDeliveryFee);
+    // Subtract any coupon discount so the fallback matches the backend total.
+    final discount = discountAmount ?? 0;
+    final total = OrderTax.calculateTotal(
+          itemSubtotal: resolvedItemSubtotal,
+          deliveryFee: delivery,
+          taxEnable: resolvedTaxEnable,
+        ) -
+        discount;
+    return total < 0 ? 0 : total;
+  }
+
+  /// Amount the customer pays in-app. Flexible delivery excludes delivery fee.
+  double resolvedPayNowTotal({double fallbackDeliveryFee = 0}) {
+    if (isPickupFulfillment || !isFlexibleDelivery) {
+      return resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee);
+    }
+    // Food + tax, less any coupon discount applied to the subtotal.
+    final discount = discountAmount ?? 0;
+    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount;
+    return payNow < 0 ? 0 : payNow;
+  }
+
+  bool get hasDeliveryFeeEstimate {
+    final fee = deliveryFee;
+    return fee != null && fee > 0;
+  }
+
+  bool get hasPrepTimeEstimate {
+    final time = estimatedTime?.trim();
+    if (time == null || time.isEmpty) return false;
+    final normalized = time.toLowerCase();
+    return normalized != '0' &&
+        normalized != '0 mins' &&
+        normalized != '0 min';
+  }
+
+  /// Shop has not confirmed delivery tier, fee, or prep time yet.
+  bool get isAwaitingShopConfirmation =>
+      orderStatus == 0 &&
+      (backendStatus == null ||
+          backendStatus == 'PENDING' ||
+          backendStatus == 'REVISED');
+
+  /// In-app total is food + tax only (flexible, or before shop confirms).
+  bool get usesPayNowTotal {
+    if (isPickupFulfillment) return false;
+    if (isAwaitingShopConfirmation) return true;
+    return isFlexibleDelivery;
   }
 
   ActiveOrderItem({
@@ -164,6 +239,10 @@ class ActiveOrderItem {
     this.itemPrice,
     this.taxAmount,
     this.totalAmount,
+    this.discountAmount,
+    this.displayDiscountAmount,
+    this.couponName,
+    this.couponCode,
     this.paymentMethod,
     this.cancelReason,
     this.isRevised = false,
@@ -179,6 +258,7 @@ class ActiveOrderItem {
     this.deliveryFee,
     this.riderName,
     this.riderPhone,
+    this.riderProfileUrl,
     this.deliveryTrackingUrl,
     this.shopPaymentQrUrl,
     this.deliveryAddress,
@@ -194,6 +274,7 @@ class ActiveOrderItem {
     this.hasNotifiedSlipRequest = false,
     this.isSlipRequested = false,
     this.deliveryType,
+    this.orderDeliveryType,
     this.orderType,
     this.backendStatus,
     this.lastOrderNo,
@@ -208,6 +289,9 @@ class ActiveOrderItem {
     this.shopPhone,
     this.paymentMethodId,
     this.paymentMethodImageUrl,
+    this.paymentAccountNumber,
+    this.paymentAccountName,
+    this.taxEnable,
     this.proofPhotoUrl,
   });
 
@@ -227,8 +311,9 @@ class ActiveOrderItem {
   ({List<String> items, String reason}) get resolvedReviseInfo =>
       ReviseReasonParser.resolve(
         reviseReason: reviseReason,
-        structuredItemNames:
-            unavailableItemNames.isNotEmpty ? unavailableItemNames : null,
+        structuredItemNames: unavailableItemNames.isNotEmpty
+            ? unavailableItemNames
+            : null,
         structuredItemReason: unavailableItemReason,
       );
 
@@ -246,6 +331,10 @@ class ActiveOrderItem {
     'itemPrice': itemPrice,
     'taxAmount': taxAmount,
     'totalAmount': totalAmount,
+    'discountAmount': discountAmount,
+    'displayDiscountAmount': displayDiscountAmount,
+    'couponName': couponName,
+    'couponCode': couponCode,
     'paymentMethod': paymentMethod,
     'cancelReason': cancelReason,
     'isRevised': isRevised,
@@ -259,6 +348,7 @@ class ActiveOrderItem {
     'deliveryFee': deliveryFee,
     'riderName': riderName,
     'riderPhone': riderPhone,
+    'riderProfileUrl': riderProfileUrl,
     'deliveryTrackingUrl': deliveryTrackingUrl,
     'shopPaymentQrUrl': shopPaymentQrUrl,
     'deliveryAddress': deliveryAddress,
@@ -283,75 +373,93 @@ class ActiveOrderItem {
     'shopPhone': shopPhone,
     'paymentMethodId': paymentMethodId,
     'paymentMethodImageUrl': paymentMethodImageUrl,
+    'paymentAccountNumber': paymentAccountNumber,
+    'paymentAccountName': paymentAccountName,
+    'taxEnable': taxEnable,
     'proofPhotoUrl': proofPhotoUrl,
     'deliveryType': deliveryType,
+    'orderDeliveryType': orderDeliveryType,
     'orderType': orderType,
     'backendStatus': backendStatus,
     'lastOrderNo': lastOrderNo,
+    'riderVehicleNumber': riderVehicleNumber,
   };
 
-  factory ActiveOrderItem.fromJson(Map<String, dynamic> json) => ActiveOrderItem(
-    orderId: json['orderId'],
-    storeName: json['storeName'],
-    restaurantName: json['restaurantName'],
-    logoPath: json['logoPath'],
-    estimatedTime: json['estimatedTime'],
-    restaurantId: json['restaurantId'],
-    statusLabel: json['statusLabel'],
-    statusLabelMm: json['statusLabelMm'],
-    statusLabelTh: json['statusLabelTh'],
-    orderStatus: json['orderStatus'] ?? 0,
-    itemPrice: json['itemPrice'],
-    taxAmount: json['taxAmount'],
-    totalAmount: json['totalAmount'],
-    paymentMethod: json['paymentMethod'],
-    cancelReason: json['cancelReason'],
-    isRevised: json['isRevised'] ?? false,
-    reviseReason: json['reviseReason'],
-    unavailableItemNames: (json['unavailableItemNames'] as List<dynamic>?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        const [],
-    unavailableItemReason: json['unavailableItemReason']?.toString(),
-    showUploadSection: json['showUploadSection'] ?? false,
-    isPaymentChecking: json['isPaymentChecking'] ?? false,
-    routeDistanceKm: json['routeDistanceKm'],
-    routeDurationMins: json['routeDurationMins'],
-    deliveryFee: json['deliveryFee'],
-    riderName: json['riderName'],
-    riderPhone: json['riderPhone'],
-    deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
-    shopPaymentQrUrl: json['shopPaymentQrUrl'],
-    deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
-    restaurantAddress: json['restaurantAddress'],
-    userLocationName: json['userLocationName'],
-    restaurantLatLng: (json['restaurantLat'] != null && json['restaurantLng'] != null)
-        ? LatLng(json['restaurantLat'], json['restaurantLng'])
-        : null,
-    userLocation: (json['userLat'] != null && json['userLng'] != null)
-        ? LatLng(json['userLat'], json['userLng'])
-        : null,
-    displayFoodPrice: json['displayFoodPrice'],
-    displayTaxAmount: json['displayTaxAmount'],
-    displayDeliveryFee: json['displayDeliveryFee'],
-    displayTotalAmount: json['displayTotalAmount'],
-    idleSolidProgress: json['idleSolidProgress'],
-    shopId: json['shopId'],
-    shopName: json['shopName'],
-    shopNameEn: json['shopNameEn'],
-    shopNameMm: json['shopNameMm'],
-    shopNameTh: json['shopNameTh'],
-    shopLogo: json['shopLogo'],
-    shopImageUrl: json['shopImageUrl'],
-    shopPhone: json['shopPhone'],
-    paymentMethodId: json['paymentMethodId'],
-    paymentMethodImageUrl: json['paymentMethodImageUrl'],
-    proofPhotoUrl: json['proofPhotoUrl'],
-    deliveryType: json['deliveryType'],
-    orderType: json['orderType'],
-    backendStatus: json['backendStatus'],
-    lastOrderNo: json['lastOrderNo'],
-  );
+  factory ActiveOrderItem.fromJson(Map<String, dynamic> json) =>
+      ActiveOrderItem(
+        orderId: json['orderId'],
+        storeName: json['storeName'],
+        restaurantName: json['restaurantName'],
+        logoPath: json['logoPath'],
+        estimatedTime: json['estimatedTime'],
+        restaurantId: json['restaurantId'],
+        statusLabel: json['statusLabel'],
+        statusLabelMm: json['statusLabelMm'],
+        statusLabelTh: json['statusLabelTh'],
+        orderStatus: json['orderStatus'] ?? 0,
+        itemPrice: json['itemPrice'],
+        taxAmount: json['taxAmount'],
+        totalAmount: json['totalAmount'],
+        discountAmount: (json['discountAmount'] as num?)?.toDouble(),
+        displayDiscountAmount: json['displayDiscountAmount']?.toString(),
+        couponName: json['couponName']?.toString(),
+        couponCode: json['couponCode']?.toString(),
+        paymentMethod: json['paymentMethod'],
+        cancelReason: json['cancelReason'],
+        isRevised: json['isRevised'] ?? false,
+        reviseReason: json['reviseReason'],
+        unavailableItemNames:
+            (json['unavailableItemNames'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        unavailableItemReason: json['unavailableItemReason']?.toString(),
+        showUploadSection: json['showUploadSection'] ?? false,
+        isPaymentChecking: json['isPaymentChecking'] ?? false,
+        routeDistanceKm: json['routeDistanceKm'],
+        routeDurationMins: json['routeDurationMins'],
+        deliveryFee: json['deliveryFee'],
+        riderName: json['riderName'] ?? json['deliveryRiderName'] ?? (json['driver'] != null ? json['driver']['name'] : null),
+        riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
+        riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
+        riderVehicleNumber: json['riderVehicleNumber'] ?? (json['driver'] != null ? json['driver']['vehicleNo'] : null),
+        deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
+        shopPaymentQrUrl: json['shopPaymentQrUrl'],
+        deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
+        restaurantAddress: json['restaurantAddress'],
+        userLocationName: json['userLocationName'],
+        restaurantLatLng:
+            (json['restaurantLat'] != null && json['restaurantLng'] != null)
+            ? LatLng(json['restaurantLat'], json['restaurantLng'])
+            : null,
+        userLocation: (json['userLat'] != null && json['userLng'] != null)
+            ? LatLng(json['userLat'], json['userLng'])
+            : null,
+        displayFoodPrice: json['displayFoodPrice'],
+        displayTaxAmount: json['displayTaxAmount'],
+        displayDeliveryFee: json['displayDeliveryFee'],
+        displayTotalAmount: json['displayTotalAmount'],
+        idleSolidProgress: json['idleSolidProgress'],
+        shopId: json['shopId'],
+        shopName: json['shopName'],
+        shopNameEn: json['shopNameEn'],
+        shopNameMm: json['shopNameMm'],
+        shopNameTh: json['shopNameTh'],
+        shopLogo: json['shopLogo'],
+        shopImageUrl: json['shopImageUrl'],
+        shopPhone: json['shopPhone'],
+        paymentMethodId: json['paymentMethodId'],
+        paymentMethodImageUrl: json['paymentMethodImageUrl'],
+        paymentAccountNumber: json['paymentAccountNumber'],
+        paymentAccountName: json['paymentAccountName'],
+        taxEnable: json['taxEnable'] as bool?,
+        proofPhotoUrl: json['proofPhotoUrl'],
+        deliveryType: json['deliveryType'] as String?,
+        orderDeliveryType: json['orderDeliveryType'] as String?,
+        orderType: json['orderType'],
+        backendStatus: json['backendStatus'],
+        lastOrderNo: json['lastOrderNo'],
+      );
 }
 
 class ActiveOrderState extends ChangeNotifier {
@@ -369,6 +477,7 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   final Map<String, ActiveOrderItem> _orders = {};
+
   /// The order the UI should treat as "current" (tracking, payment, complete).
   String? _primaryOrderId;
   final Set<String> _cancellingOrders = {};
@@ -383,16 +492,16 @@ class ActiveOrderState extends ChangeNotifier {
   bool wasCancelledByUser(String? orderId) {
     if (orderId == null) return false;
     return _userCancelledOrderIds.contains(orderId.replaceAll('#', ''));
-  } 
-  
+  }
+
   // Returns only non-terminal orders (not COMPLETED or CANCELLED)
   List<ActiveOrderItem> get activeOrdersList => _orders.values
       .where((o) => o.orderStatus != 4 && o.orderStatus != -1)
       .toList();
-      
+
   // Returns everything currently tracked
   List<ActiveOrderItem> get allOrdersList => _orders.values.toList();
-  
+
   ActiveOrderItem? get _primary {
     if (_primaryOrderId != null) {
       return _orders[_primaryOrderId];
@@ -402,9 +511,7 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   void _purgeTerminalOrders() {
-    _orders.removeWhere(
-      (_, o) => o.orderStatus == 4 || o.orderStatus == -1,
-    );
+    _orders.removeWhere((_, o) => o.orderStatus == 4 || o.orderStatus == -1);
     if (_primaryOrderId != null && !_orders.containsKey(_primaryOrderId)) {
       _primaryOrderId = activeOrdersList.isNotEmpty
           ? activeOrdersList.last.orderId
@@ -419,14 +526,16 @@ class ActiveOrderState extends ChangeNotifier {
     final active = activeOrdersList;
     _primaryOrderId = active.isNotEmpty ? active.last.orderId : null;
   }
-  
+
   // --- Properties & Backward Compatibility ---
   bool get hasActiveOrder => activeOrdersList.isNotEmpty;
-  set hasActiveOrder(bool val) { /* Legacy compatibility setter */ }
+  set hasActiveOrder(bool val) {
+    /* Legacy compatibility setter */
+  }
 
   /// Whether the user is allowed to start a brand-new checkout.
   bool get canPlaceNewOrder => !hasActiveOrder;
-  
+
   // Helper to get a specific order (tolerates # prefix / numeric id mismatches).
   ActiveOrderItem? getOrder(String? id) {
     if (id != null) {
@@ -501,6 +610,13 @@ class ActiveOrderState extends ChangeNotifier {
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
   bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
+  bool get isFlexibleDelivery => _primary?.isFlexibleDelivery ?? false;
+  bool get hasDeliveryFeeEstimate =>
+      _primary?.hasDeliveryFeeEstimate ?? false;
+  bool get hasPrepTimeEstimate => _primary?.hasPrepTimeEstimate ?? false;
+  bool get isAwaitingShopConfirmation =>
+      _primary?.isAwaitingShopConfirmation ?? false;
+  bool get usesPayNowTotal => _primary?.usesPayNowTotal ?? false;
   bool get isReadyForPickup => _primary?.isReadyForPickup ?? false;
   String? get backendStatus => _primary?.backendStatus;
   String? get orderType => _primary?.orderType;
@@ -508,6 +624,18 @@ class ActiveOrderState extends ChangeNotifier {
   double? get itemPrice => _primary?.itemPrice;
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
+  double get discountAmount => _primary?.discountAmount ?? 0;
+  bool get hasDiscount => (_primary?.discountAmount ?? 0) > 0;
+  String? get displayDiscountAmount =>
+      _primary?.displayDiscountAmount?.toFormattedPrice();
+  String? get couponName => _primary?.couponName;
+  double get resolvedTaxAmount => _primary?.resolvedTaxAmount ?? 0;
+  double resolvedGrandTotal({double fallbackDeliveryFee = 0}) =>
+      _primary?.resolvedGrandTotal(fallbackDeliveryFee: fallbackDeliveryFee) ??
+      0;
+  double resolvedPayNowTotal({double fallbackDeliveryFee = 0}) =>
+      _primary?.resolvedPayNowTotal(fallbackDeliveryFee: fallbackDeliveryFee) ??
+      0;
   String? get paymentMethod => _primary?.paymentMethod;
   List<CartItem> get orderItems => _primary?.orderItems ?? [];
   bool get showUploadSection => _primary?.showUploadSection ?? false;
@@ -520,13 +648,20 @@ class ActiveOrderState extends ChangeNotifier {
   int? get routeDurationMins => _primary?.routeDurationMins;
   String? get riderName => _primary?.riderName;
   String? get riderPhone => _primary?.riderPhone;
+  String? get riderProfileUrl => _primary?.riderProfileUrl;
+  String? get riderVehicleNumber => _primary?.riderVehicleNumber;
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
   String? get proofPhotoUrl => _primary?.proofPhotoUrl;
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
+  String? get paymentAccountNumber => _primary?.paymentAccountNumber;
+  String? get paymentAccountName => _primary?.paymentAccountName;
+  bool get taxEnable => _primary?.resolvedTaxEnable ?? true;
   String? get cancelReason => _primary?.cancelReason;
-  set cancelReason(String? val) { if (_primary != null) _primary!.cancelReason = val; }
+  set cancelReason(String? val) {
+    if (_primary != null) _primary!.cancelReason = val;
+  }
 
   // Refined shop details getters
   String? get shopId => _primary?.shopId;
@@ -541,34 +676,56 @@ class ActiveOrderState extends ChangeNotifier {
 
   // More restored getters/setters for legacy UI
   String? get deliveryAddress => _primary?.deliveryAddress;
-  set deliveryAddress(String? val) { if (_primary != null) _primary!.deliveryAddress = val; }
+  set deliveryAddress(String? val) {
+    if (_primary != null) _primary!.deliveryAddress = val;
+  }
 
   String? get restaurantAddress => _primary?.restaurantAddress;
-  set restaurantAddress(String? val) { if (_primary != null) _primary!.restaurantAddress = val; }
+  set restaurantAddress(String? val) {
+    if (_primary != null) _primary!.restaurantAddress = val;
+  }
 
   String? get userLocationName => _primary?.userLocationName;
-  set userLocationName(String? val) { if (_primary != null) _primary!.userLocationName = val; }
+  set userLocationName(String? val) {
+    if (_primary != null) _primary!.userLocationName = val;
+  }
 
   LatLng? get restaurantLatLng => _primary?.restaurantLatLng;
-  set restaurantLatLng(LatLng? val) { if (_primary != null) _primary!.restaurantLatLng = val; }
+  set restaurantLatLng(LatLng? val) {
+    if (_primary != null) _primary!.restaurantLatLng = val;
+  }
 
   LatLng? get userLocation => _primary?.userLocation;
-  set userLocation(LatLng? val) { if (_primary != null) _primary!.userLocation = val; }
+  set userLocation(LatLng? val) {
+    if (_primary != null) _primary!.userLocation = val;
+  }
 
-  String? get displayFoodPrice => _primary?.displayFoodPrice;
-  set displayFoodPrice(String? val) { if (_primary != null) _primary!.displayFoodPrice = val; }
+  String? get displayFoodPrice => _primary?.displayFoodPrice?.toFormattedPrice();
+  set displayFoodPrice(String? val) {
+    if (_primary != null) _primary!.displayFoodPrice = val;
+  }
 
-  String? get displayTaxAmount => _primary?.displayTaxAmount;
-  set displayTaxAmount(String? val) { if (_primary != null) _primary!.displayTaxAmount = val; }
+  String? get displayTaxAmount => _primary?.displayTaxAmount?.toFormattedPrice();
+  set displayTaxAmount(String? val) {
+    if (_primary != null) _primary!.displayTaxAmount = val;
+  }
 
-  String? get displayDeliveryFee => _primary?.displayDeliveryFee;
-  set displayDeliveryFee(String? val) { if (_primary != null) _primary!.displayDeliveryFee = val; }
+  String? get displayDeliveryFee =>
+      _primary?.displayDeliveryFee?.toFormattedPrice();
+  set displayDeliveryFee(String? val) {
+    if (_primary != null) _primary!.displayDeliveryFee = val;
+  }
 
-  String? get displayTotalAmount => _primary?.displayTotalAmount;
-  set displayTotalAmount(String? val) { if (_primary != null) _primary!.displayTotalAmount = val; }
+  String? get displayTotalAmount =>
+      _primary?.displayTotalAmount?.toFormattedPrice();
+  set displayTotalAmount(String? val) {
+    if (_primary != null) _primary!.displayTotalAmount = val;
+  }
 
   double? get idleSolidProgress => _primary?.idleSolidProgress;
-  set idleSolidProgress(double? val) { if (_primary != null) _primary!.idleSolidProgress = val; }
+  set idleSolidProgress(double? val) {
+    if (_primary != null) _primary!.idleSolidProgress = val;
+  }
 
   void setActiveOrder({
     required String storeName,
@@ -588,7 +745,9 @@ class ActiveOrderState extends ChangeNotifier {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
 
-    final id = orderId ?? DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+    final id =
+        orderId ??
+        DateTime.now().millisecondsSinceEpoch.toString().substring(7);
     final hasDifferentActiveOrder = activeOrdersList.any(
       (o) => o.orderId != id,
     );
@@ -621,23 +780,53 @@ class ActiveOrderState extends ChangeNotifier {
     double? itemPrice,
     double? taxAmount,
     String? displayTaxAmount,
+    bool? taxEnable,
     int? paymentMethodId,
     String? paymentMethodImageUrl,
     String? orderId,
   }) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
-    
+
     final item = _orders[targetId]!;
     item.totalAmount = totalAmount;
     if (itemPrice != null) item.itemPrice = itemPrice;
     if (taxAmount != null) item.taxAmount = taxAmount;
     if (displayTaxAmount != null) item.displayTaxAmount = displayTaxAmount;
+    if (taxEnable != null) item.taxEnable = taxEnable;
     item.paymentMethod = paymentMethod;
     item.paymentMethodId = paymentMethodId;
     item.paymentMethodImageUrl = paymentMethodImageUrl;
     item.orderItems = List.from(items);
-    
+
+    saveToPrefs();
+    notifyListeners();
+  }
+
+  /// Records a coupon applied to a pending order during checkout, updating the
+  /// stored totals so the tracking screen shows the discounted amount.
+  void applyCoupon({
+    required double discountAmount,
+    required double itemPrice,
+    required double taxAmount,
+    required double totalAmount,
+    required String couponName,
+    String? couponCode,
+    String? orderId,
+  }) {
+    final targetId = orderId ?? this.orderId;
+    if (targetId == null || !_orders.containsKey(targetId)) return;
+
+    final item = _orders[targetId]!;
+    item.discountAmount = discountAmount;
+    item.displayDiscountAmount = discountAmount.toFormattedPrice();
+    item.couponName = couponName;
+    item.couponCode = couponCode;
+    item.itemPrice = itemPrice;
+    item.taxAmount = taxAmount;
+    item.totalAmount = totalAmount;
+    item.displayTotalAmount = null;
+
     saveToPrefs();
     notifyListeners();
   }
@@ -659,8 +848,6 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
-
-
   Future<void> syncActiveOrder({String? orderId}) async {
     final targetId = orderId ?? _primaryOrderId ?? this.orderId;
     if (targetId == null) return;
@@ -671,7 +858,14 @@ class ActiveOrderState extends ChangeNotifier {
       // Backend: GET /api/user/orders/:id (UserOrdersController.findAwaitingPaymentInfo).
       final response = await ApiClient().dio.get(
         '${ApiClient.apiPrefix}/user/orders/$sanitizedOrderId',
-        options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
+        options: Options(
+          extra: {
+            '@dio_cache_interceptor@': CacheOptions(
+              store: MemCacheStore(),
+              policy: CachePolicy.refresh,
+            ),
+          },
+        ),
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -702,7 +896,14 @@ class ActiveOrderState extends ChangeNotifier {
     try {
       final response = await ApiClient().dio.get(
         '${ApiClient.apiPrefix}/user/orders/$sanitized',
-        options: Options(extra: {'@dio_cache_interceptor@': CacheOptions(store: MemCacheStore(), policy: CachePolicy.refresh)}),
+        options: Options(
+          extra: {
+            '@dio_cache_interceptor@': CacheOptions(
+              store: MemCacheStore(),
+              policy: CachePolicy.refresh,
+            ),
+          },
+        ),
       );
       if (response.statusCode != 200 || response.data == null) return;
 
@@ -746,25 +947,72 @@ class ActiveOrderState extends ChangeNotifier {
       return;
     }
 
-    final ownerId = OrderOwnership.parseUserId(data);
+
     var item = _findTrackedOrder(rawId);
     if (item == null) {
-      // Never adopt a brand-new order from realtime unless ownership is explicit.
-      if (ownerId == null || !OrderOwnership.isOwnedByCurrentUser(data)) return;
+      if (OrderOwnership.isForeignOrder(data)) return;
       final id = rawId;
       if (id == null || id.isEmpty) return;
       _orders[id] = ActiveOrderItem(orderId: id);
       _primaryOrderId ??= id;
       item = _orders[id];
+      // The WS payload might be a partial update (e.g. status only).
+      // Trigger a full REST sync in the background to backfill missing fields.
+      Future.microtask(() => syncActiveOrder(orderId: id));
     }
     if (item == null) return;
 
-    if (data['deliveryFee'] != null) item.deliveryFee = _parseSafeDouble(data['deliveryFee']);
-    if (data['itemPrice'] != null) item.itemPrice = _parseSafeDouble(data['itemPrice']);
-    if (data['taxAmount'] != null) item.taxAmount = _parseSafeDouble(data['taxAmount']);
-    if (data['totalAmount'] != null) item.totalAmount = _parseSafeDouble(data['totalAmount']);
-    if (data['deliveryRiderName'] != null) item.riderName = _parseSafeString(data['deliveryRiderName']);
-    if (data['deliveryPhoneNo'] != null) item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+    if (data['deliveryFee'] != null) {
+      final fee = _parseSafeDouble(data['deliveryFee']);
+      if (fee != null) item.deliveryFee = fee;
+    }
+    if (data['itemPrice'] != null)
+      item.itemPrice = _parseSafeDouble(data['itemPrice']);
+    if (data['taxAmount'] != null)
+      item.taxAmount = _parseSafeDouble(data['taxAmount']);
+    if (data['totalAmount'] != null)
+      item.totalAmount = _parseSafeDouble(data['totalAmount']);
+    if (data['discountAmount'] != null) {
+      item.discountAmount = _parseSafeDouble(data['discountAmount']);
+    }
+    if (data['displayDiscountAmount'] != null) {
+      item.displayDiscountAmount =
+          _parseSafeString(data['displayDiscountAmount']);
+    }
+    if (data['shopCoupon'] is Map) {
+      final coupon = Map<String, dynamic>.from(data['shopCoupon'] as Map);
+      item.couponName = _parseSafeString(coupon['name']);
+      item.couponCode = _parseSafeString(coupon['code']);
+      final couponDiscount = _parseSafeDouble(coupon['discountAmount']);
+      if (couponDiscount != null && couponDiscount > 0) {
+        item.discountAmount = couponDiscount;
+      }
+    }
+    if (data['taxEnable'] != null) {
+      item.taxEnable = data['taxEnable'] == true;
+    } else if (data['shop'] is Map &&
+        (data['shop'] as Map)['taxEnable'] != null) {
+      item.taxEnable = (data['shop'] as Map)['taxEnable'] == true;
+    } else if (item.taxAmount != null &&
+        item.itemPrice != null &&
+        item.itemPrice! > 0) {
+      item.taxEnable = item.taxAmount! > 0;
+    }
+    if (data['deliveryRiderName'] != null) {
+      item.riderName = _parseSafeString(data['deliveryRiderName']);
+    } else if (data['driver'] != null) {
+      item.riderName = _parseSafeString(data['driver']['name']);
+    }
+    
+    if (data['deliveryPhoneNo'] != null) {
+      item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
+    } else if (data['driver'] != null) {
+      item.riderPhone = _parseSafeString(data['driver']['phone']);
+    }
+    
+    if (data['driver'] != null && data['driver']['profileUrl'] != null) {
+      item.riderProfileUrl = _parseSafeString(data['driver']['profileUrl']);
+    }
 
     // Shop contact number. The backend exposes it under a few shapes depending
     // on the endpoint (flat field or nested `shop` object), so try each.
@@ -777,14 +1025,24 @@ class ActiveOrderState extends ChangeNotifier {
     if (parsedShopPhone != null && parsedShopPhone.isNotEmpty) {
       item.shopPhone = parsedShopPhone;
     }
-    if (data['deliveryCycleNo'] != null) item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
-    if (data['waitingTimeMinutes'] != null) {
-      item.estimatedTime = "${data['waitingTimeMinutes']} mins";
+    if (data['deliveryCycleNo'] != null) {
+      item.riderVehicleNumber = _parseSafeString(data['deliveryCycleNo']);
+    } else if (data['driver'] != null) {
+      item.riderVehicleNumber = _parseSafeString(data['driver']['vehicleNo']);
+    }
+    final waitMins = data['waitingTimeMinutes'] != null
+        ? _parseSafeInt(data['waitingTimeMinutes'])
+        : null;
+    if (waitMins != null && waitMins > 0) {
+      item.estimatedTime = '$waitMins mins';
     }
 
-    var trackingUrl = _parseSafeString(data['deliveryTrackingUrl'] ?? data['trackingUrl']);
+    var trackingUrl = _parseSafeString(
+      data['deliveryTrackingUrl'] ?? data['trackingUrl'],
+    );
     if (trackingUrl != null && trackingUrl.isNotEmpty) {
-      if (!trackingUrl.startsWith('http://') && !trackingUrl.startsWith('https://')) {
+      if (!trackingUrl.startsWith('http://') &&
+          !trackingUrl.startsWith('https://')) {
         trackingUrl = 'https://$trackingUrl';
       }
       if (_isValidUrl(trackingUrl)) {
@@ -795,6 +1053,27 @@ class ActiveOrderState extends ChangeNotifier {
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
     if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
 
+    final accNumber = _parseSafeString(data['paymentAccountNumber'] ?? data['shopPaymentAccountNumber'] ?? data['accountNumber']);
+    if (accNumber != null) item.paymentAccountNumber = accNumber;
+    
+    final accName = _parseSafeString(data['paymentAccountName'] ?? data['shopPaymentAccountName'] ?? data['accountName']);
+    if (accName != null) item.paymentAccountName = accName;
+
+    final pm = data['paymentMethod'];
+    if (pm is Map) {
+      final pmQr = _parseSafeString(pm['qr']);
+      if (pmQr != null && _isValidUrl(pmQr)) item.shopPaymentQrUrl = pmQr;
+
+      final pmIcon = _parseSafeString(pm['iconUrl']);
+      if (pmIcon != null && _isValidUrl(pmIcon)) item.paymentMethodImageUrl = pmIcon;
+
+      final pmAccNumber = _parseSafeString(pm['accountNumber']);
+      if (pmAccNumber != null && pmAccNumber.isNotEmpty) item.paymentAccountNumber = pmAccNumber;
+
+      final pmAccName = _parseSafeString(pm['accountName']);
+      if (pmAccName != null && pmAccName.isNotEmpty) item.paymentAccountName = pmAccName;
+    }
+
     // Delivery proof photo attached by the shop on the "Delivered" step.
     final proofUrl = _parseSafeString(data['proofPhotoUrl']);
     if (proofUrl != null && proofUrl.isNotEmpty) {
@@ -802,7 +1081,8 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
-    if (logoUrl != null && logoUrl.isNotEmpty) item.logoPath = _getFullUrl(logoUrl);
+    if (logoUrl != null && logoUrl.isNotEmpty)
+      item.logoPath = _getFullUrl(logoUrl);
 
     final parsedShopNameEn = _parseSafeString(
       data['shopNameEn'] ??
@@ -819,7 +1099,10 @@ class ActiveOrderState extends ChangeNotifier {
       item.restaurantName = parsedShopNameEn;
       item.storeName = parsedShopNameEn;
     }
-    
+
+    if (data['orderDeliveryType'] != null) {
+      item.orderDeliveryType = _parseSafeString(data['orderDeliveryType']);
+    }
     if (data['deliveryType'] != null) {
       item.deliveryType = _parseSafeString(data['deliveryType']);
     }
@@ -830,35 +1113,52 @@ class ActiveOrderState extends ChangeNotifier {
       item.lastOrderNo = _parseSafeString(data['lastOrderNo']);
     }
 
-    if (data['statusLabel'] != null) item.statusLabel = _parseSafeString(data['statusLabel']);
-    if (data['statusLabelMm'] != null) item.statusLabelMm = _parseSafeString(data['statusLabelMm']);
-    if (data['statusLabelTh'] != null) item.statusLabelTh = _parseSafeString(data['statusLabelTh']);
-    
+    if (data['statusLabel'] != null)
+      item.statusLabel = _parseSafeString(data['statusLabel']);
+    if (data['statusLabelMm'] != null)
+      item.statusLabelMm = _parseSafeString(data['statusLabelMm']);
+    if (data['statusLabelTh'] != null)
+      item.statusLabelTh = _parseSafeString(data['statusLabelTh']);
+
     if (data['paymentMethod'] != null) {
       if (data['paymentMethod'] is String) {
         item.paymentMethod = data['paymentMethod'] as String;
       } else if (data['paymentMethod'] is Map) {
-        item.paymentMethod = _parseSafeString(data['paymentMethod']['name'] ?? data['paymentMethod']['code']);
+        item.paymentMethod = _parseSafeString(
+          data['paymentMethod']['name'] ?? data['paymentMethod']['code'],
+        );
       }
     }
 
-    if (data['displayFoodPrice'] != null) item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
-    if (data['displayTaxAmount'] != null) item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
-    if (data['displayDeliveryFee'] != null) item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
-    if (data['displayTotalAmount'] != null) item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
+    if (data['displayFoodPrice'] != null)
+      item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
+    if (data['displayTaxAmount'] != null)
+      item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
+    if (data['displayDeliveryFee'] != null) {
+      final fee = item.deliveryFee ?? _parseSafeDouble(data['deliveryFee']);
+      if (fee != null && fee > 0) {
+        item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+      }
+    }
+    if (data['displayTotalAmount'] != null)
+      item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
     if (item.displayFoodPrice == null && item.itemPrice != null) {
       item.displayFoodPrice = '฿${item.itemPrice}';
     }
 
-    final parsedDeliveryAddress =
-        parseDeliveryAddressValue(data['deliveryAddress']);
+    final parsedDeliveryAddress = parseDeliveryAddressValue(
+      data['deliveryAddress'],
+    );
     if (parsedDeliveryAddress != null) {
       item.deliveryAddress = parsedDeliveryAddress;
     }
-    if (data['restaurantAddress'] != null) item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
-    if (data['userLocationName'] != null) item.userLocationName = _parseSafeString(data['userLocationName']);
+    if (data['restaurantAddress'] != null)
+      item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
+    if (data['userLocationName'] != null)
+      item.userLocationName = _parseSafeString(data['userLocationName']);
 
-    if (data['restaurantLatitude'] != null && data['restaurantLongitude'] != null) {
+    if (data['restaurantLatitude'] != null &&
+        data['restaurantLongitude'] != null) {
       item.restaurantLatLng = LatLng(
         _parseSafeDouble(data['restaurantLatitude'])!,
         _parseSafeDouble(data['restaurantLongitude'])!,
@@ -876,8 +1176,9 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     if (data['reviseItems'] != null) {
-      final revisePayload =
-          ReviseReasonParser.parseReviseItemsPayload(data['reviseItems']);
+      final revisePayload = ReviseReasonParser.parseReviseItemsPayload(
+        data['reviseItems'],
+      );
       if (revisePayload.names.isNotEmpty) {
         item.unavailableItemNames = revisePayload.names;
       }
@@ -928,21 +1229,26 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
     if (data['shopNameMM'] != null || data['shopNameMm'] != null) {
-      item.shopNameMm = _parseSafeString(data['shopNameMM'] ?? data['shopNameMm']);
+      item.shopNameMm = _parseSafeString(
+        data['shopNameMM'] ?? data['shopNameMm'],
+      );
     }
     if (data['shopNameTh'] != null || data['shopNameTH'] != null) {
-      item.shopNameTh = _parseSafeString(data['shopNameTh'] ?? data['shopNameTH']);
+      item.shopNameTh = _parseSafeString(
+        data['shopNameTh'] ?? data['shopNameTH'],
+      );
     }
-    
+
     // Improved image mapping with fallbacks
     final rawLogo = data['shopLogo'] ?? data['logoPath'];
     if (rawLogo != null) {
       item.shopLogo = _getFullUrl(_parseSafeString(rawLogo));
       item.logoPath = item.shopLogo; // Sync legacy field
     }
-    
+
     final shopMap = data['shop'];
-    final rawImage = data['shopImageUrl'] ??
+    final rawImage =
+        data['shopImageUrl'] ??
         data['shopLogo'] ??
         data['logoPath'] ??
         data['logoUrl'] ??
@@ -959,12 +1265,14 @@ class ActiveOrderState extends ChangeNotifier {
     if (data.containsKey('ongoing')) {
       final isOngoing = data['ongoing'] as bool?;
       if (isOngoing == false) {
-        // We don't remove it immediately to allow UI to show completion, 
+        // We don't remove it immediately to allow UI to show completion,
         // but it will be filtered out next time or handled by UI
       }
     }
 
-    final String? statusStr = _parseSafeString(data['statusName'] ?? data['status']);
+    final String? statusStr = _parseSafeString(
+      data['statusName'] ?? data['status'],
+    );
     if (statusStr != null) {
       applyStatusString(
         item,
@@ -1006,7 +1314,9 @@ class ActiveOrderState extends ChangeNotifier {
     if (value == null) return null;
     if (value is String) return value;
     if (value is Map) {
-      return value['name']?.toString() ?? value['label']?.toString() ?? value['status']?.toString();
+      return value['name']?.toString() ??
+          value['label']?.toString() ??
+          value['status']?.toString();
     }
     return value.toString();
   }
@@ -1031,17 +1341,22 @@ class ActiveOrderState extends ChangeNotifier {
           ? Map<String, dynamic>.from(map['menuItem'] as Map)
           : const <String, dynamic>{};
 
-      final nameEn = _parseSafeString(
+      final nameEn =
+          _parseSafeString(
             map['menuItemName'] ?? menuItem['nameEn'] ?? menuItem['name'],
           ) ??
           'Item';
-      final nameMm =
-          _parseSafeString(map['menuItemNameMm'] ?? menuItem['nameMm']);
-      final nameTh =
-          _parseSafeString(map['menuItemNameTh'] ?? menuItem['nameTh']);
-      final imageUrl = _getFullUrl(_parseSafeString(
-        map['menuItemImageUrl'] ?? map['imageUrl'] ?? menuItem['imageUrl'],
-      ));
+      final nameMm = _parseSafeString(
+        map['menuItemNameMm'] ?? menuItem['nameMm'],
+      );
+      final nameTh = _parseSafeString(
+        map['menuItemNameTh'] ?? menuItem['nameTh'],
+      );
+      final imageUrl = _getFullUrl(
+        _parseSafeString(
+          map['menuItemImageUrl'] ?? map['imageUrl'] ?? menuItem['imageUrl'],
+        ),
+      );
       final price = _parseSafeDouble(map['price']) ?? 0;
       final quantity = _parseSafeInt(map['quantity']) ?? 1;
 
@@ -1057,23 +1372,25 @@ class ActiveOrderState extends ChangeNotifier {
         }
       }
 
-      result.add(CartItem(
-        id: _parseSafeString(map['id']) ?? '$menuItemId-$i',
-        menuItemId: menuItemId,
-        restaurantId: order.shopId ?? order.restaurantId ?? '',
-        titleKey: nameEn,
-        titleEn: nameEn,
-        titleMm: nameMm,
-        titleTh: nameTh,
-        price: price,
-        total: price * quantity,
-        imagePath: imageUrl,
-        imageUrl: imageUrl.isEmpty ? null : imageUrl,
-        quantity: quantity,
-        optionIds: optionIds.isEmpty ? null : optionIds,
-        specialInstructions: _parseSafeString(map['specialInstructions']),
-        variantId: _parseSafeInt(map['variantId']),
-      ));
+      result.add(
+        CartItem(
+          id: _parseSafeString(map['id']) ?? '$menuItemId-$i',
+          menuItemId: menuItemId,
+          restaurantId: order.shopId ?? order.restaurantId ?? '',
+          titleKey: nameEn,
+          titleEn: nameEn,
+          titleMm: nameMm,
+          titleTh: nameTh,
+          price: price,
+          total: price * quantity,
+          imagePath: imageUrl,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+          quantity: quantity,
+          optionIds: optionIds.isEmpty ? null : optionIds,
+          specialInstructions: _parseSafeString(map['specialInstructions']),
+          variantId: _parseSafeInt(map['variantId']),
+        ),
+      );
     }
     return result;
   }
@@ -1094,7 +1411,9 @@ class ActiveOrderState extends ChangeNotifier {
       url = 'https://$url';
     }
     final uri = Uri.tryParse(url);
-    return uri != null && uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.scheme == 'http' || uri.scheme == 'https');
   }
 
   void updateRouteData({
@@ -1112,14 +1431,17 @@ class ActiveOrderState extends ChangeNotifier {
     item.routeDistanceKm = distanceKm;
     item.routeDurationMins = durationMins;
     item.deliveryFee = fee;
-    
+
     notifyListeners();
   }
 
-  void updatePaymentMethodImage(String url, {String? orderId}) {
+  void updatePaymentMethodDetails({String? imageUrl, String? accountNumber, String? accountName, String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
-    _orders[targetId]!.paymentMethodImageUrl = url;
+    final item = _orders[targetId]!;
+    if (imageUrl != null && imageUrl.isNotEmpty) item.paymentMethodImageUrl = imageUrl;
+    if (accountNumber != null && accountNumber.isNotEmpty) item.paymentAccountNumber = accountNumber;
+    if (accountName != null && accountName.isNotEmpty) item.paymentAccountName = accountName;
     saveToPrefs();
     notifyListeners();
   }
@@ -1141,11 +1463,10 @@ class ActiveOrderState extends ChangeNotifier {
     _idleProgressSaveTimer = Timer(const Duration(seconds: 1), saveToPrefs);
   }
 
-
   Future<bool> cancelActiveOrder({String? reason, String? orderId}) async {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return false;
-    
+
     // Concurrency guard
     if (_cancellingOrders.contains(targetId)) return false;
     _cancellingOrders.add(targetId);
@@ -1155,7 +1476,7 @@ class ActiveOrderState extends ChangeNotifier {
     // CANCELED WebSocket frame arriving mid-flight doesn't trigger the
     // restaurant-cancellation page.
     _userCancelledOrderIds.add(sanitizedOrderId);
-    
+
     try {
       // Backend: PATCH /api/user/orders/:id/payment with status=CANCELED.
       // The endpoint is multipart (FileInterceptor('paymentImage')), but the
@@ -1168,7 +1489,7 @@ class ActiveOrderState extends ChangeNotifier {
           if (reason != null && reason.isNotEmpty) 'cancelReason': reason,
         }),
       );
-      
+
       if (response.statusCode == 200 || response.statusCode == 204) {
         _cancellingOrders.remove(targetId);
         clearOrder(orderId: targetId);
@@ -1198,7 +1519,7 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     _reassignPrimaryOrderId();
-    
+
     // Keep the shared WebSocket open even with no orders so global
     // broadcasts/announcements still reach the user (lifecycle is owned by
     // LifecycleObserver + auth, not by the order list).
@@ -1318,6 +1639,64 @@ class ActiveOrderState extends ChangeNotifier {
     }
   }
 
+  ActiveOrderItem _buildActiveOrderItemFromHistory(OrderHistoryDto o) {
+    return ActiveOrderItem(
+      orderId: o.id,
+      lastOrderNo: o.lastOrderNo,
+      storeName: o.shopName,
+      restaurantName: o.shopName,
+      shopId: o.shopId?.toString(),
+      shopName: o.shopName,
+      shopNameEn: o.shopNameEn,
+      shopNameMm: o.shopNameMm,
+      shopNameTh: o.shopNameTh,
+      shopImageUrl: o.shopImageUrl,
+      orderType: o.orderType,
+      orderDeliveryType: o.orderDeliveryType,
+      estimatedTime: o.prepTimeLabel,
+      totalAmount: o.totalAmount,
+      itemPrice: o.itemPrice,
+      taxAmount: o.taxAmount,
+      displayTaxAmount: o.displayTaxAmount,
+      taxEnable: o.resolvedTaxEnable,
+      displayTotalAmount: o.displayTotalAmount,
+      deliveryFee:
+          (o.deliveryFee != null && o.deliveryFee! > 0) ? o.deliveryFee : null,
+      displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+          ? o.displayDeliveryFee
+          : null,
+    );
+  }
+
+  void _applyOrderHistorySnapshot(ActiveOrderItem item, OrderHistoryDto o) {
+    if (o.lastOrderNo != null && o.lastOrderNo!.isNotEmpty) {
+      item.lastOrderNo = o.lastOrderNo;
+    }
+    if (o.orderType != null) item.orderType = o.orderType;
+    if (o.orderDeliveryType != null) {
+      item.orderDeliveryType = o.orderDeliveryType;
+    }
+    final prepTime = o.prepTimeLabel;
+    if (prepTime != null) item.estimatedTime = prepTime;
+    if (o.itemPrice != null) item.itemPrice = o.itemPrice;
+    if (o.taxAmount != null) item.taxAmount = o.taxAmount;
+    if (o.displayTaxAmount != null) {
+      item.displayTaxAmount = o.displayTaxAmount;
+    }
+    item.taxEnable = o.resolvedTaxEnable;
+    if (o.totalAmount > 0) item.totalAmount = o.totalAmount;
+    if (o.displayTotalAmount != null) {
+      item.displayTotalAmount = o.displayTotalAmount;
+    }
+    if (o.deliveryFee != null && o.deliveryFee! > 0) {
+      item.deliveryFee = o.deliveryFee;
+      if (o.displayDeliveryFee != null) {
+        item.displayDeliveryFee = o.displayDeliveryFee;
+      }
+    }
+    applyStatusString(item, o.status);
+  }
+
   /// Seeds [_orders] from the backend so active orders survive cold starts,
   /// reinstalls, or cleared prefs (WebSocket/FCM alone can't hydrate an order
   /// the app has never heard of — see the guard in [updateFromSocket]).
@@ -1330,33 +1709,20 @@ class ActiveOrderState extends ChangeNotifier {
       final ongoing = all.where((o) => o.ongoing).toList();
       if (ongoing.isEmpty) return;
 
-      var added = false;
+      var changed = false;
       for (final o in ongoing) {
-        if (_orders.containsKey(o.id)) continue;
-        final item = ActiveOrderItem(
-          orderId: o.id,
-          storeName: o.shopName,
-          restaurantName: o.shopName,
-          shopId: o.shopId?.toString(),
-          shopName: o.shopName,
-          shopNameEn: o.shopNameEn,
-          shopNameMm: o.shopNameMm,
-          shopNameTh: o.shopNameTh,
-          shopImageUrl: o.shopImageUrl,
-          totalAmount: o.totalAmount,
-          itemPrice: o.itemPrice,
-          taxAmount: o.taxAmount,
-          displayTaxAmount: o.displayTaxAmount,
-          displayTotalAmount: o.displayTotalAmount,
-          deliveryFee: o.deliveryFee,
-          displayDeliveryFee: o.displayDeliveryFee,
-        );
+        if (_orders.containsKey(o.id)) {
+          _applyOrderHistorySnapshot(_orders[o.id]!, o);
+          changed = true;
+          continue;
+        }
+        final item = _buildActiveOrderItemFromHistory(o);
         applyStatusString(item, o.status);
         _orders[o.id] = item;
-        added = true;
+        changed = true;
       }
 
-      if (added) {
+      if (changed) {
         _reassignPrimaryOrderId();
         saveToPrefs();
         notifyListeners();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 
 class LostItemCard extends StatelessWidget {
@@ -47,31 +48,16 @@ class LostItemCard extends StatelessWidget {
             // Item Image
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ImageSkeletonLoader(
-                    width: 80,
-                    height: 80,
-                  );
-                },
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded) return child;
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: frame != null
-                        ? SizedBox(width: 80, height: 80, child: child)
-                        : const ImageSkeletonLoader(
-                            width: 80,
-                            height: 80,
-                          ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => const ImageSkeletonLoader(
+                  width: 80,
+                  height: 80,
+                ),
+                errorWidget: (context, url, error) => Container(
                   width: 80,
                   height: 80,
                   color: Colors.grey[100],

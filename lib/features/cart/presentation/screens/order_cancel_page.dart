@@ -156,17 +156,18 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                       const SizedBox(height: 20),
                       // Cancelled Icon
                       Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
+                        width: 80,
+                        height: 80,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFF1F2),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFFECACA), width: 1.5),
                         ),
-                        child: Icon(
-                          PhosphorIcons.xCircleFill,
-                          color: const Color(0xFFEF4444),
-                          size: 50,
+                        child: const Center(
+                          child: Icon(
+                            PhosphorIconsFill.xCircle,
+                            color: Color(0xFFE11D48),
+                            size: 48,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -199,68 +200,55 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                       // Shop Details Section
                       if (hasShopInfo || hasLogo || hasImage) ...[
                         Container(
-                          padding: const EdgeInsets.all(20),
-                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey[100]!),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[200]!),
                           ),
-                          child: Column(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Cover/Logo Section (Large Banner Style)
                               Container(
-                                width: double.infinity,
-                                height: 160,
-                                margin: const EdgeInsets.only(bottom: 20),
+                                width: 48,
+                                height: 48,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  color: Colors.grey[50],
-                                  border: Border.all(color: Colors.grey[100]!, width: 1),
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  border: Border.all(color: Colors.grey[200]!),
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: (widget.shopImageUrl != null && widget.shopImageUrl!.isNotEmpty)
-                                      ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                          imageUrl: _getFullUrl(widget.shopImageUrl),
+                                child: ClipOval(
+                                  child: (widget.shopLogo != null && widget.shopLogo!.isNotEmpty)
+                                      ? CachedNetworkImage(
+                                          imageUrl: _getFullUrl(widget.shopLogo),
                                           fit: BoxFit.cover,
-                                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                          errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
+                                          errorWidget: (ctx, url, error) => const Icon(PhosphorIconsFill.storefront, color: Colors.grey),
                                         )
-                                      : (widget.shopLogo != null && widget.shopLogo!.isNotEmpty)
-                                          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                              imageUrl: _getFullUrl(widget.shopLogo),
+                                      : (widget.shopImageUrl != null && widget.shopImageUrl!.isNotEmpty)
+                                          ? CachedNetworkImage(
+                                              imageUrl: _getFullUrl(widget.shopImageUrl),
                                               fit: BoxFit.cover,
-                                              placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                              errorWidget: (ctx, url, error) => _buildNoImagePlaceholder(ctx),
+                                              errorWidget: (ctx, url, error) => const Icon(PhosphorIconsFill.storefront, color: Colors.grey),
                                             )
-                                          : _buildNoImagePlaceholder(context),
+                                          : const Icon(PhosphorIconsFill.storefront, color: Colors.grey),
                                 ),
                               ),
-                              
-                              if (hasShopInfo)
-                                Text(
+                              const SizedBox(width: 16),
+                              Flexible(
+                                child: Text(
                                   localizedShopName,
                                   style: GoogleFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
                                   ),
-                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-
-
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                       ],
                       
                       // Reason Section — only when the shop cancelled the order.
@@ -268,43 +256,45 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                           widget.reason != null &&
                           widget.reason!.isNotEmpty) ...[
                         Container(
-                          padding: const EdgeInsets.all(20),
                           width: double.infinity,
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+                            color: const Color(0xFFFFF1F2),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Column(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    PhosphorIcons.infoFill,
-                                    color: AppColors.primary,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    context.tr('order_cancel.reason_title'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
+                              const Icon(
+                                PhosphorIconsFill.info,
+                                color: Color(0xFFE11D48),
+                                size: 20,
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                widget.reason!,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w500,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      context.tr('order_cancel.reason_title'),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF9F1239),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.reason!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: const Color(0xFFBE123C),
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),

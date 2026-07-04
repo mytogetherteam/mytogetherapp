@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
@@ -25,6 +26,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../wishlist/presentation/screens/wishlist_page.dart';
 
 class MenuDetailPage extends StatefulWidget {
   final String id;
@@ -396,7 +399,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               ? _galleryImages.first.trim()
                               : '';
                           return GestureDetector(
-                            onTap: () {
+                            onTap: img.isEmpty ? null : () {
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
@@ -415,14 +418,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               if (img.isEmpty) {
                                 return MenuImagePlaceholder(title: widget.title);
                               }
-                              return Image.network(
-                                img,
+                              return CachedNetworkImage(
+                                imageUrl: img,
                                 fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const ImageSkeletonLoader();
-                                },
-                                errorBuilder: (context, error, stackTrace) =>
+                                placeholder: (context, url) => const ImageSkeletonLoader(),
+                                errorWidget: (context, url, error) =>
                                     MenuImagePlaceholder(title: widget.title),
                               );
                             })(),
@@ -601,22 +601,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Tags
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              if (_currentFood?.cuisineType != null) ...[
-                                _buildTag(
-                                  _currentFood!.cuisineType!.displayName,
-                                ),
-                              ] else ...[
-                                _buildTag(context.tr('menu.default_cuisine_tag')),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+
 
                         // Variants
                         if (_currentFood != null &&
@@ -914,12 +899,30 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           _isFavorite = !_isFavorite;
                         });
                         final messenger = ScaffoldMessenger.of(context);
+                        final savedNow = _isFavorite;
                         try {
                           await RestaurantRepository.instance
                               .toggleMenuFavorite(
                                 int.tryParse(widget.id) ?? 0,
                                 _isFavorite,
                               );
+                          if (context.mounted) {
+                            AppDialog.showToast(
+                              context,
+                              context.tr(savedNow
+                                  ? 'wishlist.saved'
+                                  : 'wishlist.removed'),
+                              actionLabel: savedNow
+                                  ? context.tr('wishlist.view_action')
+                                  : null,
+                              onAction: savedNow
+                                  ? () => WishlistPage.open(
+                                        context,
+                                        initialTab: WishlistPage.tabMenuItems,
+                                      )
+                                  : null,
+                            );
+                          }
                         } catch (e) {
                           // Rollback on error
                           if (!context.mounted) return;
@@ -1525,16 +1528,13 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
                     height: 150,
                     width: 150,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const ImageSkeletonLoader(width: 150, height: 150);
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
+                    placeholder: (context, url) => const ImageSkeletonLoader(width: 150, height: 150),
+                    errorWidget: (context, url, error) =>
                         MenuImagePlaceholder(title: title),
                   ),
                 ),

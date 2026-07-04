@@ -4,8 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class GoogleMapsConfig {
   GoogleMapsConfig._();
 
-  static const String _fallbackKey = 'AIzaSyDDp0l6jJqFbpSzfX7tBN2nsFkSY9x_5RU';
-
   static String get apiKey {
     try {
       final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
@@ -13,9 +11,9 @@ class GoogleMapsConfig {
         return key;
       }
     } catch (_) {
-      // DotEnv not loaded (e.g. tests) — use fallback.
+      // DotEnv not loaded (e.g. tests)
     }
-    return _fallbackKey;
+    return '';
   }
 
   /// Places text search / autocomplete (paid). Off until billing is enabled.

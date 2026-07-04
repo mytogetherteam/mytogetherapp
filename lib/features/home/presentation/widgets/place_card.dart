@@ -7,6 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import '../../../wishlist/data/repositories/wishlist_repository.dart';
+import '../../../wishlist/presentation/wishlist_favorite_action.dart';
 
 class PlaceCard extends StatelessWidget {
   final String name;
@@ -16,6 +18,14 @@ class PlaceCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onTap;
+  /// Place id used to keep the heart in sync with the shared wishlist across
+  /// screens. When present (and [selfManageFavorite] is true), the card toggles
+  /// the wishlist itself.
+  final int? placeId;
+  /// When true (default) and [placeId] is present, the heart manages itself
+  /// against the shared wishlist. Set false for the legacy parent-driven
+  /// behaviour (used by the wishlist screen).
+  final bool selfManageFavorite;
 
   const PlaceCard({
     super.key,
@@ -26,6 +36,8 @@ class PlaceCard extends StatelessWidget {
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.onTap,
+    this.placeId,
+    this.selfManageFavorite = true,
   });
 
   @override
@@ -59,30 +71,7 @@ class PlaceCard extends StatelessWidget {
             Positioned(
               top: 16,
               right: 16,
-              child: GestureDetector(
-                onTap: () async {
-                  if (onFavoriteToggle == null) {
-                    AppDialog.showUnavailable(context);
-                    return;
-                  }
-                  if (!await GuestAuthGuard.requireAccount(context)) return;
-                  onFavoriteToggle!();
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isFavorite
-                        ? PhosphorIcons.heartFill
-                        : PhosphorIcons.heart,
-                    color: isFavorite ? AppColors.primary : Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
+              child: _buildFavoriteButton(context),
             ),
 
             // Bottom Info Overlay
@@ -136,31 +125,33 @@ class PlaceCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6.0,
-                              ),
-                              child: Text(
-                                '•',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.6),
+                            if (distance.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6.0,
+                                ),
+                                child: Text(
+                                  '•',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                  ),
                                 ),
                               ),
-                            ),
-                            Icon(
-                              PhosphorIcons.car,
-                              size: 14,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              distance,
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                              Icon(
+                                PhosphorIcons.car,
+                                size: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
-                            ),
+                              const SizedBox(width: 4),
+                              Text(
+                                distance,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ],
@@ -170,6 +161,67 @@ class PlaceCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the favorite heart. When self-managing with a valid place id, the
+  /// heart reflects the shared wishlist reactively and toggles through it, so
+  /// the saved state stays in sync across every screen.
+  Widget _buildFavoriteButton(BuildContext context) {
+    final int id = placeId ?? 0;
+    final bool selfManaged =
+        selfManageFavorite && id > 0 && onFavoriteToggle != null;
+
+    if (selfManaged) {
+      return ListenableBuilder(
+        listenable: WishlistRepository.instance,
+        builder: (context, _) {
+          final saved = WishlistFavoriteAction.isSaved(
+            WishlistKind.place,
+            id,
+            isFavorite,
+          );
+          return _favoriteIcon(
+            saved: saved,
+            onTap: () => WishlistFavoriteAction.toggle(
+              context,
+              WishlistKind.place,
+              id,
+              currentlySaved: saved,
+            ),
+          );
+        },
+      );
+    }
+
+    return _favoriteIcon(
+      saved: isFavorite,
+      onTap: () async {
+        if (onFavoriteToggle == null) {
+          AppDialog.showUnavailable(context);
+          return;
+        }
+        if (!await GuestAuthGuard.requireAccount(context)) return;
+        onFavoriteToggle!();
+      },
+    );
+  }
+
+  Widget _favoriteIcon({required bool saved, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          saved ? PhosphorIcons.heartFill : PhosphorIcons.heart,
+          color: saved ? AppColors.primary : Colors.white,
+          size: 20,
         ),
       ),
     );

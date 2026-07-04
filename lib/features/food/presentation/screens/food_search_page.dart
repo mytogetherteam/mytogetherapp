@@ -680,14 +680,17 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 2),
                           GestureDetector(
                             onTap: () => _removeRecentSearch(term),
                             behavior: HitTestBehavior.opaque,
-                            child: Icon(
-                              PhosphorIcons.x,
-                              size: 14,
-                              color: Colors.black38,
+                            child: const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Icon(
+                                PhosphorIcons.x,
+                                size: 16,
+                                color: Colors.black54,
+                              ),
                             ),
                           ),
                         ],
@@ -1602,26 +1605,33 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          UnavailableImageDim(
-                            active: availability.shouldDimImage,
-                            borderRadius: BorderRadius.circular(8),
-                            child: ClipRRect(
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Stack(
+                          clipBehavior: Clip.hardEdge,
+                          children: [
+                            UnavailableImageDim(
+                              active: availability.shouldDimImage,
                               borderRadius: BorderRadius.circular(8),
-                              child: _buildThumbnail(logo, shop.name, 48),
-                            ),
-                          ),
-                          if (availability.isBlocked)
-                            Positioned(
-                              left: 0,
-                              bottom: 0,
-                              child: OrderStatusImageBadge(
-                                reason: availability.reason,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: _buildThumbnail(logo, shop.name, 48),
                               ),
                             ),
-                        ],
+                            if (availability.isBlocked)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: OrderStatusImageBadge(
+                                  reason: availability.reason,
+                                  inset: true,
+                                  imageBorderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -1779,29 +1789,38 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              UnavailableImageDim(
-                active: shouldDimImage,
-                borderRadius: BorderRadius.circular(12),
-                child: ClipRRect(
+          SizedBox(
+            width: width,
+            height: width,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                UnavailableImageDim(
+                  active: shouldDimImage,
                   borderRadius: BorderRadius.circular(12),
-                  child: _buildThumbnail(
-                    _imageUrl(item.imageUrl),
-                    item.name,
-                    width,
-                    height: width,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _buildThumbnail(
+                      _imageUrl(item.imageUrl),
+                      item.name,
+                      width,
+                      height: width,
+                    ),
                   ),
                 ),
-              ),
-              if (showBadge)
-                Positioned(
-                  left: 6,
-                  bottom: 6,
-                  child: OrderStatusImageBadge(reason: availability.reason),
-                ),
-            ],
+                if (showBadge)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: OrderStatusImageBadge(
+                      reason: availability.reason,
+                      inset: true,
+                      imageBorderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           Text(

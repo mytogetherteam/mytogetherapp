@@ -159,6 +159,7 @@ class WishlistShopRef {
   final double? ratingAvg;
   final int? ratingCount;
   final bool isOpen;
+  final bool isVerified;
 
   WishlistShopRef({
     required this.id,
@@ -173,6 +174,7 @@ class WishlistShopRef {
     this.ratingAvg,
     this.ratingCount,
     this.isOpen = true,
+    this.isVerified = false,
   });
 
   String get displayName {
@@ -207,6 +209,7 @@ class WishlistShopRef {
       ratingAvg: (json['ratingAvg'] as num?)?.toDouble(),
       ratingCount: (json['ratingCount'] as num?)?.toInt(),
       isOpen: json['isOpen'] as bool? ?? true,
+      isVerified: json['isVerified'] as bool? ?? false,
     );
   }
 }

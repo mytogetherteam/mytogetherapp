@@ -28,6 +28,7 @@ import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart'
 import 'places_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
@@ -411,7 +412,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: SizedBox(
-                          height: 120,
+                          height: MediaQuery.of(context).size.width > 600 ? 180 : 120,
                           width: double.infinity,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
@@ -524,7 +525,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount:
                                     MediaQuery.of(context).size.width > 600
-                                    ? 5
+                                    ? 6
                                     : 3,
                                 mainAxisSpacing: 8,
                                 crossAxisSpacing: 8,
@@ -627,7 +628,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               child: Column(
                                 children: [
                                   Container(
-                                    height: 150,
+                                    height: MediaQuery.of(context).size.width > 600 ? 220 : 150,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(20),
@@ -727,9 +728,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
 
+                            CouponRailSection(
+                              key: ValueKey('eb_coupons_$_refreshKey'),
+                              title: context.tr('coupon.discounts_title'),
+                              target: 'EARLY_BIRD',
+                            ),
+                            CouponRailSection(
+                              key: ValueKey('coupons_$_refreshKey'),
+                              title: context.tr('coupon.coupons_title'),
+                              target: 'ALL',
+                            ),
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
                             ),
+                            const SizedBox(height: 24),
                             PopularBrandsSection(
                               key: ValueKey('brands_$_refreshKey'),
                             ),

@@ -224,7 +224,12 @@ class RemoteRestaurantDataSource {
     int size = 20,
   }) async {
     if (feedType == 'explore' || feedType == 'right-now') {
-      return getExploreMenuItems(page: page + 1, size: size);
+      return getExploreMenuItems(
+        lat: lat,
+        lon: lon,
+        page: page + 1,
+        size: size,
+      );
     }
 
     if (feedType == 'trending') {
@@ -269,7 +274,13 @@ class RemoteRestaurantDataSource {
       final maps = recommended.isNotEmpty ? recommended : rawItems;
       return ShopFeedSectionDto(
         items: maps
-            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .map(
+              (e) => ShopFeedItemDto.fromJson(
+                flattenMenuItemForFeed(e),
+                originLat: lat,
+                originLon: lon,
+              ),
+            )
             .toList(),
       );
     }
@@ -307,7 +318,13 @@ class RemoteRestaurantDataSource {
     final items = content is List
         ? content
             .whereType<Map<String, dynamic>>()
-            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .map(
+              (e) => ShopFeedItemDto.fromJson(
+                flattenMenuItemForFeed(e),
+                originLat: lat,
+                originLon: lon,
+              ),
+            )
             .toList()
         : <ShopFeedItemDto>[];
     return ShopFeedSectionDto(items: items);
@@ -316,7 +333,11 @@ class RemoteRestaurantDataSource {
   /// "Explore menu" — paginated catalog of published menu items visible to the
   /// user. Backend (auth): GET /api/user/menu-items (UserMenuItemsController.findAll).
   /// Returns `{ data: { content: [...menu items...] } }`.
+  /// The catalog endpoint is not geo-aware; [lat]/[lon] are used client-side to
+  /// compute distance from each item's nested shop coordinates.
   Future<ShopFeedSectionDto> getExploreMenuItems({
+    required double lat,
+    required double lon,
     int page = 1,
     int size = 20,
   }) async {
@@ -333,7 +354,13 @@ class RemoteRestaurantDataSource {
     final items = content is List
         ? content
             .whereType<Map<String, dynamic>>()
-            .map((e) => ShopFeedItemDto.fromJson(flattenMenuItemForFeed(e)))
+            .map(
+              (e) => ShopFeedItemDto.fromJson(
+                flattenMenuItemForFeed(e),
+                originLat: lat,
+                originLon: lon,
+              ),
+            )
             .toList()
         : <ShopFeedItemDto>[];
     return ShopFeedSectionDto(items: items);
@@ -367,7 +394,11 @@ class RemoteRestaurantDataSource {
           'sectionTitle': ?sectionTitle,
         },
       );
-      return DiscountDealsDto.fromJson(response.data as Map<String, dynamic>);
+      return DiscountDealsDto.fromJson(
+        response.data as Map<String, dynamic>,
+        originLat: lat,
+        originLon: lon,
+      );
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {

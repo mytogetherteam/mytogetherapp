@@ -76,6 +76,7 @@ class _TrendingNewsSectionState extends State<TrendingNewsSection> {
 
     return Column(
       children: [
+        const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(

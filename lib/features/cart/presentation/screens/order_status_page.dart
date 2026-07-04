@@ -1,12 +1,13 @@
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/time_formatter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../../../../core/utils/file_url_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'dart:ui' as ui;
@@ -17,8 +18,10 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../data/active_order_state.dart';
+import '../widgets/flexible_delivery_note.dart';
 import 'order_complete_page.dart';
 import 'awaiting_payment_page.dart';
+import 'order_cancel_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
@@ -62,13 +65,27 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   bool _webViewError = false;
   String? _lastInitedUrl;
 
+  Timer? _fakeTimer;
+  static final Map<String, DateTime> _orderStartTimes = {};
+
   StreamSubscription? _orderSubscription;
+
+  void _startFakeTimer() {
+    final orderId = ActiveOrderState.instance.orderId;
+    if (orderId != null && !_orderStartTimes.containsKey(orderId)) {
+      _orderStartTimes[orderId] = DateTime.now();
+    }
+    _fakeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     _backendStatus = ActiveOrderState.instance.backendStatus;
+    _startFakeTimer();
     
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
@@ -132,7 +149,25 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
         }
 
-        // Shop-cancel navigation is handled by [OrderActionPresenter].
+        if (state.orderStatus == -1) {
+          final order = state.getOrder(state.orderId);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderCancelPage(
+                orderId: state.orderId ?? '',
+                reason: order?.cancelReason,
+                shopId: order?.shopId,
+                shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
+                shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
+                shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
+                shopLogo: order?.shopLogo ?? order?.logoPath,
+                shopImageUrl: order?.shopImageUrl,
+              ),
+            ),
+          );
+          return;
+        }
 
         // Auto-navigate back to Payment ONLY when the shop explicitly requested
         // a (new) payment slip. Gating on isSlipRequested prevents other
@@ -245,8 +280,30 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   Future<void> _reconcileWithBackend() async {
     await ActiveOrderState.instance.syncActiveOrder();
     if (!mounted) return;
-    final status = ActiveOrderState.instance.orderStatus;
+    final state = ActiveOrderState.instance;
+    final status = state.orderStatus;
     setState(() => _currentStatus = status.clamp(1, 4));
+    
+    if (status == -1) {
+      final order = state.getOrder(state.orderId);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderCancelPage(
+            orderId: state.orderId ?? '',
+            reason: order?.cancelReason,
+            shopId: order?.shopId,
+            shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
+            shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
+            shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
+            shopLogo: order?.shopLogo ?? order?.logoPath,
+            shopImageUrl: order?.shopImageUrl,
+          ),
+        ),
+      );
+      return;
+    }
+
     if (status == 4) {
       Future.delayed(const Duration(seconds: 1), _navigateToComplete);
     }
@@ -254,6 +311,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   @override
   void dispose() {
+    _fakeTimer?.cancel();
     _processingController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
@@ -445,12 +503,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final storeName = state.displayShopName.isNotEmpty
         ? state.displayShopName
         : context.tr('common.restaurant');
-    final taxAmount =
-        state.taxAmount ?? OrderTax.calculateTax(widget.foodTotal);
+    final taxAmount = state.resolvedTaxAmount;
     final delivery = state.deliveryFee ?? widget.deliveryFee;
-    final total = state.isPickupFulfillment
-        ? widget.foodTotal + taxAmount
-        : widget.foodTotal + taxAmount + delivery;
+    final total = state.usesPayNowTotal
+        ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
+        : (state.totalAmount ??
+            state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -485,27 +543,29 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       _statusTitle(context),
                       key: ValueKey<int>(_currentStatus),
                       style: GoogleFonts.poppins(
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             if (_currentStatus != -1) ...[
-              Text(
-                state.isPickupFulfillment
-                    ? (state.estimatedTime != null &&
-                            state.estimatedTime!.isNotEmpty
-                        ? '${context.tr('order_status.est_waiting_time')}: ${TimeFormatter.normalizeDisplay(state.estimatedTime!)}'
-                        : context.tr('order_status.preparing'))
-                    : context.trArgs('order_status.estimate_arrival', {
-                        'time': TimeFormatter.normalizeDisplay(
-                          state.estimatedTime ?? '21:45',
-                        ),
-                      }),
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
-              ),
+              if (state.hasPrepTimeEstimate)
+                GradientText(
+                  '${context.tr('order_status.est_waiting_time')}: ${_getFakeEstTime(state.estimatedTime!, state.orderId)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                )
+              else
+                Text(
+                  state.isPickupFulfillment
+                      ? context.tr('order_status.preparing')
+                      : context.tr('order_tracking.restaurant_reviewing'),
+                  style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w600),
+                ),
               const SizedBox(height: 24),
               // Progress Bar
               _buildProgressBar(),
@@ -629,181 +689,265 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 );
               })(),
             ),
-            
-            // Est Waiting Time and Delivery Fee Gradient Section
-            if (_currentStatus != -1) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (state.estimatedTime != null &&
-                        state.estimatedTime!.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('order_status.est_waiting_time'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          GradientText(
-                            TimeFormatter.normalizeDisplay(state.estimatedTime!),
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (!state.isPickupFulfillment)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            context.tr('order_status.delivery_fee'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          GradientText(
-                            state.displayDeliveryFee ??
-                                widget.deliveryFee.toFormattedPrice(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+
+            // Shop Info Card
+            if (_currentStatus != -1 && state.riderName != null) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
                   ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          _statusDescription(context, storeName),
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          if (state.riderProfileUrl != null && state.riderProfileUrl!.isNotEmpty)
+                            ClipOval(
+                              child: CachedNetworkImage(
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                imageUrl: FileUrlUtil.resolve(state.riderProfileUrl!),
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                errorWidget: (context, url, error) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.grey[100],
+                                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                                  ),
+                                  child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[100],
+                                border: Border.all(color: Colors.grey[200]!, width: 1),
+                              ),
+                              child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                            ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                                  child: Text(
+                                    (state.riderName != null && state.riderName!.trim().isNotEmpty)
+                                        ? state.riderName!
+                                        : context.tr('order_status.assigning_rider'),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white, // required for ShaderMask
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty) ...[
+                                      Text(
+                                        'Phone: ',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        state.riderPhone!,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty &&
+                                        state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty)
+                                      Text(
+                                        '  |  ',
+                                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[300]),
+                                      ),
+                                    if (state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty) ...[
+                                      Text(
+                                        'Vehicle No: ',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        state.riderVehicleNumber!,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
             ],
 
-            // Info Card
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_currentStatus == -1)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                state.cancelReason ?? context.tr('order_status.cancel_reason'),
+                                style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (state.riderName == null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          _statusDescription(context, storeName),
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        ClipOval(
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: state.logoPath != null && state.logoPath!.isNotEmpty
+                              ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                  imageUrl: state.logoPath!,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[100],
+                                    child: const Center(child: CustomLoadingIndicator(size: 24)),
+                                  ),
+                                  errorWidget: (context, url, error) => _buildNoImageAvatar(),
+                                )
+                              : _buildNoImageAvatar(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            storeName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        _buildSmallCircleButton(
+                          PhosphorIcons.phoneCallFill,
+                          onTap: () => _makeCall(state.shopPhone),
+                        ),
+                        const SizedBox(width: 6),
+                        ChatUnreadBadge(
+                          orderId: _currentOrderId,
+                          child: _buildSmallCircleButton(
+                            PhosphorIcons.chatCircleTextFill,
+                            onTap: () => _openChat(
+                              name: storeName,
+                              subtitle: context.tr('common.restaurant'),
+                              avatarUrl: state.logoPath,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Order Summary Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
                 ],
               ),
               child: Column(
                 children: [
+                  // ALWAYS VISIBLE PAYMENT BOX
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_currentStatus == -1)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    state.cancelReason ?? context.tr('order_status.cancel_reason'),
-                                    style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Text(
-                            _statusDescription(context, storeName),
-                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-                          ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            // Shop logo with lazy-load and error/empty fallback
-                            ClipOval(
-                              child: SizedBox(
-                                width: 48,
-                                height: 48,
-                                child: state.logoPath != null && state.logoPath!.isNotEmpty
-                                  ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                      imageUrl: state.logoPath!,
-                                      width: 48,
-                                      height: 48,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Container(
-                                        color: Colors.grey[100],
-                                        child: const Center(child: CustomLoadingIndicator(size: 24)),
-                                      ),
-                                      errorWidget: (context, url, error) => _buildNoImageAvatar(),
-                                    )
-                                  : _buildNoImageAvatar(),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                storeName,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            _buildSmallCircleButton(
-                              PhosphorIcons.phoneCallFill,
-                              onTap: () => _makeCall(state.shopPhone),
-                            ),
-                            const SizedBox(width: 6),
-                            ChatUnreadBadge(
-                              orderId: _currentOrderId,
-                              child: _buildSmallCircleButton(
-                                PhosphorIcons.chatCircleTextFill,
-                                onTap: () => _openChat(
-                                  name: storeName,
-                                  subtitle: context.tr('common.restaurant'),
-                                  avatarUrl: state.logoPath,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              context.tr('order_status.payment_method'),
-                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
-                            ),
+                            Text(context.tr('order_status.payment_method'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
                             Row(
                               children: [
                                 Icon(PhosphorIcons.qrCode, size: 18, color: const Color(0xFF1E3A8A)),
                                 const SizedBox(width: 6),
-                                Text(
-                                  context.tr('order_status.qr_promptpay'),
-                                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
-                                ),
+                                Text(context.tr('order_status.qr_promptpay'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ],
@@ -813,40 +957,37 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              context.tr('cart.total'),
+                              state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
                               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                             ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      state.displayTotalAmount ?? total.toFormattedPrice(),
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) 
-                                            ? const Color(0xFFDCFCE7) 
-                                            : const Color(0xFFFEF3C7),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? context.tr('order_status.paid') : context.tr('order_status.waiting_payment'),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) 
-                                              ? const Color(0xFF16A34A) 
-                                              : const Color(0xFFD97706),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                            Row(
+                              children: [
+                                Text(
+                                  state.displayTotalAmount ?? total.toFormattedPrice(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? context.tr('order_status.paid') : context.tr('order_status.waiting_payment'),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ],
@@ -856,17 +997,19 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
-                      initiallyExpanded: true,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 24),
-                      childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-                      iconColor: Colors.grey[400],
-                      collapsedIconColor: Colors.grey[400],
+                      initiallyExpanded: false,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      iconColor: Colors.grey[600],
+                      collapsedIconColor: Colors.grey[600],
                       title: Row(
                         children: [
+                          Icon(PhosphorIcons.receipt, size: 20, color: Colors.grey[700]),
+                          const SizedBox(width: 8),
                           Text(
                             context.tr('order_status.view_summary'),
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[800],
                             ),
@@ -874,114 +1017,77 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         ],
                       ),
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
-                          child: Column(
-                            children: [
-                              if (state.orderItems.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(context.tr('order_status.no_items'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
-                                )
-                              else
-                                ...state.orderItems.map((item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: Row(
+                        const Divider(height: 16, color: Color(0xFFF3F4F6)),
+                        if (state.orderItems.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(context.tr('order_status.no_items'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                          )
+                        else
+                          ...state.orderItems.map((item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                        imageUrl: item.imagePath,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(color: Colors.grey[100], child: const Center(child: CustomLoadingIndicator(size: 16))),
+                                        errorWidget: (context, url, error) => Container(color: Colors.grey[100], child: const Icon(Icons.restaurant, size: 16, color: Colors.grey)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Item image
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
-                                          child: SizedBox(
-                                            width: 48,
-                                            height: 48,
-                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                              imageUrl: item.imagePath,
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) => Container(
-                                                color: Colors.grey[100],
-                                                child: Center(
-                                                  child: SizedBox(
-                                                    width: 16,
-                                                    height: 16,
-                                                    child: CustomLoadingIndicator(size: 16),
-                                                  ),
-                                                ),
-                                              ),
-                                              errorWidget: (context, url, error) => Container(
-                                                color: Colors.grey[100],
-                                                child: const Icon(Icons.restaurant, size: 20, color: Colors.grey),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${item.quantity}x ${item.title}',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                              if (item.variantName != null)
-                                                Text(
-                                                  item.variantName!,
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
                                         Text(
-                                          (item.price * item.quantity).toFormattedPrice(),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black,
-                                          ),
+                                          '${item.quantity}x ${item.title}',
+                                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
                                         ),
+                                        if (item.variantName != null)
+                                          Text(item.variantName!, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
                                       ],
                                     ),
-                                  )),
-                              
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8),
-                                child: Divider(),
+                                  ),
+                                  Text(
+                                    (item.price * item.quantity).toFormattedPrice(),
+                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                                  ),
+                                ],
                               ),
-                              
-                              _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
-                              const SizedBox(height: 8),
-                              _buildSummaryRow(
-                                context.tr('order_status.tax'),
-                                state.displayTaxAmount ?? taxAmount.toFormattedPrice(),
-                              ),
-                              if (!state.isPickupFulfillment) ...[
-                                const SizedBox(height: 8),
-                                _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? widget.deliveryFee.toFormattedPrice()),
-                              ],
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8),
-                                child: Divider(),
-                              ),
-                              _buildSummaryRow(
-                                context.tr('order_status.total_amount'),
-                                state.displayTotalAmount ?? total.toFormattedPrice(),
-                                isBold: true,
-                              ),
-                            ],
-                          ),
+                            )),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
+                        
+                        _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
+                        if (state.taxEnable) ...[
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(context.tr('order_status.tax'), state.displayTaxAmount ?? taxAmount.toFormattedPrice()),
+                        ],
+                        if (state.hasDiscount) ...[
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(context.tr('order_status.discount'), '- ${state.displayDiscountAmount ?? state.discountAmount.toFormattedPrice()}', valueColor: const Color(0xFFED3973)),
+                        ],
+                        if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate && !state.isAwaitingShopConfirmation && !state.isFlexibleDelivery) ...[
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
+                        ],
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
+                        _buildSummaryRow(
+                          state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('order_status.total_amount'),
+                          state.usesPayNowTotal ? total.toFormattedPrice() : (state.displayTotalAmount ?? total.toFormattedPrice()),
+                          isBold: true,
                         ),
+
+                        if (state.isFlexibleDelivery && !state.isAwaitingShopConfirmation) ...[
+                          const SizedBox(height: 16),
+                          FlexibleDeliveryNote(estimatedFee: state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
+                        ],
                       ],
                     ),
                   ),
@@ -989,6 +1095,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               ),
             ),
             const SizedBox(height: 16),
+
 
             // Delivery Info Card
             if (!state.isPickupFulfillment &&
@@ -1138,67 +1245,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       ],
                     ),
                   ),
-                  if (_currentStatus != -1 && state.riderName != null) ...[
-                    const SizedBox(height: 25),
-                    const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[100],
-                            border: Border.all(color: Colors.grey[200]!, width: 1),
-                          ),
-                          child: const Icon(Icons.person, size: 24, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (state.riderName != null && state.riderName!.trim().isNotEmpty)
-                                    ? state.riderName!
-                                    : context.tr('order_status.assigning_rider'),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                context.tr('order_status.delivery_rider'),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (state.riderPhone != null) ...[
-                          _buildSmallCircleButton(
-                            PhosphorIcons.phoneCallFill,
-                            onTap: () => _makeCall(state.riderPhone),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        ChatUnreadBadge(
-                          orderId: _currentOrderId,
-                          child: _buildSmallCircleButton(
-                            PhosphorIcons.chatCircleTextFill,
-                            onTap: () => _openChat(
-                              name: state.riderName,
-                              subtitle: context.tr('order_status.delivery_rider'),
-                              fallbackIcon: Icons.delivery_dining_rounded,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1221,6 +1267,32 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         ),
       ),
     );
+  }
+
+  String _getFakeEstTime(String original, String? orderId) {
+    if (orderId == null) return TimeFormatter.normalizeDisplay(original);
+    
+    // Try to parse max minutes from original string (e.g., "25 mins" -> 25)
+    final match = RegExp(r'(\d+)').firstMatch(original);
+    if (match == null) return TimeFormatter.normalizeDisplay(original);
+    
+    int maxMins = int.tryParse(match.group(1)!) ?? 0;
+    if (maxMins <= 5) return TimeFormatter.normalizeDisplay(original);
+
+    final startTime = _orderStartTimes[orderId] ?? DateTime.now();
+    final elapsedMins = DateTime.now().difference(startTime).inMinutes;
+
+    int currentMax = maxMins - elapsedMins;
+    int floorMax = (maxMins * 0.4).ceil(); // Stop at 40% of original
+    if (floorMax < 5) floorMax = 5;
+    
+    if (currentMax <= floorMax) {
+      return 'Anytime now';
+    }
+    
+    int currentMin = currentMax > 5 ? currentMax - 5 : 0;
+    
+    return '$currentMin - $currentMax mins';
   }
 
   Widget _buildProgressBar() {
@@ -1274,7 +1346,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           children: [
             _buildStepNode(1, PhosphorIcons.packageFill),
             _buildStepNode(2, PhosphorIcons.cookingPotFill),
-            _buildStepNode(3, PhosphorIcons.bicycleFill),
+            _buildStepNode(3, PhosphorIcons.mopedFill),
             _buildStepNode(4, PhosphorIcons.house),
           ],
         ),
@@ -1462,7 +1534,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isBold = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1479,7 +1556,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: Colors.black,
+            color: valueColor ?? Colors.black,
           ),
         ),
       ],

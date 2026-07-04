@@ -1,31 +1,38 @@
 import 'package:intl/intl.dart';
 
+/// Single source of truth for currency formatting across the app.
+///
+/// Thai Baht carries satang precision (Grab represents 25.50 baht), so every
+/// monetary value is rendered with exactly two decimal places. Using one fixed
+/// format guarantees that line items always sum up visually (e.g. 93.00 − 9.30
+/// + 30.00 = 113.70) instead of mixing "84" with "83.7".
+final NumberFormat _priceFormatter = NumberFormat('#,##0.00');
+
+String _resolveCurrencySymbol(String currency) =>
+    currency == 'THB' ? '฿' : currency;
+
 extension PriceFormatting on num {
   String toFormattedPrice({String currency = '฿'}) {
-    final displayCurrency = currency == 'THB' ? '฿' : currency;
-    final formatter = NumberFormat('#,###');
-    return '$displayCurrency ${formatter.format(this)}';
+    return '${_resolveCurrencySymbol(currency)} ${_priceFormatter.format(this)}';
   }
 }
 
 extension StringPriceFormatting on String {
   String toFormattedPrice({String currency = '฿'}) {
-    final displayCurrency = currency == 'THB' ? '฿' : currency;
-    
-    // Try to parse the string directly first
+    final displayCurrency = _resolveCurrencySymbol(currency);
+
+    // Try to parse the string directly first.
     final doubleValue = double.tryParse(this);
     if (doubleValue != null) {
-      final formatter = NumberFormat(doubleValue == doubleValue.toInt() ? '#,###' : '#,###.##');
-      return '$displayCurrency ${formatter.format(doubleValue)}';
+      return '$displayCurrency ${_priceFormatter.format(doubleValue)}';
     }
 
-    // Fallback: strip everything except digits and the decimal point
+    // Fallback: strip everything except digits and the decimal point.
     final cleanDigits = replaceAll(RegExp(r'[^0-9.]'), '');
     if (cleanDigits.isEmpty) return this;
     final value = double.tryParse(cleanDigits);
     if (value == null) return this;
-    
-    final formatter = NumberFormat(value == value.toInt() ? '#,###' : '#,###.##');
-    return '$displayCurrency ${formatter.format(value)}';
+
+    return '$displayCurrency ${_priceFormatter.format(value)}';
   }
 }

@@ -47,6 +47,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 
   await NotificationService().initialize();
+  
+  final String? type = message.data['type'] ?? message.data['notificationType'];
+  if (type == 'SILENT_SYNC') {
+    await NotificationService().cancelAllNotifications();
+    return;
+  }
+  
   await NotificationService().showLocalNotification(message);
 }
 
@@ -75,14 +82,14 @@ void main() async {
     debugPrint('[BOOT] Initializing Firebase...');
     if (kIsWeb) {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyDvyZGjQsgZuZ5VT3wmqAI0edN040x_FxM",
-          authDomain: "mytogether-daf3f.firebaseapp.com",
-          projectId: "mytogether-daf3f",
-          storageBucket: "mytogether-daf3f.firebasestorage.app",
-          messagingSenderId: "972280179999",
-          appId: "1:972280179999:web:2948e4ee866168ad69542a",
-          measurementId: "G-SQD3Q6S3C3",
+        options: FirebaseOptions(
+          apiKey: dotenv.env['FIREBASE_API_KEY'] ?? '',
+          authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'] ?? '',
+          projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? '',
+          storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '',
+          messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
+          appId: dotenv.env['FIREBASE_APP_ID'] ?? '',
+          measurementId: dotenv.env['FIREBASE_MEASUREMENT_ID'] ?? '',
         ),
       );
     } else {

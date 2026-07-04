@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'user_model.dart';
 import '../../features/auth/data/models/user_location_model.dart';
+import '../../features/cart/data/cart_manager.dart';
 import '../notifications/notification_service.dart';
 import 'jwt_utils.dart';
 import 'session_realtime.dart';
@@ -173,6 +174,9 @@ class AuthService {
     await prefs.remove(_keyRole);
     await prefs.remove(_keyUserLocations);
     await prefs.remove(_keyUserProfile);
+
+    // Drop the previous session's cart so the cart FAB doesn't linger.
+    await CartManager.instance.resetForSession();
 
     if (navigate && onSessionExpired != null) {
       onSessionExpired!();

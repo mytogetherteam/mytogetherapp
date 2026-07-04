@@ -11,6 +11,7 @@ import '../../presentation/widgets/image_skeleton_loader.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 import '../../data/models/place_dto.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
+import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
@@ -43,11 +44,19 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   int _currentImageIndex = 0;
   Timer? _slideshowTimer;
 
+  final WishlistRepository _wishlist = WishlistRepository.instance;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _isFavorite = widget.place.isFavorite;
+    // The wishlist is the source of truth for the favorite heart so it always
+    // matches the cards/wishlist tab, regardless of how the user got here.
+    _isFavorite = _wishlist.isPrimed
+        ? _wishlist.isPlaceSaved(widget.place.id)
+        : widget.place.isFavorite;
+    _wishlist.addListener(_onWishlistChanged);
+    _primeFavoriteFromWishlist();
 
     final cover = widget.place.coverImage.isNotEmpty
         ? widget.place.coverImage
@@ -109,11 +118,32 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
   @override
   void dispose() {
+    _wishlist.removeListener(_onWishlistChanged);
     _scrollController.dispose();
     _zoomController.dispose();
     _entranceController.dispose();
     _slideshowTimer?.cancel();
     super.dispose();
+  }
+
+  /// Ensures the global wishlist index is loaded, then reflects the saved
+  /// state of this place on the favorite heart.
+  Future<void> _primeFavoriteFromWishlist() async {
+    if (!_wishlist.isPrimed) {
+      await _wishlist.loadAll();
+    }
+    if (!mounted) return;
+    _onWishlistChanged();
+  }
+
+  /// Re-syncs `_isFavorite` from the wishlist whenever it changes anywhere in
+  /// the app (cards, places list, wishlist tab).
+  void _onWishlistChanged() {
+    if (!mounted || !_wishlist.isPrimed) return;
+    final saved = _wishlist.isPlaceSaved(widget.place.id);
+    if (saved != _isFavorite) {
+      setState(() => _isFavorite = saved);
+    }
   }
 
   Future<void> _toggleFavorite() async {
@@ -122,7 +152,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     final next = !_isFavorite;
     setState(() => _isFavorite = next);
     try {
-      await WishlistRepository.instance.togglePlace(widget.place.id, next);
+      await _wishlist.togglePlace(widget.place.id, next);
+      if (mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr(next ? 'wishlist.saved' : 'wishlist.removed'),
+          actionLabel: next ? context.tr('wishlist.view_action') : null,
+          onAction: next
+              ? () => WishlistPage.open(context,
+                  initialTab: WishlistPage.tabPlaces)
+              : null,
+        );
+      }
     } catch (_) {
       if (mounted) setState(() => _isFavorite = !next);
     }

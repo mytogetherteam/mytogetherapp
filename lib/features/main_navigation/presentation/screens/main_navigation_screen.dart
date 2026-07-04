@@ -200,7 +200,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       body: Stack(
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
-      floatingActionButton: const StyledCartFab(),
+      floatingActionButton: _buildCartFab(),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -214,6 +214,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ],
       ),
     );
+  }
+
+  /// The cart FAB shown across tabs.
+  ///
+  /// Tabs: 0=Home, 1=Food, 2=Orders, 3=News, 4=Profile.
+  /// - Hidden on News and Profile.
+  /// - Lifted above the active-order tracking card on Home, Food and Orders
+  ///   (the tabs that render it).
+  Widget? _buildCartFab() {
+    if (_currentIndex == 3 || _currentIndex == 4) return null;
+    return const StyledCartFab();
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {

@@ -45,6 +45,12 @@ class Restaurant {
   /// Whether the merchant has delivery enabled (myshop toggle).
   final bool deliveryEnabled;
 
+  /// Whether the shop charges order tax (admin toggle; default true).
+  final bool taxEnable;
+
+  /// Whether MyTogether has verified this shop.
+  final bool isVerified;
+
   // Amenities / features
   final bool hasParking;
   final bool hasWifi;
@@ -100,6 +106,8 @@ class Restaurant {
     this.googleMapsLink,
     this.operatingHours = const [],
     this.deliveryEnabled = true,
+    this.taxEnable = true,
+    this.isVerified = false,
     this.hasParking = false,
     this.hasWifi = false,
     this.isHalal = false,
@@ -148,6 +156,8 @@ class Restaurant {
     String? googleMapsLink,
     List<OperatingHourDto>? operatingHours,
     bool? deliveryEnabled,
+    bool? taxEnable,
+    bool? isVerified,
   }) {
     return Restaurant(
       id: id ?? this.id,
@@ -186,6 +196,8 @@ class Restaurant {
       googleMapsLink: googleMapsLink ?? this.googleMapsLink,
       operatingHours: operatingHours ?? this.operatingHours,
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
+      taxEnable: taxEnable ?? this.taxEnable,
+      isVerified: isVerified ?? this.isVerified,
     );
   }
 }

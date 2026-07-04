@@ -8,6 +8,7 @@ import '../../../../core/utils/firebase_error_handler.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import 'package:flutter/services.dart';
+import 'forgot_password_page.dart';
 
 class LoginPinPage extends StatefulWidget {
   final String phone;
@@ -213,6 +214,24 @@ class _LoginPinPageState extends State<LoginPinPage>
                   const SizedBox(height: 24),
                   _buildNumpadRow(['', '0', 'delete']),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ForgotPasswordPage(phone: widget.phone),
+                  ),
+                );
+              },
+              child: Text(
+                context.tr('auth.forgot_passcode'), // We'll add this to translation or just use string
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             const SizedBox(height: 30),

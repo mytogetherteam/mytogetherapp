@@ -787,6 +787,21 @@ class CartManager extends ChangeNotifier {
     await syncWithApi();
   }
 
+  /// Resets the cart when the session ends (logout, account deletion, token
+  /// expiry). Clears the in-memory stores immediately so listeners (e.g. the
+  /// cart FAB) update right away, drops the signed-in user's cached cart so it
+  /// can't leak into the next session, then reloads the guest cart.
+  Future<void> resetForSession() async {
+    _stores.clear();
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+      await prefs.remove(_cacheTimestampKey);
+    } catch (_) {}
+    await _loadGuestCart();
+  }
+
   /// Finds a cart item matching the given criteria across all stores.
   CartItem? findItemInCarts(int menuItemId, {int? variantId, List<int>? optionIds}) {
     for (var store in _stores) {

@@ -10,6 +10,10 @@ import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
+import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
+import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
+import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -35,6 +39,13 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
   }
 
   Future<void> _loadData() async {
+    // Guests have no order history; skip the auth-only API calls and show the
+    // sign-in prompt instead.
+    if (GuestAuthGuard.isGuest) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -82,6 +93,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
 
   @override
   Widget build(BuildContext context) {
+    final isGuest = GuestAuthGuard.isGuest;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -115,7 +127,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             child: NotificationBell(),
           ),
         ],
-        bottom: _isLoading
+        bottom: (_isLoading || isGuest)
             ? null
             : TabBar(
                 controller: _tabController,
@@ -159,15 +171,105 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 ],
               ),
       ),
-      body: _isLoading
-          ? _buildSkeletonLoading()
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOrdersList(_completedOrders, context.tr('orders.no_completed')),
-                _buildOrdersList(_cancelledOrders, context.tr('orders.no_cancelled')),
-              ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: isGuest
+                ? _buildGuestState()
+                : _isLoading
+                    ? _buildSkeletonLoading()
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOrdersList(_completedOrders,
+                              context.tr('orders.no_completed')),
+                          _buildOrdersList(_cancelledOrders,
+                              context.tr('orders.no_cancelled')),
+                        ],
+                      ),
+          ),
+          // Active-order tracking card overlay (self-hides when idle), matching
+          // the Home and Food tabs.
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: ActiveOrderBar(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _goToSignIn() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+    );
+  }
+
+  /// Shown to signed-out users in place of the order list — there is no guest
+  /// order history, so we invite them to sign in to start ordering.
+  Widget _buildGuestState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
+              child:
+                  Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
             ),
+            const SizedBox(height: 24),
+            Text(
+              context.tr('orders.guest_title'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr('orders.guest_desc'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey[500],
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryGradientButton(
+              width: 220,
+              onPressed: _goToSignIn,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.login, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr('common.sign_in'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -186,19 +288,28 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: orders.length,
-        itemBuilder: (context, index) {
-          return OrderHistoryCard(
-            order: orders[index],
-            onReviewSubmitted: _loadData,
-          );
-        },
-      ),
+    return ListenableBuilder(
+      listenable: ActiveOrderState.instance,
+      builder: (context, _) {
+        // Reserve space at the bottom so the last card can scroll clear of the
+        // active-order tracking card when one is showing.
+        final bottomInset =
+            ActiveOrderState.instance.hasActiveOrder ? 128.0 : 8.0;
+        return RefreshIndicator(
+          onRefresh: _loadData,
+          color: AppColors.primary,
+          child: ListView.builder(
+            padding: EdgeInsets.only(top: 8, bottom: bottomInset),
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              return OrderHistoryCard(
+                order: orders[index],
+                onReviewSubmitted: _loadData,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

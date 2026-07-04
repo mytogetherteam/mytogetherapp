@@ -1,5 +1,6 @@
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
+import '../../../../core/location/geo_distance.dart';
 
 class MenuItemDto {
   final String id;
@@ -45,7 +46,10 @@ class MenuItemDto {
       final int maxTime = minTime + 5;
       return '$minTime-$maxTime min';
     }
-    return _estimatedTime;
+    if (_estimatedTime != null && _estimatedTime.isNotEmpty) {
+      return _estimatedTime;
+    }
+    return GeoDistance.defaultDeliveryEta;
   }
 
   MenuItemDto({

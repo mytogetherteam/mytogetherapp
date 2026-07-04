@@ -272,19 +272,13 @@ class _CartPageState extends State<CartPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  displayImages[displayImages.length - 1 - index],
+                child: CachedNetworkImage(
+                  imageUrl: displayImages[displayImages.length - 1 - index],
                   fit: BoxFit.cover,
-                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                    if (wasSynchronouslyLoaded) return child;
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: frame != null
-                          ? SizedBox(width: 50, height: 50, child: child)
-                          : const ImageSkeletonLoader(width: 50, height: 50),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  width: 50,
+                  height: 50,
+                  placeholder: (context, url) => const ImageSkeletonLoader(width: 50, height: 50),
+                  errorWidget: (context, url, error) => Container(
                     width: 50,
                     height: 50,
                     color: Colors.grey[100],
