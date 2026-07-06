@@ -29,6 +29,8 @@ class NotificationModel {
     final String type;
     if (mainType == 'ORDER') {
       type = 'ORDER_STATUS';
+    } else if (mainType == 'CHAT') {
+      type = 'CHAT';
     } else if (mainType == 'ESCALATION') {
       type = 'SYSTEM';
     } else {
@@ -77,7 +79,10 @@ class NotificationModel {
 
   /// Shop chat messages (`mainType: CHAT`, `subType: NEW_MESSAGE`).
   bool get isChatNotification =>
-      (type == 'NEW_MESSAGE' || type == 'CHAT') && referenceId != null;
+      (type == 'NEW_MESSAGE' ||
+          type == 'CHAT' ||
+          type == 'CHAT_MESSAGE') &&
+      referenceId != null;
 
   Map<String, dynamic> toJson() {
     return {

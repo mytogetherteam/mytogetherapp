@@ -615,29 +615,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ..._currentFood!.variants.map((variant) {
-                            return _buildSelectionItem(
-                              title: variant.name,
-                              price: variant.price
-                                  .toStringAsFixed(0)
-                                  .toFormattedPrice(
-                                    currency: _currentFood!.currency,
-                                  ),
-                              isSelected: _selectedVariantId == variant.id,
-                              isRadio: true,
-                              onChanged: (isSelected) {
-                                setState(() {
-                                  if (_selectedVariantId == variant.id) {
-                                    _selectedVariantId =
-                                        null; // Unselect if already selected
-                                  } else {
-                                    _selectedVariantId = variant.id;
-                                  }
-                                  _syncWithCart();
-                                });
-                              },
-                            );
-                          }),
+                          ..._buildVariantSections(_currentFood!.variants),
                           const SizedBox(height: 32),
                         ],
 
@@ -657,55 +635,37 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (group.isRequired) ...[
-                                  Text(
-                                    group.name,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[800],
-                                    ),
+                                Text(
+                                  group.name,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[800],
                                   ),
-                                  const SizedBox(height: 8),
-                                ],
+                                ),
+                                const SizedBox(height: 8),
                                 ...group.options.map((option) {
                                   final isSelected =
                                       _selectedOptions[group.id]?.contains(
                                         option.id,
                                       ) ??
                                       false;
-                                  final isRadio =
-                                      group.groupType == 'SINGLE_SELECT' ||
-                                      group.groupType == 'RADIO';
                                   return _buildSelectionItem(
                                     title: option.name,
                                     price:
                                         '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
                                     isSelected: isSelected,
-                                    isRadio: isRadio,
+                                    isRadio: false,
                                     onChanged: (value) {
                                       setState(() {
-                                        if (isRadio) {
-                                          if (_selectedOptions[group.id]
-                                                  ?.contains(option.id) ??
-                                              false) {
-                                            _selectedOptions[group.id] =
-                                                {}; // Unselect if already selected
-                                          } else {
-                                            _selectedOptions[group.id] = {
-                                              option.id,
-                                            };
-                                          }
+                                        final current =
+                                            _selectedOptions[group.id] ?? {};
+                                        if (value == true) {
+                                          current.add(option.id);
                                         } else {
-                                          final current =
-                                              _selectedOptions[group.id] ?? {};
-                                          if (value == true) {
-                                            current.add(option.id);
-                                          } else {
-                                            current.remove(option.id);
-                                          }
-                                          _selectedOptions[group.id] = current;
+                                          current.remove(option.id);
                                         }
+                                        _selectedOptions[group.id] = current;
                                         _syncWithCart();
                                       });
                                     },
@@ -1022,43 +982,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         onTap: (_isAddingToCart || _orderBlocked)
                             ? null
                             : () async {
-                                if (_currentFood != null) {
-                                  /* 
-                        // Removing mandatory variant check
-                        if (_currentFood!.variants.isNotEmpty && _selectedVariantId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(context.tr('menu.select_variant')),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                        */
-
-                                  // Check if all required groups are selected
-                                  for (var group
-                                      in _currentFood!.optionGroups) {
-                                    if (group.isRequired &&
-                                        (_selectedOptions[group.id]?.isEmpty ??
-                                            true)) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            context.trArgs('menu.select_option_for', {
-                                              'name': group.name,
-                                            }),
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                  }
-                                }
-
                                 if (_currentFood == null && widget.price == 0) {
                                   return; // Basic validation
                                 }
@@ -1421,6 +1344,69 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildVariantSections(List<MenuItemVariantDto> variants) {
+    final sections = <int, List<MenuItemVariantDto>>{};
+    final sectionOrder = <int>[];
+    final sectionNames = <int, String>{};
+
+    for (final variant in variants.where((v) => v.isAvailable)) {
+      final groupKey = variant.variantGroupId ?? 0;
+      sections.putIfAbsent(groupKey, () => []).add(variant);
+      if (!sectionOrder.contains(groupKey)) {
+        sectionOrder.add(groupKey);
+        final groupName = variant.variantGroupName?.trim();
+        if (groupName != null && groupName.isNotEmpty) {
+          sectionNames[groupKey] = groupName;
+        }
+      }
+    }
+
+    final widgets = <Widget>[];
+    for (final groupKey in sectionOrder) {
+      final groupVariants = sections[groupKey] ?? [];
+      final groupName = sectionNames[groupKey];
+      if (groupName != null && groupName.isNotEmpty) {
+        widgets.addAll([
+          Text(
+            groupName,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ]);
+      }
+
+      for (final variant in groupVariants) {
+        widgets.add(
+          _buildSelectionItem(
+            title: variant.name,
+            price: variant.price
+                .toStringAsFixed(0)
+                .toFormattedPrice(currency: _currentFood!.currency),
+            isSelected: _selectedVariantId == variant.id,
+            isRadio: true,
+            onChanged: (_) {
+              setState(() {
+                if (_selectedVariantId == variant.id) {
+                  _selectedVariantId = null;
+                } else {
+                  _selectedVariantId = variant.id;
+                }
+                _syncWithCart();
+              });
+            },
+          ),
+        );
+      }
+      widgets.add(const SizedBox(height: 12));
+    }
+
+    return widgets;
   }
 
   Widget _buildSelectionItem({

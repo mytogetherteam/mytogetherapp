@@ -121,18 +121,36 @@ class FoodDetailDto {
           })
           .whereType<String>()
           .toList(),
-      variants: (json['variants'] as List? ?? [])
-          .where((e) => e != null)
-          .map((e) => MenuItemVariantDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList(),
+      variants: _sortedVariantsFromJson(json['variants'] as List?),
       optionGroups: optionGroupsRaw
           .where((e) => e != null)
           .map((e) => MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList(),
+          .where((g) => g.isAvailable && g.options.isNotEmpty)
+          .toList()
+        ..sort(
+          (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+        ),
       isFavorite: json['isFavorite'] ?? false,
       isAvailable: json['isAvailable'] as bool? ?? true,
     );
   }
+}
+
+List<MenuItemVariantDto> _sortedVariantsFromJson(List? raw) {
+  final variants = (raw ?? [])
+      .where((e) => e != null)
+      .map((e) => MenuItemVariantDto.fromJson(Map<String, dynamic>.from(e as Map)))
+      .where((v) => v.isAvailable)
+      .toList();
+
+  variants.sort((a, b) {
+    final groupOrder =
+        (a.variantGroupDisplayOrder ?? 0).compareTo(b.variantGroupDisplayOrder ?? 0);
+    if (groupOrder != 0) return groupOrder;
+    return (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0);
+  });
+
+  return variants;
 }
 
 class MenuItemVariantDto {
@@ -144,6 +162,18 @@ class MenuItemVariantDto {
   final double price;
   final String? displayPrice;
   final bool isAvailable;
+  final int? displayOrder;
+  final int? variantGroupId;
+  final int? variantGroupDisplayOrder;
+  final String? variantGroupNameEn;
+  final String? variantGroupNameMm;
+  final String? variantGroupNameTh;
+
+  String? get variantGroupName => LocaleController.instance.localized(
+        en: variantGroupNameEn,
+        mm: variantGroupNameMm,
+        th: variantGroupNameTh,
+      );
 
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
@@ -157,9 +187,19 @@ class MenuItemVariantDto {
     required this.price,
     this.displayPrice,
     this.isAvailable = true,
+    this.displayOrder,
+    this.variantGroupId,
+    this.variantGroupDisplayOrder,
+    this.variantGroupNameEn,
+    this.variantGroupNameMm,
+    this.variantGroupNameTh,
   }) : _name = name;
 
   factory MenuItemVariantDto.fromJson(Map<String, dynamic> json) {
+    final embeddedGroup = json['variantGroup'] is Map
+        ? Map<String, dynamic>.from(json['variantGroup'] as Map)
+        : null;
+
     return MenuItemVariantDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
@@ -169,6 +209,17 @@ class MenuItemVariantDto {
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
       isAvailable: json['isAvailable'] ?? true,
+      displayOrder: json['displayOrder'] as int?,
+      variantGroupId: int.tryParse(json['variantGroupId']?.toString() ?? '') ??
+          int.tryParse(embeddedGroup?['id']?.toString() ?? ''),
+      variantGroupDisplayOrder: json['variantGroupDisplayOrder'] as int? ??
+          embeddedGroup?['displayOrder'] as int?,
+      variantGroupNameEn: json['variantGroupNameEn'] as String? ??
+          embeddedGroup?['nameEn'] as String?,
+      variantGroupNameMm: json['variantGroupNameMm'] as String? ??
+          embeddedGroup?['nameMm'] as String?,
+      variantGroupNameTh: json['variantGroupNameTh'] as String? ??
+          embeddedGroup?['nameTh'] as String?,
     );
   }
 }
@@ -179,10 +230,8 @@ class MenuItemOptionGroupDto {
   final String? nameEn;
   final String? nameMm;
   final String? nameTh;
-  final String groupType; // SINGLE_SELECT, MULTI_SELECT
-  final bool isRequired;
-  final int minSelection;
-  final int maxSelection;
+  final int? displayOrder;
+  final bool isAvailable;
   final List<MenuItemOptionDto> options;
 
   String get name => LocaleController.instance
@@ -194,34 +243,29 @@ class MenuItemOptionGroupDto {
     this.nameEn,
     this.nameMm,
     this.nameTh,
-    required this.groupType,
-    this.isRequired = false,
-    this.minSelection = 0,
-    this.maxSelection = 0,
+    this.displayOrder,
+    this.isAvailable = true,
     required this.options,
   }) : _name = name;
 
   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
-    final minSelection = json['minSelection'] as int? ?? 0;
-    final maxSelection = json['maxSelection'] as int? ?? 0;
-    // The user `addOns` payload has no `groupType`/`isRequired`; derive them
-    // from the selection bounds (max 1 → single-select; min > 0 → required).
-    final groupType = json['groupType'] as String? ??
-        (maxSelection == 1 ? 'SINGLE_SELECT' : 'MULTI_SELECT');
+    final isAvailable = json['isAvailable'] as bool? ?? true;
+    final options = (json['options'] as List? ?? [])
+        .where((e) => e != null)
+        .map((e) => MenuItemOptionDto.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList()
+      ..sort(
+        (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+      );
     return MenuItemOptionGroupDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: (json['nameEn'] as String? ?? json['name'] as String?) ?? '',
       nameEn: json['nameEn'] as String? ?? json['name'] as String?,
       nameMm: json['nameMm'] as String?,
       nameTh: json['nameTh'] as String?,
-      groupType: groupType,
-      isRequired: json['isRequired'] as bool? ?? (minSelection > 0),
-      minSelection: minSelection,
-      maxSelection: maxSelection,
-      options: (json['options'] as List? ?? [])
-          .where((e) => e != null)
-          .map((e) => MenuItemOptionDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList(),
+      displayOrder: json['displayOrder'] as int?,
+      isAvailable: isAvailable,
+      options: options,
     );
   }
 }
@@ -234,6 +278,7 @@ class MenuItemOptionDto {
   final String? nameTh;
   final double price;
   final String? displayPrice;
+  final int? displayOrder;
 
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
@@ -246,6 +291,7 @@ class MenuItemOptionDto {
     this.nameTh,
     required this.price,
     this.displayPrice,
+    this.displayOrder,
   }) : _name = name;
 
   factory MenuItemOptionDto.fromJson(Map<String, dynamic> json) {
@@ -257,6 +303,7 @@ class MenuItemOptionDto {
       nameTh: json['nameTh'] as String?,
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
+      displayOrder: json['displayOrder'] as int?,
     );
   }
 }

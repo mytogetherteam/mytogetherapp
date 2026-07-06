@@ -24,13 +24,23 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
   try {
-    final String? type = message.data['type'] ?? message.data['notificationType'];
-    if (type == 'ORDER_STATUS' && message.data['order'] != null) {
-      final Map<String, dynamic> rawOrder = json.decode(message.data['order'] as String);
+    final data = message.data;
+    final mainType = data['mainType']?.toString().toUpperCase();
+    final type = data['type'] ??
+        data['notificationType'] ??
+        (mainType == 'ORDER' ? 'ORDER_STATUS' : null);
+    final isOrder = type == 'ORDER_STATUS' || mainType == 'ORDER';
+
+    if (isOrder && data['order'] != null) {
+      final Map<String, dynamic> rawOrder =
+          json.decode(data['order'] as String);
       if (!OrderOwnership.isForeignOrder(rawOrder)) {
         await ActiveOrderState.instance.loadFromPrefs();
-        ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
-        
+        ActiveOrderState.instance.updateFromSocket({
+          'type': 'ORDER_UPDATE',
+          'order': rawOrder,
+        });
+
         await LockScreenWidgetManager.instance.initialize();
         final order = ActiveOrderState.instance.activeOrdersList.isNotEmpty
             ? ActiveOrderState.instance.activeOrdersList.first
@@ -41,14 +51,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           await LockScreenWidgetManager.instance.cancelWidget();
         }
       }
+    } else if (isOrder) {
+      final refId =
+          data['referenceId']?.toString() ?? data['orderId']?.toString();
+      if (refId != null) {
+        await ActiveOrderState.instance.loadFromPrefs();
+        await ActiveOrderState.instance.adoptOrderIfOwned(refId);
+      }
     }
   } catch (e) {
     debugPrint('Background live activity update failed: $e');
   }
 
   await NotificationService().initialize();
-  
-  final String? type = message.data['type'] ?? message.data['notificationType'];
+
+  final data = message.data;
+  final mainType = data['mainType']?.toString().toUpperCase();
+  final String? type = data['type'] ??
+      data['notificationType'] ??
+      (mainType == 'ORDER' ? 'ORDER_STATUS' : null);
   if (type == 'SILENT_SYNC') {
     await NotificationService().cancelAllNotifications();
     return;
