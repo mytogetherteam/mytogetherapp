@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -87,7 +87,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       return;
     }
 
-    // 1. Immediate last known position (mobile only — not supported on web).
+    // 1. Immediate last known position (mobile only â€” not supported on web).
     if (!kIsWeb) {
       final lastKnown = await Geolocator.getLastKnownPosition();
       if (lastKnown != null && mounted) {
@@ -151,7 +151,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   Future<void> _onCurrentLocationTapped() async {
     if (_expandedRestaurantId == null || _restaurantsFuture == null) return;
 
-    // SECOND CLICK: route already displayed — re-center camera to show full route
+    // SECOND CLICK: route already displayed â€” re-center camera to show full route
     if (_polylines.isNotEmpty && _routeBounds != null) {
       final GoogleMapController controller = await _mapController.future;
       controller.animateCamera(
@@ -302,7 +302,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   Future<List<Restaurant>> _loadRestaurants() async {
     // Shared resolver keeps the origin consistent with the home nearby rail
-    // and the food search (saved active location → device GPS → default).
+    // and the food search (saved active location â†’ device GPS â†’ default).
     final coords =
         await UserLocationRepository.instance.resolveActiveCoordinates();
 
@@ -392,7 +392,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     bool showText = selected;
 
     final String nameStr = restaurant.name.length > 14
-        ? '${restaurant.name.substring(0, 12)}…'
+        ? '${restaurant.name.substring(0, 12)}â€¦'
         : restaurant.name;
 
     final double fontSize = 9.5;
@@ -401,7 +401,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       text: nameStr,
       style: GoogleFonts.poppins(
         fontSize: fontSize,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         color: selected ? Colors.white : AppColors.primary,
       ),
     );
@@ -818,7 +818,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Google Maps Widget — constrained to the area ABOVE the bottom sheet
+          // Google Maps Widget â€” constrained to the area ABOVE the bottom sheet
           // (with a small overlap behind its rounded corners). Keeping the map
           // platform view out from under the list prevents list-scroll gestures
           // from leaking into the map (which made it pan/zoom while scrolling).
@@ -1267,3 +1267,4 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     );
   }
 }
+

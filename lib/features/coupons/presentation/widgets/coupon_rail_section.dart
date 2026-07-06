@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
@@ -286,7 +286,7 @@ class _CouponBrowseCard extends StatelessWidget {
                       coupon.name.toUpperCase(),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                       maxLines: 1,
@@ -312,3 +312,4 @@ class _CouponBrowseCard extends StatelessWidget {
     );
   }
 }
+

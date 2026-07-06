@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -74,7 +74,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
   }
 
   /// Plays the ticket-tear animation as the "this is my coupon" gesture, then
-  /// returns the chosen coupon to the summary page (no network call here — the
+  /// returns the chosen coupon to the summary page (no network call here â€” the
   /// coupon is applied to the real order when the user places it).
   Future<void> _confirmSelected() async {
     final coupon = _selected;
@@ -483,7 +483,7 @@ class CouponTicket extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.poppins(
               fontSize: 16.5,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: const Color(0xFF1E293B),
               height: 1.1,
             ),
@@ -584,7 +584,7 @@ class CouponTicket extends StatelessWidget {
               coupon.stubHeadline,
               style: GoogleFonts.poppins(
                 fontSize: 30,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
                 height: 1,
               ),
@@ -674,3 +674,4 @@ class _DashedLinePainter extends CustomPainter {
   bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
       oldDelegate.color != color;
 }
+

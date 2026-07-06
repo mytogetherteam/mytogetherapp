@@ -159,7 +159,6 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
             );
           },
         ),
-        const SizedBox(height: 40),
       ],
     );
   }
@@ -258,7 +257,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     final int pageCount = (items.length / 2).ceil();
 
     return SizedBox(
-      height: 240, // Height for 2 more compact cards vertically
+      height: 244, // Height for 2 compact cards vertically
       child: PageView.builder(
         itemCount: pageCount > 10 ? 10 : pageCount, // Cap at 10 pages (20 items)
         padEnds: false,
@@ -286,6 +285,10 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                   id: item.id.toString(),
                   isAvailable: item.isAvailable,
                   publishStatus: item.publishStatus,
+                  restaurantId: item.shopId.toString(),
+                  deliveryEnabled: item.deliveryEnabled,
+                  operatingHours: item.operatingHours,
+                  restaurantStatus: item.restaurantStatus,
                   onTap: () {
                     Navigator.push(
                       context,

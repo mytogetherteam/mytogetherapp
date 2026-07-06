@@ -188,6 +188,13 @@ void main() async {
 
   GoogleFonts.config.allowRuntimeFetching = false;
 
+  // ── Image cache optimisation ─────────────────────────────────────────────
+  // Increase the Flutter in-memory image cache from the tiny default (100 images /
+  // 100 MB) so scrolling lists don't constantly evict and re-download images.
+  PaintingBinding.instance.imageCache.maximumSize = 200;                   // up to 200 decoded images
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 150 * 1024 * 1024; // 150 MB
+  // ─────────────────────────────────────────────────────────────────────────
+
   debugPrint('[BOOT] Calling runApp()...');
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   debugPrint('[BOOT] runApp() called.');

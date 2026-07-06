@@ -32,21 +32,26 @@ class NewsCard extends StatelessWidget {
           // News Image
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              width: 110,
-              height: 110,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const ImageSkeletonLoader(
-                width: 110,
-                height: 110,
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 110,
-                height: 110,
-                color: Colors.grey[200],
-                child: Icon(PhosphorIcons.image, color: Colors.grey),
-              ),
+            child: Builder(
+              builder: (context) {
+                final imageSize = MediaQuery.of(context).size.width > 600 ? 160.0 : 110.0;
+                return CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  width: imageSize,
+                  height: imageSize,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => ImageSkeletonLoader(
+                    width: imageSize,
+                    height: imageSize,
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: imageSize,
+                    height: imageSize,
+                    color: Colors.grey[200],
+                    child: Icon(PhosphorIcons.image, color: Colors.grey),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(width: 16),

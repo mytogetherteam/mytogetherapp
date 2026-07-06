@@ -84,7 +84,7 @@ class _FoodPromotionsCarouselState extends State<FoodPromotionsCarousel> {
       child: Column(
         children: [
           SizedBox(
-            height: 120,
+            height: MediaQuery.of(context).size.width > 600 ? 180 : 120,
             width: double.infinity,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),

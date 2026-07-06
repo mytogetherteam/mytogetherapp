@@ -1661,19 +1661,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Widget _buildPaymentIcon(ShopPaymentTypeDto type) {
     final iconUrl = _normalizeImageUrl(type.iconUrl);
     return Container(
-      width: 40,
-      height: 40,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
           ? CachedNetworkImage(
               imageUrl: iconUrl,
-              width: 24,
-              height: 24,
+              width: 36,
+              height: 36,
               fit: BoxFit.contain,
               errorWidget: (context, url, error) =>
                   _fallbackPaymentIcon(type),

@@ -305,6 +305,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                                   imageUrl: networkUrl,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
+                                                  memCacheWidth: 400,
                                                   placeholder: (context, url) => const ImageSkeletonLoader(),
                                                   errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
                                                   fadeInDuration: Duration.zero, 

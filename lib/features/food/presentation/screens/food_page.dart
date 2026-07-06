@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -25,6 +25,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/food_leaderboard_section.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -135,130 +136,138 @@ class _FoodPageState extends State<FoodPage> {
             RefreshIndicator(
               onRefresh: _onRefresh,
               color: AppColors.primary,
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 key: _refreshKey,
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                // padding zero to start exactly at top
-                child: Column(
-                  children: [
-                              Stack(
-                                alignment: Alignment.bottomCenter,
-                                children: [
-                                  Image.asset(
-                                    'assets/images/food_header_bg.webp',
-                                    width: double.infinity,
-                                    height: (isIOS ? 260.0 : 240.0) + statusBarHeight,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Align(
-                                    alignment: Alignment.bottomLeft,
-                                    child: Padding(
-                                      padding: EdgeInsets.only(left: 24, bottom: isIOS ? 130 : 95),
-                                      child: Text(
-                                        context.tr('food.banner_slogan'),
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.white,
-                                          height: 1.3,
-                                          shadows: [
-                                            Shadow(
-                                              offset: const Offset(0, 2),
-                                              blurRadius: 8,
-                                              color: Colors.black.withValues(alpha: 0.4),
-                                            ),
-                                          ],
-                                        ),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            Image.asset(
+                              'assets/images/food_header_bg.webp',
+                              width: double.infinity,
+                              height: (isIOS ? 260.0 : 240.0) + statusBarHeight,
+                              fit: BoxFit.cover,
+                            ),
+                            Align(
+                              alignment: Alignment.bottomLeft,
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 24, bottom: isIOS ? 130 : 95),
+                                child: Text(
+                                  context.tr('food.banner_slogan'),
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    height: 1.3,
+                                    shadows: [
+                                      Shadow(
+                                        offset: const Offset(0, 2),
+                                        blurRadius: 8,
+                                        color: Colors.black.withValues(alpha: 0.4),
                                       ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.fromLTRB(16, 0, 16, isIOS ? 56 : 32),
-                                    child: SearchBoxTrigger(
-                                      hintText: context.tr('food.deliver_prompt'),
-                                      height: 44,
-                                      borderRadius: 12,
-                                      backgroundColor: Colors.white.withValues(alpha: 0.85),
-                                      contentColor: Colors.grey[600]!,
-                                      shadowAlpha: 0.08,
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const FoodSearchPage()),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              const FoodCategoriesSection(),
-                              const SizedBox(height: 16),
-                              FoodQuickAccessSection(
-                                onNearbyTap: () =>
-                                    _openPage(const RestaurantNearbyListPage()),
-                                onForYouTap: () =>
-                                    _openPage(const FoodForYouPage()),
-                                onTrendingTap: () => _openPage(
-                                  const FoodCollectionListPage(
-                                    kind: FoodCollectionKind.trending,
-                                  ),
-                                ),
-                                onPopularTap: () => _openPage(
-                                  const FoodCollectionListPage(
-                                    kind: FoodCollectionKind.popular,
+                                    ],
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 28),
-                              const FoodPromotionsCarousel(),
-                              CouponRailSection(
-                                key: ValueKey('food_eb_coupons_$_refreshKey'),
-                                title: context.tr('coupon.discounts_title'),
-                                target: 'EARLY_BIRD',
-                                topGap: 28,
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(16, 0, 16, isIOS ? 56 : 32),
+                              child: SearchBoxTrigger(
+                                hintText: context.tr('food.deliver_prompt'),
+                                height: 44,
+                                borderRadius: 12,
+                                backgroundColor: Colors.white.withValues(alpha: 0.85),
+                                contentColor: Colors.grey[600]!,
+                                shadowAlpha: 0.08,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const FoodSearchPage()),
+                                  );
+                                },
                               ),
-                              CouponRailSection(
-                                key: ValueKey('food_coupons_$_refreshKey'),
-                                title: context.tr('coupon.coupons_title'),
-                                target: 'ALL',
-                              ),
-                              if (_showDiscountAndCollectionRails) ...[
-                                const SizedBox(height: 28),
-                                FoodDiscountSelectionSection(
-                                  key: ValueKey('discount_$_refreshKey'),
-                                ),
-                                const SizedBox(height: 32),
-                                const CollectionsSection(),
-                                const SizedBox(height: 32),
-                              ] else
-                                const SizedBox(height: 32),
-                              const FoodRestaurantsSection(),
-                              const TrendingShopsSection(),
-                              PopularBrandsSection(
-                                title: context.tr('food.popular'),
-                              ),
-                              const SizedBox(height: 24),
-                              FoodFeedSection(
-                                key: ValueKey('foryou_${lat}_$lon'),
-                                feedType: 'for-you',
-                                title: context.tr('food.for_you'),
-                                latitude: lat,
-                                longitude: lon,
-                                layoutType: 2,
-                              ),
-                              ExploreMenuSection(
-                                key: ValueKey('explore_${lat}_$lon'),
-                                title: context.tr('food.explore_menu'),
-                                latitude: lat,
-                                longitude: lon,
-                                scrollController: _scrollController,
-                              ),
-                              const SizedBox(height: 80),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const FoodCategoriesSection(),
+                        const SizedBox(height: 16),
+                        FoodQuickAccessSection(
+                          onNearbyTap: () =>
+                              _openPage(const RestaurantNearbyListPage()),
+                          onForYouTap: () =>
+                              _openPage(const FoodForYouPage()),
+                          onTrendingTap: () => _openPage(
+                            const FoodCollectionListPage(
+                              kind: FoodCollectionKind.trending,
+                            ),
+                          ),
+                          onPopularTap: () => _openPage(
+                            const FoodCollectionListPage(
+                              kind: FoodCollectionKind.popular,
+                            ),
                           ),
                         ),
+                        const SizedBox(height: 28),
+                        const FoodLeaderboardSection(),
+                        const SizedBox(height: 28),
+                        const FoodPromotionsCarousel(),
+                        CouponRailSection(
+                          key: ValueKey('food_eb_coupons_$_refreshKey'),
+                          title: context.tr('coupon.discounts_title'),
+                          target: 'EARLY_BIRD',
+                          topGap: 28,
+                        ),
+                        CouponRailSection(
+                          key: ValueKey('food_coupons_$_refreshKey'),
+                          title: context.tr('coupon.coupons_title'),
+                          target: 'ALL',
+                        ),
+                        if (_showDiscountAndCollectionRails) ...[
+                          const SizedBox(height: 28),
+                          FoodDiscountSelectionSection(
+                            key: ValueKey('discount_$_refreshKey'),
+                          ),
+                          const SizedBox(height: 32),
+                          const CollectionsSection(),
+                          const SizedBox(height: 32),
+                        ] else
+                          const SizedBox(height: 32),
+                        const FoodRestaurantsSection(),
+                        const TrendingShopsSection(),
+                        PopularBrandsSection(
+                          title: context.tr('food.popular'),
+                        ),
+                        const SizedBox(height: 24),
+                        FoodFeedSection(
+                          key: ValueKey('foryou_${lat}_$lon'),
+                          feedType: 'for-you',
+                          title: context.tr('food.for_you'),
+                          latitude: lat,
+                          longitude: lon,
+                          layoutType: 2,
+                        ),
+                        const SizedBox(height: 28),
+                      ],
+                    ),
+                  ),
+                  ExploreMenuSection(
+                    key: ValueKey('explore_${lat}_$lon'),
+                    title: context.tr('food.explore_menu'),
+                    latitude: lat,
+                    longitude: lon,
+                    scrollController: _scrollController,
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 80),
+                  ),
+                ],
+              ),
             ),
             Positioned(
               top: 0,
@@ -337,3 +346,4 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 }
+

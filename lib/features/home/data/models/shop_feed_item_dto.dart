@@ -24,6 +24,7 @@ class ShopFeedItemDto {
   final String? shopNameEn;
   final String? shopNameMm;
   final String? shopNameTh;
+  final String? shopLogoUrl;
   final bool isFavorite;
   final String currency;
   final String? displayPrice;
@@ -81,6 +82,7 @@ class ShopFeedItemDto {
     this.shopNameEn,
     this.shopNameMm,
     this.shopNameTh,
+    this.shopLogoUrl,
     required this.isFavorite,
     this.currency = '฿',
     this.displayPrice,
@@ -144,6 +146,7 @@ class ShopFeedItemDto {
       shopNameEn: json['shopNameEn'] as String? ?? json['shopName'] as String?,
       shopNameMm: json['shopNameMm'] as String?,
       shopNameTh: json['shopNameTh'] as String?,
+      shopLogoUrl: ImageUtils.cleanImageUrl(json['shopLogoUrl'] ?? shopMap?['logoUrl'] ?? shopMap?['primaryPhotoUrl']),
       isFavorite: json['isFavorite'] ?? false,
       currency: json['currency'] as String? ?? '฿',
       displayPrice: json['displayPrice'] as String?,
@@ -216,6 +219,7 @@ class ShopFeedItemDto {
       shopNameEn: item.shopNameEn,
       shopNameMm: item.shopNameMm,
       shopNameTh: item.shopNameTh,
+      shopLogoUrl: null, // TrendingItemDto doesn't have it yet, we can fallback gracefully
       isFavorite: item.isFavorite,
       currency: item.currency,
       displayPrice: item.displayPrice,

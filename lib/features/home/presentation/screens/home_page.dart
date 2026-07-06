@@ -412,7 +412,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: SizedBox(
-                          height: MediaQuery.of(context).size.width > 600 ? 180 : 120,
+                          height: MediaQuery.of(context).size.width > 600 ? 220 : 120,
                           width: double.infinity,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
@@ -628,7 +628,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               child: Column(
                                 children: [
                                   Container(
-                                    height: MediaQuery.of(context).size.width > 600 ? 220 : 150,
+                                    height: MediaQuery.of(context).size.width > 600 ? 280 : 150,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(20),

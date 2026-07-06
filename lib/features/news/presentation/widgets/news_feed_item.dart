@@ -566,7 +566,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                       imageUrl: widget.item.imageUrls[0],
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      height: 200,
+                                      height: MediaQuery.of(context).size.width > 600 ? 280 : 200,
                                       placeholder: (context, url) =>
                                           Container(color: Colors.grey[100]),
                                       errorWidget: (context, url, error) =>
@@ -583,7 +583,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               ),
                             )
                           : SizedBox(
-                              height: 210,
+                              height: MediaQuery.of(context).size.width > 600 ? 290 : 210,
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),

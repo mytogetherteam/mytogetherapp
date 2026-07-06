@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -78,7 +78,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
                               announcement.title,
                               style: GoogleFonts.poppins(
                                 fontSize: 22,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 height: 1.25,
                               ),
                             ),
@@ -224,4 +224,5 @@ class _CloseButton extends StatelessWidget {
     );
   }
 }
+
 

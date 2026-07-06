@@ -181,16 +181,18 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
       return _buildSkeleton();
     }
     if (_items.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Center(
-          child: Text(
-            context.tr('food.end_of_list'),
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: Colors.grey[400],
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Center(
+            child: Text(
+              context.tr('food.end_of_list'),
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[400],
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ),
@@ -200,102 +202,126 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
     final showFooter = _isLoadingMore || !_hasMore;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  widget.title,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            widget.title,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
-              color: Colors.black,
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 24,
+              childAspectRatio: 0.85,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, i) {
+                final item = _items[i];
+                return FoodMenuItemCard(
+                  id: item.id.toString(),
+                  restaurantId: item.shopId.toString(),
+                  title: item.name,
+                  price: item.price,
+                  currency: item.currency,
+                  imagePath: item.imageUrl ?? '',
+                  restaurantName: item.shopName,
+                  isFavorite: _localFavorites[item.id] ?? item.isFavorite,
+                  rating: item.rating,
+                  reviewCount: item.reviewCount,
+                  distanceKm: item.distanceKm,
+                  estimatedTime: item.estimatedTime,
+                  deliveryFee: item.deliveryFee,
+                  originalDeliveryFee: item.originalDeliveryFee,
+                  originalPrice: item.originalPrice,
+                  displayPrice: item.displayPrice,
+                  onFavoriteToggle: () => _toggleFavorite(item),
+                  forceRestaurantNavigation: true,
+                  isAvailable: item.isAvailable,
+                  publishStatus: item.publishStatus,
+                  deliveryEnabled: item.deliveryEnabled,
+                  operatingHours: item.operatingHours,
+                  restaurantStatus: item.restaurantStatus,
+                );
+              },
+              childCount: _items.length,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.85,
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              if (showFooter)
+                _ExploreFooter(
+                  isLoading: _isLoadingMore,
+                  showEndMessage: !_hasMore,
+                ),
+              if (!showFooter) const SizedBox(height: 24),
+            ],
           ),
-          itemCount: _items.length,
-          itemBuilder: (context, i) {
-            final item = _items[i];
-            return FoodMenuItemCard(
-              id: item.id.toString(),
-              restaurantId: item.shopId.toString(),
-              title: item.name,
-              price: item.price,
-              currency: item.currency,
-              imagePath: item.imageUrl ?? '',
-              restaurantName: item.shopName,
-              isFavorite: _localFavorites[item.id] ?? item.isFavorite,
-              rating: item.rating,
-              reviewCount: item.reviewCount,
-              distanceKm: item.distanceKm,
-              estimatedTime: item.estimatedTime,
-              deliveryFee: item.deliveryFee,
-              originalDeliveryFee: item.originalDeliveryFee,
-              originalPrice: item.originalPrice,
-              displayPrice: item.displayPrice,
-              onFavoriteToggle: () => _toggleFavorite(item),
-              forceRestaurantNavigation: true,
-              isAvailable: item.isAvailable,
-              publishStatus: item.publishStatus,
-              deliveryEnabled: item.deliveryEnabled,
-              operatingHours: item.operatingHours,
-              restaurantStatus: item.restaurantStatus,
-            );
-          },
         ),
-        if (showFooter)
-          _ExploreFooter(
-            isLoading: _isLoadingMore,
-            showEndMessage: !_hasMore,
-          ),
-        if (!showFooter) const SizedBox(height: 24),
       ],
     );
   }
 
   Widget _buildSkeleton() {
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  widget.title,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            widget.title,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
-              color: Colors.black,
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 24,
+              childAspectRatio: 0.85,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, _) => const FoodMenuItemSkeleton(),
+              childCount: crossAxisCount * 2,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: crossAxisCount * 2,
-          itemBuilder: (_, _) => const FoodMenuItemSkeleton(),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
         ),
-        const SizedBox(height: 24),
       ],
     );
   }

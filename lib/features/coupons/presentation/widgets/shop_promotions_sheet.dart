@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
@@ -12,7 +12,7 @@ import 'coupon_display.dart';
 /// A single bottom sheet for a restaurant's promotions/coupons.
 ///
 /// It hosts both the coupon list and the per-coupon details *inside the same
-/// sheet* — tapping a coupon swaps the content in place (with a back arrow),
+/// sheet* â€” tapping a coupon swaps the content in place (with a back arrow),
 /// so the user never sees two stacked bottom sheets.
 class ShopPromotionsSheet extends StatefulWidget {
   final int shopId;
@@ -272,7 +272,7 @@ class _PromoCard extends StatelessWidget {
                         'COUPON',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 2,
                           color: AppColors.primary,
                         ),
@@ -363,7 +363,7 @@ class _PromoCard extends StatelessWidget {
                         discountText,
                         style: GoogleFonts.poppins(
                           fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                           height: 1.1,
                         ),
@@ -482,3 +482,4 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

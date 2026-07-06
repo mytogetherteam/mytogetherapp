@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -264,7 +264,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                   summary.averageRating.toStringAsFixed(1),
                   style: GoogleFonts.poppins(
                     fontSize: 42,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
                   ),
                 ),
@@ -775,6 +775,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
     );
   }
 }
+
 
 
 

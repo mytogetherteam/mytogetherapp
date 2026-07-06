@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -183,7 +183,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             context.tr('delete.warning_heading'),
             style: GoogleFonts.poppins(
               fontSize: 22,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: Colors.red.shade600,
             ),
           ),
@@ -363,7 +363,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               context.tr('delete.verify_heading'),
               style: GoogleFonts.poppins(
                 fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: Colors.black,
               ),
             ),
@@ -607,3 +607,4 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
     );
   }
 }
+

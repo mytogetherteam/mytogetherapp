@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -6,7 +6,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/data/coupon_service.dart';
 
-/// Short discount headline for a coupon, e.g. "40% OFF", "฿50 OFF", "FREE".
+/// Short discount headline for a coupon, e.g. "40% OFF", "à¸¿50 OFF", "FREE".
 String couponDiscountLabel(BuildContext context, CouponModel coupon) {
   if (coupon.isFreeItem) return context.tr('coupon.free');
   if (coupon.isPercentage) {
@@ -130,7 +130,7 @@ class CouponHeadlineBadge extends StatelessWidget {
         ? context.tr('coupon.free')
         : coupon.isPercentage
             ? '${_trimNum(coupon.discountValue)}%'
-            : '฿${_trimNum(coupon.discountValue)}';
+            : 'à¸¿${_trimNum(coupon.discountValue)}';
 
     return Container(
       width: size,
@@ -156,7 +156,7 @@ class CouponHeadlineBadge extends StatelessWidget {
               big,
               style: GoogleFonts.poppins(
                 fontSize: 14,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
                 height: 1,
               ),
@@ -167,3 +167,4 @@ class CouponHeadlineBadge extends StatelessWidget {
     );
   }
 }
+
