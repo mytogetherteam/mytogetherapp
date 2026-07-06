@@ -72,6 +72,13 @@ class NotificationModel {
     return int.tryParse(value.toString());
   }
 
+  bool get isOrderNotification =>
+      type == 'ORDER_STATUS' && referenceId != null;
+
+  /// Shop chat messages (`mainType: CHAT`, `subType: NEW_MESSAGE`).
+  bool get isChatNotification =>
+      (type == 'NEW_MESSAGE' || type == 'CHAT') && referenceId != null;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

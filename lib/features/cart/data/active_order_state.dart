@@ -578,6 +578,16 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Makes [orderId] the primary tracked order so order screens opened from a
+  /// notification deep link show the correct cart and status.
+  void focusOrder(String orderId) {
+    final item = _findTrackedOrder(orderId);
+    if (item == null) return;
+    _primaryOrderId = item.orderId;
+    saveToPrefs();
+    notifyListeners();
+  }
+
   static String _prefsKeyForUser(int? userId) {
     if (userId == null) return 'active_orders_v3_guest';
     return 'active_orders_v3_$userId';

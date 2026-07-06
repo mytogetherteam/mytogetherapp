@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
+import '../order_notification_navigation.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
 import '../../../announcements/data/repositories/announcement_repository.dart';
@@ -91,6 +92,21 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         _currentPage++;
       });
       _loadNotifications();
+    }
+  }
+
+  Future<void> _handleNotificationTap(NotificationModel notification) async {
+    await _markAsRead(notification);
+
+    if (!mounted) return;
+
+    if (notification.isChatNotification) {
+      await navigateToChatFromNotification(context, notification);
+      return;
+    }
+
+    if (notification.isOrderNotification) {
+      await navigateToOrderFromNotification(context, notification.referenceId!);
     }
   }
 
@@ -290,7 +306,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
                                   final notification = _notifications[index];
                                   return NotificationItemWidget(
                                     notification: notification,
-                                    onTap: () => _markAsRead(notification),
+                                    onTap: () => _handleNotificationTap(notification),
                                   );
                                 },
                               ),
