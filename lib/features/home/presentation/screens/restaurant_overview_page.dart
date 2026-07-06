@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
 import '../widgets/my_together_verified_badge.dart';
@@ -75,6 +76,55 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
     final fallback = restaurant.address?.trim();
     if (fallback != null && fallback.isNotEmpty) return fallback;
     return context.tr('restaurant.no_address');
+  }
+
+  String get _contactPhone => restaurant.phone?.trim() ?? '';
+
+  String get _contactEmail => restaurant.email?.trim() ?? '';
+
+  Future<void> _launchContact(BuildContext context, Uri uri) async {
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw StateError('launch failed');
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('help.could_not_open'),
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
+          backgroundColor: Colors.red.shade500,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContactLink(
+    BuildContext context, {
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Text(
+        value,
+        style: GoogleFonts.poppins(
+          fontSize: 15,
+          color: AppColors.primary,
+          height: 1.5,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.primary.withValues(alpha: 0.4),
+        ),
+      ),
+    );
   }
 
   @override
@@ -259,6 +309,36 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                     title: context.tr('restaurant.address_title'),
                     content: _localizedAddress(context),
                   ),
+                  if (_contactPhone.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildSectionCard(
+                      iconData: PhosphorIcons.phone,
+                      title: context.tr('restaurant.phone_title'),
+                      customContent: _buildContactLink(
+                        context,
+                        value: _contactPhone,
+                        onTap: () => _launchContact(
+                          context,
+                          Uri(scheme: 'tel', path: _contactPhone),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_contactEmail.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildSectionCard(
+                      iconData: PhosphorIcons.envelope,
+                      title: context.tr('restaurant.email_title'),
+                      customContent: _buildContactLink(
+                        context,
+                        value: _contactEmail,
+                        onTap: () => _launchContact(
+                          context,
+                          Uri(scheme: 'mailto', path: _contactEmail),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (restaurant.description.trim().isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _buildSectionCard(
@@ -284,11 +364,12 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildSectionCard(
-                    iconData: PhosphorIcons.sparkle,
-                    title: context.tr('restaurant.features_title'),
-                    customContent: _buildFeatures(context),
-                  ),
+                  if (restaurant.hasAnyFeature)
+                    _buildSectionCard(
+                      iconData: PhosphorIcons.sparkle,
+                      title: context.tr('restaurant.features_title'),
+                      customContent: _buildFeatures(context),
+                    ),
                 ],
               ),
             ),
@@ -532,7 +613,9 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
         context.tr('restaurant.feature_vegetarian'),
         restaurant.isVegetarian,
       ),
-    ];
+    ].where((f) => f.enabled).toList();
+
+    if (features.isEmpty) return const SizedBox.shrink();
 
     return Column(
       children: features.asMap().entries.map((entry) {
