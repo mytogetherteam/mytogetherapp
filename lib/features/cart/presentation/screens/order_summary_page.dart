@@ -27,6 +27,7 @@ import 'order_tracking_page.dart';
 import '../../data/active_order_state.dart';
 import '../../data/coupon_service.dart';
 import '../widgets/coupon_ticket_sheet.dart';
+import '../../../coupons/presentation/widgets/coupon_display.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/user_model.dart';
@@ -1483,6 +1484,22 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  /// Subtitle under "Apply Coupon" when a coupon is selected.
+  String _couponSelectionSubtitle(
+    BuildContext context,
+    CouponModel coupon,
+    double discount,
+  ) {
+    if (coupon.isFreeItem) {
+      final gift = couponBogoGiftSummary(context, coupon);
+      if (discount > 0) {
+        return '${coupon.name}  •  $gift  •  - ${discount.toFormattedPrice()}';
+      }
+      return '${coupon.name}  •  $gift';
+    }
+    return '${coupon.name}  •  - ${discount.toFormattedPrice()}';
+  }
+
   /// The "Apply Coupon" card shown on the summary page. Hidden when the shop has
   /// no coupons that apply to the current cart (and none is selected).
   Widget _buildCouponSection(double subtotal, List<CartItem> items) {
@@ -1547,8 +1564,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       const SizedBox(height: 2),
                       Text(
                         hasSelection
-                            ? '${_selectedCoupon!.name}  •  - ${discount.toFormattedPrice()}'
-                            : (hasCoupons ? '✨ ${context.tr('coupon.apply_hint')}' : context.tr('coupon.apply_hint')),
+                            ? _couponSelectionSubtitle(
+                                context,
+                                _selectedCoupon!,
+                                discount,
+                              )
+                            : (hasCoupons
+                                ? '✨ ${context.tr('coupon.apply_hint')}'
+                                : context.tr('coupon.apply_hint')),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.poppins(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -56,7 +55,7 @@ class _ResetPinPageState extends State<ResetPinPage>
 
   void _onDigitPress(String digit) {
     String currentPin = _isConfirming ? _confirmPin : _pin;
-    
+
     if (currentPin.length < 6 && !_isLoading) {
       HapticFeedback.lightImpact();
       setState(() {
@@ -124,14 +123,12 @@ class _ResetPinPageState extends State<ResetPinPage>
         newPin: _pin,
       );
       if (!mounted) return;
-      
+
       AppDialog.showToast(context, 'Passcode successfully reset!');
-      
+
       // Go back to LoginPinPage to login with new pin
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => LoginPinPage(phone: widget.phone),
-        ),
+        MaterialPageRoute(builder: (_) => LoginPinPage(phone: widget.phone)),
         (route) => route.isFirst,
       );
     } catch (e) {
@@ -143,16 +140,22 @@ class _ResetPinPageState extends State<ResetPinPage>
         _confirmPin = ''; // Clear confirm PIN on error
       });
       await _shakeController.forward(from: 0);
-      
+
       if (!mounted) return;
-      AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     String currentPin = _isConfirming ? _confirmPin : _pin;
-    String titleText = _isConfirming ? 'Confirm New Passcode' : 'Create New Passcode';
+    String titleText = _isConfirming
+        ? 'Confirm New Passcode'
+        : 'Create New Passcode';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -196,7 +199,7 @@ class _ResetPinPageState extends State<ResetPinPage>
               ),
             ),
             const SizedBox(height: 40),
-            
+
             AnimatedBuilder(
               animation: _shakeAnimation,
               builder: (context, child) {
@@ -232,7 +235,7 @@ class _ResetPinPageState extends State<ResetPinPage>
                 }),
               ),
             ),
-            
+
             const SizedBox(height: 60),
 
             if (_isLoading)
@@ -244,7 +247,7 @@ class _ResetPinPageState extends State<ResetPinPage>
               const SizedBox(height: 56),
 
             const Spacer(),
-            
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
               child: Column(

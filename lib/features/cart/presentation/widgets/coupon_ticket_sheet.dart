@@ -6,6 +6,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../data/coupon_service.dart';
+import '../../../coupons/presentation/widgets/coupon_display.dart';
 
 /// Shows the movie-ticket style coupon picker as a bottom sheet.
 ///
@@ -474,6 +475,13 @@ class CouponTicket extends StatelessWidget {
                 const SizedBox(width: 6),
                 _miniBadge(context.tr('coupon.early_bird')),
               ],
+              if (coupon.isFreeItem && coupon.isBogoAllItems) ...[
+                const SizedBox(width: 6),
+                _miniBadge(context.tr('coupon.bogo_all')),
+              ] else if (coupon.isFreeItem && coupon.freeItems.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                _miniBadge(context.tr('coupon.gift_menu')),
+              ],
             ],
           ),
           const SizedBox(height: 3),
@@ -507,11 +515,7 @@ class CouponTicket extends StatelessWidget {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  coupon.discountPreview > 0
-                      ? context.trArgs('coupon.you_save', {
-                          'amount': coupon.discountPreview.toFormattedPrice(),
-                        })
-                      : coupon.code,
+                  _footerHint(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -529,16 +533,22 @@ class CouponTicket extends StatelessWidget {
   }
 
   String _subtitleText(BuildContext context) {
-    if (coupon.isFreeItem) {
-      final names = coupon.freeItems.map((e) => e.name).where((e) => e.isNotEmpty);
-      if (names.isNotEmpty) {
-        return context.trArgs('coupon.free_items', {'items': names.join(', ')});
-      }
-      return context.tr('coupon.free_item_generic');
-    }
+    if (coupon.isFreeItem) return couponBogoGiftSummary(context, coupon);
     final desc = coupon.description?.trim();
     if (desc != null && desc.isNotEmpty) return desc;
     return context.tr('coupon.discount_generic');
+  }
+
+  String _footerHint(BuildContext context) {
+    if (coupon.discountPreview > 0) {
+      return context.trArgs('coupon.you_save', {
+        'amount': coupon.discountPreview.toFormattedPrice(),
+      });
+    }
+    if (coupon.isFreeItem) {
+      return context.tr('coupon.bogo_add_items');
+    }
+    return coupon.code;
   }
 
   Widget _miniBadge(String text) {
@@ -593,7 +603,9 @@ class CouponTicket extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             coupon.isFreeItem
-                ? context.tr('coupon.item')
+                ? (coupon.isBogoAllItems
+                    ? context.tr('coupon.bogo_stub')
+                    : context.tr('coupon.item'))
                 : context.tr('coupon.off'),
             style: GoogleFonts.poppins(
               fontSize: 11,

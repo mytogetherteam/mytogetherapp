@@ -202,6 +202,16 @@ class CouponDetailsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _OfferBanner(label: couponOfferLabel(context, coupon)),
+                if (coupon.isBogoAllItems) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    context.tr('coupon.bogo_on_order'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.black.withValues(alpha: 0.72),
+                    ),
+                  ),
+                ],
                 if ((coupon.description ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 14),
                   Text(

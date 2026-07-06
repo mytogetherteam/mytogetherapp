@@ -15,6 +15,7 @@ import '../../order/data/repositories/order_repository.dart';
 import '../../order/data/models/order_history_dto.dart';
 import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
+import 'order_shop_coupon_info.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/auth/order_ownership.dart';
 
@@ -65,6 +66,7 @@ class ActiveOrderItem {
   String? displayDiscountAmount;
   String? couponName;
   String? couponCode;
+  OrderShopCouponInfo? shopCoupon;
   String? paymentMethod;
   String? cancelReason;
   // Set when the shop sends the order back for revision (status REVISED).
@@ -225,6 +227,11 @@ class ActiveOrderItem {
     return isFlexibleDelivery;
   }
 
+  bool get hasAppliedCoupon =>
+      shopCoupon != null ||
+      (couponName?.trim().isNotEmpty ?? false) ||
+      (discountAmount ?? 0) > 0;
+
   ActiveOrderItem({
     required this.orderId,
     this.storeName,
@@ -243,6 +250,7 @@ class ActiveOrderItem {
     this.displayDiscountAmount,
     this.couponName,
     this.couponCode,
+    this.shopCoupon,
     this.paymentMethod,
     this.cancelReason,
     this.isRevised = false,
@@ -335,6 +343,7 @@ class ActiveOrderItem {
     'displayDiscountAmount': displayDiscountAmount,
     'couponName': couponName,
     'couponCode': couponCode,
+    'shopCoupon': shopCoupon?.toJson(),
     'paymentMethod': paymentMethod,
     'cancelReason': cancelReason,
     'isRevised': isRevised,
@@ -404,6 +413,11 @@ class ActiveOrderItem {
         displayDiscountAmount: json['displayDiscountAmount']?.toString(),
         couponName: json['couponName']?.toString(),
         couponCode: json['couponCode']?.toString(),
+        shopCoupon: json['shopCoupon'] is Map
+            ? OrderShopCouponInfo.fromJson(
+                Map<String, dynamic>.from(json['shopCoupon'] as Map),
+              )
+            : null,
         paymentMethod: json['paymentMethod'],
         cancelReason: json['cancelReason'],
         isRevised: json['isRevised'] ?? false,
@@ -625,7 +639,10 @@ class ActiveOrderState extends ChangeNotifier {
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
   double get discountAmount => _primary?.discountAmount ?? 0;
-  bool get hasDiscount => (_primary?.discountAmount ?? 0) > 0;
+  bool get hasDiscount => hasAppliedCoupon;
+  String? get couponCode => _primary?.couponCode;
+  OrderShopCouponInfo? get shopCoupon => _primary?.shopCoupon;
+  bool get hasAppliedCoupon => _primary?.hasAppliedCoupon ?? false;
   String? get displayDiscountAmount =>
       _primary?.displayDiscountAmount?.toFormattedPrice();
   String? get couponName => _primary?.couponName;
@@ -981,8 +998,9 @@ class ActiveOrderState extends ChangeNotifier {
     }
     if (data['shopCoupon'] is Map) {
       final coupon = Map<String, dynamic>.from(data['shopCoupon'] as Map);
-      item.couponName = _parseSafeString(coupon['name']);
-      item.couponCode = _parseSafeString(coupon['code']);
+      item.shopCoupon = OrderShopCouponInfo.fromJson(coupon);
+      item.couponName = _parseSafeString(coupon['name']) ?? item.couponName;
+      item.couponCode = _parseSafeString(coupon['code']) ?? item.couponCode;
       final couponDiscount = _parseSafeDouble(coupon['discountAmount']);
       if (couponDiscount != null && couponDiscount > 0) {
         item.discountAmount = couponDiscount;

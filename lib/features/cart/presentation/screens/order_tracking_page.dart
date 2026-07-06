@@ -15,6 +15,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import '../../data/cart_manager.dart';
+import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import '../../../home/presentation/widgets/map_skeleton_loader.dart';
@@ -1184,17 +1185,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             ),
                           ],
 
-                          if (ActiveOrderState.instance.hasDiscount) ...[
+                          if (ActiveOrderState.instance.hasAppliedCoupon) ...[
                             const SizedBox(height: 12),
-                            _buildInfoRow(
-                              label: ActiveOrderState.instance.couponName
-                                          ?.isNotEmpty ==
-                                      true
-                                  ? ActiveOrderState.instance.couponName!
-                                  : context.tr('order_status.discount'),
-                              value:
-                                  '- ${(ActiveOrderState.instance.displayDiscountAmount ?? ActiveOrderState.instance.discountAmount.toFormattedPrice())}',
-                              valueColor: AppColors.primary,
+                            OrderCouponDiscountSection(
+                              couponName: ActiveOrderState.instance.couponName,
+                              discountAmount:
+                                  ActiveOrderState.instance.discountAmount,
+                              displayDiscountAmount: ActiveOrderState
+                                  .instance.displayDiscountAmount,
+                              shopCoupon:
+                                  ActiveOrderState.instance.shopCoupon,
                             ),
                           ],
 

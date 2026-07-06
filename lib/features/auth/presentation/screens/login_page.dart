@@ -11,7 +11,6 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'register_page.dart';
 import 'login_pin_page.dart';
-import 'forgot_password_page.dart';
 import 'auth_entry_page.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
@@ -63,20 +62,18 @@ class _LoginPageState extends State<LoginPage>
 
   Future<void> _handleContinue() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     final phoneStr = '+66${_phoneController.text.trim().replaceAll(' ', '')}';
-    
+
     try {
       final exists = await AuthRepository.instance.checkPhoneExists(phoneStr);
       if (!mounted) return;
-      
+
       if (exists) {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => LoginPinPage(phone: phoneStr),
-          ),
+          MaterialPageRoute(builder: (_) => LoginPinPage(phone: phoneStr)),
         );
       } else {
         AppDialog.showToast(
@@ -87,7 +84,11 @@ class _LoginPageState extends State<LoginPage>
       }
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, FirebaseErrorHandler.getMessage(context, e), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -131,146 +132,164 @@ class _LoginPageState extends State<LoginPage>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                          const SizedBox(height: 16),
-                          // Logo — centered myTogether icon
-                          Center(
-                            child: Container(
-                              width: 88,
-                              height: 88,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: Image.asset(
-                                  'assets/images/app_icon_small.png',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 48),
-                          // Welcome text
-                          Text(
-                            context.tr('auth.welcome_back'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            context.tr('auth.login_subtitle'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          // Phone field
-                          _buildLabel(context.tr('auth.phone')),
-                          const SizedBox(height: 8),
-                          _buildTextField(
-                            controller: _phoneController,
-                            hint: context.tr('auth.phone_hint'),
-                            prefixWidget: Padding(
-                              padding: const EdgeInsets.only(left: 16, right: 8),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.phone_outlined, color: Colors.grey[500], size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '+66',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black87,
+                              const SizedBox(height: 16),
+                              // Logo — centered myTogether icon
+                              Center(
+                                child: Container(
+                                  width: 88,
+                                  height: 88,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Image.asset(
+                                      'assets/images/app_icon_small.png',
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Container(width: 1, height: 20, color: Colors.grey[300]),
-                                  const SizedBox(width: 8),
-                                ],
-                              ),
-                            ),
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return context.tr('auth.enter_phone');
-                              }
-                              final cleanPhone = v.replaceAll(' ', '');
-                              if (!RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
-                                return context.tr('auth.invalid_thai_phone');
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 32),
-                          // Login Button
-                          _buildContinueButton(),
-                          const SizedBox(height: 24),
-                          // Register link
-                          Center(
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 4,
-                              children: [
-                                Text(
-                                  context.tr('auth.no_account'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                  ),
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const RegisterPage(),
+                              ),
+                              const SizedBox(height: 48),
+                              // Welcome text
+                              Text(
+                                context.tr('auth.welcome_back'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                context.tr('auth.login_subtitle'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                              // Phone field
+                              _buildLabel(context.tr('auth.phone')),
+                              const SizedBox(height: 8),
+                              _buildTextField(
+                                controller: _phoneController,
+                                hint: context.tr('auth.phone_hint'),
+                                prefixWidget: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 16,
+                                    right: 8,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.phone_outlined,
+                                        color: Colors.grey[500],
+                                        size: 20,
                                       ),
-                                    );
-                                  },
-                                  child: GradientText(
-                                    context.tr('common.sign_up'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '+66',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 1,
+                                        height: 20,
+                                        color: Colors.grey[300],
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                                  const SizedBox(height: 40),
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
                                 ],
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return context.tr('auth.enter_phone');
+                                  }
+                                  final cleanPhone = v.replaceAll(' ', '');
+                                  if (!RegExp(
+                                    r'^\d{8,9}$',
+                                  ).hasMatch(cleanPhone)) {
+                                    return context.tr(
+                                      'auth.invalid_thai_phone',
+                                    );
+                                  }
+                                  return null;
+                                },
                               ),
-                            ),
+                              const SizedBox(height: 32),
+                              // Login Button
+                              _buildContinueButton(),
+                              const SizedBox(height: 24),
+                              // Register link
+                              Center(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 4,
+                                  children: [
+                                    Text(
+                                      context.tr('auth.no_account'),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RegisterPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: GradientText(
+                                        context.tr('common.sign_up'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                            ],
                           ),
-                          const Spacer(),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: FutureBuilder<PackageInfo>(
-                              future: PackageInfo.fromPlatform(),
-                              builder: (context, snapshot) {
-                                final version = snapshot.data?.version ?? '0.0.1';
-                                return Text(
-                                  'v$version',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey.withValues(alpha: 0.5),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const Spacer(),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (context, snapshot) {
+                            final version = snapshot.data?.version ?? '0.0.1';
+                            return Text(
+                              'v$version',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey.withValues(alpha: 0.5),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -311,7 +330,11 @@ class _LoginPageState extends State<LoginPage>
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
-        prefixIcon: prefixWidget ?? (icon != null ? Icon(icon, color: Colors.grey[500], size: 20) : null),
+        prefixIcon:
+            prefixWidget ??
+            (icon != null
+                ? Icon(icon, color: Colors.grey[500], size: 20)
+                : null),
         suffixIcon: suffixWidget,
         filled: true,
         fillColor: Colors.grey[50],

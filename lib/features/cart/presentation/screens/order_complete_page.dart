@@ -5,6 +5,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
+import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -450,30 +451,14 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                                 const SizedBox(height: 12),
                                 _buildDeliveryFeeRow(context, order, deliveryFee),
                               ],
-                              if ((order.discountAmount ?? 0) > 0) ...[
+                              if (order.hasAppliedCoupon) ...[
                                 const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        context.tr('order_status.discount'),
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      '- ${order.displayDiscountAmount?.toFormattedPrice() ?? order.discountAmount!.toFormattedPrice()}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFFED3973),
-                                      ),
-                                    ),
-                                  ],
+                                OrderCouponDiscountSection(
+                                  couponName: order.couponName,
+                                  discountAmount: order.discountAmount ?? 0,
+                                  displayDiscountAmount:
+                                      order.displayDiscountAmount,
+                                  shopCoupon: order.shopCoupon,
                                 ),
                               ],
                               if (orderItems.isNotEmpty) ...[

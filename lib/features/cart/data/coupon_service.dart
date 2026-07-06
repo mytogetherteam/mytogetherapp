@@ -71,6 +71,7 @@ class CouponModel {
   final String limitType; // ONE_TIME | PERMANENT
   final double discountPreview;
   final List<CouponItem> items;
+  final bool bogoAllItems;
   final int? shopId;
   final CouponShop? shop;
   final DateTime? validFrom;
@@ -88,6 +89,7 @@ class CouponModel {
     this.limitType = 'ONE_TIME',
     this.discountPreview = 0,
     this.items = const [],
+    this.bogoAllItems = false,
     this.shopId,
     this.shop,
     this.validFrom,
@@ -109,6 +111,7 @@ class CouponModel {
                 ?.map((e) => CouponItem.fromJson(Map<String, dynamic>.from(e as Map)))
                 .toList() ??
             const [],
+        bogoAllItems: json['bogoAllItems'] == true,
         shopId: (json['shopId'] as num?)?.toInt(),
         shop: json['shop'] is Map
             ? CouponShop.fromJson(Map<String, dynamic>.from(json['shop'] as Map))
@@ -129,6 +132,7 @@ class CouponModel {
         limitType: limitType,
         discountPreview: discountPreview ?? this.discountPreview,
         items: items,
+        bogoAllItems: bogoAllItems,
         shopId: shopId,
         shop: shop,
         validFrom: validFrom,
@@ -147,9 +151,18 @@ class CouponModel {
   bool get isFixed => (discountType ?? '').toUpperCase() == 'FIXED_AMOUNT';
   bool get isEarlyBird => target.toUpperCase() == 'EARLY_BIRD';
 
-  /// The big headline shown on the ticket stub (e.g. "30%", "฿50", "FREE").
+  /// Shop-wide buy-one-get-one (no configured BUY/GET lines in the API payload).
+  bool get isBogoAllItems =>
+      bogoAllItems || (isFreeItem && items.isEmpty);
+
+  /// Percentage or fixed-amount discount coupon (not BOGO / gift menu).
+  bool get isPercentOrAmountDiscount =>
+      !isFreeItem &&
+      (isPercentage || isFixed || promotionType.toUpperCase() == 'BUY_X_GET_DISCOUNT');
+
+  /// The big headline shown on the ticket stub (e.g. "30%", "฿50", "1+1", "FREE").
   String get stubHeadline {
-    if (isFreeItem) return 'FREE';
+    if (isFreeItem) return isBogoAllItems ? '1+1' : 'FREE';
     if (isPercentage) return '${_trimNum(discountValue)}%';
     return '฿${_trimNum(discountValue)}';
   }
@@ -278,7 +291,6 @@ class CouponService {
       },
     );
     final body = response.data;
-    print('DEBUG_COUPONS (target=$target): $body');
     if (body is! Map) return const [];
     final list = body['data'];
     if (list is! List) return const [];
@@ -350,6 +362,11 @@ class CouponService {
         return _round2(math.min(coupon.discountValue, subtotal));
       }
       return 0;
+    }
+
+    // Shop-wide BOGO: free quantity equals paid quantity → discount equals subtotal.
+    if (coupon.isBogoAllItems) {
+      return items.isEmpty ? 0 : _round2(subtotal);
     }
 
     // BUY_X_GET_FREE: GET items are made free (cheapest matching units) only
