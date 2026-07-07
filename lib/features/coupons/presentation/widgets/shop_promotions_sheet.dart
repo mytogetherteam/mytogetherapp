@@ -12,7 +12,7 @@ import 'coupon_display.dart';
 /// A single bottom sheet for a restaurant's promotions/coupons.
 ///
 /// It hosts both the coupon list and the per-coupon details *inside the same
-/// sheet* â€” tapping a coupon swaps the content in place (with a back arrow),
+/// sheet* — tapping a coupon swaps the content in place (with a back arrow),
 /// so the user never sees two stacked bottom sheets.
 class ShopPromotionsSheet extends StatefulWidget {
   final int shopId;

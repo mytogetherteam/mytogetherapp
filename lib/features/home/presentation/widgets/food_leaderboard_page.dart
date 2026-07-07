@@ -9,7 +9,7 @@ import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import '../screens/food_swipe_rank_page.dart';
 
-/// Full-screen leaderboard page â€” top 3 podium + ranked list 4-20.
+/// Full-screen leaderboard page — top 3 podium + ranked list 4-20.
 class FoodLeaderboardPage extends StatelessWidget {
   final List<ShopFeedItemDto> items;
 
@@ -27,7 +27,7 @@ class FoodLeaderboardPage extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // â”€â”€ App Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── App Bar ──────────────────────────────────────────────
             SliverAppBar(
               pinned: true,
               backgroundColor: const Color(0xFF1A1A2E),
@@ -66,17 +66,17 @@ class FoodLeaderboardPage extends StatelessWidget {
               ),
             ),
 
-            // â”€â”€ Podium (top 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Podium (top 3) ────────────────────────────────────────
             SliverToBoxAdapter(
               child: _PodiumSection(top3: top3),
             ),
 
-            // â”€â”€ Swipe Promo Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Swipe Promo Banner ────────────────────────────────
             SliverToBoxAdapter(
               child: _SwipePromoBanner(),
             ),
 
-            // â”€â”€ Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Divider ───────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
@@ -110,7 +110,7 @@ class FoodLeaderboardPage extends StatelessWidget {
               ),
             ),
 
-            // â”€â”€ Ranks 4-20 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Ranks 4-20 ────────────────────────────────────────────
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -130,7 +130,7 @@ class FoodLeaderboardPage extends StatelessWidget {
   }
 }
 
-// â”€â”€ Podium (top 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Podium (top 3) ────────────────────────────────────────────────────────────
 
 class _PodiumSection extends StatelessWidget {
   final List<ShopFeedItemDto> top3;
@@ -251,7 +251,7 @@ class _PodiumAvatarCol extends StatelessWidget {
         children: [
           // Crown / rank badge
           if (isFirst)
-            Text('ðŸ‘‘', style: TextStyle(fontSize: isFirst ? 20 : 14))
+            Text('👑', style: TextStyle(fontSize: isFirst ? 20 : 14))
           else
             const SizedBox(height: 4),
           const SizedBox(height: 4),
@@ -388,7 +388,7 @@ class _PodiumBlock extends StatelessWidget {
               ),
               // Laurel wreath emoji
               Text(
-                'ðŸ…',
+                '🏅',
                 style: TextStyle(fontSize: rank == 1 ? 16 : 12),
               ),
             ],
@@ -399,7 +399,7 @@ class _PodiumBlock extends StatelessWidget {
   }
 }
 
-// â”€â”€ Rank list tile (4-20) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Rank list tile (4-20) ─────────────────────────────────────────────────────
 
 class _RankListTile extends StatelessWidget {
   final ShopFeedItemDto item;
@@ -513,7 +513,7 @@ class _RankListTile extends StatelessWidget {
               children: [
                 if (item.hasDiscount && item.originalPrice != null)
                   Text(
-                    'à¸¿ ${item.originalPrice!.toStringAsFixed(0)}',
+                    '฿ ${item.originalPrice!.toStringAsFixed(0)}',
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: Colors.white30,
@@ -522,7 +522,7 @@ class _RankListTile extends StatelessWidget {
                     ),
                   ),
                 GradientText(
-                  item.displayPrice ?? 'à¸¿ ${item.price.toStringAsFixed(0)}',
+                  item.displayPrice ?? '฿ ${item.price.toStringAsFixed(0)}',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -537,7 +537,7 @@ class _RankListTile extends StatelessWidget {
   }
 }
 
-// â”€â”€ Price tag widget (used in podium avatar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Price tag widget (used in podium avatar) ──────────────────────────────────
 
 class _PriceTag extends StatelessWidget {
   final ShopFeedItemDto item;
@@ -558,7 +558,7 @@ class _PriceTag extends StatelessWidget {
       children: [
         if (item.hasDiscount && item.originalPrice != null)
           Text(
-            'à¸¿ ${item.originalPrice!.toStringAsFixed(0)}',
+            '฿ ${item.originalPrice!.toStringAsFixed(0)}',
             style: GoogleFonts.poppins(
               fontSize: fontSize - 1,
               color: Colors.white30,
@@ -567,7 +567,7 @@ class _PriceTag extends StatelessWidget {
             ),
           ),
         GradientText(
-          item.displayPrice ?? 'à¸¿ ${item.price.toStringAsFixed(0)}',
+          item.displayPrice ?? '฿ ${item.price.toStringAsFixed(0)}',
           style: GoogleFonts.poppins(
             fontSize: fontSize,
             fontWeight: FontWeight.w700,
@@ -578,7 +578,7 @@ class _PriceTag extends StatelessWidget {
   }
 }
 
-// â”€â”€ Swipe Promo Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Swipe Promo Banner ────────────────────────────────────────────────────────
 
 class _SwipePromoBanner extends StatelessWidget {
   const _SwipePromoBanner();
@@ -653,7 +653,7 @@ class _SwipePromoBanner extends StatelessWidget {
                           ],
                         ),
                         child: const Center(
-                          child: Text('â¤ï¸', style: TextStyle(fontSize: 20)),
+                          child: Text('❤️', style: TextStyle(fontSize: 20)),
                         ),
                       ),
                     ),

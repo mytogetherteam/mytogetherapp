@@ -6,7 +6,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/data/coupon_service.dart';
 
-/// Short discount headline for a coupon, e.g. "40% OFF", "à¸¿50 OFF", "FREE".
+/// Short discount headline for a coupon, e.g. "40% OFF", "฿50 OFF", "FREE".
 String couponDiscountLabel(BuildContext context, CouponModel coupon) {
   if (coupon.isFreeItem) {
     if (coupon.isBogoAllItems) return context.tr('coupon.bogo_all');
@@ -164,7 +164,7 @@ class CouponHeadlineBadge extends StatelessWidget {
         ? (isBogo ? '1+1' : context.tr('coupon.free'))
         : coupon.isPercentage
             ? '${_trimNum(coupon.discountValue)}%'
-            : 'à¸¿${_trimNum(coupon.discountValue)}';
+            : '฿${_trimNum(coupon.discountValue)}';
 
     return Container(
       width: size,

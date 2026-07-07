@@ -91,7 +91,7 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 230,
+              height: 245,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),

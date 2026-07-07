@@ -75,7 +75,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
   }
 
   /// Plays the ticket-tear animation as the "this is my coupon" gesture, then
-  /// returns the chosen coupon to the summary page (no network call here â€” the
+  /// returns the chosen coupon to the summary page (no network call here — the
   /// coupon is applied to the real order when the user places it).
   Future<void> _confirmSelected() async {
     final coupon = _selected;

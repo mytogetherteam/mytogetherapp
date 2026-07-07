@@ -79,7 +79,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
       ),
       child: Column(
         children: [
-          // â”€â”€ Dark leaderboard top â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Dark leaderboard top ──────────────────────────────
           GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -126,7 +126,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                                 border: Border.all(
                                     color: const Color(0xFFFFD700).withValues(alpha: 0.4)),
                               ),
-                              child: const Text('ðŸ†', style: TextStyle(fontSize: 16)),
+                              child: const Text('🏆', style: TextStyle(fontSize: 16)),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -211,7 +211,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
             ),
           ),
 
-          // â”€â”€ White swipe promo bottom (bottom-sheet style) â”€â”€â”€â”€â”€
+          // ── White swipe promo bottom (bottom-sheet style) ─────
           GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -276,7 +276,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                                 ],
                               ),
                               child: const Center(
-                                child: Text('â¤ï¸', style: TextStyle(fontSize: 18)),
+                                child: Text('❤️', style: TextStyle(fontSize: 18)),
                               ),
                             ),
                           ),
@@ -361,7 +361,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
   }
 }
 
-// â”€â”€ Mini rank card (inside section block) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Mini rank card (inside section block) ────────────────────────────────────
 
 class _MiniRankCard extends StatefulWidget {
   final ShopFeedItemDto item;
@@ -468,7 +468,7 @@ class _MiniRankCardState extends State<_MiniRankCard> with SingleTickerProviderS
                 textAlign: TextAlign.center,
               ),
               Text(
-                widget.item.displayPrice ?? 'à¸¿ ${widget.item.price.toStringAsFixed(0)}',
+                widget.item.displayPrice ?? '฿ ${widget.item.price.toStringAsFixed(0)}',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -508,7 +508,7 @@ class _FoodThumbImage extends StatelessWidget {
   }
 }
 
-// â”€â”€ Subtle stars painter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Subtle stars painter ─────────────────────────────────────────────────────
 
 class _StarsPainter extends CustomPainter {
   @override

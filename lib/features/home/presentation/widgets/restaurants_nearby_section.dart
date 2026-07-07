@@ -135,7 +135,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 232,
+              height: 256,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),

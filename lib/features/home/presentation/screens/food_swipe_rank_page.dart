@@ -10,7 +10,7 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../screens/restaurant_detail_page.dart';
 
-// â”€â”€â”€ Page entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Page entry point ─────────────────────────────────────────────────────────
 
 class FoodSwipeRankPage extends StatefulWidget {
   const FoodSwipeRankPage({super.key});
@@ -362,7 +362,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('ðŸ½ï¸', style: const TextStyle(fontSize: 64)),
+          Text('🍽️', style: const TextStyle(fontSize: 64)),
           const SizedBox(height: 16),
           Text(
             context.tr('food.swipe_done_title'),
@@ -374,7 +374,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
           ),
           const SizedBox(height: 8),
           Text(
-            'â¤ï¸ $_likeCount   âœ• $_skipCount',
+            '❤️ $_likeCount   ✖ $_skipCount',
             style: GoogleFonts.poppins(
               fontSize: 16,
               color: Colors.white54,
@@ -462,7 +462,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   }
 }
 
-// â”€â”€â”€ Draggable top card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Draggable top card ────────────────────────────────────────────────────────
 
 class _DraggableCard extends StatefulWidget {
   final ShopFeedItemDto item;
@@ -603,7 +603,7 @@ class _DraggableCardState extends State<_DraggableCard>
               // Like overlay
               if (_likeOpacity > 0.01)
                 _SwipeOverlay(
-                  label: 'â¤ï¸',
+                  label: '❤️',
                   labelText: 'LIKE',
                   color: const Color(0xFFFF4D6D),
                   opacity: _likeOpacity,
@@ -612,7 +612,7 @@ class _DraggableCardState extends State<_DraggableCard>
               // Skip overlay
               if (_skipOpacity > 0.01)
                 _SwipeOverlay(
-                  label: 'âœ•',
+                  label: '✖',
                   labelText: 'NOPE',
                   color: Colors.white,
                   opacity: _skipOpacity,
@@ -626,7 +626,7 @@ class _DraggableCardState extends State<_DraggableCard>
   }
 }
 
-// â”€â”€â”€ Swipe overlay badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Swipe overlay badge ──────────────────────────────────────────────────────
 
 class _SwipeOverlay extends StatelessWidget {
   final String label;
@@ -679,7 +679,7 @@ class _SwipeOverlay extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€ Food card visual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Food card visual ─────────────────────────────────────────────────────────
 
 class _FoodCard extends StatelessWidget {
   final ShopFeedItemDto item;
@@ -885,7 +885,7 @@ class _FoodCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'ðŸ”¥ HOT DEAL',
+                    '🔥 HOT DEAL',
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -942,7 +942,7 @@ class _FoodCard extends StatelessWidget {
                     children: [
                       if (item.hasDiscount && item.originalPrice != null) ...[
                         Text(
-                          'à¸¿ ${item.originalPrice!.toStringAsFixed(0)}',
+                          '฿ ${item.originalPrice!.toStringAsFixed(0)}',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: Colors.white38,
@@ -963,7 +963,7 @@ class _FoodCard extends StatelessWidget {
                         ),
                         child: Text(
                           item.displayPrice ??
-                              'à¸¿ ${item.price.toStringAsFixed(0)}',
+                              '฿ ${item.price.toStringAsFixed(0)}',
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -1001,7 +1001,7 @@ class _FoodCard extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€ Stat chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Stat chip ────────────────────────────────────────────────────────────────
 
 class _StatChip extends StatelessWidget {
   final IconData icon;
