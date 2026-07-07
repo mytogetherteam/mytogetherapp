@@ -14,4 +14,7 @@ class NavigationController {
 
   // Food tab is index 1
   void goToFoodTab() => goToTab(1);
+
+  // Home tab is index 0
+  void goToHomeTab() => goToTab(0);
 }

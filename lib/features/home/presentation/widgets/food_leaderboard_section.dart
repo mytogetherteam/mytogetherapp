@@ -500,7 +500,7 @@ class _FoodThumbImage extends StatelessWidget {
     return Image.network(
       imageUrl,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (_, _, _) => Container(
         color: Colors.white.withValues(alpha: 0.05),
         child: const Icon(Icons.fastfood_rounded, color: Colors.white38, size: 28),
       ),

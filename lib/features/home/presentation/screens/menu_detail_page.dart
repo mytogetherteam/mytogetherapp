@@ -632,18 +632,21 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                           const SizedBox(height: 16),
                           ..._currentFood!.optionGroups.map((group) {
+                            final showGroupTitle = group.name.trim().isNotEmpty;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  group.name,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[800],
+                                if (showGroupTitle) ...[
+                                  Text(
+                                    group.name,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[800],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
+                                  const SizedBox(height: 8),
+                                ],
                                 ...group.options.map((option) {
                                   final isSelected =
                                       _selectedOptions[group.id]?.contains(

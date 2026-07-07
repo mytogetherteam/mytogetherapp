@@ -153,6 +153,7 @@ class RemoteRestaurantDataSource {
     required int shopId,
     int page = 0,
     int size = 20,
+    int? categoryId,
   }) async {
     try {
       // Backend (auth): GET /api/user/menu-items?shopId=...&page=...&size=...
@@ -164,6 +165,7 @@ class RemoteRestaurantDataSource {
           'shopId': shopId,
           'page': page + 1, // API uses 1-based index
           'size': size,
+          'categoryId': ?categoryId,
         },
         options: Options(
           extra: {

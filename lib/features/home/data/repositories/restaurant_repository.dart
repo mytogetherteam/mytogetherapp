@@ -323,7 +323,10 @@ class RestaurantRepository {
         detail.longitude != null) {
       final dist = GeoDistance.haversineKm(
           lat, lon, detail.latitude!, detail.longitude!);
-      return detail.copyWith(distance: '${dist.toStringAsFixed(1)} km');
+      return detail.copyWith(
+        distance: '${dist.toStringAsFixed(1)} km',
+        deliveryTime: GeoDistance.deliveryEtaFromKm(dist),
+      );
     }
     return detail;
   }
@@ -382,6 +385,18 @@ class RestaurantRepository {
     return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
   }
 
+  String _deliveryTimeForShop({
+    required ShopListItemDto dto,
+    double? distanceKmOverride,
+  }) {
+    final resolvedKm = distanceKmOverride ??
+        (dto.distance > 0 ? dto.distance : null);
+    if (resolvedKm != null && resolvedKm > 0) {
+      return GeoDistance.deliveryEtaFromKm(resolvedKm);
+    }
+    return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
+  }
+
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {
     double? distanceKmOverride,
@@ -408,7 +423,10 @@ class RestaurantRepository {
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: dto.estimatedTime ?? '20-30 mins',
+      deliveryTime: _deliveryTimeForShop(
+        dto: dto,
+        distanceKmOverride: distanceKmOverride,
+      ),
       deliveryFee: dto.displayDeliveryFee,
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
@@ -423,7 +441,10 @@ class RestaurantRepository {
     return _published(restaurant);
   }
 
-  Restaurant _mapShopDetailDtoToDomain(ShopDetailDto dto) {
+  Restaurant _mapShopDetailDtoToDomain(
+    ShopDetailDto dto, {
+    double? distanceKmOverride,
+  }) {
     final imagePath = dto.bannerImageUrl ?? '';
 
     final restaurant = Restaurant(
@@ -438,14 +459,22 @@ class RestaurantRepository {
       category: dto.category ?? 'Restaurant',
       rating: dto.rating,
       reviewCount: dto.reviewCount,
-      distance: '${dto.distance.toStringAsFixed(1)} km',
+      distance:
+          '${(distanceKmOverride ?? dto.distance).toStringAsFixed(1)} km',
       imagePath: _getImageUrl(imagePath),
       logoPath: _getImageUrl(
         (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: dto.estimatedTime ?? '20-30 mins',
+      deliveryTime: () {
+        final resolvedKm = distanceKmOverride ??
+            (dto.distance > 0 ? dto.distance : null);
+        if (resolvedKm != null && resolvedKm > 0) {
+          return GeoDistance.deliveryEtaFromKm(resolvedKm);
+        }
+        return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
+      }(),
       status: dto.isOpen ? 'Open' : 'Closed',
       deliveryEnabled: dto.deliveryEnabled,
       taxEnable: dto.taxEnable,
@@ -602,11 +631,13 @@ class RestaurantRepository {
     required int shopId,
     int page = 0,
     int size = 20,
+    int? categoryId,
   }) async {
     final response = await _remoteDataSource.getShopMenu(
       shopId: shopId,
       page: page,
       size: size,
+      categoryId: categoryId,
     );
     return response.data;
   }

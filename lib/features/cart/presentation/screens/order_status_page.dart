@@ -1,6 +1,5 @@
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:async';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -49,9 +48,9 @@ class OrderStatusPage extends StatefulWidget {
 
 class _OrderStatusPageState extends State<OrderStatusPage>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  int _currentStatus = 1; 
+  int _currentStatus = 1;
   String? _backendStatus;
-  
+
   GoogleMapController? _mapController;
   // ignore: unused_field
   Set<Marker> _markers = {};
@@ -59,7 +58,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
-  
+
   late AnimationController _processingController;
 
   WebViewController? _webController;
@@ -87,28 +86,30 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     _backendStatus = ActiveOrderState.instance.backendStatus;
     _startFakeTimer();
-    
+
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
       Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
     }
-    
+
     _buildCustomMarkers().then((_) {
       if (mounted) _updateMarkers();
     });
 
     // Processing animation for current segment (repeating 0 -> 1)
     _processingController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 3),
+      vsync: this,
+      duration: const Duration(seconds: 3),
     )..repeat();
-    
+
     // Initial animation position based on starting status
     _animateToStatus(_currentStatus);
 
     // Initialize WebView if already on the way
     final state = ActiveOrderState.instance;
-    if (_currentStatus == 3 && state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty) {
+    if (_currentStatus == 3 &&
+        state.deliveryTrackingUrl != null &&
+        state.deliveryTrackingUrl!.isNotEmpty) {
       _initWebView(state.deliveryTrackingUrl!);
     }
 
@@ -137,8 +138,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           _backendStatus = state.backendStatus;
 
           // Trigger WebView init if status is 3 and we have a new URL
-          if (_currentStatus == 3 && 
-              state.deliveryTrackingUrl != null && 
+          if (_currentStatus == 3 &&
+              state.deliveryTrackingUrl != null &&
               state.deliveryTrackingUrl!.isNotEmpty &&
               state.deliveryTrackingUrl != _lastInitedUrl) {
             _initWebView(state.deliveryTrackingUrl!);
@@ -147,7 +148,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
         // Auto-navigate when status becomes COMPLETED (4)
         if (state.orderStatus == 4) {
-          Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
+          Future.delayed(
+            const Duration(seconds: 2),
+            () => _navigateToComplete(),
+          );
         }
 
         if (state.orderStatus == -1) {
@@ -159,7 +163,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 orderId: state.orderId ?? '',
                 reason: order?.cancelReason,
                 shopId: order?.shopId,
-                shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
+                shopName:
+                    order?.shopName ??
+                    order?.restaurantName ??
+                    order?.storeName,
                 shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
                 shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
                 shopLogo: order?.shopLogo ?? order?.logoPath,
@@ -218,7 +225,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   Future<void> _recoverMissingRestaurantAddress() async {
     final state = ActiveOrderState.instance;
-    if ((state.restaurantAddress == null || state.restaurantAddress!.isEmpty) && 
+    if ((state.restaurantAddress == null || state.restaurantAddress!.isEmpty) &&
         state.restaurantId != null) {
       try {
         final id = int.tryParse(state.restaurantId!);
@@ -226,7 +233,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           final shop = await RestaurantRepository.instance.getShopById(id);
           if (mounted) {
             setState(() {
-              state.restaurantAddress = shop.address ?? shop.addressEn ?? shop.addressTh;
+              state.restaurantAddress =
+                  shop.address ?? shop.addressEn ?? shop.addressTh;
               state.saveToPrefs();
             });
           }
@@ -240,7 +248,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   void _initWebView(String url) {
     _lastInitedUrl = url;
     _webViewError = false;
-    
+
     // Safety check for scheme
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasScheme) {
@@ -284,7 +292,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final state = ActiveOrderState.instance;
     final status = state.orderStatus;
     setState(() => _currentStatus = status.clamp(1, 4));
-    
+
     if (status == -1) {
       final order = state.getOrder(state.orderId);
       Navigator.pushReplacement(
@@ -294,7 +302,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             orderId: state.orderId ?? '',
             reason: order?.cancelReason,
             shopId: order?.shopId,
-            shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
+            shopName:
+                order?.shopName ?? order?.restaurantName ?? order?.storeName,
             shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
             shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
             shopLogo: order?.shopLogo ?? order?.logoPath,
@@ -335,7 +344,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       final userLon = state.userLocation?.longitude ?? 100.5018;
 
       final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
-      if (dist > 100000) { // > 100km mismatch
+      if (dist > 100000) {
+        // > 100km mismatch
         return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
       }
       return LatLng(lat, lon);
@@ -348,8 +358,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
-
-
 
   Future<void> _buildCustomMarkers() async {
     _homeIcon = await _drawMarkerBitmap(
@@ -366,7 +374,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
-   Future<BitmapDescriptor> _drawMarkerBitmap({
+  Future<BitmapDescriptor> _drawMarkerBitmap({
     required IconData icon,
     required Color bgColor,
     required Color iconColor,
@@ -376,12 +384,18 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final canvas = Canvas(pictureRecorder);
     final double r = size / 2;
 
-    canvas.drawCircle(Offset(r, r + 4), r * 0.85, Paint()..color = Colors.black.withValues(alpha: 0.18));
+    canvas.drawCircle(
+      Offset(r, r + 4),
+      r * 0.85,
+      Paint()..color = Colors.black.withValues(alpha: 0.18),
+    );
     canvas.drawCircle(Offset(r, r), r, Paint()..color = Colors.white);
-    
+
     // Gradient fill
     final paint = Paint()
-      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, size, size));
+      ..shader = AppColors.primaryGradient.createShader(
+        Rect.fromLTWH(0, 0, size, size),
+      );
     canvas.drawCircle(Offset(r, r), r - 4, paint);
 
     final tp = TextPainter(textDirection: TextDirection.ltr)
@@ -397,7 +411,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     tp.layout();
     tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2 - 2));
 
-    final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
+    final img = await pictureRecorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
@@ -405,36 +422,42 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   void _updateMarkers() {
     final state = ActiveOrderState.instance;
     final sets = <Marker>{};
-    
+
     if (state.restaurantLatLng != null) {
-      sets.add(Marker(
-        markerId: const MarkerId('restaurant'),
-        position: state.restaurantLatLng!,
-        icon: _shopIcon ?? BitmapDescriptor.defaultMarker,
-        anchor: const Offset(0.5, 0.5),
-      ));
+      sets.add(
+        Marker(
+          markerId: const MarkerId('restaurant'),
+          position: state.restaurantLatLng!,
+          icon: _shopIcon ?? BitmapDescriptor.defaultMarker,
+          anchor: const Offset(0.5, 0.5),
+        ),
+      );
     }
 
     if (state.userLocation != null) {
-      sets.add(Marker(
-        markerId: const MarkerId('user'),
-        position: state.userLocation!,
-        icon: _homeIcon ?? BitmapDescriptor.defaultMarker,
-        anchor: const Offset(0.5, 0.5),
-      ));
+      sets.add(
+        Marker(
+          markerId: const MarkerId('user'),
+          position: state.userLocation!,
+          icon: _homeIcon ?? BitmapDescriptor.defaultMarker,
+          anchor: const Offset(0.5, 0.5),
+        ),
+      );
     }
 
     final polySet = <Polyline>{};
     if (state.routePoints.isNotEmpty) {
-      polySet.add(Polyline(
-        polylineId: const PolylineId('route'),
-        points: state.routePoints,
-        color: AppColors.primary,
-        width: 5,
-        jointType: JointType.round,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
-      ));
+      polySet.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: state.routePoints,
+          color: AppColors.primary,
+          width: 5,
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+        ),
+      );
     }
 
     if (mounted) {
@@ -450,8 +473,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     if (_mapController == null) return;
     final state = ActiveOrderState.instance;
     final all = [
-      if (state.restaurantLatLng != null && state.restaurantLatLng!.latitude != 0) state.restaurantLatLng!,
-      if (state.userLocation != null && state.userLocation!.latitude != 0) state.userLocation!,
+      if (state.restaurantLatLng != null &&
+          state.restaurantLatLng!.latitude != 0)
+        state.restaurantLatLng!,
+      if (state.userLocation != null && state.userLocation!.latitude != 0)
+        state.userLocation!,
       ...state.routePoints,
     ];
     if (all.isEmpty) return;
@@ -462,17 +488,24 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     double maxLng = all.first.longitude;
 
     for (var p in all) {
-      if (p.latitude == 0 && p.longitude == 0) continue; // Ignore invalid points
+      if (p.latitude == 0 && p.longitude == 0) {
+        continue; // Ignore invalid points
+      }
       if (p.latitude < minLat) minLat = p.latitude;
       if (p.latitude > maxLat) maxLat = p.latitude;
       if (p.longitude < minLng) minLng = p.longitude;
       if (p.longitude > maxLng) maxLng = p.longitude;
     }
 
-    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(
-      LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)), 
-      60
-    ));
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        60,
+      ),
+    );
   }
 
   String _statusTitle(BuildContext context) {
@@ -509,7 +542,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final total = state.usesPayNowTotal
         ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
         : (state.totalAmount ??
-            state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
+              state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -565,7 +598,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                   state.isPickupFulfillment
                       ? context.tr('order_status.preparing')
                       : context.tr('order_tracking.restaurant_reviewing'),
-                  style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w600),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               const SizedBox(height: 24),
               // Progress Bar
@@ -586,7 +623,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 600),
               transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(opacity: animation, child: SizeTransition(sizeFactor: animation, child: child));
+                return FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(sizeFactor: animation, child: child),
+                );
               },
               child: (() {
                 if (ActiveOrderState.instance.isPickupFulfillment ||
@@ -596,8 +636,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 }
 
                 final state = ActiveOrderState.instance;
-                final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
-                
+                final bool hasTrackingUrl =
+                    state.deliveryTrackingUrl != null &&
+                    state.deliveryTrackingUrl!.isNotEmpty;
+
                 if (!hasTrackingUrl) {
                   return const SizedBox.shrink(key: ValueKey('empty_map'));
                 }
@@ -611,7 +653,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.15),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.04),
@@ -622,9 +666,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       ),
                       child: Stack(
                         children: [
-                          Positioned.fill(
-                            child: ImageSkeletonLoader(),
-                          ),
+                          Positioned.fill(child: ImageSkeletonLoader()),
                           if (_webController != null && !_webViewError)
                             Positioned.fill(
                               child: WebViewWidget(controller: _webController!),
@@ -637,11 +679,18 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(PhosphorIcons.mapPinLine, size: 40, color: Colors.grey[400]),
+                                      Icon(
+                                        PhosphorIcons.mapPinLine,
+                                        size: 40,
+                                        color: Colors.grey[400],
+                                      ),
                                       const SizedBox(height: 12),
                                       Text(
                                         'Tracking view unavailable',
-                                        style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.grey[600],
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -657,25 +706,39 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       onPressed: () async {
                         final uri = Uri.parse(state.deliveryTrackingUrl!);
                         try {
-                          final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                          final launched = await launchUrl(
+                            uri,
+                            mode: LaunchMode.inAppBrowserView,
+                          );
                           if (!launched) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         } catch (e) {
                           debugPrint('Failed to launch tracking URL: $e');
                           try {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
                           } catch (_) {}
                         }
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(PhosphorIcons.arrowSquareOut, size: 18, color: Colors.white),
+                          const Icon(
+                            PhosphorIcons.arrowSquareOut,
+                            size: 18,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            (context.tr('order_status.track_order_link') == 'order_status.track_order_link') 
-                                ? 'Track Order' 
+                            (context.tr('order_status.track_order_link') ==
+                                    'order_status.track_order_link')
+                                ? 'Track Order'
                                 : context.tr('order_status.track_order_link'),
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
@@ -699,7 +762,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Padding(
@@ -711,17 +778,24 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
                           _statusDescription(context, storeName),
-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
                         ),
                       ),
                       Row(
                         children: [
-                          if (state.riderProfileUrl != null && state.riderProfileUrl!.isNotEmpty)
+                          if (state.riderProfileUrl != null &&
+                              state.riderProfileUrl!.isNotEmpty)
                             ClipOval(
                               child: CachedNetworkImage(
                                 fadeInDuration: Duration.zero,
                                 fadeOutDuration: Duration.zero,
-                                imageUrl: FileUrlUtil.resolve(state.riderProfileUrl!),
+                                imageUrl: FileUrlUtil.resolve(
+                                  state.riderProfileUrl!,
+                                ),
                                 width: 44,
                                 height: 44,
                                 fit: BoxFit.cover,
@@ -731,9 +805,16 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.grey[100],
-                                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                                    border: Border.all(
+                                      color: Colors.grey[200]!,
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                                  child: const Icon(
+                                    Icons.person,
+                                    size: 24,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             )
@@ -744,9 +825,16 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.grey[100],
-                                border: Border.all(color: Colors.grey[200]!, width: 1),
+                                border: Border.all(
+                                  color: Colors.grey[200]!,
+                                  width: 1,
+                                ),
                               ),
-                              child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                              child: const Icon(
+                                Icons.person,
+                                size: 24,
+                                color: Colors.grey,
+                              ),
                             ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -754,22 +842,31 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 ShaderMask(
-                                  shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                                  shaderCallback: (bounds) => AppColors
+                                      .primaryGradient
+                                      .createShader(bounds),
                                   child: Text(
-                                    (state.riderName != null && state.riderName!.trim().isNotEmpty)
+                                    (state.riderName != null &&
+                                            state.riderName!.trim().isNotEmpty)
                                         ? state.riderName!
-                                        : context.tr('order_status.assigning_rider'),
+                                        : context.tr(
+                                            'order_status.assigning_rider',
+                                          ),
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white, // required for ShaderMask
+                                      color: Colors
+                                          .white, // required for ShaderMask
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty) ...[
+                                    if (state.riderPhone != null &&
+                                        state.riderPhone!
+                                            .trim()
+                                            .isNotEmpty) ...[
                                       Text(
                                         'Phone: ',
                                         style: GoogleFonts.poppins(
@@ -786,13 +883,23 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         ),
                                       ),
                                     ],
-                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty &&
-                                        state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty)
+                                    if (state.riderPhone != null &&
+                                        state.riderPhone!.trim().isNotEmpty &&
+                                        state.riderVehicleNumber != null &&
+                                        state.riderVehicleNumber!
+                                            .trim()
+                                            .isNotEmpty)
                                       Text(
                                         '  |  ',
-                                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[300]),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.grey[300],
+                                        ),
                                       ),
-                                    if (state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty) ...[
+                                    if (state.riderVehicleNumber != null &&
+                                        state.riderVehicleNumber!
+                                            .trim()
+                                            .isNotEmpty) ...[
                                       Text(
                                         'Vehicle No: ',
                                         style: GoogleFonts.poppins(
@@ -829,7 +936,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Padding(
@@ -845,16 +956,26 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 20),
+                            const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFFEF4444),
+                              size: 20,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                state.cancelReason ?? context.tr('order_status.cancel_reason'),
-                                style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
+                                state.cancelReason ??
+                                    context.tr('order_status.cancel_reason'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: const Color(0xFFB91C1C),
+                                ),
                               ),
                             ),
                           ],
@@ -865,7 +986,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
                           _statusDescription(context, storeName),
-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
                         ),
                       ),
                     Row(
@@ -874,19 +999,26 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           child: SizedBox(
                             width: 48,
                             height: 48,
-                            child: state.logoPath != null && state.logoPath!.isNotEmpty
-                              ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                  imageUrl: state.logoPath!,
-                                  width: 48,
-                                  height: 48,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    color: Colors.grey[100],
-                                    child: const Center(child: CustomLoadingIndicator(size: 24)),
-                                  ),
-                                  errorWidget: (context, url, error) => _buildNoImageAvatar(),
-                                )
-                              : _buildNoImageAvatar(),
+                            child:
+                                state.logoPath != null &&
+                                    state.logoPath!.isNotEmpty
+                                ? CachedNetworkImage(
+                                    fadeInDuration: Duration.zero,
+                                    fadeOutDuration: Duration.zero,
+                                    imageUrl: state.logoPath!,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey[100],
+                                      child: const Center(
+                                        child: CustomLoadingIndicator(size: 24),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        _buildNoImageAvatar(),
+                                  )
+                                : _buildNoImageAvatar(),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -930,7 +1062,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -943,12 +1079,28 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(context.tr('order_status.payment_method'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
+                            Text(
+                              context.tr('order_status.payment_method'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
                             Row(
                               children: [
-                                Icon(PhosphorIcons.qrCode, size: 18, color: const Color(0xFF1E3A8A)),
+                                Icon(
+                                  PhosphorIcons.qrCode,
+                                  size: 18,
+                                  color: const Color(0xFF1E3A8A),
+                                ),
                                 const SizedBox(width: 6),
-                                Text(context.tr('order_status.qr_promptpay'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
+                                Text(
+                                  context.tr('order_status.qr_promptpay'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -958,13 +1110,19 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
-                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+                              state.usesPayNowTotal
+                                  ? context.tr('cart.total_pay_now')
+                                  : context.tr('cart.total'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
                             ),
                             Row(
                               children: [
                                 Text(
-                                  state.displayTotalAmount ?? total.toFormattedPrice(),
+                                  state.displayTotalAmount ??
+                                      total.toFormattedPrice(),
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
@@ -973,17 +1131,35 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                                    color:
+                                        (_backendStatus?.toUpperCase() ==
+                                                'PAID' ||
+                                            _currentStatus >= 2)
+                                        ? const Color(0xFFDCFCE7)
+                                        : const Color(0xFFFEF3C7),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? context.tr('order_status.paid') : context.tr('order_status.waiting_payment'),
+                                    (_backendStatus?.toUpperCase() == 'PAID' ||
+                                            _currentStatus >= 2)
+                                        ? context.tr('order_status.paid')
+                                        : context.tr(
+                                            'order_status.waiting_payment',
+                                          ),
                                     style: GoogleFonts.poppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                      color:
+                                          (_backendStatus?.toUpperCase() ==
+                                                  'PAID' ||
+                                              _currentStatus >= 2)
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFD97706),
                                     ),
                                   ),
                                 ),
@@ -996,16 +1172,25 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                   ),
                   const Divider(height: 1, color: Color(0xFFE5E7EB)),
                   Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       initiallyExpanded: false,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      tilePadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 0,
+                      ),
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       iconColor: Colors.grey[600],
                       collapsedIconColor: Colors.grey[600],
                       title: Row(
                         children: [
-                          Icon(PhosphorIcons.receipt, size: 20, color: Colors.grey[700]),
+                          Icon(
+                            PhosphorIcons.receipt,
+                            size: 20,
+                            color: Colors.grey[700],
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             context.tr('order_status.view_summary'),
@@ -1022,10 +1207,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         if (state.orderItems.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(context.tr('order_status.no_items'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                            child: Text(
+                              context.tr('order_status.no_items'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
                           )
                         else
-                          ...state.orderItems.map((item) => Padding(
+                          ...state.orderItems.map(
+                            (item) => Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: Row(
                                 children: [
@@ -1034,41 +1226,87 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                     child: SizedBox(
                                       width: 40,
                                       height: 40,
-                                      child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                      child: CachedNetworkImage(
+                                        fadeInDuration: Duration.zero,
+                                        fadeOutDuration: Duration.zero,
                                         imageUrl: item.imagePath,
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) => Container(color: Colors.grey[100], child: const Center(child: CustomLoadingIndicator(size: 16))),
-                                        errorWidget: (context, url, error) => Container(color: Colors.grey[100], child: const Icon(Icons.restaurant, size: 16, color: Colors.grey)),
+                                        placeholder: (context, url) =>
+                                            Container(
+                                              color: Colors.grey[100],
+                                              child: const Center(
+                                                child: CustomLoadingIndicator(
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            Container(
+                                              color: Colors.grey[100],
+                                              child: const Icon(
+                                                Icons.restaurant,
+                                                size: 16,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           '${item.quantity}x ${item.title}',
-                                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black,
+                                          ),
                                         ),
                                         if (item.variantName != null)
-                                          Text(item.variantName!, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                                          Text(
+                                            item.variantName!,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ),
                                   Text(
-                                    (item.price * item.quantity).toFormattedPrice(),
-                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                                    (item.price * item.quantity)
+                                        .toFormattedPrice(),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
                                   ),
                                 ],
                               ),
-                            )),
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
-                        
-                        _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
+                            ),
+                          ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Color(0xFFF3F4F6)),
+                        ),
+
+                        _buildSummaryRow(
+                          context.tr('order_status.food_total'),
+                          state.displayFoodPrice ??
+                              widget.foodTotal.toFormattedPrice(),
+                        ),
                         if (state.taxEnable) ...[
                           const SizedBox(height: 8),
-                          _buildSummaryRow(context.tr('order_status.tax'), state.displayTaxAmount ?? taxAmount.toFormattedPrice()),
+                          _buildSummaryRow(
+                            context.tr('order_status.tax'),
+                            state.displayTaxAmount ??
+                                taxAmount.toFormattedPrice(),
+                          ),
                         ],
                         if (state.hasAppliedCoupon) ...[
                           const SizedBox(height: 8),
@@ -1079,20 +1317,40 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             shopCoupon: state.shopCoupon,
                           ),
                         ],
-                        if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate && !state.isAwaitingShopConfirmation && !state.isFlexibleDelivery) ...[
+                        if (!state.isPickupFulfillment &&
+                            state.hasDeliveryFeeEstimate &&
+                            !state.isAwaitingShopConfirmation &&
+                            !state.isFlexibleDelivery) ...[
                           const SizedBox(height: 8),
-                          _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
+                          _buildSummaryRow(
+                            context.tr('order_status.delivery_fee'),
+                            state.displayDeliveryFee ??
+                                state.deliveryFee!.toFormattedPrice(),
+                          ),
                         ],
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Color(0xFFF3F4F6)),
+                        ),
                         _buildSummaryRow(
-                          state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('order_status.total_amount'),
-                          state.usesPayNowTotal ? total.toFormattedPrice() : (state.displayTotalAmount ?? total.toFormattedPrice()),
+                          state.usesPayNowTotal
+                              ? context.tr('cart.total_pay_now')
+                              : context.tr('order_status.total_amount'),
+                          state.usesPayNowTotal
+                              ? total.toFormattedPrice()
+                              : (state.displayTotalAmount ??
+                                    total.toFormattedPrice()),
                           isBold: true,
                         ),
 
-                        if (state.isFlexibleDelivery && !state.isAwaitingShopConfirmation) ...[
+                        if (state.isFlexibleDelivery &&
+                            !state.isAwaitingShopConfirmation) ...[
                           const SizedBox(height: 16),
-                          FlexibleDeliveryNote(estimatedFee: state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
+                          FlexibleDeliveryNote(
+                            estimatedFee:
+                                state.displayDeliveryFee ??
+                                state.deliveryFee!.toFormattedPrice(),
+                          ),
                         ],
                       ],
                     ),
@@ -1102,160 +1360,172 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             ),
             const SizedBox(height: 16),
 
-
             // Delivery Info Card
             if (!state.isPickupFulfillment &&
                 _currentStatus != -1 &&
                 (_currentStatus >= 3 ||
                     (state.riderName != null && state.riderName!.isNotEmpty)))
               Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header row: bike icon + title
-                  Row(
-                    children: [
-                      Image.asset(
-                        'assets/images/delivery_bike.png',
-                        width: 40,
-                        height: 40,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        context.tr('order_status.delivery_info'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 25),
-                  // Route: restaurant -> destination with dotted line
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header row: bike icon + title
+                    Row(
                       children: [
-                        // Left: icons + dotted line
-                        Column(
-                          children: [
-                            Container(
-                              width: 15,
-                              height: 15,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF4A90E2),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            Expanded(
-                              child: CustomPaint(
-                                painter: _DottedLinePainter(),
-                                child: const SizedBox(width: 2),
-                              ),
-                            ),
-                             const GradientIcon(
-                              icon: Icons.location_on,
-                              size: 22,
-                            ),
-                          ],
+                        Image.asset(
+                          'assets/images/delivery_bike.png',
+                          width: 40,
+                          height: 40,
                         ),
-                        const SizedBox(width: 14),
-                        // Right: Info (either Cancelled or Route text)
-                        Expanded(
-                          child: _currentStatus == -1 && state.cancelReason != null
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      context.tr('order_status.cancelled'),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      state.cancelReason!,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Restaurant row
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          storeName,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (state.restaurantAddress != null && state.restaurantAddress!.isNotEmpty)
-                                          Text(
-                                            state.restaurantAddress!,
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: Colors.grey[500],
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 40),
-                                    // Destination row
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          (state.deliveryAddress != null &&
-                                                  state.deliveryAddress!.isNotEmpty)
-                                              ? state.deliveryAddress!
-                                              : context.tr('food.my_location'),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                        const SizedBox(width: 10),
+                        Text(
+                          context.tr('order_status.delivery_info'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 25),
+                    // Route: restaurant -> destination with dotted line
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Left: icons + dotted line
+                          Column(
+                            children: [
+                              Container(
+                                width: 15,
+                                height: 15,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4A90E2),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              Expanded(
+                                child: CustomPaint(
+                                  painter: _DottedLinePainter(),
+                                  child: const SizedBox(width: 2),
+                                ),
+                              ),
+                              const GradientIcon(
+                                icon: Icons.location_on,
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 14),
+                          // Right: Info (either Cancelled or Route text)
+                          Expanded(
+                            child:
+                                _currentStatus == -1 &&
+                                    state.cancelReason != null
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        context.tr('order_status.cancelled'),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        state.cancelReason!,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Restaurant row
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            storeName,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (state.restaurantAddress != null &&
+                                              state
+                                                  .restaurantAddress!
+                                                  .isNotEmpty)
+                                            Text(
+                                              state.restaurantAddress!,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey[500],
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 40),
+                                      // Destination row
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            (state.deliveryAddress != null &&
+                                                    state
+                                                        .deliveryAddress!
+                                                        .isNotEmpty)
+                                                ? state.deliveryAddress!
+                                                : context.tr(
+                                                    'food.my_location',
+                                                  ),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 20),
-            
+
             // Reorder/Cancel Actions
             if (_currentStatus == -1)
               PrimaryGradientButton(
@@ -1265,7 +1535,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 },
                 child: Text(
                   context.tr('order_status.order_again'),
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             const SizedBox(height: 32),
@@ -1277,11 +1551,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   String _getFakeEstTime(String original, String? orderId) {
     if (orderId == null) return TimeFormatter.normalizeDisplay(original);
-    
+
     // Try to parse max minutes from original string (e.g., "25 mins" -> 25)
     final match = RegExp(r'(\d+)').firstMatch(original);
     if (match == null) return TimeFormatter.normalizeDisplay(original);
-    
+
     int maxMins = int.tryParse(match.group(1)!) ?? 0;
     if (maxMins <= 5) return TimeFormatter.normalizeDisplay(original);
 
@@ -1291,13 +1565,13 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     int currentMax = maxMins - elapsedMins;
     int floorMax = (maxMins * 0.4).ceil(); // Stop at 40% of original
     if (floorMax < 5) floorMax = 5;
-    
+
     if (currentMax <= floorMax) {
       return 'Anytime now';
     }
-    
+
     int currentMin = currentMax > 5 ? currentMax - 5 : 0;
-    
+
     return '$currentMin - $currentMax mins';
   }
 
@@ -1309,10 +1583,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           left: 18,
           right: 18,
           top: 20,
-          child: Container(
-            height: 3,
-            color: Colors.grey.shade200,
-          ),
+          child: Container(height: 3, color: Colors.grey.shade200),
         ),
         // Animated Segments
         Positioned(
@@ -1321,26 +1592,29 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           top: 20,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final double availableWidth = (constraints.maxWidth - 36).clamp(0.0, double.infinity);
+              final double availableWidth = (constraints.maxWidth - 36).clamp(
+                0.0,
+                double.infinity,
+              );
               if (availableWidth <= 0) return const SizedBox.shrink();
               final segmentWidth = availableWidth / 3.0;
               return Row(
                 children: [
-                   _buildSegment(
-                     width: segmentWidth,
-                     filled: _currentStatus > 1,
-                     isProcessing: _currentStatus == 1,
-                   ),
-                   _buildSegment(
-                     width: segmentWidth,
-                     filled: _currentStatus > 2,
-                     isProcessing: _currentStatus == 2,
-                   ),
-                   _buildSegment(
-                     width: segmentWidth,
-                     filled: _currentStatus > 3,
-                     isProcessing: _currentStatus == 3,
-                   ),
+                  _buildSegment(
+                    width: segmentWidth,
+                    filled: _currentStatus > 1,
+                    isProcessing: _currentStatus == 1,
+                  ),
+                  _buildSegment(
+                    width: segmentWidth,
+                    filled: _currentStatus > 2,
+                    isProcessing: _currentStatus == 2,
+                  ),
+                  _buildSegment(
+                    width: segmentWidth,
+                    filled: _currentStatus > 3,
+                    isProcessing: _currentStatus == 3,
+                  ),
                 ],
               );
             },
@@ -1360,7 +1634,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
-  Widget _buildSegment({required double width, required bool filled, bool isProcessing = false}) {
+  Widget _buildSegment({
+    required double width,
+    required bool filled,
+    bool isProcessing = false,
+  }) {
     return SizedBox(
       width: width,
       height: 3,
@@ -1407,7 +1685,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               color: AppColors.primary.withValues(alpha: 0.5),
                               blurRadius: 6,
                               spreadRadius: 2,
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -1423,7 +1701,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   Widget _buildStepNode(int stepIndex, IconData icon) {
     bool isCompleted = _currentStatus >= stepIndex;
-    
+
     return Container(
       width: 40,
       height: 40,
@@ -1431,13 +1709,15 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         shape: BoxShape.circle,
         gradient: isCompleted ? AppColors.primaryGradient : null,
         color: isCompleted ? null : Colors.grey.shade200,
-        boxShadow: isCompleted ? [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ] : null,
+        boxShadow: isCompleted
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: Center(
         child: Icon(
@@ -1449,11 +1729,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
-
   Widget _buildSmallCircleButton(IconData icon, {VoidCallback? onTap}) {
     final button = Container(
       padding: const EdgeInsets.all(8),
-       decoration: BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
@@ -1509,9 +1788,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
     ChatUnreadController.instance.clear(orderId);
 
-    final peerName = (name == null || name.trim().isEmpty)
-        ? subtitle
-        : name;
+    final peerName = (name == null || name.trim().isEmpty) ? subtitle : name;
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1616,4 +1893,3 @@ class _DottedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

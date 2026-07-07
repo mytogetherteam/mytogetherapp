@@ -284,10 +284,10 @@ class _PodiumAvatarCol extends StatelessWidget {
                           memCacheWidth: 300,
                           fadeInDuration: Duration.zero,
                           fadeOutDuration: Duration.zero,
-                          placeholder: (_, __) => Container(
+                          placeholder: (_, _) => Container(
                             color: Colors.white.withValues(alpha: 0.05),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: (_, _, _) => Container(
                             color: Colors.white.withValues(alpha: 0.05),
                             child: const Icon(Icons.fastfood_rounded,
                                 color: Colors.white38),
@@ -462,9 +462,9 @@ class _RankListTile extends StatelessWidget {
                         memCacheWidth: 180,
                         fadeInDuration: Duration.zero,
                         fadeOutDuration: Duration.zero,
-                        placeholder: (_, __) =>
+                        placeholder: (_, _) =>
                             Container(color: Colors.white.withValues(alpha: 0.05)),
-                        errorWidget: (_, __, ___) => Container(
+                        errorWidget: (_, _, _) => Container(
                           color: Colors.white.withValues(alpha: 0.05),
                           child: const Icon(Icons.fastfood_rounded,
                               color: Colors.white24),

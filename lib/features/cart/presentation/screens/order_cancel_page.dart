@@ -7,7 +7,6 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/active_order_state.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../app.dart';
 import '../../../../core/utils/file_url_util.dart';
 

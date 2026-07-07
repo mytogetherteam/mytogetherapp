@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -23,6 +25,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
   final List<ItemPostDto> _items = [];
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   bool _hasMore = true;
   int _page = 1;
   // Set when any edit/delete happens, so the parent feed can refresh on pop.
@@ -45,6 +48,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 200 &&
         !_isLoading &&
+        !_isLoadingMore &&
         _hasMore) {
       _loadMore();
     }
@@ -73,8 +77,15 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
   }
 
   Future<void> _loadMore() async {
-    if (!_hasMore) return;
-    setState(() => _isLoading = true);
+    if (!_hasMore || _isLoadingMore) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+    setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
+
     try {
       final nextPage = _page + 1;
       final feed = await ItemPostRepository.instance.fetchMine(page: nextPage);
@@ -83,13 +94,25 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
           _items.addAll(feed.items);
           _page = nextPage;
           _hasMore = feed.page < feed.totalPages;
-          _isLoading = false;
+          _isLoadingMore = false;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
     }
   }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   Future<void> _editPost(ItemPostDto post) async {
     final updated = await Navigator.push<bool>(
@@ -250,13 +273,16 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: _items.length + (_isLoading && _hasMore ? 1 : 0),
-      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemCount: _items.length + (_showPaginationFooter ? 1 : 0),
+      separatorBuilder: (_, index) {
+        if (index >= _items.length - 1) return const SizedBox.shrink();
+        return const Divider(height: 1);
+      },
       itemBuilder: (context, index) {
         if (index >= _items.length) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: CustomLoadingIndicator(size: 24)),
+          return PaginationListFooter(
+            isLoading: _isLoadingMore,
+            showEndMessage: !_hasMore,
           );
         }
         return _MyPostTile(

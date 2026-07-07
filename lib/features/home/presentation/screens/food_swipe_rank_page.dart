@@ -20,7 +20,7 @@ class FoodSwipeRankPage extends StatefulWidget {
 }
 
 class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProviderStateMixin {
-  List<ShopFeedItemDto> _items = [];
+  final List<ShopFeedItemDto> _items = [];
   bool _isLoading = true;
   bool _isFetchingMore = false;
   int _likeCount = 0;
@@ -717,14 +717,14 @@ class _FoodCard extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: item.imageUrl!,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
+                    placeholder: (_, _) => Container(
                       color: const Color(0xFF1A1A2E),
                       child: const Center(
                         child: Icon(Icons.fastfood_rounded,
                             color: Colors.white24, size: 48),
                       ),
                     ),
-                    errorWidget: (_, __, ___) => Container(
+                    errorWidget: (_, _, _) => Container(
                       color: const Color(0xFF1A1A2E),
                       child: const Center(
                         child: Icon(Icons.fastfood_rounded,
@@ -831,10 +831,10 @@ class _FoodCard extends StatelessWidget {
                             child: CachedNetworkImage(
                               imageUrl: item.shopLogoUrl!,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => const Center(
+                              placeholder: (_, _) => const Center(
                                 child: Icon(Icons.storefront_rounded, color: Colors.grey, size: 14),
                               ),
-                              errorWidget: (_, __, ___) => const Center(
+                              errorWidget: (_, _, _) => const Center(
                                 child: Icon(Icons.storefront_rounded, color: Colors.grey, size: 14),
                               ),
                             ),

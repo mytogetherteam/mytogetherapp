@@ -1,0 +1,41 @@
+ M lib/core/localization/app_translations.dart
+ M lib/core/location/geo_distance.dart
+ M lib/core/utils/navigation_controller.dart
+ M lib/features/announcements/presentation/screens/announcements_page.dart
+ M lib/features/auth/data/auth_remote_data_source.dart
+ M lib/features/auth/presentation/screens/profile_page.dart
+ M lib/features/cart/data/coupon_service.dart
+ M lib/features/cart/presentation/screens/awaiting_payment_page.dart
+ M lib/features/cart/presentation/screens/order_cancel_page.dart
+ M lib/features/cart/presentation/screens/order_status_page.dart
+ M lib/features/cart/presentation/screens/order_summary_page.dart
+ M lib/features/cart/presentation/screens/order_tracking_page.dart
+ M lib/features/cart/presentation/widgets/coupon_ticket_sheet.dart
+ M lib/features/chat/presentation/widgets/chat_head_route_observer.dart
+ M lib/features/chat/presentation/widgets/floating_chat_head.dart
+ M lib/features/coupons/presentation/widgets/coupon_details_sheet.dart
+ M lib/features/coupons/presentation/widgets/coupon_rail_section.dart
+ M lib/features/coupons/presentation/widgets/shop_promotions_sheet.dart
+ M lib/features/home/data/models/food_detail_dto.dart
+ M lib/features/home/data/models/shop_feed_item_dto.dart
+ M lib/features/home/data/remote_restaurant_data_source.dart
+ M lib/features/home/data/repositories/restaurant_repository.dart
+ M lib/features/home/presentation/screens/food_swipe_rank_page.dart
+ M lib/features/home/presentation/screens/location_picker_page.dart
+ M lib/features/home/presentation/screens/menu_detail_page.dart
+ M lib/features/home/presentation/screens/restaurant_detail_page.dart
+ M lib/features/home/presentation/widgets/explore_menu_section.dart
+ M lib/features/home/presentation/widgets/food_leaderboard_page.dart
+ M lib/features/home/presentation/widgets/food_leaderboard_section.dart
+ M lib/features/home/presentation/widgets/food_menu_item_card.dart
+ M lib/features/home/presentation/widgets/location_details_sheet.dart
+ M lib/features/home/presentation/widgets/restaurant_card.dart
+ M lib/features/lost_and_found/presentation/screens/lost_and_found_page.dart
+ M lib/features/lost_and_found/presentation/screens/my_item_posts_page.dart
+ M lib/features/news/presentation/screens/news_page.dart
+ M lib/features/notifications/presentation/screens/notifications_page.dart
+?? .editor-reload-backup-status.txt
+?? .editor-reload-backup.patch
+?? lib/features/auth/data/delivery_address_prefs.dart
+?? lib/features/coupons/presentation/screens/
+?? lib/features/home/presentation/widgets/menu_item_discount_badge.dart

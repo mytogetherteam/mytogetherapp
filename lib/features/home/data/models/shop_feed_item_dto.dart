@@ -359,16 +359,34 @@ class SliceShopFeedItemDto {
   });
 
   factory SliceShopFeedItemDto.fromJson(Map<String, dynamic> json) {
+    final content = (json['content'] as List? ?? [])
+        .map((e) => ShopFeedItemDto.fromJson(e))
+        .toList();
+    final size = (json['size'] as num?)?.toInt() ?? content.length;
+    final totalPages = (json['totalPages'] as num?)?.toInt() ?? 0;
+    final totalElements =
+        (json['totalElements'] as num?)?.toInt() ?? content.length;
+    // Backend uses 1-based `page`; Spring slice uses 0-based `number`.
+    final apiPage = (json['page'] as num?)?.toInt() ??
+        ((json['number'] as num?)?.toInt() ?? 0) + 1;
+
+    final bool last;
+    if (json.containsKey('last')) {
+      last = json['last'] == true;
+    } else if (totalPages > 0) {
+      last = apiPage >= totalPages;
+    } else {
+      last = content.isEmpty || content.length < size;
+    }
+
     return SliceShopFeedItemDto(
-      content: (json['content'] as List? ?? [])
-          .map((e) => ShopFeedItemDto.fromJson(e))
-          .toList(),
-      first: json['first'] ?? false,
-      last: json['last'] ?? false,
-      number: json['number'] ?? 0,
-      size: json['size'] ?? 0,
-      totalElements: json['totalElements'] ?? 0,
-      totalPages: json['totalPages'] ?? 0,
+      content: content,
+      first: json['first'] ?? (apiPage <= 1),
+      last: last,
+      number: apiPage - 1,
+      size: size,
+      totalElements: totalElements,
+      totalPages: totalPages,
     );
   }
 }

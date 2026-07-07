@@ -2,7 +2,6 @@
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
-import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/data/coupon_service.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
@@ -135,8 +134,12 @@ class _CouponRailSectionState extends State<CouponRailSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: coupons.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) =>
-                    _CouponBrowseCard(coupon: coupons[index]),
+                itemBuilder: (context, index) => CouponBrowseCard(
+                  coupon: coupons[index],
+                  expandFooter: true,
+                  onTap: () =>
+                      CouponDetailsSheet.show(context, coupons[index]),
+                ),
               ),
             ),
           ],
@@ -172,143 +175,6 @@ class _CouponRailSectionState extends State<CouponRailSection> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _DiscountPill extends StatelessWidget {
-  final String label;
-  const _DiscountPill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-class _CouponBrowseCard extends StatelessWidget {
-  final CouponModel coupon;
-  const _CouponBrowseCard({required this.coupon});
-
-  String _shopName(BuildContext context) {
-    final shop = coupon.shop;
-    if (shop == null) return '';
-    return context.localized(
-      en: shop.nameEn,
-      mm: shop.nameMm,
-      th: shop.nameTh,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final shopName = _shopName(context);
-    final validity = couponValidityLabel(context, coupon);
-
-    return GestureDetector(
-      onTap: () => CouponDetailsSheet.show(context, coupon),
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CouponShopLogo(
-                  key: ValueKey('coupon_logo_${coupon.resolvedShopId}'),
-                  shopId: coupon.resolvedShopId,
-                  shopName: shopName,
-                  size: 40,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        shopName.isNotEmpty ? shopName : context.tr('coupon.all_shops'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                          height: 1.2,
-                        ),
-                        // Display full text for restaurant name up to 3 lines
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      coupon.name.toUpperCase(),
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (validity != null)
-                  Text(
-                    context.trArgs('coupon.until_short', {'date': validity}),
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -6,6 +6,19 @@ class GeoDistance {
 
   static const String defaultDeliveryEta = '20-30 min';
 
+  /// Show a confirm dialog when delivery distance exceeds this (km).
+  /// GrabFood long-distance is typically up to ~10 km.
+  static const double distanceConfirmThresholdKm = 10.0;
+
+  /// Delivery ETA label from straight-line distance (matches feed DTOs).
+  static String deliveryEtaFromKm(double distanceKm) {
+    if (distanceKm <= 0) return defaultDeliveryEta;
+    var minTime = (distanceKm * 2.0).round();
+    if (minTime < 1) minTime = 1;
+    final maxTime = minTime + 5;
+    return '$minTime-$maxTime min';
+  }
+
   /// Haversine distance in kilometers.
   static double haversineKm(
     double lat1,

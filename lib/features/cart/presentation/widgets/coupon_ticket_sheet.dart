@@ -176,7 +176,10 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                       dimmed: _tearingId != null && !isTearing,
                       onTap: (_tearingId != null)
                           ? null
-                          : () => setState(() => _selectedId = coupon.id),
+                          : () => setState(() {
+                                _selectedId =
+                                    isSelected ? null : coupon.id;
+                              }),
                     );
                   },
                 );

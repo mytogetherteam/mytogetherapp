@@ -10,6 +10,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/data/restaurant_data.dart';
+import '../../../home/data/restaurant_order_availability.dart';
+import '../../../home/presentation/widgets/order_unavailability_ui.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
@@ -32,13 +34,17 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
+import '../../../auth/data/delivery_address_prefs.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
+import '../../../home/presentation/screens/location_picker_page.dart';
 import '../../../home/presentation/widgets/location_selection_modal.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
+import '../../../../core/location/geo_distance.dart';
 
 import '../../../home/data/shop_storage.dart';
 
@@ -67,11 +73,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   // the user picked on this page; it's applied to the order at place-order time.
   List<CouponModel> _shopCoupons = const [];
   CouponModel? _selectedCoupon;
+  bool _forcedAddressFlowOpen = false;
 
   @override
   void initState() {
     super.initState();
     _loadPrimaryLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureDeliveryAddressIfNeeded();
+    });
     // Stay in sync with primary-location changes made from any selection path
     // (the modal, or the full search page that may close without a callback).
     UserLocationRepository.instance.addListener(_onLocationRepositoryChanged);
@@ -192,9 +202,45 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       coupons: applicable,
       selectedId: _selectedCoupon?.id,
     );
-    if (chosen != null && mounted) {
-      setState(() => _selectedCoupon = chosen);
+    if (!mounted) return;
+    setState(() => _selectedCoupon = chosen);
+  }
+
+  /// Warns when delivery is farther than [GeoDistance.distanceConfirmThresholdKm].
+  /// Shop may still accept — user can continue after confirming.
+  Future<bool> _confirmFarDeliveryIfNeeded() async {
+    if (!_isDelivery) return true;
+    final loc = _primaryLocation;
+    final shop = _restaurant;
+    final userLat = loc?.latitude;
+    final userLon = loc?.longitude;
+    final shopLat = shop?.latitude;
+    final shopLon = shop?.longitude;
+    if (userLat == null ||
+        userLon == null ||
+        shopLat == null ||
+        shopLon == null) {
+      return true;
     }
+    final km = GeoDistance.haversineKm(userLat, userLon, shopLat, shopLon);
+    if (km <= GeoDistance.distanceConfirmThresholdKm) return true;
+
+    if (!mounted) return false;
+    final distanceStr = km.toStringAsFixed(1);
+    final result = await AppDialog.show<bool>(
+      context: context,
+      title: context.tr('order.far_delivery_title'),
+      content: context.trArgs('order.far_delivery_message', {
+        'distance': distanceStr,
+        'limit': GeoDistance.distanceConfirmThresholdKm.toStringAsFixed(0),
+      }),
+      buttonText: context.tr('order.far_delivery_continue'),
+      secondaryButtonText: context.tr('common.cancel'),
+      onButtonPressed: () => Navigator.pop(context, true),
+      onSecondaryPressed: () => Navigator.pop(context, false),
+      showCloseIcon: false,
+    );
+    return result == true;
   }
 
   Future<void> _loadShopPaymentMethods(int shopId) async {
@@ -230,6 +276,53 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   void _onLocationRepositoryChanged() {
     _loadPrimaryLocation(forceRefresh: true);
+  }
+
+  bool _hasSavedDeliveryAddress() {
+    final loc = _primaryLocation;
+    return loc != null &&
+        loc.id > 0 &&
+        (loc.streetAddress?.trim().isNotEmpty ?? false);
+  }
+
+  Future<void> _ensureDeliveryAddressIfNeeded() async {
+    if (!_isDelivery || GuestAuthGuard.isGuest || !mounted) return;
+    if (_forcedAddressFlowOpen) return;
+    if (!await DeliveryAddressPrefs.requiresForcedSetup()) return;
+    await _openForcedAddressSetup();
+  }
+
+  Future<void> _openForcedAddressSetup() async {
+    if (_forcedAddressFlowOpen || !mounted) return;
+    _forcedAddressFlowOpen = true;
+    try {
+      final saved = await Navigator.of(context).push<UserLocationModel>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const LocationPickerPage(forcedSetup: true),
+        ),
+      );
+      if (saved != null && mounted) {
+        await _loadPrimaryLocation(forceRefresh: true);
+      }
+    } finally {
+      _forcedAddressFlowOpen = false;
+    }
+  }
+
+  Future<bool> _ensureSavedDeliveryAddressForOrder() async {
+    if (!_isDelivery) return true;
+    if (_hasSavedDeliveryAddress()) {
+      if (await DeliveryAddressPrefs.requiresForcedSetup()) {
+        await DeliveryAddressPrefs.setCompletedSetup(true);
+      }
+      return true;
+    }
+    if (await DeliveryAddressPrefs.requiresForcedSetup()) {
+      await _openForcedAddressSetup();
+    }
+    if (!mounted) return false;
+    return _hasSavedDeliveryAddress();
   }
 
   Future<void> _loadPrimaryLocation({bool forceRefresh = false}) async {
@@ -425,6 +518,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isProcessing = false;
   bool _hasShownEmptyToast = false;
 
+  RestaurantOrderAvailability? get _orderAvailability {
+    final restaurant = _restaurant;
+    if (restaurant == null) return null;
+    return RestaurantOrderAvailability.of(restaurant);
+  }
+
+  bool get _isShopClosed =>
+      _orderAvailability?.reason == OrderBlockReason.closed;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -434,6 +536,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ]),
       builder: (context, _) {
         final hasOngoingOrder = ActiveOrderState.instance.hasActiveOrder;
+        final orderAvailability = _orderAvailability;
+        final isShopClosed = _isShopClosed;
         // Find store in current state to ensure reactivity
         final currentStoreIdx = CartManager.instance.stores.indexWhere(
           (s) => s.nameKey == widget.store.nameKey,
@@ -681,8 +785,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: InkWell(
-                                      onTap: () =>
-                                          setState(() => _isDelivery = true),
+                                      onTap: () async {
+                                        setState(() => _isDelivery = true);
+                                        await _ensureDeliveryAddressIfNeeded();
+                                      },
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
                                         height: 50,
@@ -1077,18 +1183,48 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             ),
                           ),
                         ),
+                      if (isShopClosed && orderAvailability != null) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          child: RestaurantOrderStatusStrip(
+                            message: orderAvailability.statusStripText(context),
+                            reason: OrderBlockReason.closed,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: PrimaryGradientButton(
                           onPressed: (_isPlacingOrder ||
                                   _isProcessing ||
-                                  hasOngoingOrder)
+                                  hasOngoingOrder ||
+                                  isShopClosed)
                               ? null
                               : () async {
                                   if (GuestAuthGuard.isGuest) {
                                     await GuestAuthGuard.requireAccount(context);
                                     return;
+                                  }
+
+                                  if (_isDelivery) {
+                                    final hasAddress =
+                                        await _ensureSavedDeliveryAddressForOrder();
+                                    if (!hasAddress) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              context.tr(
+                                                'location.forced_setup_required',
+                                              ),
+                                            ),
+                                            backgroundColor: AppColors.primary,
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
                                   }
 
                                   if (ActiveOrderState.instance.hasActiveOrder) {
@@ -1132,25 +1268,36 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   );
 
                                   try {
-                                    if (ActiveOrderState.instance.hasActiveOrder) {
-                                      operationCompleted = true;
-                                      if (mounted) {
-                                        setState(() {
-                                          _isPlacingOrder = false;
-                                          _isProcessing = false;
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              context.tr('cart.ongoing_order_wait'),
-                                              style: GoogleFonts.poppins(),
-                                            ),
-                                            backgroundColor: const Color(0xFF2563EB),
+                                  if (ActiveOrderState.instance.hasActiveOrder) {
+                                    operationCompleted = true;
+                                    if (mounted) {
+                                      setState(() {
+                                        _isPlacingOrder = false;
+                                        _isProcessing = false;
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            context.tr('cart.ongoing_order_wait'),
+                                            style: GoogleFonts.poppins(),
                                           ),
-                                        );
-                                      }
-                                      return;
+                                          backgroundColor: const Color(0xFF2563EB),
+                                        ),
+                                      );
                                     }
+                                    return;
+                                  }
+
+                                  if (!await _confirmFarDeliveryIfNeeded()) {
+                                    operationCompleted = true;
+                                    if (mounted) {
+                                      setState(() {
+                                        _isPlacingOrder = false;
+                                        _isProcessing = false;
+                                      });
+                                    }
+                                    return;
+                                  }
 
                                     // Call backend: POST /api/user/orders
                                     // (UserOrdersController.create). Schema
@@ -1421,7 +1568,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 },
                           isLoading: _isPlacingOrder,
                           child: Text(
-                            context.tr('cart.place_order'),
+                            isShopClosed
+                                ? context.tr('cart.closed_now')
+                                : context.tr('cart.place_order'),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 16,
@@ -1509,7 +1658,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final hasCoupons = _shopCoupons.isNotEmpty;
     final isHighlighted = hasSelection || hasCoupons;
 
-    if (_shopCoupons.isEmpty && !hasSelection) {
+    if (!hasSelection && applicable.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -1587,20 +1736,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (hasSelection)
-                  GestureDetector(
+                if (hasSelection) ...[
+                  _CouponRowIconButton(
+                    icon: PhosphorIconsRegular.arrowsLeftRight,
+                    tooltip: context.tr('coupon.change'),
+                    color: AppColors.primary,
+                    onTap: () => _openCouponSheet(subtotal, items),
+                  ),
+                  const SizedBox(width: 4),
+                  _CouponRowIconButton(
+                    icon: PhosphorIconsRegular.x,
+                    tooltip: context.tr('coupon.remove'),
+                    color: Colors.grey.shade600,
                     onTap: () => setState(() => _selectedCoupon = null),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      color: Colors.transparent,
-                      child: Icon(
-                        PhosphorIcons.x,
-                        size: 18,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  )
-                else
+                  ),
+                ] else
                   Container(
                     padding: EdgeInsets.all(isHighlighted ? 4 : 0),
                     decoration: isHighlighted ? BoxDecoration(
@@ -2342,6 +2492,39 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CouponRowIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CouponRowIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, size: 18, color: color),
+          ),
+        ),
       ),
     );
   }

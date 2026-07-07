@@ -10,12 +10,14 @@ class LocationDetailsSheet extends StatefulWidget {
   final UserLocationModel location;
   final Function(UserLocationModel) onSave;
   final bool isEdit;
+  final bool allowDismiss;
 
   const LocationDetailsSheet({
     super.key,
     required this.location,
     required this.onSave,
     this.isEdit = false,
+    this.allowDismiss = true,
   });
 
   @override
@@ -97,10 +99,11 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
+                if (widget.allowDismiss)
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
               ],
             ),
             const SizedBox(height: 8),

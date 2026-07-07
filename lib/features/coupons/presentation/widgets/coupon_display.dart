@@ -85,6 +85,133 @@ String couponBogoGiftSummary(BuildContext context, CouponModel coupon) {
 String _trimNum(double v) =>
     v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
+String _couponShopName(BuildContext context, CouponModel coupon) {
+  final shop = coupon.shop;
+  if (shop == null) return '';
+  return context.localized(
+    en: shop.nameEn,
+    mm: shop.nameMm,
+    th: shop.nameTh,
+  );
+}
+
+/// Shared browse / saved coupon card (shop row + gradient name badge + expiry).
+class CouponBrowseCard extends StatelessWidget {
+  final CouponModel coupon;
+  final VoidCallback? onTap;
+
+  /// Fixed width for horizontal rails; null stretches to parent width.
+  final double? width;
+
+  /// Rail cards sit in a fixed-height row and push the footer down with [Spacer].
+  final bool expandFooter;
+
+  const CouponBrowseCard({
+    super.key,
+    required this.coupon,
+    this.onTap,
+    this.width = 250,
+    this.expandFooter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final shopName = _couponShopName(context, coupon);
+    final validity = couponValidityLabel(context, coupon);
+
+    final card = Container(
+      width: width,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: expandFooter ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CouponShopLogo(
+                key: ValueKey('coupon_logo_${coupon.resolvedShopId}'),
+                shopId: coupon.resolvedShopId,
+                shopName: shopName,
+                size: 40,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  shopName.isNotEmpty
+                      ? shopName
+                      : context.tr('coupon.all_shops'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.2,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          if (expandFooter) const Spacer() else const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    coupon.name.toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              if (validity != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  context.trArgs('coupon.until_short', {'date': validity}),
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return card;
+    return GestureDetector(onTap: onTap, child: card);
+  }
+}
+
 /// The shop's circular logo, resolved client-side via the shop-profile endpoint
 /// (the coupon list doesn't include it). Falls back to a letter avatar.
 class CouponShopLogo extends StatelessWidget {

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/data/coupon_service.dart';
+import '../../../coupons/presentation/screens/saved_coupons_page.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import 'coupon_display.dart';
 import 'redeem_qr_sheet.dart';
@@ -65,7 +69,7 @@ class CouponSheetShell extends StatelessWidget {
 /// and a back arrow returns to the list instead of a drag handle. When
 /// [currentShopId] equals the coupon's shop, "Order" simply closes the sheet
 /// (the user is already on that shop's page).
-class CouponDetailsView extends StatelessWidget {
+class CouponDetailsView extends StatefulWidget {
   final CouponModel coupon;
   final VoidCallback? onBack;
   final int? currentShopId;
@@ -76,6 +80,13 @@ class CouponDetailsView extends StatelessWidget {
     this.onBack,
     this.currentShopId,
   });
+
+  @override
+  State<CouponDetailsView> createState() => _CouponDetailsViewState();
+}
+
+class _CouponDetailsViewState extends State<CouponDetailsView> {
+  CouponModel get coupon => widget.coupon;
 
   String _shopName(BuildContext context) {
     final shop = coupon.shop;
@@ -91,7 +102,7 @@ class CouponDetailsView extends StatelessWidget {
     final shopId = coupon.resolvedShopId;
     if (shopId == null) return;
     // Already on this shop's page → just close the sheet and stay.
-    if (currentShopId != null && shopId == currentShopId) {
+    if (widget.currentShopId != null && shopId == widget.currentShopId) {
       Navigator.of(context).pop();
       return;
     }
@@ -121,13 +132,13 @@ class CouponDetailsView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (onBack != null)
+        if (widget.onBack != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: Row(
               children: [
                 InkWell(
-                  onTap: onBack,
+                  onTap: widget.onBack,
                   borderRadius: BorderRadius.circular(20),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
@@ -197,7 +208,11 @@ class CouponDetailsView extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (coupon.isEarlyBird) const _EarlyBirdTag(),
+                    _CouponWishlistButton(couponId: coupon.id),
+                    if (coupon.isEarlyBird) ...[
+                      const SizedBox(width: 8),
+                      const _EarlyBirdTag(),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -281,7 +296,6 @@ class CouponDetailsView extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
         const SizedBox(height: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -533,6 +547,116 @@ class _HowToUse extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CouponWishlistButton extends StatefulWidget {
+  final int couponId;
+
+  const _CouponWishlistButton({required this.couponId});
+
+  @override
+  State<_CouponWishlistButton> createState() => _CouponWishlistButtonState();
+}
+
+class _CouponWishlistButtonState extends State<_CouponWishlistButton> {
+  bool _saved = false;
+  bool _loading = false;
+  bool _initializing = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    if (!AuthService().isLoggedIn) {
+      if (mounted) setState(() => _initializing = false);
+      return;
+    }
+    try {
+      final saved =
+          await CouponService.instance.isWishlisted(widget.couponId);
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _initializing = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _initializing = false);
+    }
+  }
+
+  Future<void> _toggle() async {
+    if (_loading || _initializing) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    setState(() => _loading = true);
+    try {
+      final saved = await CouponService.instance.toggleWishlist(widget.couponId);
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _loading = false;
+      });
+      if (saved) {
+        AppDialog.showToast(
+          context,
+          context.tr('coupon.saved_to_wishlist'),
+          actionLabel: context.tr('wishlist.view_action'),
+          onAction: () => SavedCouponsPage.open(context),
+        );
+      } else {
+        AppDialog.showToast(
+          context,
+          context.tr('coupon.removed_from_wishlist'),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+        AppDialog.showToast(
+          context,
+          context.tr('common.favorite_failed'),
+          isError: true,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.tr(_saved ? 'coupon.saved' : 'coupon.save_for_later');
+
+    return Tooltip(
+      message: label,
+      child: IconButton(
+        onPressed: (_loading || _initializing) ? null : _toggle,
+        icon: _loading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary.withValues(alpha: 0.7),
+                ),
+              )
+            : Icon(
+                _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                size: 22,
+                color: _saved ? AppColors.primary : Colors.grey.shade600,
+              ),
+        style: IconButton.styleFrom(
+          backgroundColor: _saved
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.grey.shade100,
+          minimumSize: const Size(40, 40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }

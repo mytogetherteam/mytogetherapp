@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'floating_chat_head.dart';
-import '../screens/chat_page.dart';
 
 /// A NavigatorObserver that automatically hides the FloatingChatHead
 /// whenever ChatPage is the active route, and shows it otherwise.

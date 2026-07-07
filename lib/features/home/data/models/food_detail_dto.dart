@@ -90,8 +90,6 @@ class FoodDetailDto {
     final shop = json['shop'] is Map
         ? Map<String, dynamic>.from(json['shop'] as Map)
         : null;
-    final optionGroupsRaw =
-        (json['optionGroups'] as List?) ?? (json['addOns'] as List?) ?? const [];
 
     return FoodDetailDto(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
@@ -121,26 +119,55 @@ class FoodDetailDto {
           })
           .whereType<String>()
           .toList(),
-      variants: _sortedVariantsFromJson(json['variants'] as List?),
-      optionGroups: optionGroupsRaw
-          .where((e) => e != null)
-          .map((e) => MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .where((g) => g.isAvailable && g.options.isNotEmpty)
-          .toList()
-        ..sort(
-          (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
-        ),
+      variants: _sortedVariantsFromJson(json),
+      optionGroups: _optionGroupsFromJson(json),
       isFavorite: json['isFavorite'] ?? false,
       isAvailable: json['isAvailable'] as bool? ?? true,
     );
   }
 }
 
-List<MenuItemVariantDto> _sortedVariantsFromJson(List? raw) {
-  final variants = (raw ?? [])
+List<MenuItemVariantDto> _sortedVariantsFromJson(Map<String, dynamic> json) {
+  final apiGroups = (json['variantGroups'] as List? ?? const [])
+      .whereType<Map>()
+      .map((g) => Map<String, dynamic>.from(g))
+      .toList();
+
+  final groupMetaById = <int, Map<String, dynamic>>{
+    for (final group in apiGroups)
+      if (int.tryParse(group['id']?.toString() ?? '') != null)
+        int.parse(group['id'].toString()): group,
+  };
+
+  final variants = (json['variants'] as List? ?? const [])
       .where((e) => e != null)
       .map((e) => MenuItemVariantDto.fromJson(Map<String, dynamic>.from(e as Map)))
       .where((v) => v.isAvailable)
+      .map((variant) {
+        final groupId = variant.variantGroupId;
+        final group = groupId != null ? groupMetaById[groupId] : null;
+        if (group == null) return variant;
+        return MenuItemVariantDto(
+          id: variant.id,
+          name: variant.name,
+          nameEn: variant.nameEn,
+          nameMm: variant.nameMm,
+          nameTh: variant.nameTh,
+          price: variant.price,
+          displayPrice: variant.displayPrice,
+          isAvailable: variant.isAvailable,
+          displayOrder: variant.displayOrder,
+          variantGroupId: groupId,
+          variantGroupDisplayOrder: variant.variantGroupDisplayOrder ??
+              group['displayOrder'] as int?,
+          variantGroupNameEn:
+              variant.variantGroupNameEn ?? group['nameEn'] as String?,
+          variantGroupNameMm:
+              variant.variantGroupNameMm ?? group['nameMm'] as String?,
+          variantGroupNameTh:
+              variant.variantGroupNameTh ?? group['nameTh'] as String?,
+        );
+      })
       .toList();
 
   variants.sort((a, b) {
@@ -151,6 +178,81 @@ List<MenuItemVariantDto> _sortedVariantsFromJson(List? raw) {
   });
 
   return variants;
+}
+
+List<MenuItemOptionGroupDto> _optionGroupsFromJson(Map<String, dynamic> json) {
+  final nestedRaw =
+      (json['optionGroups'] as List?) ?? (json['addOns'] as List?) ?? const [];
+  final flatRaw = json['options'] as List? ?? const [];
+
+  final groupsById = <int, MenuItemOptionGroupDto>{};
+  final groupOrder = <int>[];
+
+  for (final raw in nestedRaw) {
+    if (raw is! Map) continue;
+    final group = MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(raw));
+    if (!group.isAvailable || group.options.isEmpty) continue;
+    groupsById[group.id] = group;
+    groupOrder.add(group.id);
+  }
+
+  final nestedOptionIds = <int>{
+    for (final group in groupsById.values)
+      for (final option in group.options)
+        if (option.id > 0) option.id,
+  };
+
+  final ungrouped = <MenuItemOptionDto>[];
+
+  for (final raw in flatRaw) {
+    if (raw is! Map) continue;
+    final map = Map<String, dynamic>.from(raw);
+    final option = MenuItemOptionDto.fromJson(map);
+    if (option.id > 0 && nestedOptionIds.contains(option.id)) continue;
+
+    final embeddedGroupRaw = map['optionGroup'] ?? map['group'];
+    final embeddedGroup = embeddedGroupRaw is Map
+        ? Map<String, dynamic>.from(embeddedGroupRaw)
+        : null;
+    final embeddedDeleted = embeddedGroup?['deletedAt'] != null;
+    final groupId = int.tryParse(map['optionGroupId']?.toString() ?? '') ??
+        int.tryParse(embeddedGroup?['id']?.toString() ?? '');
+
+    if (groupId != null &&
+        groupId > 0 &&
+        !embeddedDeleted &&
+        groupsById.containsKey(groupId)) {
+      final group = groupsById[groupId]!;
+      if (group.options.any((o) => o.id == option.id)) continue;
+      groupsById[groupId] = group.copyWith(
+        options: [...group.options, option]
+          ..sort(
+            (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+          ),
+      );
+      continue;
+    }
+
+    ungrouped.add(option);
+  }
+
+  if (ungrouped.isNotEmpty) {
+    ungrouped.sort(
+      (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+    );
+    groupsById[0] = MenuItemOptionGroupDto(
+      id: 0,
+      name: '',
+      options: ungrouped,
+    );
+    groupOrder.add(0);
+  }
+
+  final merged = groupOrder.map((id) => groupsById[id]!).toList();
+  merged.sort(
+    (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+  );
+  return merged;
 }
 
 class MenuItemVariantDto {
@@ -248,11 +350,34 @@ class MenuItemOptionGroupDto {
     required this.options,
   }) : _name = name;
 
+  MenuItemOptionGroupDto copyWith({
+    int? id,
+    String? name,
+    String? nameEn,
+    String? nameMm,
+    String? nameTh,
+    int? displayOrder,
+    bool? isAvailable,
+    List<MenuItemOptionDto>? options,
+  }) {
+    return MenuItemOptionGroupDto(
+      id: id ?? this.id,
+      name: name ?? _name,
+      nameEn: nameEn ?? this.nameEn,
+      nameMm: nameMm ?? this.nameMm,
+      nameTh: nameTh ?? this.nameTh,
+      displayOrder: displayOrder ?? this.displayOrder,
+      isAvailable: isAvailable ?? this.isAvailable,
+      options: options ?? this.options,
+    );
+  }
+
   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
     final isAvailable = json['isAvailable'] as bool? ?? true;
     final options = (json['options'] as List? ?? [])
         .where((e) => e != null)
         .map((e) => MenuItemOptionDto.fromJson(Map<String, dynamic>.from(e as Map)))
+        .where((o) => o.isAvailable)
         .toList()
       ..sort(
         (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
@@ -279,6 +404,7 @@ class MenuItemOptionDto {
   final double price;
   final String? displayPrice;
   final int? displayOrder;
+  final bool isAvailable;
 
   String get name => LocaleController.instance
       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
@@ -292,6 +418,7 @@ class MenuItemOptionDto {
     required this.price,
     this.displayPrice,
     this.displayOrder,
+    this.isAvailable = true,
   }) : _name = name;
 
   factory MenuItemOptionDto.fromJson(Map<String, dynamic> json) {
@@ -304,6 +431,7 @@ class MenuItemOptionDto {
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       displayPrice: json['displayPrice'] as String?,
       displayOrder: json['displayOrder'] as int?,
+      isAvailable: json['isAvailable'] as bool? ?? json['deletedAt'] == null,
     );
   }
 }

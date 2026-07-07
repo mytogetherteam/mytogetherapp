@@ -7,7 +7,8 @@ import '../../../news/presentation/widgets/news_feed_item.dart';
 import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
 import '../../../news/data/models/news_item.dart';
 import '../../data/repositories/item_post_repository.dart';
-import '../../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../../core/presentation/widgets/pagination_list_footer.dart';
 import 'create_item_post_page.dart';
 import 'my_item_posts_page.dart';
 
@@ -21,6 +22,7 @@ class LostAndFoundPage extends StatefulWidget {
 class _LostAndFoundPageState extends State<LostAndFoundPage> {
   final List<NewsItem> _items = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   bool _hasMore = true;
   int _page = 1;
   final ScrollController _scrollController = ScrollController();
@@ -41,7 +43,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoading && _hasMore) {
+      if (!_isLoadingMore && !_isLoading && _hasMore) {
         _loadMoreData();
       }
     }
@@ -76,8 +78,15 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
   }
 
   Future<void> _loadMoreData() async {
-    if (!_hasMore) return;
-    setState(() => _isLoading = true);
+    if (!_hasMore || _isLoadingMore) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+    setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
+
     try {
       final nextPage = _page + 1;
       final feed = await ItemPostRepository.instance.fetchFeed(page: nextPage);
@@ -86,13 +95,25 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
           _items.addAll(feed.items.map(NewsItem.fromItemPost));
           _page = nextPage;
           _hasMore = feed.page < feed.totalPages;
-          _isLoading = false;
+          _isLoadingMore = false;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
     }
   }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   Future<void> _openCreatePost() async {
     final created = await Navigator.push<bool>(
@@ -264,11 +285,11 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                   childCount: _items.length,
                 ),
               ),
-            if (_isLoading && _items.isNotEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CustomLoadingIndicator(size: 24)),
+            if (_items.isNotEmpty && _showPaginationFooter)
+              SliverToBoxAdapter(
+                child: PaginationListFooter(
+                  isLoading: _isLoadingMore,
+                  showEndMessage: !_hasMore,
                 ),
               ),
             const SliverPadding(padding: EdgeInsets.only(bottom: 100)),

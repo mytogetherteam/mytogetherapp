@@ -36,7 +36,8 @@ import '../widgets/my_together_verified_badge.dart';
 import '../../data/restaurant_order_availability.dart';
 import '../../data/shop_order_state_cache.dart';
 import '../../data/models/shop_feed_item_dto.dart';
-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -111,7 +112,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   // Shop menu categories (GET /api/user/menu-categories) used to group the menu
   // into ordered sections. Empty until loaded / for guests.
   List<MenuCategoryDto> _categories = [];
-  int _menuPage = 0;
+  /// Next 0-based page index per category when using per-category fetches.
+  final Map<int, int> _categoryPage = {};
+  final Map<int, bool> _categoryHasMore = {};
+  int _shopWidePage = 0;
+  bool _shopWideHasMore = true;
   bool _hasMoreMenu = true;
   bool _isMenuLoading = false;
   static const int _pageSize = 20;
@@ -181,9 +186,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     if (shopId > 0) {
       ActiveOrderState.instance.setCurrentShopId(shopId);
       WebSocketService().connect();
-      _fetchCategories(shopId);
-      _loadInitialMenu();
       _fetchPromotionCount(shopId);
+      _loadInitialMenu();
     }
 
     // Also refresh the shop detail header (name, logo, rating etc.)
@@ -360,7 +364,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         setState(() {
           _targetMenuItemId = null; // Clear deep-linked highlight
           _menuItems.clear();
-          _menuPage = 0;
+          _categoryPage.clear();
+          _categoryHasMore.clear();
+          _shopWidePage = 0;
+          _shopWideHasMore = true;
           _hasMoreMenu = true;
           // NOTE: intentionally do NOT reset `_hasScrolledToTarget` here.
           // The scroll-to-target is a one-time intent when the page is opened
@@ -368,27 +375,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           // real-time WebSocket events (menu/shop-profile updates, reconnects),
           // so re-arming it would repeatedly yank the user back to the target.
         });
-        _fetchCategories(shopId);
         _loadInitialMenu();
       } else {
-        _fetchCategories(shopId);
         try {
-          final currentSize = _menuItems.length > _pageSize ? _menuItems.length : _pageSize;
-          final result = await RestaurantRepository.instance.getShopMenu(
-            shopId: shopId,
-            page: 0,
-            size: currentSize,
-          );
-          if (mounted) {
-            setState(() {
-              _menuItems.clear();
-              _menuItems.addAll(result.content);
-              _hasMoreMenu = !result.last && result.content.isNotEmpty;
-              if (_hasMoreMenu) {
-                _menuPage = (_menuItems.length / _pageSize).ceil();
-              }
-            });
-          }
+          await _fetchCategories(shopId);
+          await _fetchMenu(isInitial: true);
         } catch (_) {}
       }
 
@@ -427,7 +418,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       final cats = await RestaurantRepository.instance.getMenuCategories(
         shopId: shopId,
       );
-      if (mounted && cats.isNotEmpty) {
+      if (mounted) {
         setState(() => _categories = cats);
       }
     } catch (e) {
@@ -435,9 +426,116 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     }
   }
 
+  void _resetMenuPagination() {
+    _categoryPage.clear();
+    _categoryHasMore.clear();
+    _shopWidePage = 0;
+    _shopWideHasMore = true;
+    _hasMoreMenu = true;
+  }
+
+  void _mergeMenuPage(
+    SliceShopFeedItemDto result, {
+    int? categoryId,
+    required int fetchedPage,
+  }) {
+    final existingIds = _menuItems.map((e) => e.id).toSet();
+    for (final item in result.content) {
+      if (existingIds.add(item.id)) {
+        _menuItems.add(item);
+      }
+    }
+
+    final hasMore = !result.last && result.content.isNotEmpty;
+    if (categoryId != null) {
+      _categoryHasMore[categoryId] = hasMore;
+      _categoryPage[categoryId] = hasMore ? fetchedPage + 1 : fetchedPage;
+    } else {
+      _shopWideHasMore = hasMore;
+      _shopWidePage = hasMore ? fetchedPage + 1 : fetchedPage;
+    }
+  }
+
+  void _syncHasMoreMenu() {
+    if (_categories.isNotEmpty) {
+      _hasMoreMenu = _categoryHasMore.values.any((hasMore) => hasMore);
+    } else {
+      _hasMoreMenu = _shopWideHasMore;
+    }
+  }
+
+  Future<void> _fetchCategoryMenuPages({required bool isInitial}) async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    if (shopId == 0) return;
+
+    final requests = <Future<SliceShopFeedItemDto>>[];
+    final categoryIds = <int>[];
+    final pages = <int>[];
+
+    for (final cat in _categories) {
+      final hasMore = _categoryHasMore[cat.id] ?? true;
+      if (!isInitial && !hasMore) continue;
+      final page = isInitial ? 0 : (_categoryPage[cat.id] ?? 0);
+      categoryIds.add(cat.id);
+      pages.add(page);
+      requests.add(
+        RestaurantRepository.instance.getShopMenu(
+          shopId: shopId,
+          categoryId: cat.id,
+          page: page,
+          size: _pageSize,
+        ),
+      );
+    }
+
+    if (requests.isEmpty) {
+      _syncHasMoreMenu();
+      return;
+    }
+
+    final results = await Future.wait(requests);
+    if (!mounted) return;
+
+    setState(() {
+      for (var i = 0; i < results.length; i++) {
+        _mergeMenuPage(
+          results[i],
+          categoryId: categoryIds[i],
+          fetchedPage: pages[i],
+        );
+      }
+      _syncHasMoreMenu();
+    });
+  }
+
+  Future<void> _fetchShopWideMenuPage({required bool isInitial}) async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    if (shopId == 0) return;
+
+    final page = isInitial ? 0 : _shopWidePage;
+    final result = await RestaurantRepository.instance.getShopMenu(
+      shopId: shopId,
+      page: page,
+      size: _pageSize,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      if (isInitial) {
+        _menuItems.clear();
+      }
+      _mergeMenuPage(result, fetchedPage: page);
+      _syncHasMoreMenu();
+    });
+  }
+
   /// Loads the first menu page, then keeps paging until [targetMenuItemId] is
   /// present (when set) so scroll + highlight can reach off-screen items.
   Future<void> _loadInitialMenu() async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    if (shopId > 0) {
+      await _fetchCategories(shopId);
+    }
     await _fetchMenu(isInitial: true);
     final targetId = widget.targetMenuItemId;
     if (targetId == null || targetId.isEmpty) return;
@@ -518,30 +616,48 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     final shopId = int.tryParse(widget.id) ?? 0;
     if (shopId == 0) return;
 
-    setState(() => _isMenuLoading = true);
+    final wasNearEnd =
+        !isInitial && PaginationScroll.wasNearEnd(_scrollController, threshold: 500);
+    setState(() {
+      _isMenuLoading = true;
+      if (isInitial) {
+        _menuItems.clear();
+        _resetMenuPagination();
+      }
+    });
+    if (!isInitial) {
+      PaginationScroll.maintainAfterPageAppend(
+        _scrollController,
+        wasNearEnd: wasNearEnd,
+      );
+    }
 
     try {
-      final result = await RestaurantRepository.instance.getShopMenu(
-        shopId: shopId,
-        page: isInitial ? 0 : _menuPage,
-        size: _pageSize,
-      );
-
+      if (_categories.isNotEmpty) {
+        await _fetchCategoryMenuPages(isInitial: isInitial);
+      } else {
+        await _fetchShopWideMenuPage(isInitial: isInitial);
+      }
       if (mounted) {
-        setState(() {
-          if (isInitial) {
-            _menuItems.clear();
-            _menuPage = 0;
-          }
-          _menuItems.addAll(result.content);
-          _hasMoreMenu = !result.last && result.content.isNotEmpty;
-          if (_hasMoreMenu) _menuPage++;
-          _isMenuLoading = false;
-        });
+        setState(() => _isMenuLoading = false);
+        if (!isInitial) {
+          PaginationScroll.maintainAfterPageAppend(
+            _scrollController,
+            wasNearEnd: wasNearEnd,
+          );
+        }
       }
     } catch (e) {
       debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
-      if (mounted) setState(() => _isMenuLoading = false);
+      if (mounted) {
+        setState(() => _isMenuLoading = false);
+        if (!isInitial) {
+          PaginationScroll.maintainAfterPageAppend(
+            _scrollController,
+            wasNearEnd: wasNearEnd,
+          );
+        }
+      }
     }
   }
 
@@ -843,15 +959,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                     ),
                     ..._buildMenuSlivers(context),
                     if (_isMenuLoading)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32),
-                          child: Center(
-                            child: CustomLoadingIndicator(
-                              size: 30,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                      const SliverToBoxAdapter(
+                        child: PaginationListFooter(
+                          isLoading: true,
                         ),
                       ),
                     const SliverToBoxAdapter(

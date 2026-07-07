@@ -220,7 +220,7 @@ class RestaurantCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFACC15).withOpacity(0.2), // Yellow
+                        color: const Color(0xFFFACC15).withValues(alpha: 0.2), // Yellow
                         border: Border.all(color: const Color(0xFFFACC15)),
                         borderRadius: BorderRadius.circular(4),
                       ),

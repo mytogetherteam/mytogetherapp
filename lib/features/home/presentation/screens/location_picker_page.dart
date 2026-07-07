@@ -15,6 +15,7 @@ import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../auth/data/delivery_address_prefs.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
 import '../widgets/location_details_sheet.dart';
@@ -24,7 +25,10 @@ import '../widgets/pinned_map_view.dart';
 
 /// Unified map + search + pin screen for adding a delivery location.
 class LocationPickerPage extends StatefulWidget {
-  const LocationPickerPage({super.key});
+  /// When true, user must save an address — no back navigation until saved.
+  final bool forcedSetup;
+
+  const LocationPickerPage({super.key, this.forcedSetup = false});
 
   @override
   State<LocationPickerPage> createState() => _LocationPickerPageState();
@@ -264,6 +268,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       builder: (ctx) => LocationDetailsSheet(
         location: draft,
         isEdit: false,
+        allowDismiss: !widget.forcedSetup,
         onSave: _persistNewLocation,
       ),
     );
@@ -276,14 +281,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     try {
       final saved = await UserLocationRepository.instance.addLocation(model);
       UserLocationRepository.instance.setActiveLocation(saved);
+      if (widget.forcedSetup) {
+        await DeliveryAddressPrefs.setCompletedSetup(true);
+      }
       if (mounted) {
         Navigator.pop(context, saved);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('location.saved_success')),
-            backgroundColor: AppColors.primary,
-          ),
-        );
+        if (!widget.forcedSetup) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.tr('location.saved_success')),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -304,85 +314,147 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
+  Widget _buildForcedSetupBanner() {
+    return Material(
+      color: const Color(0xFFFFF7ED),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              PhosphorIconsFill.mapPin,
+              color: AppColors.primary,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('location.forced_setup_title'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    context.tr('location.forced_setup_subtitle'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: _isLoadingInitial || _selectedPosition == null
-          ? const Center(child: CustomLoadingIndicator(size: 32))
-          : Stack(
-              children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: _showMap
-                          ? PinnedMapView(
+    final forcedBannerInset = widget.forcedSetup ? 88.0 : 0.0;
+
+    return PopScope(
+      canPop: !widget.forcedSetup,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: _isLoadingInitial || _selectedPosition == null
+            ? const Center(child: CustomLoadingIndicator(size: 32))
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      SizedBox(height: forcedBannerInset),
+                      Expanded(
+                        child: _showMap
+                            ? PinnedMapView(
                               key: _mapKey,
                               initialPosition: _selectedPosition!,
-                              mapPadding: const EdgeInsets.only(
-                                top: 72,
+                              mapPadding: EdgeInsets.only(
+                                top: 72 + forcedBannerInset,
                                 bottom: _pinLift,
                               ),
                               onGoToMyLocation: _goToMyLocation,
                               onCameraMoveStarted: _geocode.onCameraMoveStarted,
                               onPinDropped: _onPinDropped,
                             )
-                          : const ColoredBox(
-                              color: Color(0xFFF1F5F9),
-                              child: Center(
-                                child: CustomLoadingIndicator(size: 28),
+                            : const ColoredBox(
+                                color: Color(0xFFF1F5F9),
+                                child: Center(
+                                  child: CustomLoadingIndicator(size: 28),
+                                ),
                               ),
-                            ),
-                    ),
-                    ListenableBuilder(
-                      listenable: _geocode,
-                      builder: (context, _) => MapPickerAddressPanel(
-                        addressController: _geocode.addressController,
-                        isGeocoding: _geocode.isGeocoding,
-                        isMapMoving: _geocode.isMapMoving,
-                        isSaving: _isSaving,
-                        canConfirmBase: _selectedPosition != null,
-                        addressError: _geocode.addressError,
-                        onAddressChanged: _geocode.onAddressEdited,
-                        onConfirm: _confirm,
+                      ),
+                      ListenableBuilder(
+                        listenable: _geocode,
+                        builder: (context, _) => MapPickerAddressPanel(
+                          addressController: _geocode.addressController,
+                          isGeocoding: _geocode.isGeocoding,
+                          isMapMoving: _geocode.isMapMoving,
+                          isSaving: _isSaving,
+                          canConfirmBase: _selectedPosition != null,
+                          addressError: _geocode.addressError,
+                          onAddressChanged: _geocode.onAddressEdited,
+                          onConfirm: _confirm,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (widget.forcedSetup)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SafeArea(
+                        bottom: false,
+                        child: _buildForcedSetupBanner(),
                       ),
                     ),
-                  ],
-                ),
-                _buildSearchOverlay(),
-                if (_isSaving)
-                  const Positioned.fill(
-                    child: ColoredBox(
-                      color: Color(0x44FFFFFF),
-                      child: Center(child: CustomLoadingIndicator(size: 32)),
+                  _buildSearchOverlay(forcedBannerInset: forcedBannerInset),
+                  if (_isSaving)
+                    const Positioned.fill(
+                      child: ColoredBox(
+                        color: Color(0x44FFFFFF),
+                        child: Center(child: CustomLoadingIndicator(size: 32)),
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 
-  Widget _buildSearchOverlay() {
-    final topInset = MediaQuery.of(context).padding.top;
+  Widget _buildSearchOverlay({double forcedBannerInset = 0}) {
+    final topInset = MediaQuery.of(context).padding.top + forcedBannerInset;
 
     if (!GoogleMapsConfig.placesSearchEnabled) {
       return Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            top: topInset + 8,
-            left: 8,
-            child: Material(
-              color: Colors.white,
-              elevation: 4,
-              shadowColor: Colors.black26,
-              shape: const CircleBorder(),
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          if (!widget.forcedSetup)
+            Positioned(
+              top: topInset + 8,
+              left: 8,
+              child: Material(
+                color: Colors.white,
+                elevation: 4,
+                shadowColor: Colors.black26,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                ),
               ),
             ),
-          ),
         ],
       );
     }
@@ -396,10 +468,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           right: 16,
           child: Row(
             children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              ),
+              if (!widget.forcedSetup)
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                ),
               Expanded(
                 child: Material(
                   elevation: 4,
@@ -458,7 +531,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         if (_showSearchResults && _searchController.text.trim().isNotEmpty)
           Positioned(
             top: topInset + 64,
-            left: 56,
+            left: widget.forcedSetup ? 16 : 56,
             right: 16,
             child: Material(
               elevation: 8,

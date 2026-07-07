@@ -227,7 +227,7 @@ class _PromoCard extends StatelessWidget {
     final hasDesc = coupon.description != null && coupon.description!.trim().isNotEmpty;
     
     final gradient = AppColors.primaryGradient;
-    final borderColor = AppColors.primary.withOpacity(0.4);
+    final borderColor = AppColors.primary.withValues(alpha: 0.4);
 
     return GestureDetector(
       onTap: onTap,
@@ -244,7 +244,7 @@ class _PromoCard extends StatelessWidget {
           ),
           shadows: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.12),
+              color: AppColors.primary.withValues(alpha: 0.12),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

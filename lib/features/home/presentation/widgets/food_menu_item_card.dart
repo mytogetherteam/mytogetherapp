@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'image_skeleton_loader.dart';
+import 'menu_item_discount_badge.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -169,6 +170,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
         ? widget.originalPrice!
         : widget.price;
     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > effectivePrice;
+    final discountBadge = menuItemDiscountBadgeLabel(
+      originalPrice: widget.originalPrice,
+      sellingPrice: effectivePrice,
+    );
 
     final bool effectiveIsHidden = (widget.publishStatus == 'UNPUBLISHED' || 
                                    widget.publishStatus == 'ARCHIVED' || 
@@ -329,6 +334,12 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   child: OrderStatusImageBadge(
                                     reason: availability.reason,
                                   ),
+                                ),
+                              if (discountBadge != null)
+                                Positioned(
+                                  left: 8,
+                                  top: 8,
+                                  child: MenuItemDiscountBadge(label: discountBadge),
                                 ),
                               Positioned(
                                 top: 10,

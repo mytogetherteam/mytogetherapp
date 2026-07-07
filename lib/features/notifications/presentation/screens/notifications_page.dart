@@ -6,6 +6,8 @@ import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
 import '../order_notification_navigation.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
 import '../../../announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -19,6 +21,7 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   final NotificationRepository _repository = NotificationRepository();
+  final ScrollController _scrollController = ScrollController();
   final List<NotificationModel> _notifications = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -41,11 +44,17 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadNotifications({bool refresh = false}) async {
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
+
+  Future<void> _loadNotifications({
+    bool refresh = false,
+    bool wasNearEnd = false,
+  }) async {
     if (refresh) {
       setState(() {
         _currentPage = 0;
@@ -69,6 +78,12 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         _isLoading = false;
         _isLoadingMore = false;
       });
+      if (!refresh) {
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
       
       // Sync unread count with server truth
       _repository.getUnreadCount();
@@ -87,11 +102,16 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
   void _loadMore() {
     if (!_isLoadingMore && _hasMore) {
+      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
       setState(() {
         _isLoadingMore = true;
         _currentPage++;
       });
-      _loadNotifications();
+      PaginationScroll.maintainAfterPageAppend(
+        _scrollController,
+        wasNearEnd: wasNearEnd,
+      );
+      _loadNotifications(wasNearEnd: wasNearEnd);
     }
   }
 
@@ -283,24 +303,25 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
                         ? _buildEmptyState()
                         : NotificationListener<ScrollNotification>(
                             onNotification: (ScrollNotification scrollInfo) {
-                              if (scrollInfo.metrics.pixels ==
-                                      scrollInfo.metrics.maxScrollExtent &&
-                                  _hasMore) {
+                              if (scrollInfo.metrics.pixels >=
+                                      scrollInfo.metrics.maxScrollExtent - 200 &&
+                                  _hasMore &&
+                                  !_isLoadingMore) {
                                 _loadMore();
                               }
-                              return true;
+                              return false;
                             },
                             child: RefreshIndicator(
                               onRefresh: () => _loadNotifications(refresh: true),
                               child: ListView.builder(
-                                itemCount: _notifications.length + (_hasMore ? 1 : 0),
+                                controller: _scrollController,
+                                itemCount: _notifications.length +
+                                    (_showPaginationFooter ? 1 : 0),
                                 itemBuilder: (context, index) {
                                   if (index == _notifications.length) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: CustomLoadingIndicator(size: 24),
-                                      ),
+                                    return PaginationListFooter(
+                                      isLoading: _isLoadingMore,
+                                      showEndMessage: !_hasMore,
                                     );
                                   }
                                   final notification = _notifications[index];

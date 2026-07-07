@@ -4,6 +4,8 @@ import '../widgets/news_feed_item.dart';
 import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import '../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,6 +21,7 @@ class NewsPage extends StatefulWidget {
 class _NewsPageState extends State<NewsPage> {
   final List<NewsItem> _newsItems = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   bool _hasMore = true;
   int _page = 1;
   final ScrollController _scrollController = ScrollController();
@@ -39,7 +42,7 @@ class _NewsPageState extends State<NewsPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoading && _hasMore) {
+      if (!_isLoadingMore && !_isLoading && _hasMore) {
         _loadMoreData();
       }
     }
@@ -74,8 +77,14 @@ class _NewsPageState extends State<NewsPage> {
   }
 
   Future<void> _loadMoreData() async {
-    if (!_hasMore) return;
-    setState(() => _isLoading = true);
+    if (!_hasMore || _isLoadingMore) return;
+
+    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+    setState(() => _isLoadingMore = true);
+    PaginationScroll.maintainAfterPageAppend(
+      _scrollController,
+      wasNearEnd: wasNearEnd,
+    );
 
     try {
       final nextPage = _page + 1;
@@ -85,13 +94,25 @@ class _NewsPageState extends State<NewsPage> {
           _newsItems.addAll(feed.items.map(NewsItem.fromNewsArticle));
           _page = nextPage;
           _hasMore = feed.page < feed.totalPages;
-          _isLoading = false;
+          _isLoadingMore = false;
         });
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
     }
   }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   @override
   Widget build(BuildContext context) {
@@ -174,11 +195,11 @@ class _NewsPageState extends State<NewsPage> {
                   childCount: _newsItems.length,
                 ),
               ),
-            if (_isLoading && _newsItems.isNotEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CustomLoadingIndicator(size: 24)),
+            if (_newsItems.isNotEmpty && _showPaginationFooter)
+              SliverToBoxAdapter(
+                child: PaginationListFooter(
+                  isLoading: _isLoadingMore,
+                  showEndMessage: !_hasMore,
                 ),
               ),
             const SliverPadding(padding: EdgeInsets.only(bottom: 80)),

@@ -1,0 +1,4283 @@
+diff --git a/lib/core/localization/app_translations.dart b/lib/core/localization/app_translations.dart
+index d5d6b9b..bd0f1dc 100644
+--- a/lib/core/localization/app_translations.dart
++++ b/lib/core/localization/app_translations.dart
+@@ -117,6 +117,8 @@ class AppTranslations {
+     'profile.saved_items': 'Saved Items',
+     'profile.saved_items_sub':
+         'Your wishlist of foods, restaurants and places',
++    'profile.saved_coupons': 'Saved Coupons',
++    'profile.saved_coupons_sub': 'Coupons you saved from promotions',
+     'profile.my_addresses': 'My Addresses',
+     'profile.notifications': 'Notifications',
+     'profile.account_settings': 'Account Settings',
+@@ -432,6 +434,11 @@ class AppTranslations {
+     'location.unavailable_short': 'Location unavailable',
+     'location.unspecified_address': 'Unspecified Address',
+     'location.update': 'Update Location',
++    'location.forced_setup_title': 'Add your delivery address',
++    'location.forced_setup_subtitle':
++        'Before your first delivery, save where we should bring your order. This address will be selected for future orders.',
++    'location.forced_setup_required':
++        'Please save a delivery address to place your order.',
+     'menu.default_cuisine_tag': 'Myanmar Culture',
+     'menu.add_on': 'Add On',
+     'menu.cart_cleared_added': 'Cart cleared and item added',
+@@ -488,6 +495,21 @@ class AppTranslations {
+     'coupon.none': 'No coupons available for this order',
+     'coupon.selected': 'Coupon selected!',
+     'coupon.apply_title': 'Apply Coupon',
++    'coupon.change': 'Change',
++    'coupon.remove': 'Remove',
++    'coupon.save_for_later': 'Save coupon',
++    'coupon.saved': 'Saved',
++    'coupon.saved_to_wishlist': 'Coupon saved.',
++    'coupon.removed_from_wishlist': 'Coupon removed from saved.',
++    'coupon.saved_title': 'Saved Coupons',
++    'coupon.saved_empty_title': 'No saved coupons yet',
++    'coupon.saved_empty':
++        'Browse coupons on Home, open one, and tap Save coupon to keep it here.',
++    'coupon.browse_coupons': 'Browse Coupons',
++    'order.far_delivery_title': 'This delivery is quite far',
++    'order.far_delivery_message':
++        'Your address is {distance} km from this restaurant (over {limit} km). The shop may decline the order. Continue anyway?',
++    'order.far_delivery_continue': 'Continue order',
+     'coupon.apply_hint': 'Tap to choose a coupon',
+     'coupon.discounts_title': 'Early Bird Deals',
+     'coupon.coupons_title': 'Coupons',
+@@ -899,6 +921,10 @@ class AppTranslations {
+     'wishlist.tab_menu': 'Menu Items ({count})',
+     'wishlist.tab_shops': 'Restaurants ({count})',
+     'wishlist.tab_places': 'Places ({count})',
++    'wishlist.tab_coupons': 'Coupons ({count})',
++    'wishlist.empty_coupons_title': 'No saved coupons yet',
++    'wishlist.empty_coupons_sub':
++        'Tap Save on any coupon to keep it here.',
+     'wishlist.view_action': 'View',
+     'wishlist.start_exploring': 'Start Exploring',
+     'common.day_friday': 'Friday',
+@@ -1169,6 +1195,8 @@ class AppTranslations {
+     'profile.edit_profile': 'ပရိုဖိုင်ပြင်ဆင်ရန်',
+     'profile.saved_items': 'သိမ်းဆည်းထားသည်များ',
+     'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာ၊ ဆိုင်နှင့် နေရာများ',
++    'profile.saved_coupons': 'သိမ်းထားသော ကူပွန်များ',
++    'profile.saved_coupons_sub': 'ပရိုမိုးရှင်းမှ သိမ်းထားသော ကူပွန်များ',
+     'profile.my_addresses': 'ကျွန်ုပ်၏လိပ်စာများ',
+     'profile.notifications': 'အသိပေးချက်များ',
+     'profile.account_settings': 'အကောင့်ဆက်တင်များ',
+@@ -1473,6 +1501,11 @@ class AppTranslations {
+     'location.unavailable_short': 'တည်နေရာ မရရှိနိုင်ပါ',
+     'location.unspecified_address': 'လိပ်စာမသတ်မှတ်ရသေး',
+     'location.update': 'တည်နေရာမွမ်းမယ်',
++    'location.forced_setup_title': 'ပို့ဆောင်ရမည့် လိပ်စာ ထည့်ပါ',
++    'location.forced_setup_subtitle':
++        'ပထမဆုံး ပို့ဆောင်မှု မတိုင်မီ သင့်အော်ဒါရောက်စေမည့် လိပ်စာကို သိမ်းထားပါ။ နောက်ထပ် အော်ဒါများအတွက် ဤလိပ်စာကို အသုံးပြုပါမည်။',
++    'location.forced_setup_required':
++        'အော်ဒါတင်ရန် ပို့ဆောင်ရမည့် လိပ်စာ သိမ်းထားရန် လိုအပ်ပါသည်။',
+     'menu.default_cuisine_tag': 'မြန်မာယဉ်ကျေးမှု',
+     'menu.add_on': 'ထပ်တိုးရွေးချယ်မှု',
+     'menu.cart_cleared_added': 'ခြင်းတောင်းရှင်းပြီး ပစ္စည်းထည့်ပြီး',
+@@ -1529,6 +1562,21 @@ class AppTranslations {
+     'coupon.none': 'ဤအော်ဒါအတွက် ကူပွန် မရှိပါ',
+     'coupon.selected': 'ကူပွန် ရွေးချယ်ပြီးပါပြီ!',
+     'coupon.apply_title': 'ကူပွန် အသုံးပြုမည်',
++    'coupon.change': 'ပြောင်းမည်',
++    'coupon.remove': 'ဖယ်ရှားမည်',
++    'coupon.save_for_later': 'ကူပွန်သိမ်းမည်',
++    'coupon.saved': 'သိမ်းပြီး',
++    'coupon.saved_to_wishlist': 'ကူပွန်သိမ်းပြီး။',
++    'coupon.removed_from_wishlist': 'သိမ်းထားသောကူပွန်မှ ဖယ်ရှားပြီး။',
++    'coupon.saved_title': 'သိမ်းထားသော ကူပွန်များ',
++    'coupon.saved_empty_title': 'သိမ်းထားသော ကူပွန် မရှိသေးပါ',
++    'coupon.saved_empty':
++        'Home တွင် ကူပွန်များကြည့်ပြီး တစ်ခုဖွင့်ကာ Save coupon နှိပ်ပါ။',
++    'coupon.browse_coupons': 'ကူပွန်များ ကြည့်ရန်',
++    'order.far_delivery_title': 'ပို့ဆောင်ရန် အဝေးကြီးပါ',
++    'order.far_delivery_message':
++        'သင့်လိပ်စာသည် စားသောက်ဆိုင်မှ {distance} km အကွာတွင် ရှိပြီး ({limit} km ထက်ကျော်သည်)။ ဆိုင်က ငြင်းပယ်နိုင်ပါသည်။ ဆက်လုပ်မလား?',
++    'order.far_delivery_continue': 'ဆက်မှာမည်',
+     'coupon.apply_hint': 'ကူပွန်ရွေးရန် နှိပ်ပါ',
+     'coupon.discounts_title': 'Eary Bird အတွက်',
+     'coupon.coupons_title': 'ကူပွန်များ',
+@@ -1941,6 +1989,9 @@ class AppTranslations {
+     'wishlist.saved': 'ဘော်ဒါ့ပစ္စည်းများထဲ သိမ်းဆည်းပြီး။',
+     'wishlist.tab_menu': 'မီနူးပစ္စည်းများ ({count})',
+     'wishlist.tab_shops': 'စားသောက်ဆိုင်များ ({count})',
++    'wishlist.tab_coupons': 'ကူပွန်များ ({count})',
++    'wishlist.empty_coupons_title': 'သိမ်းထားသော ကူပွန် မရှိသေးပါ',
++    'wishlist.empty_coupons_sub': 'ကူပွန်တစ်ခုတွင် သိမ်းမည် နှိပ်၍ သိမ်းပါ။',
+     'common.day_friday': 'သောကြာ',
+     'common.day_monday': 'တနင်္လာ',
+     'common.day_saturday': 'စနေ',
+@@ -2215,6 +2266,8 @@ class AppTranslations {
+     'profile.edit_profile': 'แก้ไขโปรไฟล์',
+     'profile.saved_items': 'รายการที่บันทึก',
+     'profile.saved_items_sub': 'รายการโปรดอาหาร ร้านค้า และสถานที่ของคุณ',
++    'profile.saved_coupons': 'คูปองที่บันทึก',
++    'profile.saved_coupons_sub': 'คูปองที่คุณบันทึกจากโปรโมชัน',
+     'profile.my_addresses': 'ที่อยู่ของฉัน',
+     'profile.notifications': 'การแจ้งเตือน',
+     'profile.account_settings': 'การตั้งค่าบัญชี',
+@@ -2525,6 +2578,11 @@ class AppTranslations {
+     'location.unavailable_short': 'ไม่สามารถระบุตำแหน่งได้',
+     'location.unspecified_address': 'ยังไม่ระบุที่อยู่',
+     'location.update': 'อัปเดตตำแหน่ง',
++    'location.forced_setup_title': 'เพิ่มที่อยู่จัดส่ง',
++    'location.forced_setup_subtitle':
++        'ก่อนจัดส่งครั้งแรก กรุณาบันทึกที่อยู่ที่ต้องการให้ส่งอาหาร ที่อยู่นี้จะถูกเลือกใช้สำหรับออเดอร์ถัดไป',
++    'location.forced_setup_required':
++        'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
+     'menu.default_cuisine_tag': 'วัฒนธรรมพม่า',
+     'menu.add_on': 'เพิ่มเติม',
+     'menu.cart_cleared_added': 'ล้างตะกร้าและเพิ่มรายการแล้ว',
+@@ -2580,6 +2638,21 @@ class AppTranslations {
+     'coupon.none': 'ไม่มีคูปองสำหรับคำสั่งซื้อนี้',
+     'coupon.selected': 'เลือกคูปองแล้ว!',
+     'coupon.apply_title': 'ใช้คูปอง',
++    'coupon.change': 'เปลี่ยน',
++    'coupon.remove': 'ลบออก',
++    'coupon.save_for_later': 'บันทึกคูปอง',
++    'coupon.saved': 'บันทึกแล้ว',
++    'coupon.saved_to_wishlist': 'บันทึกคูปองแล้ว',
++    'coupon.removed_from_wishlist': 'ลบออกจากคูปองที่บันทึกแล้ว',
++    'coupon.saved_title': 'คูปองที่บันทึก',
++    'coupon.saved_empty_title': 'ยังไม่มีคูปองที่บันทึก',
++    'coupon.saved_empty':
++        'ดูคูปองที่หน้า Home เปิดคูปอง แล้วแตะบันทึกคูปองเพื่อเก็บไว้ที่นี่',
++    'coupon.browse_coupons': 'ดูคูปอง',
++    'order.far_delivery_title': 'การจัดส่งอยู่ค่อนข้างไกล',
++    'order.far_delivery_message':
++        'ที่อยู่ของคุณห่างจากร้าน {distance} กม. (เกิน {limit} กม.) ร้านอาจปฏิเสธคำสั่งซื้อ ดำเนินการต่อหรือไม่?',
++    'order.far_delivery_continue': 'สั่งต่อ',
+     'coupon.apply_hint': 'แตะเพื่อเลือกคูปอง',
+     'coupon.discounts_title': 'ดีลมาก่อนได้ก่อน',
+     'coupon.coupons_title': 'คูปอง',
+@@ -2984,6 +3057,9 @@ class AppTranslations {
+     'wishlist.saved': 'บันทึกลงในรายการของคุณแล้ว',
+     'wishlist.tab_menu': 'รายการเมนู ({count})',
+     'wishlist.tab_shops': 'ร้านอาหาร ({count})',
++    'wishlist.tab_coupons': 'คูปอง ({count})',
++    'wishlist.empty_coupons_title': 'ยังไม่มีคูปองที่บันทึก',
++    'wishlist.empty_coupons_sub': 'แตะบันทึกที่คูปองเพื่อเก็บไว้ที่นี่',
+     'common.day_friday': 'วันศุกร์',
+     'common.day_monday': 'วันจันทร์',
+     'common.day_saturday': 'วันเสาร์',
+diff --git a/lib/core/location/geo_distance.dart b/lib/core/location/geo_distance.dart
+index 05bd1d1..e5e1312 100644
+--- a/lib/core/location/geo_distance.dart
++++ b/lib/core/location/geo_distance.dart
+@@ -6,6 +6,19 @@ class GeoDistance {
+ 
+   static const String defaultDeliveryEta = '20-30 min';
+ 
++  /// Show a confirm dialog when delivery distance exceeds this (km).
++  /// GrabFood long-distance is typically up to ~10 km.
++  static const double distanceConfirmThresholdKm = 10.0;
++
++  /// Delivery ETA label from straight-line distance (matches feed DTOs).
++  static String deliveryEtaFromKm(double distanceKm) {
++    if (distanceKm <= 0) return defaultDeliveryEta;
++    var minTime = (distanceKm * 2.0).round();
++    if (minTime < 1) minTime = 1;
++    final maxTime = minTime + 5;
++    return '$minTime-$maxTime min';
++  }
++
+   /// Haversine distance in kilometers.
+   static double haversineKm(
+     double lat1,
+diff --git a/lib/core/utils/navigation_controller.dart b/lib/core/utils/navigation_controller.dart
+index 9cb46aa..267cf53 100644
+--- a/lib/core/utils/navigation_controller.dart
++++ b/lib/core/utils/navigation_controller.dart
+@@ -14,4 +14,7 @@ class NavigationController {
+ 
+   // Food tab is index 1
+   void goToFoodTab() => goToTab(1);
++
++  // Home tab is index 0
++  void goToHomeTab() => goToTab(0);
+ }
+diff --git a/lib/features/announcements/presentation/screens/announcements_page.dart b/lib/features/announcements/presentation/screens/announcements_page.dart
+index 5316b5f..3e81b30 100644
+--- a/lib/features/announcements/presentation/screens/announcements_page.dart
++++ b/lib/features/announcements/presentation/screens/announcements_page.dart
+@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
+ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+ import 'package:mytogetherapp/core/theme/app_colors.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
++import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
++import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
+ import '../../data/models/announcement_model.dart';
+ import '../../data/repositories/announcement_repository.dart';
+ import '../widgets/announcement_detail_sheet.dart';
+@@ -18,6 +20,7 @@ class AnnouncementsPage extends StatefulWidget {
+ 
+ class _AnnouncementsPageState extends State<AnnouncementsPage> {
+   final AnnouncementRepository _repository = AnnouncementRepository();
++  final ScrollController _scrollController = ScrollController();
+   final List<AnnouncementModel> _items = [];
+   bool _isLoading = true;
+   bool _isLoadingMore = false;
+@@ -28,10 +31,28 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
+   @override
+   void initState() {
+     super.initState();
++    _scrollController.addListener(_onScroll);
+     _load();
+   }
+ 
+-  Future<void> _load({bool refresh = false}) async {
++  @override
++  void dispose() {
++    _scrollController.dispose();
++    super.dispose();
++  }
++
++  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
++
++  void _onScroll() {
++    if (_scrollController.position.pixels >=
++        _scrollController.position.maxScrollExtent - 200) {
++      if (!_isLoadingMore && _hasMore && !_isLoading) {
++        _loadMore();
++      }
++    }
++  }
++
++  Future<void> _load({bool refresh = false, bool wasNearEnd = false}) async {
+     if (refresh) {
+       setState(() {
+         _currentPage = 1;
+@@ -52,6 +73,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
+         _isLoading = false;
+         _isLoadingMore = false;
+       });
++      if (!refresh) {
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
++      }
+       _repository.getUnreadCount();
+     } catch (_) {
+       setState(() {
+@@ -68,11 +95,16 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
+ 
+   void _loadMore() {
+     if (!_isLoadingMore && _hasMore) {
++      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+       setState(() {
+         _isLoadingMore = true;
+         _currentPage++;
+       });
+-      _load();
++      PaginationScroll.maintainAfterPageAppend(
++        _scrollController,
++        wasNearEnd: wasNearEnd,
++      );
++      _load(wasNearEnd: wasNearEnd);
+     }
+   }
+ 
+@@ -145,32 +177,22 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
+                 ? const Center(child: CustomLoadingIndicator(size: 40))
+                 : _items.isEmpty
+                     ? _buildEmptyState()
+-                    : NotificationListener<ScrollNotification>(
+-                        onNotification: (scrollInfo) {
+-                          if (scrollInfo.metrics.pixels ==
+-                                  scrollInfo.metrics.maxScrollExtent &&
+-                              _hasMore) {
+-                            _loadMore();
+-                          }
+-                          return true;
+-                        },
+-                        child: RefreshIndicator(
+-                          color: AppColors.primary,
+-                          onRefresh: () => _load(refresh: true),
+-                          child: ListView.builder(
+-                            itemCount: _items.length + (_hasMore ? 1 : 0),
+-                            itemBuilder: (context, index) {
+-                              if (index == _items.length) {
+-                                return const Center(
+-                                  child: Padding(
+-                                    padding: EdgeInsets.all(16.0),
+-                                    child: CustomLoadingIndicator(size: 24),
+-                                  ),
+-                                );
+-                              }
+-                              return _buildItem(_items[index]);
+-                            },
+-                          ),
++                    : RefreshIndicator(
++                        color: AppColors.primary,
++                        onRefresh: () => _load(refresh: true),
++                        child: ListView.builder(
++                          controller: _scrollController,
++                          itemCount:
++                              _items.length + (_showPaginationFooter ? 1 : 0),
++                          itemBuilder: (context, index) {
++                            if (index == _items.length) {
++                              return PaginationListFooter(
++                                isLoading: _isLoadingMore,
++                                showEndMessage: !_hasMore,
++                              );
++                            }
++                            return _buildItem(_items[index]);
++                          },
+                         ),
+                       ),
+           ),
+diff --git a/lib/features/auth/data/auth_remote_data_source.dart b/lib/features/auth/data/auth_remote_data_source.dart
+index 93c7671..8d7f09c 100644
+--- a/lib/features/auth/data/auth_remote_data_source.dart
++++ b/lib/features/auth/data/auth_remote_data_source.dart
+@@ -141,11 +141,11 @@ class AuthRemoteDataSource {
+     final Response response;
+     if (profilePhoto != null) {
+       final formData = FormData.fromMap({
+-        if (name != null) 'name': name,
+-        if (username != null) 'username': username,
+-        if (phone != null) 'phone': phone,
+-        if (email != null) 'email': email,
+-        if (address != null) 'address': address,
++        'name': ?name,
++        'username': ?username,
++        'phone': ?phone,
++        'email': ?email,
++        'address': ?address,
+         'profilePhoto': profilePhoto.toMultipartFile(
+           filenameOverride:
+               'profile_${DateTime.now().millisecondsSinceEpoch}.${profilePhoto.extension}',
+@@ -159,11 +159,11 @@ class AuthRemoteDataSource {
+       response = await _dio.put(
+         '${ApiClient.apiPrefix}/user/profile',
+         data: {
+-          if (name != null) 'name': name,
+-          if (username != null) 'username': username,
+-          if (phone != null) 'phone': phone,
+-          if (email != null) 'email': email,
+-          if (address != null) 'address': address,
++          'name': ?name,
++          'username': ?username,
++          'phone': ?phone,
++          'email': ?email,
++          'address': ?address,
+         },
+       );
+     }
+diff --git a/lib/features/auth/presentation/screens/profile_page.dart b/lib/features/auth/presentation/screens/profile_page.dart
+index 977c4a5..8f3e7cd 100644
+--- a/lib/features/auth/presentation/screens/profile_page.dart
++++ b/lib/features/auth/presentation/screens/profile_page.dart
+@@ -11,6 +11,7 @@ import 'package:mytogetherapp/features/auth/presentation/screens/help_support_pa
+ import 'package:mytogetherapp/features/auth/presentation/screens/language_page.dart';
+ import 'package:mytogetherapp/features/settings/presentation/screens/app_permissions_page.dart';
+ import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
++import 'package:mytogetherapp/features/coupons/presentation/screens/saved_coupons_page.dart';
+ import 'package:mytogetherapp/features/home/presentation/screens/location_search_page.dart';
+ import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
+ import 'package:mytogetherapp/core/localization/app_translations.dart';
+@@ -447,6 +448,19 @@ class _ProfilePageState extends State<ProfilePage> {
+             MaterialPageRoute(builder: (_) => const WishlistPage()),
+           ),
+         ),
++        _buildOptionTile(
++          icon: PhosphorIcons.ticket,
++          title: context.tr('profile.saved_coupons'),
++          subtitle: context.tr('profile.saved_coupons_sub'),
++          onTap: () async {
++            if (!await GuestAuthGuard.requireAccount(context)) return;
++            if (!mounted) return;
++            Navigator.push(
++              context,
++              MaterialPageRoute(builder: (_) => const SavedCouponsPage()),
++            );
++          },
++        ),
+         _buildOptionTile(
+           icon: PhosphorIcons.mapPin,
+           title: context.tr('profile.my_addresses'),
+diff --git a/lib/features/cart/data/coupon_service.dart b/lib/features/cart/data/coupon_service.dart
+index 0640ac8..50017bd 100644
+--- a/lib/features/cart/data/coupon_service.dart
++++ b/lib/features/cart/data/coupon_service.dart
+@@ -1,5 +1,6 @@
+ import 'dart:math' as math;
+ import 'package:dio/dio.dart';
++import '../../../core/auth/auth_service.dart';
+ import '../../../core/network/api_client.dart';
+ import '../../search/data/search_repository.dart';
+ 
+@@ -112,7 +113,10 @@ class CouponModel {
+                 .toList() ??
+             const [],
+         bogoAllItems: json['bogoAllItems'] == true,
+-        shopId: (json['shopId'] as num?)?.toInt(),
++        shopId: (json['shopId'] as num?)?.toInt() ??
++            (json['shop'] is Map
++                ? (json['shop']['id'] as num?)?.toInt()
++                : null),
+         shop: json['shop'] is Map
+             ? CouponShop.fromJson(Map<String, dynamic>.from(json['shop'] as Map))
+             : null,
+@@ -300,13 +304,9 @@ class CouponService {
+         .toList();
+   }
+ 
+-  /// In-memory cache of resolved shop logo URLs, keyed by shopId, so the two
+-  /// coupon rails and the details sheet share a single lookup per shop.
++  /// In-memory cache of resolved shop logo URLs, keyed by shopId.
+   final Map<int, Future<String?>> _shopLogoCache = {};
+ 
+-  /// Resolves a shop's logo URL from the existing shop-profile endpoint, since
+-  /// the coupon list endpoint doesn't include it. Cached and de-duped per shop;
+-  /// returns null on any failure (the card falls back to a letter avatar).
+   Future<String?> fetchShopLogo(int shopId) {
+     return _shopLogoCache.putIfAbsent(shopId, () async {
+       try {
+@@ -327,6 +327,63 @@ class CouponService {
+         '${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}';
+   }
+ 
++  /// Cached wishlist coupon ids (populated by [fetchWishlist] / [isWishlisted]).
++  Set<int>? _wishlistedIds;
++
++  void invalidateWishlistCache() => _wishlistedIds = null;
++
++  /// Saved coupons (`GET /user/coupons/wishlist`).
++  Future<List<CouponModel>> fetchWishlist({int page = 1, int size = 50}) async {
++    if (!AuthService().isLoggedIn) return const [];
++    try {
++      final response = await ApiClient().dio.get(
++        '${ApiClient.apiPrefix}/user/coupons/wishlist',
++        queryParameters: {'page': page, 'size': size},
++      );
++      final body = response.data;
++      if (body is! Map) return const [];
++      final list = body['data'];
++      if (list is! List) return const [];
++      final coupons = list
++          .whereType<Map>()
++          .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e)))
++          .toList();
++      if (page == 1) {
++        _wishlistedIds = coupons.map((c) => c.id).toSet();
++      }
++      return coupons;
++    } catch (_) {
++      return const [];
++    }
++  }
++
++  /// Whether [couponId] is in the user's saved-coupon wishlist.
++  Future<bool> isWishlisted(int couponId) async {
++    if (!AuthService().isLoggedIn) return false;
++    if (_wishlistedIds != null) {
++      return _wishlistedIds!.contains(couponId);
++    }
++    await fetchWishlist(size: 200);
++    return _wishlistedIds?.contains(couponId) ?? false;
++  }
++
++  /// Toggle save on a coupon (`POST /user/coupons/wishlist/toggle`).
++  Future<bool> toggleWishlist(int couponId) async {
++    final response = await ApiClient().dio.post(
++      '${ApiClient.apiPrefix}/user/coupons/wishlist/toggle',
++      data: {'couponId': couponId},
++    );
++    final data = _unwrap(response.data);
++    final wishlisted = data?['wishlisted'] == true;
++    _wishlistedIds ??= {};
++    if (wishlisted) {
++      _wishlistedIds!.add(couponId);
++    } else {
++      _wishlistedIds!.remove(couponId);
++    }
++    return wishlisted;
++  }
++
+   /// Issues a fresh rotating redeem QR token for the current user (for the
+   /// in-shop "Use now" flow). Throws [CouponApplyException] on failure.
+   Future<RedeemTokenResult> issueRedeemToken() async {
+diff --git a/lib/features/cart/presentation/screens/awaiting_payment_page.dart b/lib/features/cart/presentation/screens/awaiting_payment_page.dart
+index 92ad772..d33de42 100644
+--- a/lib/features/cart/presentation/screens/awaiting_payment_page.dart
++++ b/lib/features/cart/presentation/screens/awaiting_payment_page.dart
+@@ -21,7 +21,6 @@ import '../../data/active_order_state.dart';
+ import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
+ import '../../../../core/utils/navigation_controller.dart';
+ import '../../../../core/utils/price_formatter.dart';
+-import '../../../../core/utils/time_formatter.dart';
+ import '../../../../core/utils/file_url_util.dart';
+ import 'package:share_plus/share_plus.dart';
+ import 'order_status_page.dart';
+diff --git a/lib/features/cart/presentation/screens/order_cancel_page.dart b/lib/features/cart/presentation/screens/order_cancel_page.dart
+index e86e7d4..17250c3 100644
+--- a/lib/features/cart/presentation/screens/order_cancel_page.dart
++++ b/lib/features/cart/presentation/screens/order_cancel_page.dart
+@@ -7,7 +7,6 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+ import '../../../home/presentation/screens/restaurant_detail_page.dart';
+ import '../../../../core/utils/navigation_controller.dart';
+ import '../../data/active_order_state.dart';
+-import '../../../../core/theme/app_colors.dart';
+ import '../../../../app.dart';
+ import '../../../../core/utils/file_url_util.dart';
+ 
+diff --git a/lib/features/cart/presentation/screens/order_status_page.dart b/lib/features/cart/presentation/screens/order_status_page.dart
+index a70d771..ebace0d 100644
+--- a/lib/features/cart/presentation/screens/order_status_page.dart
++++ b/lib/features/cart/presentation/screens/order_status_page.dart
+@@ -1,6 +1,5 @@
+ import 'package:mytogetherapp/core/localization/app_translations.dart';
+ import 'dart:async';
+-import 'dart:async';
+ import 'package:flutter/material.dart';
+ import 'package:google_fonts/google_fonts.dart';
+ import 'package:google_maps_flutter/google_maps_flutter.dart';
+@@ -49,9 +48,9 @@ class OrderStatusPage extends StatefulWidget {
+ 
+ class _OrderStatusPageState extends State<OrderStatusPage>
+     with TickerProviderStateMixin, WidgetsBindingObserver {
+-  int _currentStatus = 1; 
++  int _currentStatus = 1;
+   String? _backendStatus;
+-  
++
+   GoogleMapController? _mapController;
+   // ignore: unused_field
+   Set<Marker> _markers = {};
+@@ -59,7 +58,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+   Set<Polyline> _polylines = {};
+   BitmapDescriptor? _homeIcon;
+   BitmapDescriptor? _shopIcon;
+-  
++
+   late AnimationController _processingController;
+ 
+   WebViewController? _webController;
+@@ -87,28 +86,30 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
+     _backendStatus = ActiveOrderState.instance.backendStatus;
+     _startFakeTimer();
+-    
++
+     // Auto-navigate if already completed
+     if (ActiveOrderState.instance.orderStatus == 4) {
+       Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
+     }
+-    
++
+     _buildCustomMarkers().then((_) {
+       if (mounted) _updateMarkers();
+     });
+ 
+     // Processing animation for current segment (repeating 0 -> 1)
+     _processingController = AnimationController(
+-        vsync: this,
+-        duration: const Duration(seconds: 3),
++      vsync: this,
++      duration: const Duration(seconds: 3),
+     )..repeat();
+-    
++
+     // Initial animation position based on starting status
+     _animateToStatus(_currentStatus);
+ 
+     // Initialize WebView if already on the way
+     final state = ActiveOrderState.instance;
+-    if (_currentStatus == 3 && state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty) {
++    if (_currentStatus == 3 &&
++        state.deliveryTrackingUrl != null &&
++        state.deliveryTrackingUrl!.isNotEmpty) {
+       _initWebView(state.deliveryTrackingUrl!);
+     }
+ 
+@@ -137,8 +138,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+           _backendStatus = state.backendStatus;
+ 
+           // Trigger WebView init if status is 3 and we have a new URL
+-          if (_currentStatus == 3 && 
+-              state.deliveryTrackingUrl != null && 
++          if (_currentStatus == 3 &&
++              state.deliveryTrackingUrl != null &&
+               state.deliveryTrackingUrl!.isNotEmpty &&
+               state.deliveryTrackingUrl != _lastInitedUrl) {
+             _initWebView(state.deliveryTrackingUrl!);
+@@ -147,7 +148,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+ 
+         // Auto-navigate when status becomes COMPLETED (4)
+         if (state.orderStatus == 4) {
+-          Future.delayed(const Duration(seconds: 2), () => _navigateToComplete());
++          Future.delayed(
++            const Duration(seconds: 2),
++            () => _navigateToComplete(),
++          );
+         }
+ 
+         if (state.orderStatus == -1) {
+@@ -159,7 +163,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                 orderId: state.orderId ?? '',
+                 reason: order?.cancelReason,
+                 shopId: order?.shopId,
+-                shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
++                shopName:
++                    order?.shopName ??
++                    order?.restaurantName ??
++                    order?.storeName,
+                 shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
+                 shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
+                 shopLogo: order?.shopLogo ?? order?.logoPath,
+@@ -218,7 +225,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+ 
+   Future<void> _recoverMissingRestaurantAddress() async {
+     final state = ActiveOrderState.instance;
+-    if ((state.restaurantAddress == null || state.restaurantAddress!.isEmpty) && 
++    if ((state.restaurantAddress == null || state.restaurantAddress!.isEmpty) &&
+         state.restaurantId != null) {
+       try {
+         final id = int.tryParse(state.restaurantId!);
+@@ -226,7 +233,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+           final shop = await RestaurantRepository.instance.getShopById(id);
+           if (mounted) {
+             setState(() {
+-              state.restaurantAddress = shop.address ?? shop.addressEn ?? shop.addressTh;
++              state.restaurantAddress =
++                  shop.address ?? shop.addressEn ?? shop.addressTh;
+               state.saveToPrefs();
+             });
+           }
+@@ -240,7 +248,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+   void _initWebView(String url) {
+     _lastInitedUrl = url;
+     _webViewError = false;
+-    
++
+     // Safety check for scheme
+     final uri = Uri.tryParse(url);
+     if (uri == null || !uri.hasScheme) {
+@@ -284,7 +292,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     final state = ActiveOrderState.instance;
+     final status = state.orderStatus;
+     setState(() => _currentStatus = status.clamp(1, 4));
+-    
++
+     if (status == -1) {
+       final order = state.getOrder(state.orderId);
+       Navigator.pushReplacement(
+@@ -294,7 +302,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+             orderId: state.orderId ?? '',
+             reason: order?.cancelReason,
+             shopId: order?.shopId,
+-            shopName: order?.shopName ?? order?.restaurantName ?? order?.storeName,
++            shopName:
++                order?.shopName ?? order?.restaurantName ?? order?.storeName,
+             shopNameMm: order?.shopNameMm ?? order?.statusLabelMm,
+             shopNameTh: order?.shopNameTh ?? order?.statusLabelTh,
+             shopLogo: order?.shopLogo ?? order?.logoPath,
+@@ -335,7 +344,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+       final userLon = state.userLocation?.longitude ?? 100.5018;
+ 
+       final dist = Geolocator.distanceBetween(lat, lon, userLat, userLon);
+-      if (dist > 100000) { // > 100km mismatch
++      if (dist > 100000) {
++        // > 100km mismatch
+         return LatLng(userLat + 0.005, userLon + 0.005); // Move shop near user
+       }
+       return LatLng(lat, lon);
+@@ -349,8 +359,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     Navigator.of(context).popUntil((route) => route.isFirst);
+   }
+ 
+-
+-
+   Future<void> _buildCustomMarkers() async {
+     _homeIcon = await _drawMarkerBitmap(
+       icon: Icons.home_rounded,
+@@ -366,7 +374,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     );
+   }
+ 
+-   Future<BitmapDescriptor> _drawMarkerBitmap({
++  Future<BitmapDescriptor> _drawMarkerBitmap({
+     required IconData icon,
+     required Color bgColor,
+     required Color iconColor,
+@@ -376,12 +384,18 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     final canvas = Canvas(pictureRecorder);
+     final double r = size / 2;
+ 
+-    canvas.drawCircle(Offset(r, r + 4), r * 0.85, Paint()..color = Colors.black.withValues(alpha: 0.18));
++    canvas.drawCircle(
++      Offset(r, r + 4),
++      r * 0.85,
++      Paint()..color = Colors.black.withValues(alpha: 0.18),
++    );
+     canvas.drawCircle(Offset(r, r), r, Paint()..color = Colors.white);
+-    
++
+     // Gradient fill
+     final paint = Paint()
+-      ..shader = AppColors.primaryGradient.createShader(Rect.fromLTWH(0, 0, size, size));
++      ..shader = AppColors.primaryGradient.createShader(
++        Rect.fromLTWH(0, 0, size, size),
++      );
+     canvas.drawCircle(Offset(r, r), r - 4, paint);
+ 
+     final tp = TextPainter(textDirection: TextDirection.ltr)
+@@ -397,7 +411,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     tp.layout();
+     tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2 - 2));
+ 
+-    final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
++    final img = await pictureRecorder.endRecording().toImage(
++      size.toInt(),
++      size.toInt(),
++    );
+     final data = await img.toByteData(format: ui.ImageByteFormat.png);
+     return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+   }
+@@ -405,36 +422,42 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+   void _updateMarkers() {
+     final state = ActiveOrderState.instance;
+     final sets = <Marker>{};
+-    
++
+     if (state.restaurantLatLng != null) {
+-      sets.add(Marker(
+-        markerId: const MarkerId('restaurant'),
+-        position: state.restaurantLatLng!,
+-        icon: _shopIcon ?? BitmapDescriptor.defaultMarker,
+-        anchor: const Offset(0.5, 0.5),
+-      ));
++      sets.add(
++        Marker(
++          markerId: const MarkerId('restaurant'),
++          position: state.restaurantLatLng!,
++          icon: _shopIcon ?? BitmapDescriptor.defaultMarker,
++          anchor: const Offset(0.5, 0.5),
++        ),
++      );
+     }
+ 
+     if (state.userLocation != null) {
+-      sets.add(Marker(
+-        markerId: const MarkerId('user'),
+-        position: state.userLocation!,
+-        icon: _homeIcon ?? BitmapDescriptor.defaultMarker,
+-        anchor: const Offset(0.5, 0.5),
+-      ));
++      sets.add(
++        Marker(
++          markerId: const MarkerId('user'),
++          position: state.userLocation!,
++          icon: _homeIcon ?? BitmapDescriptor.defaultMarker,
++          anchor: const Offset(0.5, 0.5),
++        ),
++      );
+     }
+ 
+     final polySet = <Polyline>{};
+     if (state.routePoints.isNotEmpty) {
+-      polySet.add(Polyline(
+-        polylineId: const PolylineId('route'),
+-        points: state.routePoints,
+-        color: AppColors.primary,
+-        width: 5,
+-        jointType: JointType.round,
+-        startCap: Cap.roundCap,
+-        endCap: Cap.roundCap,
+-      ));
++      polySet.add(
++        Polyline(
++          polylineId: const PolylineId('route'),
++          points: state.routePoints,
++          color: AppColors.primary,
++          width: 5,
++          jointType: JointType.round,
++          startCap: Cap.roundCap,
++          endCap: Cap.roundCap,
++        ),
++      );
+     }
+ 
+     if (mounted) {
+@@ -450,8 +473,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     if (_mapController == null) return;
+     final state = ActiveOrderState.instance;
+     final all = [
+-      if (state.restaurantLatLng != null && state.restaurantLatLng!.latitude != 0) state.restaurantLatLng!,
+-      if (state.userLocation != null && state.userLocation!.latitude != 0) state.userLocation!,
++      if (state.restaurantLatLng != null &&
++          state.restaurantLatLng!.latitude != 0)
++        state.restaurantLatLng!,
++      if (state.userLocation != null && state.userLocation!.latitude != 0)
++        state.userLocation!,
+       ...state.routePoints,
+     ];
+     if (all.isEmpty) return;
+@@ -462,17 +488,24 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     double maxLng = all.first.longitude;
+ 
+     for (var p in all) {
+-      if (p.latitude == 0 && p.longitude == 0) continue; // Ignore invalid points
++      if (p.latitude == 0 && p.longitude == 0) {
++        continue; // Ignore invalid points
++      }
+       if (p.latitude < minLat) minLat = p.latitude;
+       if (p.latitude > maxLat) maxLat = p.latitude;
+       if (p.longitude < minLng) minLng = p.longitude;
+       if (p.longitude > maxLng) maxLng = p.longitude;
+     }
+ 
+-    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(
+-      LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)), 
+-      60
+-    ));
++    _mapController!.animateCamera(
++      CameraUpdate.newLatLngBounds(
++        LatLngBounds(
++          southwest: LatLng(minLat, minLng),
++          northeast: LatLng(maxLat, maxLng),
++        ),
++        60,
++      ),
++    );
+   }
+ 
+   String _statusTitle(BuildContext context) {
+@@ -509,7 +542,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     final total = state.usesPayNowTotal
+         ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
+         : (state.totalAmount ??
+-            state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
++              state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
+ 
+     return Scaffold(
+       backgroundColor: Colors.white,
+@@ -565,7 +598,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                   state.isPickupFulfillment
+                       ? context.tr('order_status.preparing')
+                       : context.tr('order_tracking.restaurant_reviewing'),
+-                  style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w600),
++                  style: GoogleFonts.poppins(
++                    fontSize: 16,
++                    color: Colors.grey[700],
++                    fontWeight: FontWeight.w600,
++                  ),
+                 ),
+               const SizedBox(height: 24),
+               // Progress Bar
+@@ -586,7 +623,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+             AnimatedSwitcher(
+               duration: const Duration(milliseconds: 600),
+               transitionBuilder: (Widget child, Animation<double> animation) {
+-                return FadeTransition(opacity: animation, child: SizeTransition(sizeFactor: animation, child: child));
++                return FadeTransition(
++                  opacity: animation,
++                  child: SizeTransition(sizeFactor: animation, child: child),
++                );
+               },
+               child: (() {
+                 if (ActiveOrderState.instance.isPickupFulfillment ||
+@@ -596,8 +636,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                 }
+ 
+                 final state = ActiveOrderState.instance;
+-                final bool hasTrackingUrl = state.deliveryTrackingUrl != null && state.deliveryTrackingUrl!.isNotEmpty;
+-                
++                final bool hasTrackingUrl =
++                    state.deliveryTrackingUrl != null &&
++                    state.deliveryTrackingUrl!.isNotEmpty;
++
+                 if (!hasTrackingUrl) {
+                   return const SizedBox.shrink(key: ValueKey('empty_map'));
+                 }
+@@ -611,7 +653,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                       clipBehavior: Clip.antiAlias,
+                       decoration: BoxDecoration(
+                         borderRadius: BorderRadius.circular(24),
+-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
++                        border: Border.all(
++                          color: Colors.grey.withValues(alpha: 0.15),
++                        ),
+                         boxShadow: [
+                           BoxShadow(
+                             color: Colors.black.withValues(alpha: 0.04),
+@@ -622,9 +666,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                       ),
+                       child: Stack(
+                         children: [
+-                          Positioned.fill(
+-                            child: ImageSkeletonLoader(),
+-                          ),
++                          Positioned.fill(child: ImageSkeletonLoader()),
+                           if (_webController != null && !_webViewError)
+                             Positioned.fill(
+                               child: WebViewWidget(controller: _webController!),
+@@ -637,11 +679,18 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                                   child: Column(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+-                                      Icon(PhosphorIcons.mapPinLine, size: 40, color: Colors.grey[400]),
++                                      Icon(
++                                        PhosphorIcons.mapPinLine,
++                                        size: 40,
++                                        color: Colors.grey[400],
++                                      ),
+                                       const SizedBox(height: 12),
+                                       Text(
+                                         'Tracking view unavailable',
+-                                        style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
++                                        style: GoogleFonts.poppins(
++                                          color: Colors.grey[600],
++                                          fontSize: 13,
++                                        ),
+                                       ),
+                                     ],
+                                   ),
+@@ -657,25 +706,39 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                       onPressed: () async {
+                         final uri = Uri.parse(state.deliveryTrackingUrl!);
+                         try {
+-                          final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
++                          final launched = await launchUrl(
++                            uri,
++                            mode: LaunchMode.inAppBrowserView,
++                          );
+                           if (!launched) {
+-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
++                            await launchUrl(
++                              uri,
++                              mode: LaunchMode.externalApplication,
++                            );
+                           }
+                         } catch (e) {
+                           debugPrint('Failed to launch tracking URL: $e');
+                           try {
+-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
++                            await launchUrl(
++                              uri,
++                              mode: LaunchMode.externalApplication,
++                            );
+                           } catch (_) {}
+                         }
+                       },
+                       child: Row(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         children: [
+-                          const Icon(PhosphorIcons.arrowSquareOut, size: 18, color: Colors.white),
++                          const Icon(
++                            PhosphorIcons.arrowSquareOut,
++                            size: 18,
++                            color: Colors.white,
++                          ),
+                           const SizedBox(width: 8),
+                           Text(
+-                            (context.tr('order_status.track_order_link') == 'order_status.track_order_link') 
+-                                ? 'Track Order' 
++                            (context.tr('order_status.track_order_link') ==
++                                    'order_status.track_order_link')
++                                ? 'Track Order'
+                                 : context.tr('order_status.track_order_link'),
+                             style: GoogleFonts.poppins(
+                               fontWeight: FontWeight.w600,
+@@ -699,7 +762,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                   borderRadius: BorderRadius.circular(16),
+                   border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                   boxShadow: [
+-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
++                    BoxShadow(
++                      color: Colors.black.withValues(alpha: 0.02),
++                      blurRadius: 8,
++                      offset: const Offset(0, 2),
++                    ),
+                   ],
+                 ),
+                 child: Padding(
+@@ -711,17 +778,24 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                         padding: const EdgeInsets.only(bottom: 16),
+                         child: Text(
+                           _statusDescription(context, storeName),
+-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
++                          style: GoogleFonts.poppins(
++                            fontSize: 14,
++                            fontWeight: FontWeight.w600,
++                            color: Colors.grey[800],
++                          ),
+                         ),
+                       ),
+                       Row(
+                         children: [
+-                          if (state.riderProfileUrl != null && state.riderProfileUrl!.isNotEmpty)
++                          if (state.riderProfileUrl != null &&
++                              state.riderProfileUrl!.isNotEmpty)
+                             ClipOval(
+                               child: CachedNetworkImage(
+                                 fadeInDuration: Duration.zero,
+                                 fadeOutDuration: Duration.zero,
+-                                imageUrl: FileUrlUtil.resolve(state.riderProfileUrl!),
++                                imageUrl: FileUrlUtil.resolve(
++                                  state.riderProfileUrl!,
++                                ),
+                                 width: 44,
+                                 height: 44,
+                                 fit: BoxFit.cover,
+@@ -731,9 +805,16 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                                   decoration: BoxDecoration(
+                                     shape: BoxShape.circle,
+                                     color: Colors.grey[100],
+-                                    border: Border.all(color: Colors.grey[200]!, width: 1),
++                                    border: Border.all(
++                                      color: Colors.grey[200]!,
++                                      width: 1,
++                                    ),
++                                  ),
++                                  child: const Icon(
++                                    Icons.person,
++                                    size: 24,
++                                    color: Colors.grey,
+                                   ),
+-                                  child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                                 ),
+                               ),
+                             )
+@@ -744,9 +825,16 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                               decoration: BoxDecoration(
+                                 shape: BoxShape.circle,
+                                 color: Colors.grey[100],
+-                                border: Border.all(color: Colors.grey[200]!, width: 1),
++                                border: Border.all(
++                                  color: Colors.grey[200]!,
++                                  width: 1,
++                                ),
++                              ),
++                              child: const Icon(
++                                Icons.person,
++                                size: 24,
++                                color: Colors.grey,
+                               ),
+-                              child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                             ),
+                           const SizedBox(width: 12),
+                           Expanded(
+@@ -754,22 +842,31 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 ShaderMask(
+-                                  shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
++                                  shaderCallback: (bounds) => AppColors
++                                      .primaryGradient
++                                      .createShader(bounds),
+                                   child: Text(
+-                                    (state.riderName != null && state.riderName!.trim().isNotEmpty)
++                                    (state.riderName != null &&
++                                            state.riderName!.trim().isNotEmpty)
+                                         ? state.riderName!
+-                                        : context.tr('order_status.assigning_rider'),
++                                        : context.tr(
++                                            'order_status.assigning_rider',
++                                          ),
+                                     style: GoogleFonts.poppins(
+                                       fontSize: 15,
+                                       fontWeight: FontWeight.w700,
+-                                      color: Colors.white, // required for ShaderMask
++                                      color: Colors
++                                          .white, // required for ShaderMask
+                                     ),
+                                   ),
+                                 ),
+                                 const SizedBox(height: 6),
+                                 Row(
+                                   children: [
+-                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty) ...[
++                                    if (state.riderPhone != null &&
++                                        state.riderPhone!
++                                            .trim()
++                                            .isNotEmpty) ...[
+                                       Text(
+                                         'Phone: ',
+                                         style: GoogleFonts.poppins(
+@@ -786,13 +883,23 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                                         ),
+                                       ),
+                                     ],
+-                                    if (state.riderPhone != null && state.riderPhone!.trim().isNotEmpty &&
+-                                        state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty)
++                                    if (state.riderPhone != null &&
++                                        state.riderPhone!.trim().isNotEmpty &&
++                                        state.riderVehicleNumber != null &&
++                                        state.riderVehicleNumber!
++                                            .trim()
++                                            .isNotEmpty)
+                                       Text(
+                                         '  |  ',
+-                                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[300]),
++                                        style: GoogleFonts.poppins(
++                                          fontSize: 12,
++                                          color: Colors.grey[300],
++                                        ),
+                                       ),
+-                                    if (state.riderVehicleNumber != null && state.riderVehicleNumber!.trim().isNotEmpty) ...[
++                                    if (state.riderVehicleNumber != null &&
++                                        state.riderVehicleNumber!
++                                            .trim()
++                                            .isNotEmpty) ...[
+                                       Text(
+                                         'Vehicle No: ',
+                                         style: GoogleFonts.poppins(
+@@ -829,7 +936,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                 borderRadius: BorderRadius.circular(16),
+                 border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                 boxShadow: [
+-                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
++                  BoxShadow(
++                    color: Colors.black.withValues(alpha: 0.02),
++                    blurRadius: 8,
++                    offset: const Offset(0, 2),
++                  ),
+                 ],
+               ),
+               child: Padding(
+@@ -845,16 +956,26 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                         decoration: BoxDecoration(
+                           color: AppColors.primary.withValues(alpha: 0.1),
+                           borderRadius: BorderRadius.circular(12),
+-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
++                          border: Border.all(
++                            color: AppColors.primary.withValues(alpha: 0.2),
++                          ),
+                         ),
+                         child: Row(
+                           children: [
+-                            const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 20),
++                            const Icon(
++                              Icons.info_outline,
++                              color: Color(0xFFEF4444),
++                              size: 20,
++                            ),
+                             const SizedBox(width: 10),
+                             Expanded(
+                               child: Text(
+-                                state.cancelReason ?? context.tr('order_status.cancel_reason'),
+-                                style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFB91C1C)),
++                                state.cancelReason ??
++                                    context.tr('order_status.cancel_reason'),
++                                style: GoogleFonts.poppins(
++                                  fontSize: 13,
++                                  color: const Color(0xFFB91C1C),
++                                ),
+                               ),
+                             ),
+                           ],
+@@ -865,7 +986,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                         padding: const EdgeInsets.only(bottom: 16),
+                         child: Text(
+                           _statusDescription(context, storeName),
+-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
++                          style: GoogleFonts.poppins(
++                            fontSize: 14,
++                            fontWeight: FontWeight.w600,
++                            color: Colors.grey[800],
++                          ),
+                         ),
+                       ),
+                     Row(
+@@ -874,19 +999,26 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                           child: SizedBox(
+                             width: 48,
+                             height: 48,
+-                            child: state.logoPath != null && state.logoPath!.isNotEmpty
+-                              ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+-                                  imageUrl: state.logoPath!,
+-                                  width: 48,
+-                                  height: 48,
+-                                  fit: BoxFit.cover,
+-                                  placeholder: (context, url) => Container(
+-                                    color: Colors.grey[100],
+-                                    child: const Center(child: CustomLoadingIndicator(size: 24)),
+-                                  ),
+-                                  errorWidget: (context, url, error) => _buildNoImageAvatar(),
+-                                )
+-                              : _buildNoImageAvatar(),
++                            child:
++                                state.logoPath != null &&
++                                    state.logoPath!.isNotEmpty
++                                ? CachedNetworkImage(
++                                    fadeInDuration: Duration.zero,
++                                    fadeOutDuration: Duration.zero,
++                                    imageUrl: state.logoPath!,
++                                    width: 48,
++                                    height: 48,
++                                    fit: BoxFit.cover,
++                                    placeholder: (context, url) => Container(
++                                      color: Colors.grey[100],
++                                      child: const Center(
++                                        child: CustomLoadingIndicator(size: 24),
++                                      ),
++                                    ),
++                                    errorWidget: (context, url, error) =>
++                                        _buildNoImageAvatar(),
++                                  )
++                                : _buildNoImageAvatar(),
+                           ),
+                         ),
+                         const SizedBox(width: 12),
+@@ -930,7 +1062,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                 borderRadius: BorderRadius.circular(16),
+                 border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                 boxShadow: [
+-                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
++                  BoxShadow(
++                    color: Colors.black.withValues(alpha: 0.02),
++                    blurRadius: 8,
++                    offset: const Offset(0, 2),
++                  ),
+                 ],
+               ),
+               child: Column(
+@@ -943,12 +1079,28 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                         Row(
+                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                           children: [
+-                            Text(context.tr('order_status.payment_method'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
++                            Text(
++                              context.tr('order_status.payment_method'),
++                              style: GoogleFonts.poppins(
++                                fontSize: 14,
++                                color: Colors.grey[600],
++                              ),
++                            ),
+                             Row(
+                               children: [
+-                                Icon(PhosphorIcons.qrCode, size: 18, color: const Color(0xFF1E3A8A)),
++                                Icon(
++                                  PhosphorIcons.qrCode,
++                                  size: 18,
++                                  color: const Color(0xFF1E3A8A),
++                                ),
+                                 const SizedBox(width: 6),
+-                                Text(context.tr('order_status.qr_promptpay'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
++                                Text(
++                                  context.tr('order_status.qr_promptpay'),
++                                  style: GoogleFonts.poppins(
++                                    fontSize: 14,
++                                    fontWeight: FontWeight.w600,
++                                  ),
++                                ),
+                               ],
+                             ),
+                           ],
+@@ -958,13 +1110,19 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                           children: [
+                             Text(
+-                              state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
+-                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
++                              state.usesPayNowTotal
++                                  ? context.tr('cart.total_pay_now')
++                                  : context.tr('cart.total'),
++                              style: GoogleFonts.poppins(
++                                fontSize: 14,
++                                color: Colors.grey[600],
++                              ),
+                             ),
+                             Row(
+                               children: [
+                                 Text(
+-                                  state.displayTotalAmount ?? total.toFormattedPrice(),
++                                  state.displayTotalAmount ??
++                                      total.toFormattedPrice(),
+                                   style: GoogleFonts.poppins(
+                                     fontSize: 16,
+                                     fontWeight: FontWeight.w700,
+@@ -973,17 +1131,35 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                                 ),
+                                 const SizedBox(width: 8),
+                                 Container(
+-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++                                  padding: const EdgeInsets.symmetric(
++                                    horizontal: 10,
++                                    vertical: 4,
++                                  ),
+                                   decoration: BoxDecoration(
+-                                    color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
++                                    color:
++                                        (_backendStatus?.toUpperCase() ==
++                                                'PAID' ||
++                                            _currentStatus >= 2)
++                                        ? const Color(0xFFDCFCE7)
++                                        : const Color(0xFFFEF3C7),
+                                     borderRadius: BorderRadius.circular(12),
+                                   ),
+                                   child: Text(
+-                                    (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? context.tr('order_status.paid') : context.tr('order_status.waiting_payment'),
++                                    (_backendStatus?.toUpperCase() == 'PAID' ||
++                                            _currentStatus >= 2)
++                                        ? context.tr('order_status.paid')
++                                        : context.tr(
++                                            'order_status.waiting_payment',
++                                          ),
+                                     style: GoogleFonts.poppins(
+                                       fontSize: 11,
+                                       fontWeight: FontWeight.w600,
+-                                      color: (_backendStatus?.toUpperCase() == 'PAID' || _currentStatus >= 2) ? const Color(0xFF16A34A) : const Color(0xFFD97706),
++                                      color:
++                                          (_backendStatus?.toUpperCase() ==
++                                                  'PAID' ||
++                                              _currentStatus >= 2)
++                                          ? const Color(0xFF16A34A)
++                                          : const Color(0xFFD97706),
+                                     ),
+                                   ),
+                                 ),
+@@ -996,16 +1172,25 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                   ),
+                   const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                   Theme(
+-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
++                    data: Theme.of(
++                      context,
++                    ).copyWith(dividerColor: Colors.transparent),
+                     child: ExpansionTile(
+                       initiallyExpanded: false,
+-                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
++                      tilePadding: const EdgeInsets.symmetric(
++                        horizontal: 16,
++                        vertical: 0,
++                      ),
+                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                       iconColor: Colors.grey[600],
+                       collapsedIconColor: Colors.grey[600],
+                       title: Row(
+                         children: [
+-                          Icon(PhosphorIcons.receipt, size: 20, color: Colors.grey[700]),
++                          Icon(
++                            PhosphorIcons.receipt,
++                            size: 20,
++                            color: Colors.grey[700],
++                          ),
+                           const SizedBox(width: 8),
+                           Text(
+                             context.tr('order_status.view_summary'),
+@@ -1022,10 +1207,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                         if (state.orderItems.isEmpty)
+                           Padding(
+                             padding: const EdgeInsets.symmetric(vertical: 8),
+-                            child: Text(context.tr('order_status.no_items'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
++                            child: Text(
++                              context.tr('order_status.no_items'),
++                              style: GoogleFonts.poppins(
++                                fontSize: 12,
++                                color: Colors.grey,
++                              ),
++                            ),
+                           )
+                         else
+-                          ...state.orderItems.map((item) => Padding(
++                          ...state.orderItems.map(
++                            (item) => Padding(
+                               padding: const EdgeInsets.only(bottom: 12),
+                               child: Row(
+                                 children: [
+@@ -1034,41 +1226,87 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                                     child: SizedBox(
+                                       width: 40,
+                                       height: 40,
+-                                      child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
++                                      child: CachedNetworkImage(
++                                        fadeInDuration: Duration.zero,
++                                        fadeOutDuration: Duration.zero,
+                                         imageUrl: item.imagePath,
+                                         fit: BoxFit.cover,
+-                                        placeholder: (context, url) => Container(color: Colors.grey[100], child: const Center(child: CustomLoadingIndicator(size: 16))),
+-                                        errorWidget: (context, url, error) => Container(color: Colors.grey[100], child: const Icon(Icons.restaurant, size: 16, color: Colors.grey)),
++                                        placeholder: (context, url) =>
++                                            Container(
++                                              color: Colors.grey[100],
++                                              child: const Center(
++                                                child: CustomLoadingIndicator(
++                                                  size: 16,
++                                                ),
++                                              ),
++                                            ),
++                                        errorWidget: (context, url, error) =>
++                                            Container(
++                                              color: Colors.grey[100],
++                                              child: const Icon(
++                                                Icons.restaurant,
++                                                size: 16,
++                                                color: Colors.grey,
++                                              ),
++                                            ),
+                                       ),
+                                     ),
+                                   ),
+                                   const SizedBox(width: 12),
+                                   Expanded(
+                                     child: Column(
+-                                      crossAxisAlignment: CrossAxisAlignment.start,
++                                      crossAxisAlignment:
++                                          CrossAxisAlignment.start,
+                                       children: [
+                                         Text(
+                                           '${item.quantity}x ${item.title}',
+-                                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
++                                          style: GoogleFonts.poppins(
++                                            fontSize: 14,
++                                            fontWeight: FontWeight.w600,
++                                            color: Colors.black,
++                                          ),
+                                         ),
+                                         if (item.variantName != null)
+-                                          Text(item.variantName!, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
++                                          Text(
++                                            item.variantName!,
++                                            style: GoogleFonts.poppins(
++                                              fontSize: 12,
++                                              color: Colors.grey[600],
++                                            ),
++                                          ),
+                                       ],
+                                     ),
+                                   ),
+                                   Text(
+-                                    (item.price * item.quantity).toFormattedPrice(),
+-                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
++                                    (item.price * item.quantity)
++                                        .toFormattedPrice(),
++                                    style: GoogleFonts.poppins(
++                                      fontSize: 14,
++                                      fontWeight: FontWeight.bold,
++                                      color: Colors.black,
++                                    ),
+                                   ),
+                                 ],
+                               ),
+-                            )),
+-                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
+-                        
+-                        _buildSummaryRow(context.tr('order_status.food_total'), state.displayFoodPrice ?? widget.foodTotal.toFormattedPrice()),
++                            ),
++                          ),
++                        const Padding(
++                          padding: EdgeInsets.symmetric(vertical: 8),
++                          child: Divider(color: Color(0xFFF3F4F6)),
++                        ),
++
++                        _buildSummaryRow(
++                          context.tr('order_status.food_total'),
++                          state.displayFoodPrice ??
++                              widget.foodTotal.toFormattedPrice(),
++                        ),
+                         if (state.taxEnable) ...[
+                           const SizedBox(height: 8),
+-                          _buildSummaryRow(context.tr('order_status.tax'), state.displayTaxAmount ?? taxAmount.toFormattedPrice()),
++                          _buildSummaryRow(
++                            context.tr('order_status.tax'),
++                            state.displayTaxAmount ??
++                                taxAmount.toFormattedPrice(),
++                          ),
+                         ],
+                         if (state.hasAppliedCoupon) ...[
+                           const SizedBox(height: 8),
+@@ -1079,20 +1317,40 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                             shopCoupon: state.shopCoupon,
+                           ),
+                         ],
+-                        if (!state.isPickupFulfillment && state.hasDeliveryFeeEstimate && !state.isAwaitingShopConfirmation && !state.isFlexibleDelivery) ...[
++                        if (!state.isPickupFulfillment &&
++                            state.hasDeliveryFeeEstimate &&
++                            !state.isAwaitingShopConfirmation &&
++                            !state.isFlexibleDelivery) ...[
+                           const SizedBox(height: 8),
+-                          _buildSummaryRow(context.tr('order_status.delivery_fee'), state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
++                          _buildSummaryRow(
++                            context.tr('order_status.delivery_fee'),
++                            state.displayDeliveryFee ??
++                                state.deliveryFee!.toFormattedPrice(),
++                          ),
+                         ],
+-                        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Color(0xFFF3F4F6))),
++                        const Padding(
++                          padding: EdgeInsets.symmetric(vertical: 8),
++                          child: Divider(color: Color(0xFFF3F4F6)),
++                        ),
+                         _buildSummaryRow(
+-                          state.usesPayNowTotal ? context.tr('cart.total_pay_now') : context.tr('order_status.total_amount'),
+-                          state.usesPayNowTotal ? total.toFormattedPrice() : (state.displayTotalAmount ?? total.toFormattedPrice()),
++                          state.usesPayNowTotal
++                              ? context.tr('cart.total_pay_now')
++                              : context.tr('order_status.total_amount'),
++                          state.usesPayNowTotal
++                              ? total.toFormattedPrice()
++                              : (state.displayTotalAmount ??
++                                    total.toFormattedPrice()),
+                           isBold: true,
+                         ),
+ 
+-                        if (state.isFlexibleDelivery && !state.isAwaitingShopConfirmation) ...[
++                        if (state.isFlexibleDelivery &&
++                            !state.isAwaitingShopConfirmation) ...[
+                           const SizedBox(height: 16),
+-                          FlexibleDeliveryNote(estimatedFee: state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
++                          FlexibleDeliveryNote(
++                            estimatedFee:
++                                state.displayDeliveryFee ??
++                                state.deliveryFee!.toFormattedPrice(),
++                          ),
+                         ],
+                       ],
+                     ),
+@@ -1102,160 +1360,172 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+             ),
+             const SizedBox(height: 16),
+ 
+-
+             // Delivery Info Card
+             if (!state.isPickupFulfillment &&
+                 _currentStatus != -1 &&
+                 (_currentStatus >= 3 ||
+                     (state.riderName != null && state.riderName!.isNotEmpty)))
+               Container(
+-              padding: const EdgeInsets.all(20),
+-              decoration: BoxDecoration(
+-                color: Colors.white,
+-                borderRadius: BorderRadius.circular(20),
+-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+-                boxShadow: [
+-                  BoxShadow(
+-                    color: Colors.black.withValues(alpha: 0.03),
+-                    blurRadius: 10,
+-                    offset: const Offset(0, 4),
+-                  ),
+-                ],
+-              ),
+-              child: Column(
+-                crossAxisAlignment: CrossAxisAlignment.start,
+-                children: [
+-                  // Header row: bike icon + title
+-                  Row(
+-                    children: [
+-                      Image.asset(
+-                        'assets/images/delivery_bike.png',
+-                        width: 40,
+-                        height: 40,
+-                      ),
+-                      const SizedBox(width: 10),
+-                      Text(
+-                        context.tr('order_status.delivery_info'),
+-                        style: GoogleFonts.poppins(
+-                          fontSize: 16,
+-                          fontWeight: FontWeight.bold,
+-                        ),
+-                      ),
+-                    ],
+-                  ),
+-                  const SizedBox(height: 25),
+-                  // Route: restaurant -> destination with dotted line
+-                  IntrinsicHeight(
+-                    child: Row(
+-                      crossAxisAlignment: CrossAxisAlignment.stretch,
++                padding: const EdgeInsets.all(20),
++                decoration: BoxDecoration(
++                  color: Colors.white,
++                  borderRadius: BorderRadius.circular(20),
++                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
++                  boxShadow: [
++                    BoxShadow(
++                      color: Colors.black.withValues(alpha: 0.03),
++                      blurRadius: 10,
++                      offset: const Offset(0, 4),
++                    ),
++                  ],
++                ),
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    // Header row: bike icon + title
++                    Row(
+                       children: [
+-                        // Left: icons + dotted line
+-                        Column(
+-                          children: [
+-                            Container(
+-                              width: 15,
+-                              height: 15,
+-                              decoration: const BoxDecoration(
+-                                color: Color(0xFF4A90E2),
+-                                shape: BoxShape.circle,
++                        Image.asset(
++                          'assets/images/delivery_bike.png',
++                          width: 40,
++                          height: 40,
++                        ),
++                        const SizedBox(width: 10),
++                        Text(
++                          context.tr('order_status.delivery_info'),
++                          style: GoogleFonts.poppins(
++                            fontSize: 16,
++                            fontWeight: FontWeight.bold,
++                          ),
++                        ),
++                      ],
++                    ),
++                    const SizedBox(height: 25),
++                    // Route: restaurant -> destination with dotted line
++                    IntrinsicHeight(
++                      child: Row(
++                        crossAxisAlignment: CrossAxisAlignment.stretch,
++                        children: [
++                          // Left: icons + dotted line
++                          Column(
++                            children: [
++                              Container(
++                                width: 15,
++                                height: 15,
++                                decoration: const BoxDecoration(
++                                  color: Color(0xFF4A90E2),
++                                  shape: BoxShape.circle,
++                                ),
+                               ),
+-                            ),
+-                            Expanded(
+-                              child: CustomPaint(
+-                                painter: _DottedLinePainter(),
+-                                child: const SizedBox(width: 2),
++                              Expanded(
++                                child: CustomPaint(
++                                  painter: _DottedLinePainter(),
++                                  child: const SizedBox(width: 2),
++                                ),
+                               ),
+-                            ),
+-                             const GradientIcon(
+-                              icon: Icons.location_on,
+-                              size: 22,
+-                            ),
+-                          ],
+-                        ),
+-                        const SizedBox(width: 14),
+-                        // Right: Info (either Cancelled or Route text)
+-                        Expanded(
+-                          child: _currentStatus == -1 && state.cancelReason != null
+-                              ? Column(
+-                                  crossAxisAlignment: CrossAxisAlignment.start,
+-                                  mainAxisAlignment: MainAxisAlignment.center,
+-                                  children: [
+-                                    Text(
+-                                      context.tr('order_status.cancelled'),
+-                                      style: GoogleFonts.poppins(
+-                                        fontSize: 16,
+-                                        fontWeight: FontWeight.bold,
+-                                        color: Colors.red,
+-                                      ),
+-                                    ),
+-                                    const SizedBox(height: 8),
+-                                    Text(
+-                                      state.cancelReason!,
+-                                      style: GoogleFonts.poppins(
+-                                        fontSize: 14,
+-                                        color: Colors.grey[600],
++                              const GradientIcon(
++                                icon: Icons.location_on,
++                                size: 22,
++                              ),
++                            ],
++                          ),
++                          const SizedBox(width: 14),
++                          // Right: Info (either Cancelled or Route text)
++                          Expanded(
++                            child:
++                                _currentStatus == -1 &&
++                                    state.cancelReason != null
++                                ? Column(
++                                    crossAxisAlignment:
++                                        CrossAxisAlignment.start,
++                                    mainAxisAlignment: MainAxisAlignment.center,
++                                    children: [
++                                      Text(
++                                        context.tr('order_status.cancelled'),
++                                        style: GoogleFonts.poppins(
++                                          fontSize: 16,
++                                          fontWeight: FontWeight.bold,
++                                          color: Colors.red,
++                                        ),
+                                       ),
+-                                    ),
+-                                  ],
+-                                )
+-                              : Column(
+-                                  crossAxisAlignment: CrossAxisAlignment.start,
+-                                  children: [
+-                                    // Restaurant row
+-                                    Column(
+-                                      crossAxisAlignment: CrossAxisAlignment.start,
+-                                      children: [
+-                                        Text(
+-                                          storeName,
+-                                          style: GoogleFonts.poppins(
+-                                            fontSize: 15,
+-                                            fontWeight: FontWeight.w700,
+-                                          ),
+-                                          maxLines: 1,
+-                                          overflow: TextOverflow.ellipsis,
++                                      const SizedBox(height: 8),
++                                      Text(
++                                        state.cancelReason!,
++                                        style: GoogleFonts.poppins(
++                                          fontSize: 14,
++                                          color: Colors.grey[600],
+                                         ),
+-                                        if (state.restaurantAddress != null && state.restaurantAddress!.isNotEmpty)
++                                      ),
++                                    ],
++                                  )
++                                : Column(
++                                    crossAxisAlignment:
++                                        CrossAxisAlignment.start,
++                                    children: [
++                                      // Restaurant row
++                                      Column(
++                                        crossAxisAlignment:
++                                            CrossAxisAlignment.start,
++                                        children: [
+                                           Text(
+-                                            state.restaurantAddress!,
++                                            storeName,
+                                             style: GoogleFonts.poppins(
+-                                              fontSize: 12,
+-                                              color: Colors.grey[500],
++                                              fontSize: 15,
++                                              fontWeight: FontWeight.w700,
+                                             ),
+-                                            maxLines: 2,
++                                            maxLines: 1,
+                                             overflow: TextOverflow.ellipsis,
+                                           ),
+-                                      ],
+-                                    ),
+-                                    const SizedBox(height: 40),
+-                                    // Destination row
+-                                    Column(
+-                                      crossAxisAlignment: CrossAxisAlignment.start,
+-                                      children: [
+-                                        Text(
+-                                          (state.deliveryAddress != null &&
+-                                                  state.deliveryAddress!.isNotEmpty)
+-                                              ? state.deliveryAddress!
+-                                              : context.tr('food.my_location'),
+-                                          style: GoogleFonts.poppins(
+-                                            fontSize: 15,
+-                                            fontWeight: FontWeight.w700,
++                                          if (state.restaurantAddress != null &&
++                                              state
++                                                  .restaurantAddress!
++                                                  .isNotEmpty)
++                                            Text(
++                                              state.restaurantAddress!,
++                                              style: GoogleFonts.poppins(
++                                                fontSize: 12,
++                                                color: Colors.grey[500],
++                                              ),
++                                              maxLines: 2,
++                                              overflow: TextOverflow.ellipsis,
++                                            ),
++                                        ],
++                                      ),
++                                      const SizedBox(height: 40),
++                                      // Destination row
++                                      Column(
++                                        crossAxisAlignment:
++                                            CrossAxisAlignment.start,
++                                        children: [
++                                          Text(
++                                            (state.deliveryAddress != null &&
++                                                    state
++                                                        .deliveryAddress!
++                                                        .isNotEmpty)
++                                                ? state.deliveryAddress!
++                                                : context.tr(
++                                                    'food.my_location',
++                                                  ),
++                                            style: GoogleFonts.poppins(
++                                              fontSize: 15,
++                                              fontWeight: FontWeight.w700,
++                                            ),
++                                            maxLines: 3,
++                                            overflow: TextOverflow.ellipsis,
+                                           ),
+-                                          maxLines: 3,
+-                                          overflow: TextOverflow.ellipsis,
+-                                        ),
+-                                      ],
+-                                    ),
+-                                  ],
+-                                ),
+-                        ),
+-                      ],
++                                        ],
++                                      ),
++                                    ],
++                                  ),
++                          ),
++                        ],
++                      ),
+                     ),
+-                  ),
+-                ],
++                  ],
++                ),
+               ),
+-            ),
+             const SizedBox(height: 20),
+-            
++
+             // Reorder/Cancel Actions
+             if (_currentStatus == -1)
+               PrimaryGradientButton(
+@@ -1265,7 +1535,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                 },
+                 child: Text(
+                   context.tr('order_status.order_again'),
+-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
++                  style: GoogleFonts.poppins(
++                    fontSize: 16,
++                    fontWeight: FontWeight.bold,
++                    color: Colors.white,
++                  ),
+                 ),
+               ),
+             const SizedBox(height: 32),
+@@ -1277,11 +1551,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+ 
+   String _getFakeEstTime(String original, String? orderId) {
+     if (orderId == null) return TimeFormatter.normalizeDisplay(original);
+-    
++
+     // Try to parse max minutes from original string (e.g., "25 mins" -> 25)
+     final match = RegExp(r'(\d+)').firstMatch(original);
+     if (match == null) return TimeFormatter.normalizeDisplay(original);
+-    
++
+     int maxMins = int.tryParse(match.group(1)!) ?? 0;
+     if (maxMins <= 5) return TimeFormatter.normalizeDisplay(original);
+ 
+@@ -1291,13 +1565,13 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     int currentMax = maxMins - elapsedMins;
+     int floorMax = (maxMins * 0.4).ceil(); // Stop at 40% of original
+     if (floorMax < 5) floorMax = 5;
+-    
++
+     if (currentMax <= floorMax) {
+       return 'Anytime now';
+     }
+-    
++
+     int currentMin = currentMax > 5 ? currentMax - 5 : 0;
+-    
++
+     return '$currentMin - $currentMax mins';
+   }
+ 
+@@ -1309,10 +1583,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+           left: 18,
+           right: 18,
+           top: 20,
+-          child: Container(
+-            height: 3,
+-            color: Colors.grey.shade200,
+-          ),
++          child: Container(height: 3, color: Colors.grey.shade200),
+         ),
+         // Animated Segments
+         Positioned(
+@@ -1321,26 +1592,29 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+           top: 20,
+           child: LayoutBuilder(
+             builder: (context, constraints) {
+-              final double availableWidth = (constraints.maxWidth - 36).clamp(0.0, double.infinity);
++              final double availableWidth = (constraints.maxWidth - 36).clamp(
++                0.0,
++                double.infinity,
++              );
+               if (availableWidth <= 0) return const SizedBox.shrink();
+               final segmentWidth = availableWidth / 3.0;
+               return Row(
+                 children: [
+-                   _buildSegment(
+-                     width: segmentWidth,
+-                     filled: _currentStatus > 1,
+-                     isProcessing: _currentStatus == 1,
+-                   ),
+-                   _buildSegment(
+-                     width: segmentWidth,
+-                     filled: _currentStatus > 2,
+-                     isProcessing: _currentStatus == 2,
+-                   ),
+-                   _buildSegment(
+-                     width: segmentWidth,
+-                     filled: _currentStatus > 3,
+-                     isProcessing: _currentStatus == 3,
+-                   ),
++                  _buildSegment(
++                    width: segmentWidth,
++                    filled: _currentStatus > 1,
++                    isProcessing: _currentStatus == 1,
++                  ),
++                  _buildSegment(
++                    width: segmentWidth,
++                    filled: _currentStatus > 2,
++                    isProcessing: _currentStatus == 2,
++                  ),
++                  _buildSegment(
++                    width: segmentWidth,
++                    filled: _currentStatus > 3,
++                    isProcessing: _currentStatus == 3,
++                  ),
+                 ],
+               );
+             },
+@@ -1360,7 +1634,11 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     );
+   }
+ 
+-  Widget _buildSegment({required double width, required bool filled, bool isProcessing = false}) {
++  Widget _buildSegment({
++    required double width,
++    required bool filled,
++    bool isProcessing = false,
++  }) {
+     return SizedBox(
+       width: width,
+       height: 3,
+@@ -1407,7 +1685,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+                               color: AppColors.primary.withValues(alpha: 0.5),
+                               blurRadius: 6,
+                               spreadRadius: 2,
+-                            )
++                            ),
+                           ],
+                         ),
+                       ),
+@@ -1423,7 +1701,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+ 
+   Widget _buildStepNode(int stepIndex, IconData icon) {
+     bool isCompleted = _currentStatus >= stepIndex;
+-    
++
+     return Container(
+       width: 40,
+       height: 40,
+@@ -1431,13 +1709,15 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+         shape: BoxShape.circle,
+         gradient: isCompleted ? AppColors.primaryGradient : null,
+         color: isCompleted ? null : Colors.grey.shade200,
+-        boxShadow: isCompleted ? [
+-          BoxShadow(
+-            color: AppColors.primary.withValues(alpha: 0.3),
+-            blurRadius: 8,
+-            offset: const Offset(0, 2),
+-          )
+-        ] : null,
++        boxShadow: isCompleted
++            ? [
++                BoxShadow(
++                  color: AppColors.primary.withValues(alpha: 0.3),
++                  blurRadius: 8,
++                  offset: const Offset(0, 2),
++                ),
++              ]
++            : null,
+       ),
+       child: Center(
+         child: Icon(
+@@ -1449,11 +1729,10 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+     );
+   }
+ 
+-
+   Widget _buildSmallCircleButton(IconData icon, {VoidCallback? onTap}) {
+     final button = Container(
+       padding: const EdgeInsets.all(8),
+-       decoration: BoxDecoration(
++      decoration: BoxDecoration(
+         color: AppColors.primary.withValues(alpha: 0.1),
+         borderRadius: BorderRadius.circular(10),
+       ),
+@@ -1509,9 +1788,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
+ 
+     ChatUnreadController.instance.clear(orderId);
+ 
+-    final peerName = (name == null || name.trim().isEmpty)
+-        ? subtitle
+-        : name;
++    final peerName = (name == null || name.trim().isEmpty) ? subtitle : name;
+     await Navigator.push(
+       context,
+       MaterialPageRoute(
+@@ -1616,4 +1893,3 @@ class _DottedLinePainter extends CustomPainter {
+   @override
+   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+ }
+-
+diff --git a/lib/features/cart/presentation/screens/order_summary_page.dart b/lib/features/cart/presentation/screens/order_summary_page.dart
+index a9cdd5b..02cdba4 100644
+--- a/lib/features/cart/presentation/screens/order_summary_page.dart
++++ b/lib/features/cart/presentation/screens/order_summary_page.dart
+@@ -32,13 +32,17 @@ import '../../../../core/network/api_client.dart';
+ import '../../../../core/auth/auth_service.dart';
+ import '../../../../core/auth/user_model.dart';
+ import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
++import '../../../auth/data/delivery_address_prefs.dart';
+ import '../../../auth/data/models/user_location_model.dart';
+ import '../../../auth/data/repositories/user_location_repository.dart';
+ import '../../../auth/data/session_location_store.dart';
++import '../../../home/presentation/screens/location_picker_page.dart';
+ import '../../../home/presentation/widgets/location_selection_modal.dart';
+ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+ import '../../../../core/presentation/widgets/gradient_text.dart';
++import '../../../../core/presentation/widgets/app_dialog.dart';
++import '../../../../core/location/geo_distance.dart';
+ 
+ import '../../../home/data/shop_storage.dart';
+ 
+@@ -67,11 +71,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+   // the user picked on this page; it's applied to the order at place-order time.
+   List<CouponModel> _shopCoupons = const [];
+   CouponModel? _selectedCoupon;
++  bool _forcedAddressFlowOpen = false;
+ 
+   @override
+   void initState() {
+     super.initState();
+     _loadPrimaryLocation();
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      _ensureDeliveryAddressIfNeeded();
++    });
+     // Stay in sync with primary-location changes made from any selection path
+     // (the modal, or the full search page that may close without a callback).
+     UserLocationRepository.instance.addListener(_onLocationRepositoryChanged);
+@@ -192,9 +200,45 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+       coupons: applicable,
+       selectedId: _selectedCoupon?.id,
+     );
+-    if (chosen != null && mounted) {
+-      setState(() => _selectedCoupon = chosen);
++    if (!mounted) return;
++    setState(() => _selectedCoupon = chosen);
++  }
++
++  /// Warns when delivery is farther than [GeoDistance.distanceConfirmThresholdKm].
++  /// Shop may still accept — user can continue after confirming.
++  Future<bool> _confirmFarDeliveryIfNeeded() async {
++    if (!_isDelivery) return true;
++    final loc = _primaryLocation;
++    final shop = _restaurant;
++    final userLat = loc?.latitude;
++    final userLon = loc?.longitude;
++    final shopLat = shop?.latitude;
++    final shopLon = shop?.longitude;
++    if (userLat == null ||
++        userLon == null ||
++        shopLat == null ||
++        shopLon == null) {
++      return true;
+     }
++    final km = GeoDistance.haversineKm(userLat, userLon, shopLat, shopLon);
++    if (km <= GeoDistance.distanceConfirmThresholdKm) return true;
++
++    if (!mounted) return false;
++    final distanceStr = km.toStringAsFixed(1);
++    final result = await AppDialog.show<bool>(
++      context: context,
++      title: context.tr('order.far_delivery_title'),
++      content: context.trArgs('order.far_delivery_message', {
++        'distance': distanceStr,
++        'limit': GeoDistance.distanceConfirmThresholdKm.toStringAsFixed(0),
++      }),
++      buttonText: context.tr('order.far_delivery_continue'),
++      secondaryButtonText: context.tr('common.cancel'),
++      onButtonPressed: () => Navigator.pop(context, true),
++      onSecondaryPressed: () => Navigator.pop(context, false),
++      showCloseIcon: false,
++    );
++    return result == true;
+   }
+ 
+   Future<void> _loadShopPaymentMethods(int shopId) async {
+@@ -232,6 +276,53 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+     _loadPrimaryLocation(forceRefresh: true);
+   }
+ 
++  bool _hasSavedDeliveryAddress() {
++    final loc = _primaryLocation;
++    return loc != null &&
++        loc.id > 0 &&
++        (loc.streetAddress?.trim().isNotEmpty ?? false);
++  }
++
++  Future<void> _ensureDeliveryAddressIfNeeded() async {
++    if (!_isDelivery || GuestAuthGuard.isGuest || !mounted) return;
++    if (_forcedAddressFlowOpen) return;
++    if (!await DeliveryAddressPrefs.requiresForcedSetup()) return;
++    await _openForcedAddressSetup();
++  }
++
++  Future<void> _openForcedAddressSetup() async {
++    if (_forcedAddressFlowOpen || !mounted) return;
++    _forcedAddressFlowOpen = true;
++    try {
++      final saved = await Navigator.of(context).push<UserLocationModel>(
++        MaterialPageRoute(
++          fullscreenDialog: true,
++          builder: (_) => const LocationPickerPage(forcedSetup: true),
++        ),
++      );
++      if (saved != null && mounted) {
++        await _loadPrimaryLocation(forceRefresh: true);
++      }
++    } finally {
++      _forcedAddressFlowOpen = false;
++    }
++  }
++
++  Future<bool> _ensureSavedDeliveryAddressForOrder() async {
++    if (!_isDelivery) return true;
++    if (_hasSavedDeliveryAddress()) {
++      if (await DeliveryAddressPrefs.requiresForcedSetup()) {
++        await DeliveryAddressPrefs.setCompletedSetup(true);
++      }
++      return true;
++    }
++    if (await DeliveryAddressPrefs.requiresForcedSetup()) {
++      await _openForcedAddressSetup();
++    }
++    if (!mounted) return false;
++    return _hasSavedDeliveryAddress();
++  }
++
+   Future<void> _loadPrimaryLocation({bool forceRefresh = false}) async {
+     try {
+       var loc = UserLocationRepository.instance.activeLocation;
+@@ -681,8 +772,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+                                       borderRadius: BorderRadius.circular(12),
+                                     ),
+                                     child: InkWell(
+-                                      onTap: () =>
+-                                          setState(() => _isDelivery = true),
++                                      onTap: () async {
++                                        setState(() => _isDelivery = true);
++                                        await _ensureDeliveryAddressIfNeeded();
++                                      },
+                                       borderRadius: BorderRadius.circular(12),
+                                       child: Container(
+                                         height: 50,
+@@ -1091,6 +1184,26 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+                                     return;
+                                   }
+ 
++                                  if (_isDelivery) {
++                                    final hasAddress =
++                                        await _ensureSavedDeliveryAddressForOrder();
++                                    if (!hasAddress) {
++                                      if (mounted) {
++                                        ScaffoldMessenger.of(context).showSnackBar(
++                                          SnackBar(
++                                            content: Text(
++                                              context.tr(
++                                                'location.forced_setup_required',
++                                              ),
++                                            ),
++                                            backgroundColor: AppColors.primary,
++                                          ),
++                                        );
++                                      }
++                                      return;
++                                    }
++                                  }
++
+                                   if (ActiveOrderState.instance.hasActiveOrder) {
+                                     if (!context.mounted) return;
+                                     ScaffoldMessenger.of(context).showSnackBar(
+@@ -1132,25 +1245,36 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+                                   );
+ 
+                                   try {
+-                                    if (ActiveOrderState.instance.hasActiveOrder) {
+-                                      operationCompleted = true;
+-                                      if (mounted) {
+-                                        setState(() {
+-                                          _isPlacingOrder = false;
+-                                          _isProcessing = false;
+-                                        });
+-                                        ScaffoldMessenger.of(context).showSnackBar(
+-                                          SnackBar(
+-                                            content: Text(
+-                                              context.tr('cart.ongoing_order_wait'),
+-                                              style: GoogleFonts.poppins(),
+-                                            ),
+-                                            backgroundColor: const Color(0xFF2563EB),
++                                  if (ActiveOrderState.instance.hasActiveOrder) {
++                                    operationCompleted = true;
++                                    if (mounted) {
++                                      setState(() {
++                                        _isPlacingOrder = false;
++                                        _isProcessing = false;
++                                      });
++                                      ScaffoldMessenger.of(context).showSnackBar(
++                                        SnackBar(
++                                          content: Text(
++                                            context.tr('cart.ongoing_order_wait'),
++                                            style: GoogleFonts.poppins(),
+                                           ),
+-                                        );
+-                                      }
+-                                      return;
++                                          backgroundColor: const Color(0xFF2563EB),
++                                        ),
++                                      );
++                                    }
++                                    return;
++                                  }
++
++                                  if (!await _confirmFarDeliveryIfNeeded()) {
++                                    operationCompleted = true;
++                                    if (mounted) {
++                                      setState(() {
++                                        _isPlacingOrder = false;
++                                        _isProcessing = false;
++                                      });
+                                     }
++                                    return;
++                                  }
+ 
+                                     // Call backend: POST /api/user/orders
+                                     // (UserOrdersController.create). Schema
+@@ -1509,7 +1633,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+     final hasCoupons = _shopCoupons.isNotEmpty;
+     final isHighlighted = hasSelection || hasCoupons;
+ 
+-    if (_shopCoupons.isEmpty && !hasSelection) {
++    if (!hasSelection && applicable.isEmpty) {
+       return const SizedBox.shrink();
+     }
+ 
+@@ -1587,20 +1711,33 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
+                   ),
+                 ),
+                 const SizedBox(width: 8),
+-                if (hasSelection)
++                if (hasSelection) ...[
++                  TextButton(
++                    onPressed: () => _openCouponSheet(subtotal, items),
++                    child: Text(
++                      context.tr('coupon.change'),
++                      style: GoogleFonts.poppins(
++                        fontSize: 12,
++                        fontWeight: FontWeight.w600,
++                        color: AppColors.primary,
++                      ),
++                    ),
++                  ),
+                   GestureDetector(
+                     onTap: () => setState(() => _selectedCoupon = null),
+-                    child: Container(
+-                      padding: const EdgeInsets.all(4),
+-                      color: Colors.transparent,
+-                      child: Icon(
+-                        PhosphorIcons.x,
+-                        size: 18,
+-                        color: Colors.grey[500],
++                    child: Padding(
++                      padding: const EdgeInsets.symmetric(horizontal: 4),
++                      child: Text(
++                        context.tr('coupon.remove'),
++                        style: GoogleFonts.poppins(
++                          fontSize: 12,
++                          fontWeight: FontWeight.w600,
++                          color: Colors.grey.shade600,
++                        ),
+                       ),
+                     ),
+-                  )
+-                else
++                  ),
++                ] else
+                   Container(
+                     padding: EdgeInsets.all(isHighlighted ? 4 : 0),
+                     decoration: isHighlighted ? BoxDecoration(
+diff --git a/lib/features/cart/presentation/screens/order_tracking_page.dart b/lib/features/cart/presentation/screens/order_tracking_page.dart
+index 886c050..ce48376 100644
+--- a/lib/features/cart/presentation/screens/order_tracking_page.dart
++++ b/lib/features/cart/presentation/screens/order_tracking_page.dart
+@@ -18,12 +18,9 @@ import '../../data/cart_manager.dart';
+ import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
+ import '../../data/active_order_state.dart';
+ import '../../../home/data/restaurant_data.dart' show Restaurant;
+-import '../../../home/presentation/widgets/map_skeleton_loader.dart';
+ import 'awaiting_payment_page.dart';
+ import 'order_cancel_page.dart';
+ import '../../../../core/network/websocket_service.dart';
+-import '../../../../core/theme/app_map_theme.dart';
+-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+ import '../../../../core/presentation/widgets/gradient_text.dart';
+ import '../../../../core/utils/price_formatter.dart';
+diff --git a/lib/features/cart/presentation/widgets/coupon_ticket_sheet.dart b/lib/features/cart/presentation/widgets/coupon_ticket_sheet.dart
+index 096fd26..e1614b3 100644
+--- a/lib/features/cart/presentation/widgets/coupon_ticket_sheet.dart
++++ b/lib/features/cart/presentation/widgets/coupon_ticket_sheet.dart
+@@ -176,7 +176,10 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
+                       dimmed: _tearingId != null && !isTearing,
+                       onTap: (_tearingId != null)
+                           ? null
+-                          : () => setState(() => _selectedId = coupon.id),
++                          : () => setState(() {
++                                _selectedId =
++                                    isSelected ? null : coupon.id;
++                              }),
+                     );
+                   },
+                 );
+diff --git a/lib/features/chat/presentation/widgets/chat_head_route_observer.dart b/lib/features/chat/presentation/widgets/chat_head_route_observer.dart
+index 94e8ea4..3fd0277 100644
+--- a/lib/features/chat/presentation/widgets/chat_head_route_observer.dart
++++ b/lib/features/chat/presentation/widgets/chat_head_route_observer.dart
+@@ -1,6 +1,5 @@
+ import 'package:flutter/material.dart';
+ import 'floating_chat_head.dart';
+-import '../screens/chat_page.dart';
+ 
+ /// A NavigatorObserver that automatically hides the FloatingChatHead
+ /// whenever ChatPage is the active route, and shows it otherwise.
+diff --git a/lib/features/chat/presentation/widgets/floating_chat_head.dart b/lib/features/chat/presentation/widgets/floating_chat_head.dart
+index 52f8dbe..a221c70 100644
+--- a/lib/features/chat/presentation/widgets/floating_chat_head.dart
++++ b/lib/features/chat/presentation/widgets/floating_chat_head.dart
+@@ -182,7 +182,7 @@ class _FloatingChatHeadState extends State<FloatingChatHead> {
+                                       width: 56,
+                                       height: 56,
+                                       fit: BoxFit.cover,
+-                                      errorWidget: (_, __, ___) => const Icon(
++                                      errorWidget: (_, _, _) => const Icon(
+                                           PhosphorIconsFill.storefront,
+                                           color: Colors.grey,
+                                           size: 28),
+diff --git a/lib/features/coupons/presentation/widgets/coupon_details_sheet.dart b/lib/features/coupons/presentation/widgets/coupon_details_sheet.dart
+index 0688887..26d00a3 100644
+--- a/lib/features/coupons/presentation/widgets/coupon_details_sheet.dart
++++ b/lib/features/coupons/presentation/widgets/coupon_details_sheet.dart
+@@ -1,9 +1,13 @@
+ import 'package:flutter/material.dart';
+ import 'package:google_fonts/google_fonts.dart';
+ 
++import '../../../../core/auth/auth_service.dart';
++import '../../../../core/auth/guest_auth_guard.dart';
+ import '../../../../core/localization/app_translations.dart';
++import '../../../../core/presentation/widgets/app_dialog.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../cart/data/coupon_service.dart';
++import '../../../coupons/presentation/screens/saved_coupons_page.dart';
+ import '../../../home/presentation/screens/restaurant_detail_page.dart';
+ import 'coupon_display.dart';
+ import 'redeem_qr_sheet.dart';
+@@ -65,7 +69,7 @@ class CouponSheetShell extends StatelessWidget {
+ /// and a back arrow returns to the list instead of a drag handle. When
+ /// [currentShopId] equals the coupon's shop, "Order" simply closes the sheet
+ /// (the user is already on that shop's page).
+-class CouponDetailsView extends StatelessWidget {
++class CouponDetailsView extends StatefulWidget {
+   final CouponModel coupon;
+   final VoidCallback? onBack;
+   final int? currentShopId;
+@@ -77,6 +81,13 @@ class CouponDetailsView extends StatelessWidget {
+     this.currentShopId,
+   });
+ 
++  @override
++  State<CouponDetailsView> createState() => _CouponDetailsViewState();
++}
++
++class _CouponDetailsViewState extends State<CouponDetailsView> {
++  CouponModel get coupon => widget.coupon;
++
+   String _shopName(BuildContext context) {
+     final shop = coupon.shop;
+     if (shop == null) return '';
+@@ -91,7 +102,7 @@ class CouponDetailsView extends StatelessWidget {
+     final shopId = coupon.resolvedShopId;
+     if (shopId == null) return;
+     // Already on this shop's page → just close the sheet and stay.
+-    if (currentShopId != null && shopId == currentShopId) {
++    if (widget.currentShopId != null && shopId == widget.currentShopId) {
+       Navigator.of(context).pop();
+       return;
+     }
+@@ -121,13 +132,13 @@ class CouponDetailsView extends StatelessWidget {
+       mainAxisSize: MainAxisSize.min,
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+-        if (onBack != null)
++        if (widget.onBack != null)
+           Padding(
+             padding: const EdgeInsets.only(bottom: 14),
+             child: Row(
+               children: [
+                 InkWell(
+-                  onTap: onBack,
++                  onTap: widget.onBack,
+                   borderRadius: BorderRadius.circular(20),
+                   child: const Padding(
+                     padding: EdgeInsets.all(4),
+@@ -282,7 +293,8 @@ class CouponDetailsView extends StatelessWidget {
+           ),
+         ),
+         const SizedBox(height: 16),
+-        const SizedBox(height: 16),
++        _CouponWishlistButton(couponId: coupon.id),
++        const SizedBox(height: 10),
+         Column(
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: [
+@@ -538,6 +550,107 @@ class _HowToUse extends StatelessWidget {
+   }
+ }
+ 
++class _CouponWishlistButton extends StatefulWidget {
++  final int couponId;
++
++  const _CouponWishlistButton({required this.couponId});
++
++  @override
++  State<_CouponWishlistButton> createState() => _CouponWishlistButtonState();
++}
++
++class _CouponWishlistButtonState extends State<_CouponWishlistButton> {
++  bool _saved = false;
++  bool _loading = false;
++  bool _initializing = true;
++
++  @override
++  void initState() {
++    super.initState();
++    _loadSavedState();
++  }
++
++  Future<void> _loadSavedState() async {
++    if (!AuthService().isLoggedIn) {
++      if (mounted) setState(() => _initializing = false);
++      return;
++    }
++    try {
++      final saved =
++          await CouponService.instance.isWishlisted(widget.couponId);
++      if (!mounted) return;
++      setState(() {
++        _saved = saved;
++        _initializing = false;
++      });
++    } catch (_) {
++      if (mounted) setState(() => _initializing = false);
++    }
++  }
++
++  Future<void> _toggle() async {
++    if (_loading || _initializing) return;
++    if (!await GuestAuthGuard.requireAccount(context)) return;
++    setState(() => _loading = true);
++    try {
++      final saved = await CouponService.instance.toggleWishlist(widget.couponId);
++      if (!mounted) return;
++      setState(() {
++        _saved = saved;
++        _loading = false;
++      });
++      if (saved) {
++        AppDialog.showToast(
++          context,
++          context.tr('coupon.saved_to_wishlist'),
++          actionLabel: context.tr('wishlist.view_action'),
++          onAction: () => SavedCouponsPage.open(context),
++        );
++      } else {
++        AppDialog.showToast(
++          context,
++          context.tr('coupon.removed_from_wishlist'),
++        );
++      }
++    } catch (_) {
++      if (mounted) {
++        setState(() => _loading = false);
++        AppDialog.showToast(
++          context,
++          context.tr('common.favorite_failed'),
++          isError: true,
++        );
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return OutlinedButton.icon(
++      onPressed: (_loading || _initializing) ? null : _toggle,
++      icon: Icon(
++        _saved ? Icons.bookmark : Icons.bookmark_border_rounded,
++        size: 20,
++        color: _saved ? AppColors.primary : Colors.grey.shade600,
++      ),
++      label: Text(
++        context.tr(_saved ? 'coupon.saved' : 'coupon.save_for_later'),
++        style: GoogleFonts.poppins(
++          fontWeight: FontWeight.w600,
++          color: _saved ? AppColors.primary : Colors.black87,
++        ),
++      ),
++      style: OutlinedButton.styleFrom(
++        padding: const EdgeInsets.symmetric(vertical: 14),
++        side: BorderSide(
++          color: _saved ? AppColors.primary : Colors.grey.shade300,
++        ),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
++      ),
++    );
++  }
++}
++
+ class _InfoRow extends StatelessWidget {
+   final IconData icon;
+   final String label;
+diff --git a/lib/features/coupons/presentation/widgets/coupon_rail_section.dart b/lib/features/coupons/presentation/widgets/coupon_rail_section.dart
+index 46d84f5..a424e7f 100644
+--- a/lib/features/coupons/presentation/widgets/coupon_rail_section.dart
++++ b/lib/features/coupons/presentation/widgets/coupon_rail_section.dart
+@@ -176,30 +176,6 @@ class _CouponRailSectionState extends State<CouponRailSection> {
+   }
+ }
+ 
+-class _DiscountPill extends StatelessWidget {
+-  final String label;
+-  const _DiscountPill({required this.label});
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Container(
+-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+-      decoration: BoxDecoration(
+-        gradient: AppColors.primaryGradient,
+-        borderRadius: BorderRadius.circular(6),
+-      ),
+-      child: Text(
+-        label,
+-        style: GoogleFonts.poppins(
+-          fontSize: 10,
+-          fontWeight: FontWeight.w700,
+-          color: Colors.white,
+-        ),
+-      ),
+-    );
+-  }
+-}
+-
+ class _CouponBrowseCard extends StatelessWidget {
+   final CouponModel coupon;
+   const _CouponBrowseCard({required this.coupon});
+diff --git a/lib/features/coupons/presentation/widgets/shop_promotions_sheet.dart b/lib/features/coupons/presentation/widgets/shop_promotions_sheet.dart
+index aa451cf..9e255a6 100644
+--- a/lib/features/coupons/presentation/widgets/shop_promotions_sheet.dart
++++ b/lib/features/coupons/presentation/widgets/shop_promotions_sheet.dart
+@@ -227,7 +227,7 @@ class _PromoCard extends StatelessWidget {
+     final hasDesc = coupon.description != null && coupon.description!.trim().isNotEmpty;
+     
+     final gradient = AppColors.primaryGradient;
+-    final borderColor = AppColors.primary.withOpacity(0.4);
++    final borderColor = AppColors.primary.withValues(alpha: 0.4);
+ 
+     return GestureDetector(
+       onTap: onTap,
+@@ -244,7 +244,7 @@ class _PromoCard extends StatelessWidget {
+           ),
+           shadows: [
+             BoxShadow(
+-              color: AppColors.primary.withOpacity(0.12),
++              color: AppColors.primary.withValues(alpha: 0.12),
+               blurRadius: 12,
+               offset: const Offset(0, 4),
+             ),
+diff --git a/lib/features/home/data/models/food_detail_dto.dart b/lib/features/home/data/models/food_detail_dto.dart
+index 105f600..a6003dc 100644
+--- a/lib/features/home/data/models/food_detail_dto.dart
++++ b/lib/features/home/data/models/food_detail_dto.dart
+@@ -90,8 +90,6 @@ class FoodDetailDto {
+     final shop = json['shop'] is Map
+         ? Map<String, dynamic>.from(json['shop'] as Map)
+         : null;
+-    final optionGroupsRaw =
+-        (json['optionGroups'] as List?) ?? (json['addOns'] as List?) ?? const [];
+ 
+     return FoodDetailDto(
+       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+@@ -121,26 +119,55 @@ class FoodDetailDto {
+           })
+           .whereType<String>()
+           .toList(),
+-      variants: _sortedVariantsFromJson(json['variants'] as List?),
+-      optionGroups: optionGroupsRaw
+-          .where((e) => e != null)
+-          .map((e) => MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(e as Map)))
+-          .where((g) => g.isAvailable && g.options.isNotEmpty)
+-          .toList()
+-        ..sort(
+-          (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+-        ),
++      variants: _sortedVariantsFromJson(json),
++      optionGroups: _optionGroupsFromJson(json),
+       isFavorite: json['isFavorite'] ?? false,
+       isAvailable: json['isAvailable'] as bool? ?? true,
+     );
+   }
+ }
+ 
+-List<MenuItemVariantDto> _sortedVariantsFromJson(List? raw) {
+-  final variants = (raw ?? [])
++List<MenuItemVariantDto> _sortedVariantsFromJson(Map<String, dynamic> json) {
++  final apiGroups = (json['variantGroups'] as List? ?? const [])
++      .whereType<Map>()
++      .map((g) => Map<String, dynamic>.from(g))
++      .toList();
++
++  final groupMetaById = <int, Map<String, dynamic>>{
++    for (final group in apiGroups)
++      if (int.tryParse(group['id']?.toString() ?? '') != null)
++        int.parse(group['id'].toString()): group,
++  };
++
++  final variants = (json['variants'] as List? ?? const [])
+       .where((e) => e != null)
+       .map((e) => MenuItemVariantDto.fromJson(Map<String, dynamic>.from(e as Map)))
+       .where((v) => v.isAvailable)
++      .map((variant) {
++        final groupId = variant.variantGroupId;
++        final group = groupId != null ? groupMetaById[groupId] : null;
++        if (group == null) return variant;
++        return MenuItemVariantDto(
++          id: variant.id,
++          name: variant.name,
++          nameEn: variant.nameEn,
++          nameMm: variant.nameMm,
++          nameTh: variant.nameTh,
++          price: variant.price,
++          displayPrice: variant.displayPrice,
++          isAvailable: variant.isAvailable,
++          displayOrder: variant.displayOrder,
++          variantGroupId: groupId,
++          variantGroupDisplayOrder: variant.variantGroupDisplayOrder ??
++              group['displayOrder'] as int?,
++          variantGroupNameEn:
++              variant.variantGroupNameEn ?? group['nameEn'] as String?,
++          variantGroupNameMm:
++              variant.variantGroupNameMm ?? group['nameMm'] as String?,
++          variantGroupNameTh:
++              variant.variantGroupNameTh ?? group['nameTh'] as String?,
++        );
++      })
+       .toList();
+ 
+   variants.sort((a, b) {
+@@ -153,6 +180,81 @@ List<MenuItemVariantDto> _sortedVariantsFromJson(List? raw) {
+   return variants;
+ }
+ 
++List<MenuItemOptionGroupDto> _optionGroupsFromJson(Map<String, dynamic> json) {
++  final nestedRaw =
++      (json['optionGroups'] as List?) ?? (json['addOns'] as List?) ?? const [];
++  final flatRaw = json['options'] as List? ?? const [];
++
++  final groupsById = <int, MenuItemOptionGroupDto>{};
++  final groupOrder = <int>[];
++
++  for (final raw in nestedRaw) {
++    if (raw is! Map) continue;
++    final group = MenuItemOptionGroupDto.fromJson(Map<String, dynamic>.from(raw));
++    if (!group.isAvailable || group.options.isEmpty) continue;
++    groupsById[group.id] = group;
++    groupOrder.add(group.id);
++  }
++
++  final nestedOptionIds = <int>{
++    for (final group in groupsById.values)
++      for (final option in group.options)
++        if (option.id > 0) option.id,
++  };
++
++  final ungrouped = <MenuItemOptionDto>[];
++
++  for (final raw in flatRaw) {
++    if (raw is! Map) continue;
++    final map = Map<String, dynamic>.from(raw);
++    final option = MenuItemOptionDto.fromJson(map);
++    if (option.id > 0 && nestedOptionIds.contains(option.id)) continue;
++
++    final embeddedGroupRaw = map['optionGroup'] ?? map['group'];
++    final embeddedGroup = embeddedGroupRaw is Map
++        ? Map<String, dynamic>.from(embeddedGroupRaw)
++        : null;
++    final embeddedDeleted = embeddedGroup?['deletedAt'] != null;
++    final groupId = int.tryParse(map['optionGroupId']?.toString() ?? '') ??
++        int.tryParse(embeddedGroup?['id']?.toString() ?? '');
++
++    if (groupId != null &&
++        groupId > 0 &&
++        !embeddedDeleted &&
++        groupsById.containsKey(groupId)) {
++      final group = groupsById[groupId]!;
++      if (group.options.any((o) => o.id == option.id)) continue;
++      groupsById[groupId] = group.copyWith(
++        options: [...group.options, option]
++          ..sort(
++            (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
++          ),
++      );
++      continue;
++    }
++
++    ungrouped.add(option);
++  }
++
++  if (ungrouped.isNotEmpty) {
++    ungrouped.sort(
++      (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
++    );
++    groupsById[0] = MenuItemOptionGroupDto(
++      id: 0,
++      name: '',
++      options: ungrouped,
++    );
++    groupOrder.add(0);
++  }
++
++  final merged = groupOrder.map((id) => groupsById[id]!).toList();
++  merged.sort(
++    (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
++  );
++  return merged;
++}
++
+ class MenuItemVariantDto {
+   final int id;
+   final String _name;
+@@ -248,11 +350,34 @@ class MenuItemOptionGroupDto {
+     required this.options,
+   }) : _name = name;
+ 
++  MenuItemOptionGroupDto copyWith({
++    int? id,
++    String? name,
++    String? nameEn,
++    String? nameMm,
++    String? nameTh,
++    int? displayOrder,
++    bool? isAvailable,
++    List<MenuItemOptionDto>? options,
++  }) {
++    return MenuItemOptionGroupDto(
++      id: id ?? this.id,
++      name: name ?? _name,
++      nameEn: nameEn ?? this.nameEn,
++      nameMm: nameMm ?? this.nameMm,
++      nameTh: nameTh ?? this.nameTh,
++      displayOrder: displayOrder ?? this.displayOrder,
++      isAvailable: isAvailable ?? this.isAvailable,
++      options: options ?? this.options,
++    );
++  }
++
+   factory MenuItemOptionGroupDto.fromJson(Map<String, dynamic> json) {
+     final isAvailable = json['isAvailable'] as bool? ?? true;
+     final options = (json['options'] as List? ?? [])
+         .where((e) => e != null)
+         .map((e) => MenuItemOptionDto.fromJson(Map<String, dynamic>.from(e as Map)))
++        .where((o) => o.isAvailable)
+         .toList()
+       ..sort(
+         (a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0),
+@@ -279,6 +404,7 @@ class MenuItemOptionDto {
+   final double price;
+   final String? displayPrice;
+   final int? displayOrder;
++  final bool isAvailable;
+ 
+   String get name => LocaleController.instance
+       .localizedOr(_name, en: nameEn, mm: nameMm, th: nameTh);
+@@ -292,6 +418,7 @@ class MenuItemOptionDto {
+     required this.price,
+     this.displayPrice,
+     this.displayOrder,
++    this.isAvailable = true,
+   }) : _name = name;
+ 
+   factory MenuItemOptionDto.fromJson(Map<String, dynamic> json) {
+@@ -304,6 +431,7 @@ class MenuItemOptionDto {
+       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+       displayPrice: json['displayPrice'] as String?,
+       displayOrder: json['displayOrder'] as int?,
++      isAvailable: json['isAvailable'] as bool? ?? json['deletedAt'] == null,
+     );
+   }
+ }
+diff --git a/lib/features/home/data/models/shop_feed_item_dto.dart b/lib/features/home/data/models/shop_feed_item_dto.dart
+index 00f1e12..b58b17f 100644
+--- a/lib/features/home/data/models/shop_feed_item_dto.dart
++++ b/lib/features/home/data/models/shop_feed_item_dto.dart
+@@ -359,16 +359,34 @@ class SliceShopFeedItemDto {
+   });
+ 
+   factory SliceShopFeedItemDto.fromJson(Map<String, dynamic> json) {
++    final content = (json['content'] as List? ?? [])
++        .map((e) => ShopFeedItemDto.fromJson(e))
++        .toList();
++    final size = (json['size'] as num?)?.toInt() ?? content.length;
++    final totalPages = (json['totalPages'] as num?)?.toInt() ?? 0;
++    final totalElements =
++        (json['totalElements'] as num?)?.toInt() ?? content.length;
++    // Backend uses 1-based `page`; Spring slice uses 0-based `number`.
++    final apiPage = (json['page'] as num?)?.toInt() ??
++        ((json['number'] as num?)?.toInt() ?? 0) + 1;
++
++    final bool last;
++    if (json.containsKey('last')) {
++      last = json['last'] == true;
++    } else if (totalPages > 0) {
++      last = apiPage >= totalPages;
++    } else {
++      last = content.isEmpty || content.length < size;
++    }
++
+     return SliceShopFeedItemDto(
+-      content: (json['content'] as List? ?? [])
+-          .map((e) => ShopFeedItemDto.fromJson(e))
+-          .toList(),
+-      first: json['first'] ?? false,
+-      last: json['last'] ?? false,
+-      number: json['number'] ?? 0,
+-      size: json['size'] ?? 0,
+-      totalElements: json['totalElements'] ?? 0,
+-      totalPages: json['totalPages'] ?? 0,
++      content: content,
++      first: json['first'] ?? (apiPage <= 1),
++      last: last,
++      number: apiPage - 1,
++      size: size,
++      totalElements: totalElements,
++      totalPages: totalPages,
+     );
+   }
+ }
+diff --git a/lib/features/home/data/remote_restaurant_data_source.dart b/lib/features/home/data/remote_restaurant_data_source.dart
+index 6d716f5..3842bf8 100644
+--- a/lib/features/home/data/remote_restaurant_data_source.dart
++++ b/lib/features/home/data/remote_restaurant_data_source.dart
+@@ -153,6 +153,7 @@ class RemoteRestaurantDataSource {
+     required int shopId,
+     int page = 0,
+     int size = 20,
++    int? categoryId,
+   }) async {
+     try {
+       // Backend (auth): GET /api/user/menu-items?shopId=...&page=...&size=...
+@@ -164,6 +165,7 @@ class RemoteRestaurantDataSource {
+           'shopId': shopId,
+           'page': page + 1, // API uses 1-based index
+           'size': size,
++          'categoryId': ?categoryId,
+         },
+         options: Options(
+           extra: {
+diff --git a/lib/features/home/data/repositories/restaurant_repository.dart b/lib/features/home/data/repositories/restaurant_repository.dart
+index be7ceca..a3b4f2e 100644
+--- a/lib/features/home/data/repositories/restaurant_repository.dart
++++ b/lib/features/home/data/repositories/restaurant_repository.dart
+@@ -323,7 +323,10 @@ class RestaurantRepository {
+         detail.longitude != null) {
+       final dist = GeoDistance.haversineKm(
+           lat, lon, detail.latitude!, detail.longitude!);
+-      return detail.copyWith(distance: '${dist.toStringAsFixed(1)} km');
++      return detail.copyWith(
++        distance: '${dist.toStringAsFixed(1)} km',
++        deliveryTime: GeoDistance.deliveryEtaFromKm(dist),
++      );
+     }
+     return detail;
+   }
+@@ -382,6 +385,18 @@ class RestaurantRepository {
+     return _mapShopDtoToDomain(shop, distanceKmOverride: dist);
+   }
+ 
++  String _deliveryTimeForShop({
++    required ShopListItemDto dto,
++    double? distanceKmOverride,
++  }) {
++    final resolvedKm = distanceKmOverride ??
++        (dto.distance > 0 ? dto.distance : null);
++    if (resolvedKm != null && resolvedKm > 0) {
++      return GeoDistance.deliveryEtaFromKm(resolvedKm);
++    }
++    return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
++  }
++
+   Restaurant _mapShopDtoToDomain(
+     ShopListItemDto dto, {
+     double? distanceKmOverride,
+@@ -408,7 +423,10 @@ class RestaurantRepository {
+             ? dto.logoUrl!
+             : '',
+       ),
+-      deliveryTime: dto.estimatedTime ?? '20-30 mins',
++      deliveryTime: _deliveryTimeForShop(
++        dto: dto,
++        distanceKmOverride: distanceKmOverride,
++      ),
+       deliveryFee: dto.displayDeliveryFee,
+       originalDeliveryFee: dto.originalDeliveryFee,
+       status: dto.isOpen ? 'Open' : 'Closed',
+@@ -423,7 +441,10 @@ class RestaurantRepository {
+     return _published(restaurant);
+   }
+ 
+-  Restaurant _mapShopDetailDtoToDomain(ShopDetailDto dto) {
++  Restaurant _mapShopDetailDtoToDomain(
++    ShopDetailDto dto, {
++    double? distanceKmOverride,
++  }) {
+     final imagePath = dto.bannerImageUrl ?? '';
+ 
+     final restaurant = Restaurant(
+@@ -438,14 +459,22 @@ class RestaurantRepository {
+       category: dto.category ?? 'Restaurant',
+       rating: dto.rating,
+       reviewCount: dto.reviewCount,
+-      distance: '${dto.distance.toStringAsFixed(1)} km',
++      distance:
++          '${(distanceKmOverride ?? dto.distance).toStringAsFixed(1)} km',
+       imagePath: _getImageUrl(imagePath),
+       logoPath: _getImageUrl(
+         (dto.logoUrl != null && !dto.logoUrl!.contains('pinterest.com'))
+             ? dto.logoUrl!
+             : '',
+       ),
+-      deliveryTime: dto.estimatedTime ?? '20-30 mins',
++      deliveryTime: () {
++        final resolvedKm = distanceKmOverride ??
++            (dto.distance > 0 ? dto.distance : null);
++        if (resolvedKm != null && resolvedKm > 0) {
++          return GeoDistance.deliveryEtaFromKm(resolvedKm);
++        }
++        return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
++      }(),
+       status: dto.isOpen ? 'Open' : 'Closed',
+       deliveryEnabled: dto.deliveryEnabled,
+       taxEnable: dto.taxEnable,
+@@ -602,11 +631,13 @@ class RestaurantRepository {
+     required int shopId,
+     int page = 0,
+     int size = 20,
++    int? categoryId,
+   }) async {
+     final response = await _remoteDataSource.getShopMenu(
+       shopId: shopId,
+       page: page,
+       size: size,
++      categoryId: categoryId,
+     );
+     return response.data;
+   }
+diff --git a/lib/features/home/presentation/screens/food_swipe_rank_page.dart b/lib/features/home/presentation/screens/food_swipe_rank_page.dart
+index bb8b724..e6ace7f 100644
+--- a/lib/features/home/presentation/screens/food_swipe_rank_page.dart
++++ b/lib/features/home/presentation/screens/food_swipe_rank_page.dart
+@@ -20,7 +20,7 @@ class FoodSwipeRankPage extends StatefulWidget {
+ }
+ 
+ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProviderStateMixin {
+-  List<ShopFeedItemDto> _items = [];
++  final List<ShopFeedItemDto> _items = [];
+   bool _isLoading = true;
+   bool _isFetchingMore = false;
+   int _likeCount = 0;
+@@ -717,14 +717,14 @@ class _FoodCard extends StatelessWidget {
+                 ? CachedNetworkImage(
+                     imageUrl: item.imageUrl!,
+                     fit: BoxFit.cover,
+-                    placeholder: (_, __) => Container(
++                    placeholder: (_, _) => Container(
+                       color: const Color(0xFF1A1A2E),
+                       child: const Center(
+                         child: Icon(Icons.fastfood_rounded,
+                             color: Colors.white24, size: 48),
+                       ),
+                     ),
+-                    errorWidget: (_, __, ___) => Container(
++                    errorWidget: (_, _, _) => Container(
+                       color: const Color(0xFF1A1A2E),
+                       child: const Center(
+                         child: Icon(Icons.fastfood_rounded,
+@@ -831,10 +831,10 @@ class _FoodCard extends StatelessWidget {
+                             child: CachedNetworkImage(
+                               imageUrl: item.shopLogoUrl!,
+                               fit: BoxFit.cover,
+-                              placeholder: (_, __) => const Center(
++                              placeholder: (_, _) => const Center(
+                                 child: Icon(Icons.storefront_rounded, color: Colors.grey, size: 14),
+                               ),
+-                              errorWidget: (_, __, ___) => const Center(
++                              errorWidget: (_, _, _) => const Center(
+                                 child: Icon(Icons.storefront_rounded, color: Colors.grey, size: 14),
+                               ),
+                             ),
+diff --git a/lib/features/home/presentation/screens/location_picker_page.dart b/lib/features/home/presentation/screens/location_picker_page.dart
+index 42b02c5..8396cc9 100644
+--- a/lib/features/home/presentation/screens/location_picker_page.dart
++++ b/lib/features/home/presentation/screens/location_picker_page.dart
+@@ -15,6 +15,7 @@ import '../../../../core/location/location_service.dart';
+ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+ import '../../../auth/data/models/user_location_model.dart';
+ import '../../../../core/auth/guest_auth_guard.dart';
++import '../../../auth/data/delivery_address_prefs.dart';
+ import '../../../auth/data/repositories/user_location_repository.dart';
+ import '../../../auth/data/session_location_store.dart';
+ import '../widgets/location_details_sheet.dart';
+@@ -24,7 +25,10 @@ import '../widgets/pinned_map_view.dart';
+ 
+ /// Unified map + search + pin screen for adding a delivery location.
+ class LocationPickerPage extends StatefulWidget {
+-  const LocationPickerPage({super.key});
++  /// When true, user must save an address — no back navigation until saved.
++  final bool forcedSetup;
++
++  const LocationPickerPage({super.key, this.forcedSetup = false});
+ 
+   @override
+   State<LocationPickerPage> createState() => _LocationPickerPageState();
+@@ -264,6 +268,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
+       builder: (ctx) => LocationDetailsSheet(
+         location: draft,
+         isEdit: false,
++        allowDismiss: !widget.forcedSetup,
+         onSave: _persistNewLocation,
+       ),
+     );
+@@ -276,14 +281,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
+     try {
+       final saved = await UserLocationRepository.instance.addLocation(model);
+       UserLocationRepository.instance.setActiveLocation(saved);
++      if (widget.forcedSetup) {
++        await DeliveryAddressPrefs.setCompletedSetup(true);
++      }
+       if (mounted) {
+         Navigator.pop(context, saved);
+-        ScaffoldMessenger.of(context).showSnackBar(
+-          SnackBar(
+-            content: Text(context.tr('location.saved_success')),
+-            backgroundColor: AppColors.primary,
+-          ),
+-        );
++        if (!widget.forcedSetup) {
++          ScaffoldMessenger.of(context).showSnackBar(
++            SnackBar(
++              content: Text(context.tr('location.saved_success')),
++              backgroundColor: AppColors.primary,
++            ),
++          );
++        }
+       }
+     } catch (e) {
+       if (mounted) {
+@@ -304,85 +314,147 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
+     }
+   }
+ 
++  Widget _buildForcedSetupBanner() {
++    return Material(
++      color: const Color(0xFFFFF7ED),
++      elevation: 2,
++      child: Padding(
++        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Icon(
++              PhosphorIconsFill.mapPin,
++              color: AppColors.primary,
++              size: 22,
++            ),
++            const SizedBox(width: 10),
++            Expanded(
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Text(
++                    context.tr('location.forced_setup_title'),
++                    style: GoogleFonts.poppins(
++                      fontSize: 15,
++                      fontWeight: FontWeight.w700,
++                      color: Colors.black87,
++                    ),
++                  ),
++                  const SizedBox(height: 4),
++                  Text(
++                    context.tr('location.forced_setup_subtitle'),
++                    style: GoogleFonts.poppins(
++                      fontSize: 12,
++                      color: Colors.grey.shade700,
++                      height: 1.4,
++                    ),
++                  ),
++                ],
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
+   @override
+   Widget build(BuildContext context) {
+-    return Scaffold(
+-      backgroundColor: Colors.white,
+-      body: _isLoadingInitial || _selectedPosition == null
+-          ? const Center(child: CustomLoadingIndicator(size: 32))
+-          : Stack(
+-              children: [
+-                Column(
+-                  children: [
+-                    Expanded(
+-                      child: _showMap
+-                          ? PinnedMapView(
++    final forcedBannerInset = widget.forcedSetup ? 88.0 : 0.0;
++
++    return PopScope(
++      canPop: !widget.forcedSetup,
++      child: Scaffold(
++        backgroundColor: Colors.white,
++        body: _isLoadingInitial || _selectedPosition == null
++            ? const Center(child: CustomLoadingIndicator(size: 32))
++            : Stack(
++                children: [
++                  Column(
++                    children: [
++                      SizedBox(height: forcedBannerInset),
++                      Expanded(
++                        child: _showMap
++                            ? PinnedMapView(
+                               key: _mapKey,
+                               initialPosition: _selectedPosition!,
+-                              mapPadding: const EdgeInsets.only(
+-                                top: 72,
++                              mapPadding: EdgeInsets.only(
++                                top: 72 + forcedBannerInset,
+                                 bottom: _pinLift,
+                               ),
+                               onGoToMyLocation: _goToMyLocation,
+                               onCameraMoveStarted: _geocode.onCameraMoveStarted,
+                               onPinDropped: _onPinDropped,
+                             )
+-                          : const ColoredBox(
+-                              color: Color(0xFFF1F5F9),
+-                              child: Center(
+-                                child: CustomLoadingIndicator(size: 28),
++                            : const ColoredBox(
++                                color: Color(0xFFF1F5F9),
++                                child: Center(
++                                  child: CustomLoadingIndicator(size: 28),
++                                ),
+                               ),
+-                            ),
+-                    ),
+-                    ListenableBuilder(
+-                      listenable: _geocode,
+-                      builder: (context, _) => MapPickerAddressPanel(
+-                        addressController: _geocode.addressController,
+-                        isGeocoding: _geocode.isGeocoding,
+-                        isMapMoving: _geocode.isMapMoving,
+-                        isSaving: _isSaving,
+-                        canConfirmBase: _selectedPosition != null,
+-                        addressError: _geocode.addressError,
+-                        onAddressChanged: _geocode.onAddressEdited,
+-                        onConfirm: _confirm,
++                      ),
++                      ListenableBuilder(
++                        listenable: _geocode,
++                        builder: (context, _) => MapPickerAddressPanel(
++                          addressController: _geocode.addressController,
++                          isGeocoding: _geocode.isGeocoding,
++                          isMapMoving: _geocode.isMapMoving,
++                          isSaving: _isSaving,
++                          canConfirmBase: _selectedPosition != null,
++                          addressError: _geocode.addressError,
++                          onAddressChanged: _geocode.onAddressEdited,
++                          onConfirm: _confirm,
++                        ),
++                      ),
++                    ],
++                  ),
++                  if (widget.forcedSetup)
++                    Positioned(
++                      top: 0,
++                      left: 0,
++                      right: 0,
++                      child: SafeArea(
++                        bottom: false,
++                        child: _buildForcedSetupBanner(),
+                       ),
+                     ),
+-                  ],
+-                ),
+-                _buildSearchOverlay(),
+-                if (_isSaving)
+-                  const Positioned.fill(
+-                    child: ColoredBox(
+-                      color: Color(0x44FFFFFF),
+-                      child: Center(child: CustomLoadingIndicator(size: 32)),
++                  _buildSearchOverlay(forcedBannerInset: forcedBannerInset),
++                  if (_isSaving)
++                    const Positioned.fill(
++                      child: ColoredBox(
++                        color: Color(0x44FFFFFF),
++                        child: Center(child: CustomLoadingIndicator(size: 32)),
++                      ),
+                     ),
+-                  ),
+-              ],
+-            ),
++                ],
++              ),
++      ),
+     );
+   }
+ 
+-  Widget _buildSearchOverlay() {
+-    final topInset = MediaQuery.of(context).padding.top;
++  Widget _buildSearchOverlay({double forcedBannerInset = 0}) {
++    final topInset = MediaQuery.of(context).padding.top + forcedBannerInset;
+ 
+     if (!GoogleMapsConfig.placesSearchEnabled) {
+       return Stack(
+         clipBehavior: Clip.none,
+         children: [
+-          Positioned(
+-            top: topInset + 8,
+-            left: 8,
+-            child: Material(
+-              color: Colors.white,
+-              elevation: 4,
+-              shadowColor: Colors.black26,
+-              shape: const CircleBorder(),
+-              child: IconButton(
+-                onPressed: () => Navigator.pop(context),
+-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
++          if (!widget.forcedSetup)
++            Positioned(
++              top: topInset + 8,
++              left: 8,
++              child: Material(
++                color: Colors.white,
++                elevation: 4,
++                shadowColor: Colors.black26,
++                shape: const CircleBorder(),
++                child: IconButton(
++                  onPressed: () => Navigator.pop(context),
++                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
++                ),
+               ),
+             ),
+-          ),
+         ],
+       );
+     }
+@@ -396,10 +468,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
+           right: 16,
+           child: Row(
+             children: [
+-              IconButton(
+-                onPressed: () => Navigator.pop(context),
+-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+-              ),
++              if (!widget.forcedSetup)
++                IconButton(
++                  onPressed: () => Navigator.pop(context),
++                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
++                ),
+               Expanded(
+                 child: Material(
+                   elevation: 4,
+@@ -458,7 +531,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
+         if (_showSearchResults && _searchController.text.trim().isNotEmpty)
+           Positioned(
+             top: topInset + 64,
+-            left: 56,
++            left: widget.forcedSetup ? 16 : 56,
+             right: 16,
+             child: Material(
+               elevation: 8,
+diff --git a/lib/features/home/presentation/screens/menu_detail_page.dart b/lib/features/home/presentation/screens/menu_detail_page.dart
+index 1ef3809..93da5d6 100644
+--- a/lib/features/home/presentation/screens/menu_detail_page.dart
++++ b/lib/features/home/presentation/screens/menu_detail_page.dart
+@@ -632,18 +632,21 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
+                           ),
+                           const SizedBox(height: 16),
+                           ..._currentFood!.optionGroups.map((group) {
++                            final showGroupTitle = group.name.trim().isNotEmpty;
+                             return Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+-                                Text(
+-                                  group.name,
+-                                  style: GoogleFonts.poppins(
+-                                    fontSize: 14,
+-                                    fontWeight: FontWeight.w600,
+-                                    color: Colors.grey[800],
++                                if (showGroupTitle) ...[
++                                  Text(
++                                    group.name,
++                                    style: GoogleFonts.poppins(
++                                      fontSize: 14,
++                                      fontWeight: FontWeight.w600,
++                                      color: Colors.grey[800],
++                                    ),
+                                   ),
+-                                ),
+-                                const SizedBox(height: 8),
++                                  const SizedBox(height: 8),
++                                ],
+                                 ...group.options.map((option) {
+                                   final isSelected =
+                                       _selectedOptions[group.id]?.contains(
+diff --git a/lib/features/home/presentation/screens/restaurant_detail_page.dart b/lib/features/home/presentation/screens/restaurant_detail_page.dart
+index 97860f8..cbbaf09 100644
+--- a/lib/features/home/presentation/screens/restaurant_detail_page.dart
++++ b/lib/features/home/presentation/screens/restaurant_detail_page.dart
+@@ -36,7 +36,8 @@ import '../widgets/my_together_verified_badge.dart';
+ import '../../data/restaurant_order_availability.dart';
+ import '../../data/shop_order_state_cache.dart';
+ import '../../data/models/shop_feed_item_dto.dart';
+-import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
++import '../../../../core/presentation/utils/pagination_scroll.dart';
++import '../../../../core/presentation/widgets/pagination_list_footer.dart';
+ import '../../../cart/data/active_order_state.dart';
+ import '../../../cart/presentation/widgets/active_order_bar.dart';
+ import 'package:url_launcher/url_launcher.dart';
+@@ -111,7 +112,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+   // Shop menu categories (GET /api/user/menu-categories) used to group the menu
+   // into ordered sections. Empty until loaded / for guests.
+   List<MenuCategoryDto> _categories = [];
+-  int _menuPage = 0;
++  /// Next 0-based page index per category when using per-category fetches.
++  final Map<int, int> _categoryPage = {};
++  final Map<int, bool> _categoryHasMore = {};
++  int _shopWidePage = 0;
++  bool _shopWideHasMore = true;
+   bool _hasMoreMenu = true;
+   bool _isMenuLoading = false;
+   static const int _pageSize = 20;
+@@ -181,9 +186,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+     if (shopId > 0) {
+       ActiveOrderState.instance.setCurrentShopId(shopId);
+       WebSocketService().connect();
+-      _fetchCategories(shopId);
+-      _loadInitialMenu();
+       _fetchPromotionCount(shopId);
++      _loadInitialMenu();
+     }
+ 
+     // Also refresh the shop detail header (name, logo, rating etc.)
+@@ -360,7 +364,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+         setState(() {
+           _targetMenuItemId = null; // Clear deep-linked highlight
+           _menuItems.clear();
+-          _menuPage = 0;
++          _categoryPage.clear();
++          _categoryHasMore.clear();
++          _shopWidePage = 0;
++          _shopWideHasMore = true;
+           _hasMoreMenu = true;
+           // NOTE: intentionally do NOT reset `_hasScrolledToTarget` here.
+           // The scroll-to-target is a one-time intent when the page is opened
+@@ -368,27 +375,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+           // real-time WebSocket events (menu/shop-profile updates, reconnects),
+           // so re-arming it would repeatedly yank the user back to the target.
+         });
+-        _fetchCategories(shopId);
+         _loadInitialMenu();
+       } else {
+-        _fetchCategories(shopId);
+         try {
+-          final currentSize = _menuItems.length > _pageSize ? _menuItems.length : _pageSize;
+-          final result = await RestaurantRepository.instance.getShopMenu(
+-            shopId: shopId,
+-            page: 0,
+-            size: currentSize,
+-          );
+-          if (mounted) {
+-            setState(() {
+-              _menuItems.clear();
+-              _menuItems.addAll(result.content);
+-              _hasMoreMenu = !result.last && result.content.isNotEmpty;
+-              if (_hasMoreMenu) {
+-                _menuPage = (_menuItems.length / _pageSize).ceil();
+-              }
+-            });
+-          }
++          await _fetchCategories(shopId);
++          await _fetchMenu(isInitial: true);
+         } catch (_) {}
+       }
+ 
+@@ -427,7 +418,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+       final cats = await RestaurantRepository.instance.getMenuCategories(
+         shopId: shopId,
+       );
+-      if (mounted && cats.isNotEmpty) {
++      if (mounted) {
+         setState(() => _categories = cats);
+       }
+     } catch (e) {
+@@ -435,9 +426,116 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+     }
+   }
+ 
++  void _resetMenuPagination() {
++    _categoryPage.clear();
++    _categoryHasMore.clear();
++    _shopWidePage = 0;
++    _shopWideHasMore = true;
++    _hasMoreMenu = true;
++  }
++
++  void _mergeMenuPage(
++    SliceShopFeedItemDto result, {
++    int? categoryId,
++    required int fetchedPage,
++  }) {
++    final existingIds = _menuItems.map((e) => e.id).toSet();
++    for (final item in result.content) {
++      if (existingIds.add(item.id)) {
++        _menuItems.add(item);
++      }
++    }
++
++    final hasMore = !result.last && result.content.isNotEmpty;
++    if (categoryId != null) {
++      _categoryHasMore[categoryId] = hasMore;
++      _categoryPage[categoryId] = hasMore ? fetchedPage + 1 : fetchedPage;
++    } else {
++      _shopWideHasMore = hasMore;
++      _shopWidePage = hasMore ? fetchedPage + 1 : fetchedPage;
++    }
++  }
++
++  void _syncHasMoreMenu() {
++    if (_categories.isNotEmpty) {
++      _hasMoreMenu = _categoryHasMore.values.any((hasMore) => hasMore);
++    } else {
++      _hasMoreMenu = _shopWideHasMore;
++    }
++  }
++
++  Future<void> _fetchCategoryMenuPages({required bool isInitial}) async {
++    final shopId = int.tryParse(widget.id) ?? 0;
++    if (shopId == 0) return;
++
++    final requests = <Future<SliceShopFeedItemDto>>[];
++    final categoryIds = <int>[];
++    final pages = <int>[];
++
++    for (final cat in _categories) {
++      final hasMore = _categoryHasMore[cat.id] ?? true;
++      if (!isInitial && !hasMore) continue;
++      final page = isInitial ? 0 : (_categoryPage[cat.id] ?? 0);
++      categoryIds.add(cat.id);
++      pages.add(page);
++      requests.add(
++        RestaurantRepository.instance.getShopMenu(
++          shopId: shopId,
++          categoryId: cat.id,
++          page: page,
++          size: _pageSize,
++        ),
++      );
++    }
++
++    if (requests.isEmpty) {
++      _syncHasMoreMenu();
++      return;
++    }
++
++    final results = await Future.wait(requests);
++    if (!mounted) return;
++
++    setState(() {
++      for (var i = 0; i < results.length; i++) {
++        _mergeMenuPage(
++          results[i],
++          categoryId: categoryIds[i],
++          fetchedPage: pages[i],
++        );
++      }
++      _syncHasMoreMenu();
++    });
++  }
++
++  Future<void> _fetchShopWideMenuPage({required bool isInitial}) async {
++    final shopId = int.tryParse(widget.id) ?? 0;
++    if (shopId == 0) return;
++
++    final page = isInitial ? 0 : _shopWidePage;
++    final result = await RestaurantRepository.instance.getShopMenu(
++      shopId: shopId,
++      page: page,
++      size: _pageSize,
++    );
++
++    if (!mounted) return;
++    setState(() {
++      if (isInitial) {
++        _menuItems.clear();
++      }
++      _mergeMenuPage(result, fetchedPage: page);
++      _syncHasMoreMenu();
++    });
++  }
++
+   /// Loads the first menu page, then keeps paging until [targetMenuItemId] is
+   /// present (when set) so scroll + highlight can reach off-screen items.
+   Future<void> _loadInitialMenu() async {
++    final shopId = int.tryParse(widget.id) ?? 0;
++    if (shopId > 0) {
++      await _fetchCategories(shopId);
++    }
+     await _fetchMenu(isInitial: true);
+     final targetId = widget.targetMenuItemId;
+     if (targetId == null || targetId.isEmpty) return;
+@@ -518,30 +616,48 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+     final shopId = int.tryParse(widget.id) ?? 0;
+     if (shopId == 0) return;
+ 
+-    setState(() => _isMenuLoading = true);
+-
+-    try {
+-      final result = await RestaurantRepository.instance.getShopMenu(
+-        shopId: shopId,
+-        page: isInitial ? 0 : _menuPage,
+-        size: _pageSize,
++    final wasNearEnd =
++        !isInitial && PaginationScroll.wasNearEnd(_scrollController, threshold: 500);
++    setState(() {
++      _isMenuLoading = true;
++      if (isInitial) {
++        _menuItems.clear();
++        _resetMenuPagination();
++      }
++    });
++    if (!isInitial) {
++      PaginationScroll.maintainAfterPageAppend(
++        _scrollController,
++        wasNearEnd: wasNearEnd,
+       );
++    }
+ 
++    try {
++      if (_categories.isNotEmpty) {
++        await _fetchCategoryMenuPages(isInitial: isInitial);
++      } else {
++        await _fetchShopWideMenuPage(isInitial: isInitial);
++      }
+       if (mounted) {
+-        setState(() {
+-          if (isInitial) {
+-            _menuItems.clear();
+-            _menuPage = 0;
+-          }
+-          _menuItems.addAll(result.content);
+-          _hasMoreMenu = !result.last && result.content.isNotEmpty;
+-          if (_hasMoreMenu) _menuPage++;
+-          _isMenuLoading = false;
+-        });
++        setState(() => _isMenuLoading = false);
++        if (!isInitial) {
++          PaginationScroll.maintainAfterPageAppend(
++            _scrollController,
++            wasNearEnd: wasNearEnd,
++          );
++        }
+       }
+     } catch (e) {
+       debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
+-      if (mounted) setState(() => _isMenuLoading = false);
++      if (mounted) {
++        setState(() => _isMenuLoading = false);
++        if (!isInitial) {
++          PaginationScroll.maintainAfterPageAppend(
++            _scrollController,
++            wasNearEnd: wasNearEnd,
++          );
++        }
++      }
+     }
+   }
+ 
+@@ -843,15 +959,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
+                     ),
+                     ..._buildMenuSlivers(context),
+                     if (_isMenuLoading)
+-                      SliverToBoxAdapter(
+-                        child: Padding(
+-                          padding: const EdgeInsets.symmetric(vertical: 32),
+-                          child: Center(
+-                            child: CustomLoadingIndicator(
+-                              size: 30,
+-                              color: AppColors.primary,
+-                            ),
+-                          ),
++                      const SliverToBoxAdapter(
++                        child: PaginationListFooter(
++                          isLoading: true,
+                         ),
+                       ),
+                     const SliverToBoxAdapter(
+diff --git a/lib/features/home/presentation/widgets/explore_menu_section.dart b/lib/features/home/presentation/widgets/explore_menu_section.dart
+index 9cd7ac7..1b4c39a 100644
+--- a/lib/features/home/presentation/widgets/explore_menu_section.dart
++++ b/lib/features/home/presentation/widgets/explore_menu_section.dart
+@@ -1,6 +1,8 @@
+ import 'package:flutter/material.dart';
+ import 'package:google_fonts/google_fonts.dart';
+ import 'package:mytogetherapp/core/localization/app_translations.dart';
++import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
++import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
+ import '../../data/models/shop_feed_item_dto.dart';
+ import '../../data/repositories/restaurant_repository.dart';
+ import 'food_menu_item_card.dart';
+@@ -137,7 +139,15 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
+   Future<void> _loadMore() async {
+     if (_isLoadingMore || !_hasMore || _isInitialLoading) return;
+ 
++    final wasNearEnd = PaginationScroll.wasNearEnd(
++      widget.scrollController,
++      threshold: 400,
++    );
+     setState(() => _isLoadingMore = true);
++    PaginationScroll.maintainAfterPageAppend(
++      widget.scrollController,
++      wasNearEnd: wasNearEnd,
++    );
+ 
+     try {
+       final nextPage = _currentPage + 1;
+@@ -149,9 +159,17 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
+         _hasMore = moreItems.length >= _pageSize;
+         _isLoadingMore = false;
+       });
++      PaginationScroll.maintainAfterPageAppend(
++        widget.scrollController,
++        wasNearEnd: wasNearEnd,
++      );
+     } catch (_) {
+       if (!mounted) return;
+       setState(() => _isLoadingMore = false);
++      PaginationScroll.maintainAfterPageAppend(
++        widget.scrollController,
++        wasNearEnd: wasNearEnd,
++      );
+     }
+   }
+ 
+@@ -266,16 +284,12 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
+           ),
+         ),
+         SliverToBoxAdapter(
+-          child: Column(
+-            children: [
+-              if (showFooter)
+-                _ExploreFooter(
++          child: showFooter
++              ? PaginationListFooter(
+                   isLoading: _isLoadingMore,
+                   showEndMessage: !_hasMore,
+-                ),
+-              if (!showFooter) const SizedBox(height: 24),
+-            ],
+-          ),
++                )
++              : const SizedBox(height: 24),
+         ),
+       ],
+     );
+@@ -326,44 +340,3 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
+     );
+   }
+ }
+-
+-class _ExploreFooter extends StatelessWidget {
+-  final bool isLoading;
+-  final bool showEndMessage;
+-
+-  const _ExploreFooter({
+-    required this.isLoading,
+-    required this.showEndMessage,
+-  });
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    if (isLoading) {
+-      return const Padding(
+-        padding: EdgeInsets.symmetric(vertical: 24),
+-        child: Center(
+-          child: SizedBox(
+-            width: 24,
+-            height: 24,
+-            child: CircularProgressIndicator(strokeWidth: 2),
+-          ),
+-        ),
+-      );
+-    }
+-    if (!showEndMessage) return const SizedBox(height: 24);
+-    return Padding(
+-      padding: const EdgeInsets.only(bottom: 20, top: 8),
+-      child: Center(
+-        child: Text(
+-          context.tr('food.end_of_list'),
+-          style: GoogleFonts.poppins(
+-            fontSize: 12,
+-            color: Colors.grey[400],
+-            fontWeight: FontWeight.w500,
+-            letterSpacing: 0.5,
+-          ),
+-        ),
+-      ),
+-    );
+-  }
+-}
+diff --git a/lib/features/home/presentation/widgets/food_leaderboard_page.dart b/lib/features/home/presentation/widgets/food_leaderboard_page.dart
+index 0c4f548..f324fb1 100644
+--- a/lib/features/home/presentation/widgets/food_leaderboard_page.dart
++++ b/lib/features/home/presentation/widgets/food_leaderboard_page.dart
+@@ -284,10 +284,10 @@ class _PodiumAvatarCol extends StatelessWidget {
+                           memCacheWidth: 300,
+                           fadeInDuration: Duration.zero,
+                           fadeOutDuration: Duration.zero,
+-                          placeholder: (_, __) => Container(
++                          placeholder: (_, _) => Container(
+                             color: Colors.white.withValues(alpha: 0.05),
+                           ),
+-                          errorWidget: (_, __, ___) => Container(
++                          errorWidget: (_, _, _) => Container(
+                             color: Colors.white.withValues(alpha: 0.05),
+                             child: const Icon(Icons.fastfood_rounded,
+                                 color: Colors.white38),
+@@ -462,9 +462,9 @@ class _RankListTile extends StatelessWidget {
+                         memCacheWidth: 180,
+                         fadeInDuration: Duration.zero,
+                         fadeOutDuration: Duration.zero,
+-                        placeholder: (_, __) =>
++                        placeholder: (_, _) =>
+                             Container(color: Colors.white.withValues(alpha: 0.05)),
+-                        errorWidget: (_, __, ___) => Container(
++                        errorWidget: (_, _, _) => Container(
+                           color: Colors.white.withValues(alpha: 0.05),
+                           child: const Icon(Icons.fastfood_rounded,
+                               color: Colors.white24),
+diff --git a/lib/features/home/presentation/widgets/food_leaderboard_section.dart b/lib/features/home/presentation/widgets/food_leaderboard_section.dart
+index 7511954..493c87c 100644
+--- a/lib/features/home/presentation/widgets/food_leaderboard_section.dart
++++ b/lib/features/home/presentation/widgets/food_leaderboard_section.dart
+@@ -500,7 +500,7 @@ class _FoodThumbImage extends StatelessWidget {
+     return Image.network(
+       imageUrl,
+       fit: BoxFit.cover,
+-      errorBuilder: (_, __, ___) => Container(
++      errorBuilder: (_, _, _) => Container(
+         color: Colors.white.withValues(alpha: 0.05),
+         child: const Icon(Icons.fastfood_rounded, color: Colors.white38, size: 28),
+       ),
+diff --git a/lib/features/home/presentation/widgets/food_menu_item_card.dart b/lib/features/home/presentation/widgets/food_menu_item_card.dart
+index 44fd37c..da88dfc 100644
+--- a/lib/features/home/presentation/widgets/food_menu_item_card.dart
++++ b/lib/features/home/presentation/widgets/food_menu_item_card.dart
+@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
+ import 'package:mytogetherapp/core/network/api_client.dart';
+ import 'image_skeleton_loader.dart';
++import 'menu_item_discount_badge.dart';
+ import '../screens/menu_detail_page.dart';
+ import '../screens/restaurant_detail_page.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+@@ -169,6 +170,10 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
+         ? widget.originalPrice!
+         : widget.price;
+     final bool hasDiscount = widget.originalPrice != null && widget.originalPrice! > effectivePrice;
++    final discountBadge = menuItemDiscountBadgeLabel(
++      originalPrice: widget.originalPrice,
++      sellingPrice: effectivePrice,
++    );
+ 
+     final bool effectiveIsHidden = (widget.publishStatus == 'UNPUBLISHED' || 
+                                    widget.publishStatus == 'ARCHIVED' || 
+@@ -330,6 +335,12 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
+                                     reason: availability.reason,
+                                   ),
+                                 ),
++                              if (discountBadge != null)
++                                Positioned(
++                                  left: 8,
++                                  top: 8,
++                                  child: MenuItemDiscountBadge(label: discountBadge),
++                                ),
+                               Positioned(
+                                 top: 10,
+                                 right: 10,
+diff --git a/lib/features/home/presentation/widgets/location_details_sheet.dart b/lib/features/home/presentation/widgets/location_details_sheet.dart
+index 8bccade..baf31a4 100644
+--- a/lib/features/home/presentation/widgets/location_details_sheet.dart
++++ b/lib/features/home/presentation/widgets/location_details_sheet.dart
+@@ -10,12 +10,14 @@ class LocationDetailsSheet extends StatefulWidget {
+   final UserLocationModel location;
+   final Function(UserLocationModel) onSave;
+   final bool isEdit;
++  final bool allowDismiss;
+ 
+   const LocationDetailsSheet({
+     super.key,
+     required this.location,
+     required this.onSave,
+     this.isEdit = false,
++    this.allowDismiss = true,
+   });
+ 
+   @override
+@@ -97,10 +99,11 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
+                     ),
+                   ),
+                 ),
+-                IconButton(
+-                  onPressed: () => Navigator.pop(context),
+-                  icon: const Icon(Icons.close),
+-                ),
++                if (widget.allowDismiss)
++                  IconButton(
++                    onPressed: () => Navigator.pop(context),
++                    icon: const Icon(Icons.close),
++                  ),
+               ],
+             ),
+             const SizedBox(height: 8),
+diff --git a/lib/features/home/presentation/widgets/restaurant_card.dart b/lib/features/home/presentation/widgets/restaurant_card.dart
+index 3f81bcb..4fb9055 100644
+--- a/lib/features/home/presentation/widgets/restaurant_card.dart
++++ b/lib/features/home/presentation/widgets/restaurant_card.dart
+@@ -220,7 +220,7 @@ class RestaurantCard extends StatelessWidget {
+                     child: Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                       decoration: BoxDecoration(
+-                        color: const Color(0xFFFACC15).withOpacity(0.2), // Yellow
++                        color: const Color(0xFFFACC15).withValues(alpha: 0.2), // Yellow
+                         border: Border.all(color: const Color(0xFFFACC15)),
+                         borderRadius: BorderRadius.circular(4),
+                       ),
+diff --git a/lib/features/lost_and_found/presentation/screens/lost_and_found_page.dart b/lib/features/lost_and_found/presentation/screens/lost_and_found_page.dart
+index 84a5c01..6f86f76 100644
+--- a/lib/features/lost_and_found/presentation/screens/lost_and_found_page.dart
++++ b/lib/features/lost_and_found/presentation/screens/lost_and_found_page.dart
+@@ -7,7 +7,8 @@ import '../../../news/presentation/widgets/news_feed_item.dart';
+ import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
+ import '../../../news/data/models/news_item.dart';
+ import '../../data/repositories/item_post_repository.dart';
+-import '../../../../../core/presentation/widgets/custom_loading_indicator.dart';
++import '../../../../../core/presentation/utils/pagination_scroll.dart';
++import '../../../../../core/presentation/widgets/pagination_list_footer.dart';
+ import 'create_item_post_page.dart';
+ import 'my_item_posts_page.dart';
+ 
+@@ -21,6 +22,7 @@ class LostAndFoundPage extends StatefulWidget {
+ class _LostAndFoundPageState extends State<LostAndFoundPage> {
+   final List<NewsItem> _items = [];
+   bool _isLoading = false;
++  bool _isLoadingMore = false;
+   bool _hasMore = true;
+   int _page = 1;
+   final ScrollController _scrollController = ScrollController();
+@@ -41,7 +43,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
+   void _onScroll() {
+     if (_scrollController.position.pixels >=
+         _scrollController.position.maxScrollExtent - 200) {
+-      if (!_isLoading && _hasMore) {
++      if (!_isLoadingMore && !_isLoading && _hasMore) {
+         _loadMoreData();
+       }
+     }
+@@ -76,8 +78,15 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
+   }
+ 
+   Future<void> _loadMoreData() async {
+-    if (!_hasMore) return;
+-    setState(() => _isLoading = true);
++    if (!_hasMore || _isLoadingMore) return;
++
++    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
++    setState(() => _isLoadingMore = true);
++    PaginationScroll.maintainAfterPageAppend(
++      _scrollController,
++      wasNearEnd: wasNearEnd,
++    );
++
+     try {
+       final nextPage = _page + 1;
+       final feed = await ItemPostRepository.instance.fetchFeed(page: nextPage);
+@@ -86,14 +95,26 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
+           _items.addAll(feed.items.map(NewsItem.fromItemPost));
+           _page = nextPage;
+           _hasMore = feed.page < feed.totalPages;
+-          _isLoading = false;
++          _isLoadingMore = false;
+         });
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
+       }
+     } catch (_) {
+-      if (mounted) setState(() => _isLoading = false);
++      if (mounted) {
++        setState(() => _isLoadingMore = false);
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
++      }
+     }
+   }
+ 
++  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
++
+   Future<void> _openCreatePost() async {
+     final created = await Navigator.push<bool>(
+       context,
+@@ -264,11 +285,11 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
+                   childCount: _items.length,
+                 ),
+               ),
+-            if (_isLoading && _items.isNotEmpty)
+-              const SliverToBoxAdapter(
+-                child: Padding(
+-                  padding: EdgeInsets.symmetric(vertical: 24),
+-                  child: Center(child: CustomLoadingIndicator(size: 24)),
++            if (_items.isNotEmpty && _showPaginationFooter)
++              SliverToBoxAdapter(
++                child: PaginationListFooter(
++                  isLoading: _isLoadingMore,
++                  showEndMessage: !_hasMore,
+                 ),
+               ),
+             const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+diff --git a/lib/features/lost_and_found/presentation/screens/my_item_posts_page.dart b/lib/features/lost_and_found/presentation/screens/my_item_posts_page.dart
+index 9162ec4..0416d44 100644
+--- a/lib/features/lost_and_found/presentation/screens/my_item_posts_page.dart
++++ b/lib/features/lost_and_found/presentation/screens/my_item_posts_page.dart
+@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
+ import 'package:google_fonts/google_fonts.dart';
+ import 'package:mytogetherapp/core/localization/app_translations.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
++import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
++import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+ import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
+ import 'package:mytogetherapp/core/theme/app_colors.dart';
+@@ -23,6 +25,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
+   final List<ItemPostDto> _items = [];
+   final ScrollController _scrollController = ScrollController();
+   bool _isLoading = false;
++  bool _isLoadingMore = false;
+   bool _hasMore = true;
+   int _page = 1;
+   // Set when any edit/delete happens, so the parent feed can refresh on pop.
+@@ -45,6 +48,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
+     if (_scrollController.position.pixels >=
+             _scrollController.position.maxScrollExtent - 200 &&
+         !_isLoading &&
++        !_isLoadingMore &&
+         _hasMore) {
+       _loadMore();
+     }
+@@ -73,8 +77,15 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
+   }
+ 
+   Future<void> _loadMore() async {
+-    if (!_hasMore) return;
+-    setState(() => _isLoading = true);
++    if (!_hasMore || _isLoadingMore) return;
++
++    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
++    setState(() => _isLoadingMore = true);
++    PaginationScroll.maintainAfterPageAppend(
++      _scrollController,
++      wasNearEnd: wasNearEnd,
++    );
++
+     try {
+       final nextPage = _page + 1;
+       final feed = await ItemPostRepository.instance.fetchMine(page: nextPage);
+@@ -83,14 +94,26 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
+           _items.addAll(feed.items);
+           _page = nextPage;
+           _hasMore = feed.page < feed.totalPages;
+-          _isLoading = false;
++          _isLoadingMore = false;
+         });
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
+       }
+     } catch (_) {
+-      if (mounted) setState(() => _isLoading = false);
++      if (mounted) {
++        setState(() => _isLoadingMore = false);
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
++      }
+     }
+   }
+ 
++  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
++
+   Future<void> _editPost(ItemPostDto post) async {
+     final updated = await Navigator.push<bool>(
+       context,
+@@ -250,13 +273,16 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
+       controller: _scrollController,
+       physics: const AlwaysScrollableScrollPhysics(),
+       padding: const EdgeInsets.symmetric(vertical: 12),
+-      itemCount: _items.length + (_isLoading && _hasMore ? 1 : 0),
+-      separatorBuilder: (_, _) => const Divider(height: 1),
++      itemCount: _items.length + (_showPaginationFooter ? 1 : 0),
++      separatorBuilder: (_, index) {
++        if (index >= _items.length - 1) return const SizedBox.shrink();
++        return const Divider(height: 1);
++      },
+       itemBuilder: (context, index) {
+         if (index >= _items.length) {
+-          return const Padding(
+-            padding: EdgeInsets.symmetric(vertical: 20),
+-            child: Center(child: CustomLoadingIndicator(size: 24)),
++          return PaginationListFooter(
++            isLoading: _isLoadingMore,
++            showEndMessage: !_hasMore,
+           );
+         }
+         return _MyPostTile(
+diff --git a/lib/features/news/presentation/screens/news_page.dart b/lib/features/news/presentation/screens/news_page.dart
+index ec32d0b..6ed2878 100644
+--- a/lib/features/news/presentation/screens/news_page.dart
++++ b/lib/features/news/presentation/screens/news_page.dart
+@@ -4,6 +4,8 @@ import '../widgets/news_feed_item.dart';
+ import '../../data/models/news_item.dart';
+ import '../../data/repositories/news_repository.dart';
+ import 'package:mytogetherapp/core/theme/app_colors.dart';
++import '../../../../core/presentation/utils/pagination_scroll.dart';
++import '../../../../core/presentation/widgets/pagination_list_footer.dart';
+ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+ import '../../../../core/presentation/widgets/notification_bell.dart';
+ import 'package:google_fonts/google_fonts.dart';
+@@ -19,6 +21,7 @@ class NewsPage extends StatefulWidget {
+ class _NewsPageState extends State<NewsPage> {
+   final List<NewsItem> _newsItems = [];
+   bool _isLoading = false;
++  bool _isLoadingMore = false;
+   bool _hasMore = true;
+   int _page = 1;
+   final ScrollController _scrollController = ScrollController();
+@@ -39,7 +42,7 @@ class _NewsPageState extends State<NewsPage> {
+   void _onScroll() {
+     if (_scrollController.position.pixels >=
+         _scrollController.position.maxScrollExtent - 200) {
+-      if (!_isLoading && _hasMore) {
++      if (!_isLoadingMore && !_isLoading && _hasMore) {
+         _loadMoreData();
+       }
+     }
+@@ -74,8 +77,14 @@ class _NewsPageState extends State<NewsPage> {
+   }
+ 
+   Future<void> _loadMoreData() async {
+-    if (!_hasMore) return;
+-    setState(() => _isLoading = true);
++    if (!_hasMore || _isLoadingMore) return;
++
++    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
++    setState(() => _isLoadingMore = true);
++    PaginationScroll.maintainAfterPageAppend(
++      _scrollController,
++      wasNearEnd: wasNearEnd,
++    );
+ 
+     try {
+       final nextPage = _page + 1;
+@@ -85,14 +94,26 @@ class _NewsPageState extends State<NewsPage> {
+           _newsItems.addAll(feed.items.map(NewsItem.fromNewsArticle));
+           _page = nextPage;
+           _hasMore = feed.page < feed.totalPages;
+-          _isLoading = false;
++          _isLoadingMore = false;
+         });
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
+       }
+     } catch (_) {
+-      if (mounted) setState(() => _isLoading = false);
++      if (mounted) {
++        setState(() => _isLoadingMore = false);
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
++      }
+     }
+   }
+ 
++  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
++
+   @override
+   Widget build(BuildContext context) {
+     return Scaffold(
+@@ -174,11 +195,11 @@ class _NewsPageState extends State<NewsPage> {
+                   childCount: _newsItems.length,
+                 ),
+               ),
+-            if (_isLoading && _newsItems.isNotEmpty)
+-              const SliverToBoxAdapter(
+-                child: Padding(
+-                  padding: EdgeInsets.symmetric(vertical: 24),
+-                  child: Center(child: CustomLoadingIndicator(size: 24)),
++            if (_newsItems.isNotEmpty && _showPaginationFooter)
++              SliverToBoxAdapter(
++                child: PaginationListFooter(
++                  isLoading: _isLoadingMore,
++                  showEndMessage: !_hasMore,
+                 ),
+               ),
+             const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+diff --git a/lib/features/notifications/presentation/screens/notifications_page.dart b/lib/features/notifications/presentation/screens/notifications_page.dart
+index e10b73e..8b9e6f4 100644
+--- a/lib/features/notifications/presentation/screens/notifications_page.dart
++++ b/lib/features/notifications/presentation/screens/notifications_page.dart
+@@ -6,6 +6,8 @@ import '../../data/repositories/notification_repository.dart';
+ import '../widgets/notification_item_widget.dart';
+ import '../order_notification_navigation.dart';
+ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
++import '../../../../core/presentation/utils/pagination_scroll.dart';
++import '../../../../core/presentation/widgets/pagination_list_footer.dart';
+ import '../../../announcements/presentation/screens/announcements_page.dart';
+ import '../../../announcements/data/repositories/announcement_repository.dart';
+ import 'package:mytogetherapp/core/theme/app_colors.dart';
+@@ -19,6 +21,7 @@ class NotificationsPage extends StatefulWidget {
+ 
+ class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
+   final NotificationRepository _repository = NotificationRepository();
++  final ScrollController _scrollController = ScrollController();
+   final List<NotificationModel> _notifications = [];
+   bool _isLoading = true;
+   bool _isLoadingMore = false;
+@@ -41,11 +44,17 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
+ 
+   @override
+   void dispose() {
++    _scrollController.dispose();
+     _tabController.dispose();
+     super.dispose();
+   }
+ 
+-  Future<void> _loadNotifications({bool refresh = false}) async {
++  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
++
++  Future<void> _loadNotifications({
++    bool refresh = false,
++    bool wasNearEnd = false,
++  }) async {
+     if (refresh) {
+       setState(() {
+         _currentPage = 0;
+@@ -69,6 +78,12 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
+         _isLoading = false;
+         _isLoadingMore = false;
+       });
++      if (!refresh) {
++        PaginationScroll.maintainAfterPageAppend(
++          _scrollController,
++          wasNearEnd: wasNearEnd,
++        );
++      }
+       
+       // Sync unread count with server truth
+       _repository.getUnreadCount();
+@@ -87,11 +102,16 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
+ 
+   void _loadMore() {
+     if (!_isLoadingMore && _hasMore) {
++      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
+       setState(() {
+         _isLoadingMore = true;
+         _currentPage++;
+       });
+-      _loadNotifications();
++      PaginationScroll.maintainAfterPageAppend(
++        _scrollController,
++        wasNearEnd: wasNearEnd,
++      );
++      _loadNotifications(wasNearEnd: wasNearEnd);
+     }
+   }
+ 
+@@ -283,24 +303,25 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
+                         ? _buildEmptyState()
+                         : NotificationListener<ScrollNotification>(
+                             onNotification: (ScrollNotification scrollInfo) {
+-                              if (scrollInfo.metrics.pixels ==
+-                                      scrollInfo.metrics.maxScrollExtent &&
+-                                  _hasMore) {
++                              if (scrollInfo.metrics.pixels >=
++                                      scrollInfo.metrics.maxScrollExtent - 200 &&
++                                  _hasMore &&
++                                  !_isLoadingMore) {
+                                 _loadMore();
+                               }
+-                              return true;
++                              return false;
+                             },
+                             child: RefreshIndicator(
+                               onRefresh: () => _loadNotifications(refresh: true),
+                               child: ListView.builder(
+-                                itemCount: _notifications.length + (_hasMore ? 1 : 0),
++                                controller: _scrollController,
++                                itemCount: _notifications.length +
++                                    (_showPaginationFooter ? 1 : 0),
+                                 itemBuilder: (context, index) {
+                                   if (index == _notifications.length) {
+-                                    return const Center(
+-                                      child: Padding(
+-                                        padding: EdgeInsets.all(16.0),
+-                                        child: CustomLoadingIndicator(size: 24),
+-                                      ),
++                                    return PaginationListFooter(
++                                      isLoading: _isLoadingMore,
++                                      showEndMessage: !_hasMore,
+                                     );
+                                   }
+                                   final notification = _notifications[index];

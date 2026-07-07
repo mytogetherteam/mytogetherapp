@@ -182,7 +182,7 @@ class _FloatingChatHeadState extends State<FloatingChatHead> {
                                       width: 56,
                                       height: 56,
                                       fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) => const Icon(
+                                      errorWidget: (_, _, _) => const Icon(
                                           PhosphorIconsFill.storefront,
                                           color: Colors.grey,
                                           size: 28),

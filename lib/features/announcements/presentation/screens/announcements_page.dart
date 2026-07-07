@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../data/models/announcement_model.dart';
 import '../../data/repositories/announcement_repository.dart';
 import '../widgets/announcement_detail_sheet.dart';
@@ -18,6 +20,7 @@ class AnnouncementsPage extends StatefulWidget {
 
 class _AnnouncementsPageState extends State<AnnouncementsPage> {
   final AnnouncementRepository _repository = AnnouncementRepository();
+  final ScrollController _scrollController = ScrollController();
   final List<AnnouncementModel> _items = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -28,10 +31,28 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _load();
   }
 
-  Future<void> _load({bool refresh = false}) async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMore && !_isLoading) {
+        _loadMore();
+      }
+    }
+  }
+
+  Future<void> _load({bool refresh = false, bool wasNearEnd = false}) async {
     if (refresh) {
       setState(() {
         _currentPage = 1;
@@ -52,6 +73,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         _isLoading = false;
         _isLoadingMore = false;
       });
+      if (!refresh) {
+        PaginationScroll.maintainAfterPageAppend(
+          _scrollController,
+          wasNearEnd: wasNearEnd,
+        );
+      }
       _repository.getUnreadCount();
     } catch (_) {
       setState(() {
@@ -68,11 +95,16 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   void _loadMore() {
     if (!_isLoadingMore && _hasMore) {
+      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
       setState(() {
         _isLoadingMore = true;
         _currentPage++;
       });
-      _load();
+      PaginationScroll.maintainAfterPageAppend(
+        _scrollController,
+        wasNearEnd: wasNearEnd,
+      );
+      _load(wasNearEnd: wasNearEnd);
     }
   }
 
@@ -145,32 +177,22 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                 ? const Center(child: CustomLoadingIndicator(size: 40))
                 : _items.isEmpty
                     ? _buildEmptyState()
-                    : NotificationListener<ScrollNotification>(
-                        onNotification: (scrollInfo) {
-                          if (scrollInfo.metrics.pixels ==
-                                  scrollInfo.metrics.maxScrollExtent &&
-                              _hasMore) {
-                            _loadMore();
-                          }
-                          return true;
-                        },
-                        child: RefreshIndicator(
-                          color: AppColors.primary,
-                          onRefresh: () => _load(refresh: true),
-                          child: ListView.builder(
-                            itemCount: _items.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == _items.length) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: CustomLoadingIndicator(size: 24),
-                                  ),
-                                );
-                              }
-                              return _buildItem(_items[index]);
-                            },
-                          ),
+                    : RefreshIndicator(
+                        color: AppColors.primary,
+                        onRefresh: () => _load(refresh: true),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          itemCount:
+                              _items.length + (_showPaginationFooter ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _items.length) {
+                              return PaginationListFooter(
+                                isLoading: _isLoadingMore,
+                                showEndMessage: !_hasMore,
+                              );
+                            }
+                            return _buildItem(_items[index]);
+                          },
                         ),
                       ),
           ),

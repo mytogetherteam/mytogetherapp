@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
+import '../../../core/auth/auth_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../search/data/search_repository.dart';
 
@@ -76,6 +77,9 @@ class CouponModel {
   final CouponShop? shop;
   final DateTime? validFrom;
   final DateTime? validUntil;
+  /// Wishlist API sets this; browse/shop lists omit it (defaults to usable).
+  final bool isUsable;
+  final bool isExpired;
 
   const CouponModel({
     required this.id,
@@ -94,6 +98,8 @@ class CouponModel {
     this.shop,
     this.validFrom,
     this.validUntil,
+    this.isUsable = true,
+    this.isExpired = false,
   });
 
   factory CouponModel.fromJson(Map<String, dynamic> json) => CouponModel(
@@ -112,13 +118,22 @@ class CouponModel {
                 .toList() ??
             const [],
         bogoAllItems: json['bogoAllItems'] == true,
-        shopId: (json['shopId'] as num?)?.toInt(),
+        shopId: (json['shopId'] as num?)?.toInt() ??
+            (json['shop'] is Map
+                ? (json['shop']['id'] as num?)?.toInt()
+                : null),
         shop: json['shop'] is Map
             ? CouponShop.fromJson(Map<String, dynamic>.from(json['shop'] as Map))
             : null,
         validFrom: DateTime.tryParse(json['validFrom']?.toString() ?? ''),
         validUntil: DateTime.tryParse(json['validUntil']?.toString() ?? ''),
+        isUsable: json['isUsable'] != false,
+        isExpired: json['isExpired'] == true,
       );
+
+  /// Drops admin-deleted / inactive wishlist entries the API still bookmarks.
+  static List<CouponModel> onlyUsable(Iterable<CouponModel> coupons) =>
+      coupons.where((c) => c.isUsable).toList();
 
   CouponModel copyWith({double? discountPreview}) => CouponModel(
         id: id,
@@ -137,6 +152,8 @@ class CouponModel {
         shop: shop,
         validFrom: validFrom,
         validUntil: validUntil,
+        isUsable: isUsable,
+        isExpired: isExpired,
       );
 
   /// The shop id to navigate to, preferring the top-level field, then [shop].
@@ -300,13 +317,9 @@ class CouponService {
         .toList();
   }
 
-  /// In-memory cache of resolved shop logo URLs, keyed by shopId, so the two
-  /// coupon rails and the details sheet share a single lookup per shop.
+  /// In-memory cache of resolved shop logo URLs, keyed by shopId.
   final Map<int, Future<String?>> _shopLogoCache = {};
 
-  /// Resolves a shop's logo URL from the existing shop-profile endpoint, since
-  /// the coupon list endpoint doesn't include it. Cached and de-duped per shop;
-  /// returns null on any failure (the card falls back to a letter avatar).
   Future<String?> fetchShopLogo(int shopId) {
     return _shopLogoCache.putIfAbsent(shopId, () async {
       try {
@@ -325,6 +338,64 @@ class CouponService {
     if (trimmed.startsWith('http')) return trimmed;
     return '${ApiClient.baseUrl}/'
         '${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}';
+  }
+
+  /// Cached wishlist coupon ids (populated by [fetchWishlist] / [isWishlisted]).
+  Set<int>? _wishlistedIds;
+
+  void invalidateWishlistCache() => _wishlistedIds = null;
+
+  /// Saved coupons (`GET /user/coupons/wishlist`).
+  Future<List<CouponModel>> fetchWishlist({int page = 1, int size = 50}) async {
+    if (!AuthService().isLoggedIn) return const [];
+    try {
+      final response = await ApiClient().dio.get(
+        '${ApiClient.apiPrefix}/user/coupons/wishlist',
+        queryParameters: {'page': page, 'size': size},
+      );
+      final body = response.data;
+      if (body is! Map) return const [];
+      final list = body['data'];
+      if (list is! List) return const [];
+      final coupons = CouponModel.onlyUsable(
+        list
+            .whereType<Map>()
+            .map((e) => CouponModel.fromJson(Map<String, dynamic>.from(e))),
+      );
+      if (page == 1) {
+        _wishlistedIds = coupons.map((c) => c.id).toSet();
+      }
+      return coupons;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Whether [couponId] is in the user's saved-coupon wishlist.
+  Future<bool> isWishlisted(int couponId) async {
+    if (!AuthService().isLoggedIn) return false;
+    if (_wishlistedIds != null) {
+      return _wishlistedIds!.contains(couponId);
+    }
+    await fetchWishlist(size: 200);
+    return _wishlistedIds?.contains(couponId) ?? false;
+  }
+
+  /// Toggle save on a coupon (`POST /user/coupons/wishlist/toggle`).
+  Future<bool> toggleWishlist(int couponId) async {
+    final response = await ApiClient().dio.post(
+      '${ApiClient.apiPrefix}/user/coupons/wishlist/toggle',
+      data: {'couponId': couponId},
+    );
+    final data = _unwrap(response.data);
+    final wishlisted = data?['wishlisted'] == true;
+    _wishlistedIds ??= {};
+    if (wishlisted) {
+      _wishlistedIds!.add(couponId);
+    } else {
+      _wishlistedIds!.remove(couponId);
+    }
+    return wishlisted;
   }
 
   /// Issues a fresh rotating redeem QR token for the current user (for the
