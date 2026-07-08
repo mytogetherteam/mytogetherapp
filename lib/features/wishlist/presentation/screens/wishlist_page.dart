@@ -2,7 +2,9 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
@@ -45,13 +47,18 @@ class WishlistPage extends StatefulWidget {
 
 class _WishlistPageState extends State<WishlistPage>
     with TickerProviderStateMixin {
+  static const int _pageSize = 20;
+
   late final TabController _tabController;
   final WishlistRepository _repo = WishlistRepository.instance;
 
-  bool _loading = true;
-  List<WishlistItemDto> _menuItems = [];
-  List<WishlistItemDto> _shops = [];
-  List<WishlistItemDto> _places = [];
+  late final PaginatedListController<WishlistItemDto> _menuPagination;
+  late final PaginatedListController<WishlistItemDto> _shopPagination;
+  late final PaginatedListController<WishlistItemDto> _placePagination;
+
+  final ScrollController _menuScrollController = ScrollController();
+  final ScrollController _shopScrollController = ScrollController();
+  final ScrollController _placeScrollController = ScrollController();
 
   @override
   void initState() {
@@ -61,45 +68,83 @@ class _WishlistPageState extends State<WishlistPage>
       vsync: this,
       initialIndex: widget.initialTab.clamp(0, 2),
     );
-    _load();
+
+    _menuPagination = _createWishlistController(_repo.listMenuItems)
+      ..addListener(_onPaginationChanged);
+    _shopPagination = _createWishlistController(_repo.listShops)
+      ..addListener(_onPaginationChanged);
+    _placePagination = _createWishlistController(_repo.listPlaces)
+      ..addListener(_onPaginationChanged);
+
+    _menuPagination.attachScrollController(_menuScrollController);
+    _shopPagination.attachScrollController(_shopScrollController);
+    _placePagination.attachScrollController(_placeScrollController);
+
+    _menuPagination.loadInitial();
+    _shopPagination.loadInitial();
+    _placePagination.loadInitial();
+  }
+
+  PaginatedListController<WishlistItemDto> _createWishlistController(
+    Future<List<WishlistItemDto>> Function({int page, int size}) fetch,
+  ) {
+    return PaginatedListController<WishlistItemDto>(
+      pageSize: _pageSize,
+      initialPage: 1,
+      itemKey: (item) => item.id,
+      fetchPage: (page) async {
+        final items = await fetch(page: page, size: _pageSize);
+        return PaginatedPage(
+          items: items,
+          hasMore: items.length >= _pageSize,
+        );
+      },
+    );
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _menuPagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
+    _shopPagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
+    _placePagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
+    _menuScrollController.dispose();
+    _shopScrollController.dispose();
+    _placeScrollController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        _repo.listMenuItems(size: 100),
-        _repo.listShops(size: 100),
-        _repo.listPlaces(size: 100),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _menuItems = results[0];
-        _shops = results[1];
-        _places = results[2];
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
+  bool get _loading =>
+      _menuPagination.isInitialLoading &&
+      _shopPagination.isInitialLoading &&
+      _placePagination.isInitialLoading;
+
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _menuPagination.refresh(),
+      _shopPagination.refresh(),
+      _placePagination.refresh(),
+    ]);
   }
 
   Future<void> _removeItem(WishlistItemDto item) async {
     try {
       await _repo.removeById(item.id);
       if (!mounted) return;
-      setState(() {
-        _menuItems.removeWhere((it) => it.id == item.id);
-        _shops.removeWhere((it) => it.id == item.id);
-        _places.removeWhere((it) => it.id == item.id);
-      });
+      _menuPagination.items.removeWhere((it) => it.id == item.id);
+      _shopPagination.items.removeWhere((it) => it.id == item.id);
+      _placePagination.items.removeWhere((it) => it.id == item.id);
+      setState(() {});
       AppDialog.showToast(context, context.tr('wishlist.removed'));
     } catch (_) {
       if (!mounted) return;
@@ -138,9 +183,24 @@ class _WishlistPageState extends State<WishlistPage>
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: [
-            Tab(text: context.trArgs('wishlist.tab_menu', {'count': '${_menuItems.length}'})),
-            Tab(text: context.trArgs('wishlist.tab_shops', {'count': '${_shops.length}'})),
-            Tab(text: context.trArgs('wishlist.tab_places', {'count': '${_places.length}'})),
+            Tab(
+              text: context.trArgs(
+                'wishlist.tab_menu',
+                {'count': '${_menuPagination.items.length}'},
+              ),
+            ),
+            Tab(
+              text: context.trArgs(
+                'wishlist.tab_shops',
+                {'count': '${_shopPagination.items.length}'},
+              ),
+            ),
+            Tab(
+              text: context.trArgs(
+                'wishlist.tab_places',
+                {'count': '${_placePagination.items.length}'},
+              ),
+            ),
           ],
         ),
       ),
@@ -158,19 +218,23 @@ class _WishlistPageState extends State<WishlistPage>
   }
 
   Widget _buildMenuItemList() {
-    if (_menuItems.isEmpty) {
+    final pagination = _menuPagination;
+    if (!pagination.isInitialLoading && pagination.items.isEmpty) {
       return _buildEmpty(
         title: context.tr('wishlist.empty_title'),
         subtitle: context.tr('wishlist.empty_sub'),
         actionLabel: context.tr('wishlist.start_exploring'),
         onAction: _goToFoodTab,
+        onRefresh: pagination.refresh,
       );
     }
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
+    final items = pagination.items;
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: pagination.refresh,
       color: AppColors.primary,
       child: GridView.builder(
+        controller: _menuScrollController,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
@@ -178,9 +242,16 @@ class _WishlistPageState extends State<WishlistPage>
           mainAxisSpacing: 24,
           childAspectRatio: 0.85,
         ),
-        itemCount: _menuItems.length,
+        itemCount: items.length + (pagination.showFooter ? 1 : 0),
         itemBuilder: (context, index) {
-          final item = _menuItems[index];
+          if (index >= items.length) {
+            return PaginationListFooter(
+              isLoading: pagination.isLoadingMore,
+              showEndMessage: !pagination.hasMore,
+            );
+          }
+          pagination.onItemVisible(index);
+          final item = items[index];
           final menu = item.menuItem;
           final shopId = menu?.shopId ?? menu?.shop?.id;
           return FoodMenuItemCard(
@@ -195,12 +266,8 @@ class _WishlistPageState extends State<WishlistPage>
             originalPrice:
                 (menu?.hasDiscount ?? false) ? menu?.originalPrice : null,
             isAvailable: menu?.isAvailable ?? true,
-            // Replicates the Food-tab flow: tapping opens the restaurant page
-            // and plays the highlight/float animation on this menu item.
             forceRestaurantNavigation: true,
             showFavoriteToast: false,
-            // This screen owns row removal precisely (by wishlist row id), so
-            // keep the parent-driven behaviour instead of self-managing.
             selfManageFavorite: false,
             onFavoriteToggle: () => _removeItem(item),
           );
@@ -210,22 +277,33 @@ class _WishlistPageState extends State<WishlistPage>
   }
 
   Widget _buildShopList() {
-    if (_shops.isEmpty) {
+    final pagination = _shopPagination;
+    if (!pagination.isInitialLoading && pagination.items.isEmpty) {
       return _buildEmpty(
         title: context.tr('wishlist.empty_shops_title'),
         subtitle: context.tr('wishlist.empty_shops_sub'),
         actionLabel: context.tr('wishlist.start_exploring'),
         onAction: _goToFoodTab,
+        onRefresh: pagination.refresh,
       );
     }
+    final items = pagination.items;
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: pagination.refresh,
       color: AppColors.primary,
       child: ListView.builder(
+        controller: _shopScrollController,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
-        itemCount: _shops.length,
+        itemCount: items.length + (pagination.showFooter ? 1 : 0),
         itemBuilder: (context, index) {
-          final item = _shops[index];
+          if (index >= items.length) {
+            return PaginationListFooter(
+              isLoading: pagination.isLoadingMore,
+              showEndMessage: !pagination.hasMore,
+            );
+          }
+          pagination.onItemVisible(index);
+          final item = items[index];
           final shop = item.shop;
           return RestaurantCard(
             name: shop?.displayName ?? context.tr('common.shop'),
@@ -267,7 +345,8 @@ class _WishlistPageState extends State<WishlistPage>
   }
 
   Widget _buildPlaceList() {
-    if (_places.isEmpty) {
+    final pagination = _placePagination;
+    if (!pagination.isInitialLoading && pagination.items.isEmpty) {
       return _buildEmpty(
         title: context.tr('wishlist.empty_places_title'),
         subtitle: context.tr('wishlist.empty_places_sub'),
@@ -276,13 +355,16 @@ class _WishlistPageState extends State<WishlistPage>
           context,
           MaterialPageRoute(builder: (_) => const PlacesListPage()),
         ),
+        onRefresh: pagination.refresh,
       );
     }
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 3 : 2;
+    final items = pagination.items;
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: pagination.refresh,
       color: AppColors.primary,
       child: GridView.builder(
+        controller: _placeScrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
@@ -290,9 +372,16 @@ class _WishlistPageState extends State<WishlistPage>
           mainAxisSpacing: 16,
           childAspectRatio: 0.75,
         ),
-        itemCount: _places.length,
+        itemCount: items.length + (pagination.showFooter ? 1 : 0),
         itemBuilder: (context, index) {
-          final item = _places[index];
+          if (index >= items.length) {
+            return PaginationListFooter(
+              isLoading: pagination.isLoadingMore,
+              showEndMessage: !pagination.hasMore,
+            );
+          }
+          pagination.onItemVisible(index);
+          final item = items[index];
           final place = item.place;
           return PlaceCard(
             name: place?.displayName ?? context.tr('common.place'),
@@ -309,9 +398,6 @@ class _WishlistPageState extends State<WishlistPage>
     );
   }
 
-  /// Opens the full place detail. The wishlist payload only carries a light
-  /// reference, so we fetch the full record first and fall back to a minimal
-  /// one if the network call fails.
   Future<void> _openPlace(WishlistItemDto item) async {
     final ref = item.place;
     final placeId = ref?.id ?? item.placeId;
@@ -352,9 +438,10 @@ class _WishlistPageState extends State<WishlistPage>
     required String subtitle,
     String? actionLabel,
     VoidCallback? onAction,
+    Future<void> Function()? onRefresh,
   }) {
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: onRefresh ?? _refreshAll,
       color: AppColors.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -422,8 +509,6 @@ class _WishlistPageState extends State<WishlistPage>
     );
   }
 
-  /// Sends the user to the Food tab to discover dishes and restaurants, then
-  /// pops the wishlist (pushed from the profile) back to the root navigator.
   void _goToFoodTab() {
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);

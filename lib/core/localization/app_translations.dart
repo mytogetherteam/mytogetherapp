@@ -115,8 +115,7 @@ class AppTranslations {
     // Profile page
     'profile.edit_profile': 'Edit Profile',
     'profile.saved_items': 'Saved Items',
-    'profile.saved_items_sub':
-        'Your wishlist of foods, restaurants and places',
+    'profile.saved_items_sub': 'Your wishlist of foods, restaurants and places',
     'profile.saved_coupons': 'Saved Coupons',
     'profile.saved_coupons_sub': 'Coupons you saved from promotions',
     'profile.my_addresses': 'My Addresses',
@@ -297,7 +296,8 @@ class AppTranslations {
     'cart.standard': 'Standard',
     'cart.payment_options': 'Payment Options',
     'cart.no_payment_methods': 'No payment methods available',
-    'cart.check_order_notice': 'Please double-check your order details before placing the order.',
+    'cart.check_order_notice':
+        'Please double-check your order details before placing the order.',
     'cart.delivery_fee_note': 'Delivery fee is calculated based on distance.',
     'cart.flexible_delivery_note':
         'You only pay for food and tax (if applicable) now. The delivery fee shown is an estimate only — pay the actual delivery fee to the rider when they arrive at your door.',
@@ -508,7 +508,7 @@ class AppTranslations {
     'coupon.browse_coupons': 'Browse Coupons',
     'order.far_delivery_title': 'This delivery is quite far',
     'order.far_delivery_message':
-        'Your address is {distance} km from this restaurant (over {limit} km). The shop may decline the order. Continue anyway?',
+        'Your address is {distance} km from this restaurant (over {limit} km). The delivery fee will be more than 100 baht. The shop may decline the order. Continue anyway?',
     'order.far_delivery_continue': 'Continue order',
     'coupon.apply_hint': 'Tap to choose a coupon',
     'coupon.discounts_title': 'Early Bird Deals',
@@ -532,7 +532,8 @@ class AppTranslations {
     'coupon.valid_from': 'Valid from',
     'coupon.required_items': 'Items you must buy',
     'coupon.how_to_use': 'How to use',
-    'coupon.how_to_use_desc': 'Tap Order to use it on an online order, or Use now to show the QR and redeem in-store.',
+    'coupon.how_to_use_desc':
+        'Tap Order to use it on an online order, or Use now to show the QR and redeem in-store.',
     'coupon.code': 'Code',
     'coupon.order': 'Order',
     'coupon.use_now': 'Use now',
@@ -548,7 +549,8 @@ class AppTranslations {
     'coupon.required_items_summary': 'Buy: {items}',
     'coupon.free_items_title': 'Free items',
     'coupon.redeem_title': 'Show this at the counter',
-    'coupon.redeem_hint': 'Let the shop scan this QR \n to redeem your coupon in restaurant.',
+    'coupon.redeem_hint':
+        'Let the shop scan this QR \n to redeem your coupon in restaurant.',
     'coupon.redeem_error': 'Could not generate a QR code',
     'coupon.redeem_expired': 'QR expired',
     'coupon.redeem_refresh': 'Refresh QR',
@@ -923,8 +925,7 @@ class AppTranslations {
     'wishlist.tab_places': 'Places ({count})',
     'wishlist.tab_coupons': 'Coupons ({count})',
     'wishlist.empty_coupons_title': 'No saved coupons yet',
-    'wishlist.empty_coupons_sub':
-        'Tap Save on any coupon to keep it here.',
+    'wishlist.empty_coupons_sub': 'Tap Save on any coupon to keep it here.',
     'wishlist.view_action': 'View',
     'wishlist.start_exploring': 'Start Exploring',
     'common.day_friday': 'Friday',
@@ -1252,7 +1253,8 @@ class AppTranslations {
     'home.popular_restaurants': 'Hype အဖြစ်ဆုံး🔥',
     'home.top_places_nearby': 'ထိပ်တန်း နေရာများ',
     'home.nothing_here_title': 'လက်ရှိတွင် မရှိသေးပါ',
-    'home.nothing_here_subtitle': 'ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများကို ဆက်လက်အသုံးပြုနိုင်ပါသည်',
+    'home.nothing_here_subtitle':
+        'ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများကို ဆက်လက်အသုံးပြုနိုင်ပါသည်',
     'home.trending_nearby': 'ဒီနေ့စားဖို့ 👀',
     'home.together_deals': 'Together Deals',
     'home.together_prefix': 'Together ',
@@ -1575,7 +1577,7 @@ class AppTranslations {
     'coupon.browse_coupons': 'ကူပွန်များ ကြည့်ရန်',
     'order.far_delivery_title': 'ပို့ဆောင်ရန် အဝေးကြီးပါ',
     'order.far_delivery_message':
-        'သင့်လိပ်စာသည် စားသောက်ဆိုင်မှ {distance} km အကွာတွင် ရှိပြီး ({limit} km ထက်ကျော်သည်)။ ဆိုင်က ငြင်းပယ်နိုင်ပါသည်။ ဆက်လုပ်မလား?',
+        'လိပ်စာက စားသောက်ဆိုင်မှ {distance} km အကွာတွင် ရှိပြီး ({limit} km ထက်ကျော်သည်)။ ပို့ဆောင်ခ ဘတ် 100 ထက်ပို၍ ကျသင့်နိုင်ပါသည်။ ဆိုင်က ငြင်းပယ်နိုင်ပါသည်။ ဆက်လုပ်မလား?',
     'order.far_delivery_continue': 'ဆက်မှာမည်',
     'coupon.apply_hint': 'ကူပွန်ရွေးရန် နှိပ်ပါ',
     'coupon.discounts_title': 'Eary Bird အတွက်',
@@ -1599,7 +1601,8 @@ class AppTranslations {
     'coupon.valid_from': 'စတင်အကျုံးဝင်ရက်',
     'coupon.required_items': 'ဝယ်ယူရမည့် ပစ္စည်းများ',
     'coupon.how_to_use': 'အသုံးပြုနည်း',
-    'coupon.how_to_use_desc': 'အွန်လိုင်းအော်ဒါတွင် သုံးရန် Order ကိုနှိပ်ပါ၊ ဆိုင်တွင် အသုံးပြုရန် Use now ကိုနှိပ်၍ QR ကိုပြပါ။',
+    'coupon.how_to_use_desc':
+        'အွန်လိုင်းအော်ဒါတွင် သုံးရန် Order ကိုနှိပ်ပါ၊ ဆိုင်တွင် အသုံးပြုရန် Use now ကိုနှိပ်၍ QR ကိုပြပါ။',
     'coupon.code': 'ကုဒ်',
     'coupon.order': 'မှာယူမည်',
     'coupon.use_now': 'ယခုသုံးမည်',
@@ -1615,7 +1618,8 @@ class AppTranslations {
     'coupon.required_items_summary': 'ဝယ်ရမည်: {items}',
     'coupon.free_items_title': 'အခမဲ့ ပစ္စည်းများ',
     'coupon.redeem_title': 'ကောင်တာတွင် ဤQRကို ပြပါ',
-    'coupon.redeem_hint': 'ဆိုင်တွင် ကူပွန်အသုံးပြုရန် ဤQRကို စကင်န်ဖတ်ခိုင်းပါ။',
+    'coupon.redeem_hint':
+        'ဆိုင်တွင် ကူပွန်အသုံးပြုရန် ဤQRကို စကင်န်ဖတ်ခိုင်းပါ။',
     'coupon.redeem_error': 'QR ကုဒ် မဖန်တီးနိုင်ပါ',
     'coupon.redeem_expired': 'QR သက်တမ်းကုန်သွားပါပြီ',
     'coupon.redeem_refresh': 'QR အသစ်ရယူမည်',
@@ -1974,7 +1978,8 @@ class AppTranslations {
     'visa.visa_types': 'ဗီဇာအမျိုးအစားများ',
     'wishlist.currently_unavailable': 'လက်ရှိ မရရှိနိုင်ပါ',
     'wishlist.empty_places_title': 'သိမ်းထားသော နေရာ မရှိသေးပါ',
-    'wishlist.empty_places_sub': 'နေရာတစ်ခုခုတွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
+    'wishlist.empty_places_sub':
+        'နေရာတစ်ခုခုတွင် နှလုံးပုံခလုတ်နှိပ်၍ သိမ်းပါ။',
     'wishlist.tab_places': 'နေရာများ ({count})',
     'wishlist.view_action': 'ကြည့်ရန်',
     'wishlist.start_exploring': 'စတင်ရှာဖွေရန်',
@@ -2280,7 +2285,8 @@ class AppTranslations {
     'profile.delete_account_sub': 'ลบบัญชีของคุณอย่างถาวร',
     'profile.logout': 'ออกจากระบบ',
     'profile.logout_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
-    'profile.logout_active_order_hint': 'ออกจากระบบไม่ได้ขณะมีคำสั่งซื้อที่กำลังดำเนินการ',
+    'profile.logout_active_order_hint':
+        'ออกจากระบบไม่ได้ขณะมีคำสั่งซื้อที่กำลังดำเนินการ',
     'profile.logout_active_order_title': 'มีคำสั่งซื้อที่กำลังดำเนินการ',
     'profile.logout_active_order_message':
         'คุณไม่สามารถออกจากระบบได้ขณะมีคำสั่งซื้อที่กำลังดำเนินการ กรุณารอจนกว่าคำสั่งซื้อจะเสร็จสิ้นหรือถูกยกเลิก',
@@ -2581,8 +2587,7 @@ class AppTranslations {
     'location.forced_setup_title': 'เพิ่มที่อยู่จัดส่ง',
     'location.forced_setup_subtitle':
         'ก่อนจัดส่งครั้งแรก กรุณาบันทึกที่อยู่ที่ต้องการให้ส่งอาหาร ที่อยู่นี้จะถูกเลือกใช้สำหรับออเดอร์ถัดไป',
-    'location.forced_setup_required':
-        'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
+    'location.forced_setup_required': 'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
     'menu.default_cuisine_tag': 'วัฒนธรรมพม่า',
     'menu.add_on': 'เพิ่มเติม',
     'menu.cart_cleared_added': 'ล้างตะกร้าและเพิ่มรายการแล้ว',
@@ -2651,7 +2656,7 @@ class AppTranslations {
     'coupon.browse_coupons': 'ดูคูปอง',
     'order.far_delivery_title': 'การจัดส่งอยู่ค่อนข้างไกล',
     'order.far_delivery_message':
-        'ที่อยู่ของคุณห่างจากร้าน {distance} กม. (เกิน {limit} กม.) ร้านอาจปฏิเสธคำสั่งซื้อ ดำเนินการต่อหรือไม่?',
+        'ที่อยู่ของคุณห่างจากร้าน {distance} กม. (เกิน {limit} กม.) ค่าจัดส่งจะมากกว่า 100 บาท ร้านอาจปฏิเสธคำสั่งซื้อ ดำเนินการต่อหรือไม่?',
     'order.far_delivery_continue': 'สั่งต่อ',
     'coupon.apply_hint': 'แตะเพื่อเลือกคูปอง',
     'coupon.discounts_title': 'ดีลมาก่อนได้ก่อน',
@@ -2675,7 +2680,8 @@ class AppTranslations {
     'coupon.valid_from': 'เริ่มใช้ได้',
     'coupon.required_items': 'รายการที่ต้องซื้อ',
     'coupon.how_to_use': 'วิธีใช้',
-    'coupon.how_to_use_desc': 'แตะ Order เพื่อใช้กับคำสั่งซื้อออนไลน์ หรือแตะ Use now เพื่อแสดง QR และใช้ที่หน้าร้าน',
+    'coupon.how_to_use_desc':
+        'แตะ Order เพื่อใช้กับคำสั่งซื้อออนไลน์ หรือแตะ Use now เพื่อแสดง QR และใช้ที่หน้าร้าน',
     'coupon.code': 'รหัส',
     'coupon.order': 'สั่งซื้อ',
     'coupon.use_now': 'ใช้เลย',

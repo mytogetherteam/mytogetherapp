@@ -64,6 +64,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Restaurant? _restaurant;
 
   bool _isPlacingOrder = false;
+  bool _isVerifyingOrderEligibility = false;
   UserLocationModel? _primaryLocation;
   bool _isLoadingLocation = true;
   List<ShopPaymentTypeDto>? _paymentTypes;
@@ -81,6 +82,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     _loadPrimaryLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureDeliveryAddressIfNeeded();
+      if (!GuestAuthGuard.isGuest) {
+        setState(() => _isVerifyingOrderEligibility = true);
+        ActiveOrderState.instance.hydrateActiveOrdersFromApi().whenComplete(() {
+          if (mounted) {
+            setState(() => _isVerifyingOrderEligibility = false);
+          }
+        });
+      }
     });
     // Stay in sync with primary-location changes made from any selection path
     // (the modal, or the full search page that may close without a callback).
@@ -1198,6 +1207,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         child: PrimaryGradientButton(
                           onPressed: (_isPlacingOrder ||
                                   _isProcessing ||
+                                  _isVerifyingOrderEligibility ||
                                   hasOngoingOrder ||
                                   isShopClosed)
                               ? null
@@ -1227,7 +1237,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     }
                                   }
 
-                                  if (ActiveOrderState.instance.hasActiveOrder) {
+                                  if (!await ActiveOrderState.instance
+                                      .ensureCanPlaceNewOrder()) {
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -1268,7 +1279,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   );
 
                                   try {
-                                  if (ActiveOrderState.instance.hasActiveOrder) {
+                                  if (!await ActiveOrderState.instance
+                                      .ensureCanPlaceNewOrder()) {
                                     operationCompleted = true;
                                     if (mounted) {
                                       setState(() {

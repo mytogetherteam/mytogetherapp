@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/restaurant_card.dart';
@@ -24,12 +24,7 @@ class AllRestaurantsPage extends StatefulWidget {
 }
 
 class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
-  final List<Restaurant> _restaurants = [];
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _currentPage = 0;
-  final int _pageSize = 20;
+  late final PaginatedListController<Restaurant> _pagination;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
@@ -39,150 +34,65 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _scrollController.addListener(_onScroll);
+    _pagination = PaginatedListController<Restaurant>(
+      pageSize: 20,
+      initialPage: 0,
+      itemKey: (r) => r.id,
+      fetchPage: _fetchShops,
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     _searchController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
   }
 
-  /// Fetches a page of shops. Logged-in users browse the authenticated
-  /// catalog (`GET /api/user/shop-profile`, server-side search + client-side
-  /// distance); guests fall back to the public geo "nearby" listing.
-  Future<List<Restaurant>> _fetchShops(int page) async {
+  Future<PaginatedPage<Restaurant>> _fetchShops(int page) async {
     final activeLoc = UserLocationRepository.instance.activeLocation;
     final pos = LocationService().cachedPosition;
     final lat = activeLoc?.latitude ?? pos?.latitude ?? LocationService.defaultLat;
     final lon =
         activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
+    final List<Restaurant> results;
     if (AuthService().isLoggedIn) {
-      return RestaurantRepository.instance.getShopProfiles(
+      results = await RestaurantRepository.instance.getShopProfiles(
         page: page + 1,
-        size: _pageSize,
+        size: _pagination.pageSize,
         search: _searchQuery.trim().isEmpty ? null : _searchQuery,
         originLat: lat,
         originLon: lon,
       );
+    } else {
+      results = await RestaurantRepository.instance.getNearbyShops(
+        lat: lat,
+        lon: lon,
+        page: page,
+        size: _pagination.pageSize,
+        search: _searchQuery,
+      );
     }
 
-    return RestaurantRepository.instance.getNearbyShops(
-      lat: lat,
-      lon: lon,
-      page: page,
-      size: _pageSize,
-      search: _searchQuery,
+    return PaginatedPage(
+      items: results,
+      hasMore: results.length >= _pagination.pageSize,
     );
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && _hasMore) {
-        _loadMoreData();
-      }
-    }
-  }
-
-  Future<void> _loadInitialData({bool showLoading = true}) async {
-    if (_isLoading) return;
-
-    if (showLoading) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
-
-    setState(() {
-      _currentPage = 0;
-      _restaurants.clear();
-      _hasMore = true;
-    });
-
-    try {
-      final results = await _fetchShops(_currentPage);
-
-      if (mounted) {
-        setState(() {
-          final existingIds = _restaurants.map((r) => r.id).toSet();
-          for (var res in results) {
-            if (!existingIds.contains(res.id)) {
-              _restaurants.add(res);
-            }
-          }
-          _isLoading = false;
-          _hasMore = results.length >= _pageSize;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.trArgs('restaurant.load_error', {'error': '$e'}))),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadMoreData() async {
-    if (_isLoadingMore || !_hasMore) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-    setState(() {
-      _isLoadingMore = true;
-    });
-    PaginationScroll.maintainAfterPageAppend(
-      _scrollController,
-      wasNearEnd: wasNearEnd,
-    );
-
-    try {
-      _currentPage++;
-      final results = await _fetchShops(_currentPage);
-
-      if (mounted) {
-        setState(() {
-          if (results.isEmpty) {
-            _hasMore = false;
-          } else {
-            final existingIds = _restaurants.map((r) => r.id).toSet();
-            for (var res in results) {
-              if (!existingIds.contains(res.id)) {
-                _restaurants.add(res);
-              }
-            }
-            _hasMore = results.length >= _pageSize;
-          }
-          _isLoadingMore = false;
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-          _currentPage--; // Rollback page on error
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    }
   }
 
   Future<void> _onRefresh() async {
-    await _loadInitialData(showLoading: false);
+    await _pagination.refresh();
   }
 
   void _onSearchChanged(String value) {
@@ -192,7 +102,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         setState(() {
           _searchQuery = value;
         });
-        _loadInitialData();
+        _pagination.refresh();
       }
     });
   }
@@ -218,10 +128,12 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
     }
   }
 
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
+  bool get _showPaginationFooter => _pagination.showFooter;
 
   @override
   Widget build(BuildContext context) {
+    final restaurants = _pagination.items;
+    final isLoading = _pagination.isInitialLoading;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -297,25 +209,26 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
               child: RefreshIndicator(
                 onRefresh: _onRefresh,
                 color: AppColors.primary,
-                child: _isLoading
+                child: isLoading
                     ? _buildSkeletonList()
-                    : _restaurants.isEmpty
+                    : restaurants.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.only(top: 12, bottom: 16),
                         itemCount:
-                            _restaurants.length + (_showPaginationFooter ? 1 : 0),
+                            restaurants.length + (_showPaginationFooter ? 1 : 0),
                         itemBuilder: (context, index) {
-                          if (index == _restaurants.length) {
+                          _pagination.onItemVisible(index);
+                          if (index == restaurants.length) {
                             return PaginationListFooter(
-                              isLoading: _isLoadingMore,
-                              showEndMessage: !_hasMore,
+                              isLoading: _pagination.isLoadingMore,
+                              showEndMessage: !_pagination.hasMore,
                             );
                           }
 
-                          final data = _restaurants[index];
+                          final data = restaurants[index];
                           return RestaurantCard(
                             name: data.name,
                             category: data.category,

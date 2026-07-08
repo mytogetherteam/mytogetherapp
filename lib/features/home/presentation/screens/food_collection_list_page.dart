@@ -5,7 +5,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
@@ -31,25 +31,33 @@ class FoodCollectionListPage extends StatefulWidget {
 }
 
 class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
-  final List<Restaurant> _restaurants = [];
+  late final PaginatedListController<Restaurant> _pagination;
   final Map<String, bool> _localFavorites = {};
   final ScrollController _scrollController = ScrollController();
-
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _currentPage = 1;
-  static const int _pageSize = 20;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _scrollController.addListener(_onScroll);
+    _pagination = PaginatedListController<Restaurant>(
+      pageSize: 20,
+      initialPage: 1,
+      pageIncrement: 1,
+      itemKey: (r) => r.id,
+      fetchPage: _fetchPage,
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -57,98 +65,33 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
   Future<({double lat, double lon})> _resolveLocation() =>
       UserLocationRepository.instance.resolveActiveCoordinates();
 
-  Future<List<Restaurant>> _fetchPage(int page) async {
+  Future<PaginatedPage<Restaurant>> _fetchPage(int page) async {
     final loc = await _resolveLocation();
+    final List<Restaurant> results;
     switch (widget.kind) {
       case FoodCollectionKind.trending:
-        return RestaurantRepository.instance.getTrendingShops(
+        results = await RestaurantRepository.instance.getTrendingShops(
           lat: loc.lat,
           lon: loc.lon,
           page: page,
-          size: _pageSize,
+          size: _pagination.pageSize,
         );
       case FoodCollectionKind.popular:
-        return RestaurantRepository.instance.getPopularShops(
+        results = await RestaurantRepository.instance.getPopularShops(
           lat: loc.lat,
           lon: loc.lon,
           page: page,
-          size: _pageSize,
+          size: _pagination.pageSize,
         );
     }
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && _hasMore && !_isLoading) {
-        _loadMoreData();
-      }
-    }
+    return PaginatedPage(
+      items: results,
+      hasMore: results.length >= _pagination.pageSize,
+    );
   }
 
   Future<void> _loadInitialData({bool showLoading = true}) async {
-    if (_isLoading) return;
-    setState(() {
-      if (showLoading) _isLoading = true;
-      _currentPage = 1;
-      _restaurants.clear();
-      _hasMore = true;
-    });
-
-    try {
-      final results = await _fetchPage(_currentPage);
-      if (!mounted) return;
-      setState(() {
-        final existing = _restaurants.map((r) => r.id).toSet();
-        _restaurants.addAll(results.where((r) => existing.add(r.id)));
-        _isLoading = false;
-        _hasMore = results.length >= _pageSize;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loadMoreData() async {
-    if (_isLoadingMore || !_hasMore) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-    setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      _scrollController,
-      wasNearEnd: wasNearEnd,
-    );
-
-    try {
-      _currentPage++;
-      final results = await _fetchPage(_currentPage);
-      if (!mounted) return;
-      setState(() {
-        if (results.isEmpty) {
-          _hasMore = false;
-        } else {
-          final existing = _restaurants.map((r) => r.id).toSet();
-          _restaurants.addAll(results.where((r) => existing.add(r.id)));
-          _hasMore = results.length >= _pageSize;
-        }
-        _isLoadingMore = false;
-      });
-      PaginationScroll.maintainAfterPageAppend(
-        _scrollController,
-        wasNearEnd: wasNearEnd,
-      );
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-          _currentPage--;
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    }
+    await _pagination.refresh();
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -213,9 +156,9 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
         body: RefreshIndicator(
           color: AppColors.primary,
           onRefresh: () => _loadInitialData(showLoading: false),
-          child: _isLoading
+          child: _pagination.isInitialLoading
               ? _buildSkeleton()
-              : _restaurants.isEmpty
+              : _pagination.items.isEmpty
                   ? _buildEmptyState()
                   : _buildList(),
         ),
@@ -278,24 +221,26 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
     );
   }
 
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
+  bool get _showPaginationFooter => _pagination.showFooter;
 
   Widget _buildList() {
+    final restaurants = _pagination.items;
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: _restaurants.length + 1 + (_showPaginationFooter ? 1 : 0),
+      itemCount: restaurants.length + 1 + (_showPaginationFooter ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == 0) return _buildHeading();
         final dataIndex = index - 1;
-        if (dataIndex == _restaurants.length) {
+        if (dataIndex == restaurants.length) {
           return PaginationListFooter(
-            isLoading: _isLoadingMore,
-            showEndMessage: !_hasMore,
+            isLoading: _pagination.isLoadingMore,
+            showEndMessage: !_pagination.hasMore,
           );
         }
-        final data = _restaurants[dataIndex];
+        _pagination.onItemVisible(dataIndex);
+        final data = restaurants[dataIndex];
         return RestaurantCard(
           name: data.name,
           category: data.category,

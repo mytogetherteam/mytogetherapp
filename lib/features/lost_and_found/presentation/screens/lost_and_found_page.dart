@@ -7,7 +7,7 @@ import '../../../news/presentation/widgets/news_feed_item.dart';
 import '../../../news/presentation/widgets/news_feed_item_skeleton.dart';
 import '../../../news/data/models/news_item.dart';
 import '../../data/repositories/item_post_repository.dart';
-import '../../../../../core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import '../../../../../core/presentation/widgets/pagination_list_footer.dart';
 import 'create_item_post_page.dart';
 import 'my_item_posts_page.dart';
@@ -20,100 +20,40 @@ class LostAndFoundPage extends StatefulWidget {
 }
 
 class _LostAndFoundPageState extends State<LostAndFoundPage> {
-  final List<NewsItem> _items = [];
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _page = 1;
+  late final PaginatedListController<NewsItem> _pagination;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _scrollController.addListener(_onScroll);
+    _pagination = PaginatedListController<NewsItem>(
+      pageSize: 20,
+      initialPage: 1,
+      itemKey: (item) => item.id,
+      fetchPage: (page) async {
+        final feed = await ItemPostRepository.instance.fetchFeed(page: page);
+        return PaginatedPage(
+          items: feed.items.map(NewsItem.fromItemPost).toList(),
+          hasMore: feed.page < feed.totalPages,
+        );
+      },
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && !_isLoading && _hasMore) {
-        _loadMoreData();
-      }
-    }
-  }
-
-  Future<void> _loadInitialData() async {
-    setState(() {
-      _isLoading = true;
-      _page = 1;
-      _hasMore = true;
-    });
-
-    try {
-      final feed = await ItemPostRepository.instance.fetchFeed(page: 1);
-      if (mounted) {
-        setState(() {
-          _items
-            ..clear()
-            ..addAll(feed.items.map(NewsItem.fromItemPost));
-          _hasMore = feed.page < feed.totalPages;
-          _page = 1;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    await _loadInitialData();
-  }
-
-  Future<void> _loadMoreData() async {
-    if (!_hasMore || _isLoadingMore) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-    setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      _scrollController,
-      wasNearEnd: wasNearEnd,
-    );
-
-    try {
-      final nextPage = _page + 1;
-      final feed = await ItemPostRepository.instance.fetchFeed(page: nextPage);
-      if (mounted) {
-        setState(() {
-          _items.addAll(feed.items.map(NewsItem.fromItemPost));
-          _page = nextPage;
-          _hasMore = feed.page < feed.totalPages;
-          _isLoadingMore = false;
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLoadingMore = false);
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    }
-  }
-
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   Future<void> _openCreatePost() async {
     final created = await Navigator.push<bool>(
@@ -121,7 +61,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
       MaterialPageRoute(builder: (context) => const CreateItemPostPage()),
     );
     if (created == true) {
-      await _loadInitialData();
+      await _pagination.refresh();
     }
   }
 
@@ -131,7 +71,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
       MaterialPageRoute(builder: (context) => const MyItemPostsPage()),
     );
     if (changed == true) {
-      await _loadInitialData();
+      await _pagination.refresh();
     }
   }
 
@@ -141,7 +81,7 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
       backgroundColor: Colors.white,
 
       body: RefreshIndicator(
-        onRefresh: _onRefresh,
+        onRefresh: _pagination.refresh,
         color: AppColors.primary,
         edgeOffset: 60,
         child: CustomScrollView(
@@ -262,14 +202,14 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
                 ],
               ),
             ),
-            if (_items.isEmpty && _isLoading)
+            if (_pagination.items.isEmpty && _pagination.isInitialLoading)
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => const NewsFeedItemSkeleton(),
                   childCount: 3,
                 ),
               )
-            else if (_items.isEmpty)
+            else if (_pagination.items.isEmpty)
               SliverFillRemaining(
                 child: Center(
                   child: Text(
@@ -281,15 +221,21 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => NewsFeedItem(item: _items[index], showBlockOption: true),
-                  childCount: _items.length,
+                  (context, index) {
+                    _pagination.onItemVisible(index);
+                    return NewsFeedItem(
+                      item: _pagination.items[index],
+                      showBlockOption: true,
+                    );
+                  },
+                  childCount: _pagination.items.length,
                 ),
               ),
-            if (_items.isNotEmpty && _showPaginationFooter)
+            if (_pagination.items.isNotEmpty && _pagination.showFooter)
               SliverToBoxAdapter(
                 child: PaginationListFooter(
-                  isLoading: _isLoadingMore,
-                  showEndMessage: !_hasMore,
+                  isLoading: _pagination.isLoadingMore,
+                  showEndMessage: !_pagination.hasMore,
                 ),
               ),
             const SliverPadding(padding: EdgeInsets.only(bottom: 100)),

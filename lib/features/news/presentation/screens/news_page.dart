@@ -4,8 +4,8 @@ import '../widgets/news_feed_item.dart';
 import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import '../../../../core/presentation/utils/pagination_scroll.dart';
-import '../../../../core/presentation/widgets/pagination_list_footer.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,107 +19,50 @@ class NewsPage extends StatefulWidget {
 }
 
 class _NewsPageState extends State<NewsPage> {
-  final List<NewsItem> _newsItems = [];
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _page = 1;
+  late final PaginatedListController<NewsItem> _pagination;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _scrollController.addListener(_onScroll);
+    _pagination = PaginatedListController<NewsItem>(
+      pageSize: 20,
+      initialPage: 1,
+      itemKey: (item) => item.id,
+      fetchPage: _fetchPage,
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && !_isLoading && _hasMore) {
-        _loadMoreData();
-      }
-    }
-  }
-
-  Future<void> _loadInitialData() async {
-    setState(() {
-      _isLoading = true;
-      _page = 1;
-      _hasMore = true;
-    });
-
-    try {
-      final feed = await NewsRepository.instance.fetchFeed(page: 1);
-      if (mounted) {
-        setState(() {
-          _newsItems
-            ..clear()
-            ..addAll(feed.items.map(NewsItem.fromNewsArticle));
-          _hasMore = feed.page < feed.totalPages;
-          _page = 1;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    await _loadInitialData();
-  }
-
-  Future<void> _loadMoreData() async {
-    if (!_hasMore || _isLoadingMore) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-    setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      _scrollController,
-      wasNearEnd: wasNearEnd,
+  Future<PaginatedPage<NewsItem>> _fetchPage(int page) async {
+    final feed = await NewsRepository.instance.fetchFeed(page: page);
+    return PaginatedPage(
+      items: feed.items.map(NewsItem.fromNewsArticle).toList(),
+      hasMore: feed.page < feed.totalPages,
     );
-
-    try {
-      final nextPage = _page + 1;
-      final feed = await NewsRepository.instance.fetchFeed(page: nextPage);
-      if (mounted) {
-        setState(() {
-          _newsItems.addAll(feed.items.map(NewsItem.fromNewsArticle));
-          _page = nextPage;
-          _hasMore = feed.page < feed.totalPages;
-          _isLoadingMore = false;
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLoadingMore = false);
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    }
   }
-
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   @override
   Widget build(BuildContext context) {
+    final newsItems = _pagination.items;
     return Scaffold(
       backgroundColor: Colors.white,
       body: RefreshIndicator(
-        onRefresh: _onRefresh,
+        onRefresh: _pagination.refresh,
         color: AppColors.primary,
         edgeOffset: 60,
         child: CustomScrollView(
@@ -145,7 +88,10 @@ class _NewsPageState extends State<NewsPage> {
                       context.tr('nav.news'),
                       style: GoogleFonts.poppins(
                         color: Colors.black,
-                        fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                        fontSize:
+                            LocaleController.instance.language.code == 'mm'
+                                ? 18
+                                : 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -170,11 +116,11 @@ class _NewsPageState extends State<NewsPage> {
                 ),
               ),
             ),
-            if (_newsItems.isEmpty && _isLoading)
+            if (newsItems.isEmpty && _pagination.isInitialLoading)
               const SliverFillRemaining(
                 child: Center(child: CustomLoadingIndicator(size: 40)),
               )
-            else if (_newsItems.isEmpty)
+            else if (newsItems.isEmpty)
               SliverFillRemaining(
                 child: Center(
                   child: Text(
@@ -186,20 +132,23 @@ class _NewsPageState extends State<NewsPage> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 680),
-                      child: NewsFeedItem(item: _newsItems[index]),
-                    ),
-                  ),
-                  childCount: _newsItems.length,
+                  (context, index) {
+                    _pagination.onItemVisible(index);
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 680),
+                        child: NewsFeedItem(item: newsItems[index]),
+                      ),
+                    );
+                  },
+                  childCount: newsItems.length,
                 ),
               ),
-            if (_newsItems.isNotEmpty && _showPaginationFooter)
+            if (newsItems.isNotEmpty && _pagination.showFooter)
               SliverToBoxAdapter(
                 child: PaginationListFooter(
-                  isLoading: _isLoadingMore,
-                  showEndMessage: !_hasMore,
+                  isLoading: _pagination.isLoadingMore,
+                  showEndMessage: !_pagination.hasMore,
                 ),
               ),
             const SliverPadding(padding: EdgeInsets.only(bottom: 80)),

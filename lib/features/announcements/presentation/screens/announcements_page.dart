@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
-import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../data/models/announcement_model.dart';
 import '../../data/repositories/announcement_repository.dart';
@@ -21,91 +21,43 @@ class AnnouncementsPage extends StatefulWidget {
 class _AnnouncementsPageState extends State<AnnouncementsPage> {
   final AnnouncementRepository _repository = AnnouncementRepository();
   final ScrollController _scrollController = ScrollController();
-  final List<AnnouncementModel> _items = [];
-  bool _isLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _currentPage = 1;
-  final int _pageSize = 20;
+  late final PaginatedListController<AnnouncementModel> _pagination;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    _load();
+    _pagination = PaginatedListController<AnnouncementModel>(
+      pageSize: 20,
+      initialPage: 1,
+      itemKey: (item) => item.id,
+      fetchPage: (page) async {
+        final fresh = await _repository.getAnnouncements(page: page, size: 20);
+        return PaginatedPage(
+          items: fresh,
+          hasMore: fresh.length >= 20,
+        );
+      },
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial().then((_) => _repository.getUnreadCount());
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoadingMore && _hasMore && !_isLoading) {
-        _loadMore();
-      }
-    }
-  }
-
-  Future<void> _load({bool refresh = false, bool wasNearEnd = false}) async {
-    if (refresh) {
-      setState(() {
-        _currentPage = 1;
-        _items.clear();
-        _isLoading = true;
-        _hasMore = true;
-      });
-    }
-
-    try {
-      final fresh = await _repository.getAnnouncements(
-        page: _currentPage,
-        size: _pageSize,
-      );
-      setState(() {
-        if (fresh.length < _pageSize) _hasMore = false;
-        _items.addAll(fresh);
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-      if (!refresh) {
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-      _repository.getUnreadCount();
-    } catch (_) {
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('announcement.load_failed'))),
-        );
-      }
-    }
-  }
-
-  void _loadMore() {
-    if (!_isLoadingMore && _hasMore) {
-      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-      setState(() {
-        _isLoadingMore = true;
-        _currentPage++;
-      });
-      PaginationScroll.maintainAfterPageAppend(
-        _scrollController,
-        wasNearEnd: wasNearEnd,
-      );
-      _load(wasNearEnd: wasNearEnd);
-    }
+  Future<void> _refresh() async {
+    await _pagination.refresh();
+    _repository.getUnreadCount();
   }
 
   void _openDetail(AnnouncementModel item) {
@@ -117,35 +69,35 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     if (item.isRead) return;
     final ok = await _repository.markAsRead(item.id);
     if (ok && mounted) {
-      setState(() {
-        final i = _items.indexWhere((a) => a.id == item.id);
-        if (i != -1) {
-          _items[i] = _items[i].copyWith(isRead: true, readAt: DateTime.now());
-        }
-      });
+      final i = _pagination.items.indexWhere((a) => a.id == item.id);
+      if (i != -1) {
+        _pagination.items[i] =
+            _pagination.items[i].copyWith(isRead: true, readAt: DateTime.now());
+        setState(() {});
+      }
     }
   }
 
   Future<void> _markAllAsRead() async {
     final ok = await _repository.markAllAsRead();
     if (ok && mounted) {
-      setState(() {
-        for (int i = 0; i < _items.length; i++) {
-          if (!_items[i].isRead) {
-            _items[i] = _items[i].copyWith(isRead: true, readAt: DateTime.now());
-          }
+      for (var i = 0; i < _pagination.items.length; i++) {
+        if (!_pagination.items[i].isRead) {
+          _pagination.items[i] = _pagination.items[i]
+              .copyWith(isRead: true, readAt: DateTime.now());
         }
-      });
+      }
+      setState(() {});
     }
   }
 
   Future<void> _dismiss(AnnouncementModel item) async {
     final removed = item;
-    final index = _items.indexOf(item);
-    setState(() => _items.remove(item));
+    final index = _pagination.items.indexOf(item);
+    setState(() => _pagination.items.remove(item));
     final ok = await _repository.dismiss(item.id);
     if (!ok && mounted) {
-      setState(() => _items.insert(index, removed));
+      setState(() => _pagination.items.insert(index, removed));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('announcement.dismiss_failed'))),
       );
@@ -156,16 +108,18 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final items = _pagination.items;
     return Container(
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_items.any((a) => !a.isRead))
+          if (items.any((a) => !a.isRead))
             Align(
               alignment: Alignment.centerRight,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: TextButton(
                   onPressed: _markAllAsRead,
                   child: Text(context.tr('announcement.mark_all_read')),
@@ -173,25 +127,26 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
               ),
             ),
           Expanded(
-            child: _isLoading
+            child: _pagination.isInitialLoading
                 ? const Center(child: CustomLoadingIndicator(size: 40))
-                : _items.isEmpty
+                : items.isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         color: AppColors.primary,
-                        onRefresh: () => _load(refresh: true),
+                        onRefresh: _refresh,
                         child: ListView.builder(
                           controller: _scrollController,
                           itemCount:
-                              _items.length + (_showPaginationFooter ? 1 : 0),
+                              items.length + (_pagination.showFooter ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index == _items.length) {
+                            if (index == items.length) {
                               return PaginationListFooter(
-                                isLoading: _isLoadingMore,
-                                showEndMessage: !_hasMore,
+                                isLoading: _pagination.isLoadingMore,
+                                showEndMessage: !_pagination.hasMore,
                               );
                             }
-                            return _buildItem(_items[index]);
+                            _pagination.onItemVisible(index);
+                            return _buildItem(items[index]);
                           },
                         ),
                       ),
@@ -322,11 +277,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   Widget _buildItemBackground(bool hasImage, AnnouncementModel item) {
     if (hasImage) {
-      return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+      return CachedNetworkImage(
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
         imageUrl: item.imageUrl!,
         fit: BoxFit.cover,
-        placeholder: (context, url) =>
-            const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.primaryGradient)),
+        placeholder: (context, url) => const DecoratedBox(
+          decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+        ),
         errorWidget: (context, url, error) => _buildFallbackBackground(),
       );
     }
@@ -393,4 +351,3 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     return context.relativeTime(date);
   }
 }
-

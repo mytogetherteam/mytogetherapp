@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
-import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -22,97 +22,41 @@ class MyItemPostsPage extends StatefulWidget {
 }
 
 class _MyItemPostsPageState extends State<MyItemPostsPage> {
-  final List<ItemPostDto> _items = [];
+  late final PaginatedListController<ItemPostDto> _pagination;
   final ScrollController _scrollController = ScrollController();
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _page = 1;
-  // Set when any edit/delete happens, so the parent feed can refresh on pop.
   bool _changed = false;
 
   @override
   void initState() {
     super.initState();
-    _loadInitial();
-    _scrollController.addListener(_onScroll);
+    _pagination = PaginatedListController<ItemPostDto>(
+      pageSize: 20,
+      initialPage: 1,
+      itemKey: (item) => item.id,
+      fetchPage: (page) async {
+        final feed = await ItemPostRepository.instance.fetchMine(page: page);
+        return PaginatedPage(
+          items: feed.items,
+          hasMore: feed.page < feed.totalPages,
+        );
+      },
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoading &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadInitial() async {
-    setState(() {
-      _isLoading = true;
-      _page = 1;
-      _hasMore = true;
-    });
-    try {
-      final feed = await ItemPostRepository.instance.fetchMine(page: 1);
-      if (mounted) {
-        setState(() {
-          _items
-            ..clear()
-            ..addAll(feed.items);
-          _hasMore = feed.page < feed.totalPages;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (!_hasMore || _isLoadingMore) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-    setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      _scrollController,
-      wasNearEnd: wasNearEnd,
-    );
-
-    try {
-      final nextPage = _page + 1;
-      final feed = await ItemPostRepository.instance.fetchMine(page: nextPage);
-      if (mounted) {
-        setState(() {
-          _items.addAll(feed.items);
-          _page = nextPage;
-          _hasMore = feed.page < feed.totalPages;
-          _isLoadingMore = false;
-        });
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLoadingMore = false);
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-    }
-  }
-
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
 
   Future<void> _editPost(ItemPostDto post) async {
     final updated = await Navigator.push<bool>(
@@ -123,7 +67,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
     );
     if (updated == true) {
       _changed = true;
-      await _loadInitial();
+      await _pagination.refresh();
     }
   }
 
@@ -136,7 +80,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
     );
     if (created == true) {
       _changed = true;
-      await _loadInitial();
+      await _pagination.refresh();
     }
   }
 
@@ -155,7 +99,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
       await ItemPostRepository.instance.delete(post.id);
       _changed = true;
       if (mounted) {
-        setState(() => _items.removeWhere((p) => p.id == post.id));
+        setState(() => _pagination.items.removeWhere((p) => p.id == post.id));
         AppDialog.showToast(context, context.tr('lost.deleted'));
       }
     } catch (_) {
@@ -196,7 +140,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
           ),
         ),
         body: RefreshIndicator(
-          onRefresh: _loadInitial,
+          onRefresh: _pagination.refresh,
           color: AppColors.primary,
           child: _buildBody(),
         ),
@@ -205,10 +149,11 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
   }
 
   Widget _buildBody() {
-    if (_items.isEmpty && _isLoading) {
+    final items = _pagination.items;
+    if (items.isEmpty && _pagination.isInitialLoading) {
       return const Center(child: CustomLoadingIndicator(size: 28));
     }
-    if (_items.isEmpty) {
+    if (items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
@@ -273,22 +218,23 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: _items.length + (_showPaginationFooter ? 1 : 0),
+      itemCount: items.length + (_pagination.showFooter ? 1 : 0),
       separatorBuilder: (_, index) {
-        if (index >= _items.length - 1) return const SizedBox.shrink();
+        if (index >= items.length - 1) return const SizedBox.shrink();
         return const Divider(height: 1);
       },
       itemBuilder: (context, index) {
-        if (index >= _items.length) {
+        if (index >= items.length) {
           return PaginationListFooter(
-            isLoading: _isLoadingMore,
-            showEndMessage: !_hasMore,
+            isLoading: _pagination.isLoadingMore,
+            showEndMessage: !_pagination.hasMore,
           );
         }
+        _pagination.onItemVisible(index);
         return _MyPostTile(
-          post: _items[index],
-          onEdit: () => _editPost(_items[index]),
-          onDelete: () => _deletePost(_items[index]),
+          post: items[index],
+          onEdit: () => _editPost(items[index]),
+          onDelete: () => _deletePost(items[index]),
         );
       },
     );
@@ -319,7 +265,9 @@ class _MyPostTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: thumb != null
-                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                ? CachedNetworkImage(
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
                     imageUrl: thumb,
                     width: 64,
                     height: 64,
@@ -402,4 +350,3 @@ class _MyPostTile extends StatelessWidget {
     );
   }
 }
-

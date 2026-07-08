@@ -177,7 +177,7 @@ void main() async {
     debugPrint('[BOOT] Loading active order state...');
     if (AuthService().isLoggedIn) {
       await ActiveOrderState.instance.loadFromPrefs();
-      ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+      await ActiveOrderState.instance.hydrateActiveOrdersFromApi();
     } else {
       ActiveOrderState.instance.resetForUserSession();
     }

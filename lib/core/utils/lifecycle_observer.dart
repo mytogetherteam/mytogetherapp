@@ -61,7 +61,11 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
       // 1. SYNC: Always pull server truth via HTTP first
       // This is the "unbreakable" part — FCM might have been missed,
       // so we catch up here before resuming live stream.
-      await ActiveOrderState.instance.syncActiveOrder();
+      if (ActiveOrderState.instance.hasActiveOrder) {
+        await ActiveOrderState.instance.syncActiveOrder();
+      } else {
+        await ActiveOrderState.instance.hydrateActiveOrdersFromApi();
+      }
 
       // Re-check whether a slip re-upload or item revision needs a global modal
       // after catching up on missed WebSocket events while backgrounded.

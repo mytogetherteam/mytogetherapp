@@ -909,9 +909,17 @@ class ActiveOrderState extends ChangeNotifier {
         updateFromSocket(data);
         return;
       }
-      clearOrder(orderId: targetId);
+      if (response.statusCode == 404) {
+        clearOrder(orderId: targetId);
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        clearOrder(orderId: targetId);
+      }
+      // Keep local state on transient network/API errors so the Place Order
+      // guard stays active while the backend order is still in progress.
     } catch (_) {
-      clearOrder(orderId: targetId);
+      // Same as above — do not clear on unknown failures.
     }
   }
 
@@ -1725,6 +1733,57 @@ class ActiveOrderState extends ChangeNotifier {
     applyStatusString(item, o.status);
   }
 
+  /// Registers ongoing orders from [OrderHistoryDto] list into [_orders].
+  Future<void> _registerOngoingOrdersFromHistory(
+    List<OrderHistoryDto> ongoing, {
+    bool enrichDetails = true,
+  }) async {
+    if (ongoing.isEmpty) return;
+
+    var changed = false;
+    for (final o in ongoing) {
+      if (_orders.containsKey(o.id)) {
+        _applyOrderHistorySnapshot(_orders[o.id]!, o);
+        changed = true;
+        continue;
+      }
+      final item = _buildActiveOrderItemFromHistory(o);
+      applyStatusString(item, o.status);
+      _orders[o.id] = item;
+      changed = true;
+    }
+
+    if (changed) {
+      _reassignPrimaryOrderId();
+      saveToPrefs();
+      notifyListeners();
+    }
+
+    if (!enrichDetails) return;
+
+    // Enrich each ongoing order with full tracking detail (shop phone, QR,
+    // rider, map, etc.). syncActiveOrder funnels through updateFromSocket.
+    for (final o in ongoing) {
+      await syncActiveOrder(orderId: o.id);
+    }
+  }
+
+  /// Confirms with the server that the user has no in-flight order before
+  /// starting checkout. Hydrates any ongoing orders found on the backend.
+  Future<bool> ensureCanPlaceNewOrder() async {
+    try {
+      final all = await OrderRepository().getOrderHistory();
+      final ongoing = all.where((o) => o.ongoing).toList();
+      if (ongoing.isNotEmpty) {
+        await _registerOngoingOrdersFromHistory(ongoing, enrichDetails: false);
+        return false;
+      }
+      return !hasActiveOrder;
+    } catch (_) {
+      return !hasActiveOrder;
+    }
+  }
+
   /// Seeds [_orders] from the backend so active orders survive cold starts,
   /// reinstalls, or cleared prefs (WebSocket/FCM alone can't hydrate an order
   /// the app has never heard of — see the guard in [updateFromSocket]).
@@ -1735,32 +1794,7 @@ class ActiveOrderState extends ChangeNotifier {
     try {
       final all = await OrderRepository().getOrderHistory();
       final ongoing = all.where((o) => o.ongoing).toList();
-      if (ongoing.isEmpty) return;
-
-      var changed = false;
-      for (final o in ongoing) {
-        if (_orders.containsKey(o.id)) {
-          _applyOrderHistorySnapshot(_orders[o.id]!, o);
-          changed = true;
-          continue;
-        }
-        final item = _buildActiveOrderItemFromHistory(o);
-        applyStatusString(item, o.status);
-        _orders[o.id] = item;
-        changed = true;
-      }
-
-      if (changed) {
-        _reassignPrimaryOrderId();
-        saveToPrefs();
-        notifyListeners();
-      }
-
-      // Enrich each ongoing order with full tracking detail (shop phone, QR,
-      // rider, map, etc.). syncActiveOrder funnels through updateFromSocket.
-      for (final o in ongoing) {
-        await syncActiveOrder(orderId: o.id);
-      }
+      await _registerOngoingOrdersFromHistory(ongoing);
     } catch (_) {
       // Best-effort hydration; silent on failure.
     }

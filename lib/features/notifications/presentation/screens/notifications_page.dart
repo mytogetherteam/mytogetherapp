@@ -6,7 +6,7 @@ import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
 import '../order_notification_navigation.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../core/presentation/utils/pagination_scroll.dart';
+import '../../../../core/presentation/utils/paginated_list_controller.dart';
 import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
 import '../../../announcements/data/repositories/announcement_repository.dart';
@@ -22,12 +22,7 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   final NotificationRepository _repository = NotificationRepository();
   final ScrollController _scrollController = ScrollController();
-  final List<NotificationModel> _notifications = [];
-  bool _isLoading = true;
-  bool _isLoadingMore = false;
-  int _currentPage = 0;
-  bool _hasMore = true;
-  final int _pageSize = 20;
+  late final PaginatedListController<NotificationModel> _pagination;
   late TabController _tabController;
 
   @override
@@ -37,82 +32,40 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     _tabController.addListener(() {
       setState(() {});
     });
-    _loadNotifications();
-    // Keep the announcement (megaphone) badge in sync when this screen opens.
+    _pagination = PaginatedListController<NotificationModel>(
+      pageSize: 20,
+      initialPage: 0,
+      itemKey: (item) => item.id,
+      fetchPage: (page) async {
+        final batch = await _repository.getNotifications(page: page, size: 20);
+        return PaginatedPage(
+          items: batch,
+          hasMore: batch.length >= 20,
+        );
+      },
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_scrollController);
+    _pagination.loadInitial().then((_) => _repository.getUnreadCount());
     AnnouncementRepository().getUnreadCount();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  bool get _showPaginationFooter => _isLoadingMore || !_hasMore;
-
-  Future<void> _loadNotifications({
-    bool refresh = false,
-    bool wasNearEnd = false,
-  }) async {
-    if (refresh) {
-      setState(() {
-        _currentPage = 0;
-        _notifications.clear();
-        _isLoading = true;
-        _hasMore = true;
-      });
-    }
-
-    try {
-      final newNotifications = await _repository.getNotifications(
-        page: _currentPage,
-        size: _pageSize,
-      );
-
-      setState(() {
-        if (newNotifications.length < _pageSize) {
-          _hasMore = false;
-        }
-        _notifications.addAll(newNotifications);
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-      if (!refresh) {
-        PaginationScroll.maintainAfterPageAppend(
-          _scrollController,
-          wasNearEnd: wasNearEnd,
-        );
-      }
-      
-      // Sync unread count with server truth
-      _repository.getUnreadCount();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('notification.load_failed'))),
-        );
-      }
-    }
-  }
-
-  void _loadMore() {
-    if (!_isLoadingMore && _hasMore) {
-      final wasNearEnd = PaginationScroll.wasNearEnd(_scrollController);
-      setState(() {
-        _isLoadingMore = true;
-        _currentPage++;
-      });
-      PaginationScroll.maintainAfterPageAppend(
-        _scrollController,
-        wasNearEnd: wasNearEnd,
-      );
-      _loadNotifications(wasNearEnd: wasNearEnd);
-    }
+  Future<void> _refreshNotifications() async {
+    await _pagination.refresh();
+    _repository.getUnreadCount();
   }
 
   Future<void> _handleNotificationTap(NotificationModel notification) async {
@@ -135,20 +88,20 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
     // Optimistic: flip to read immediately so the swipe-left animation plays
     // without waiting on the network. Revert if the request fails.
-    final index = _notifications.indexWhere((n) => n.id == notification.id);
+    final index = _pagination.items.indexWhere((n) => n.id == notification.id);
     if (index == -1) return;
-    final original = _notifications[index];
+    final original = _pagination.items[index];
     setState(() {
-      _notifications[index] = _asRead(original);
+      _pagination.items[index] = _asRead(original);
     });
 
     final success = await _repository.markAsRead(notification.id);
     if (!success) {
       if (mounted) {
         final revertIndex =
-            _notifications.indexWhere((n) => n.id == notification.id);
+            _pagination.items.indexWhere((n) => n.id == notification.id);
         if (revertIndex != -1) {
-          setState(() => _notifications[revertIndex] = original);
+          setState(() => _pagination.items[revertIndex] = original);
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr('notification.mark_read_failed'))),
@@ -178,11 +131,11 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
   Future<void> _markAllAsRead() async {
     // Snapshot for rollback, then optimistically flip every unread item to read
     // so all rows animate (swipe-left) at once and the badge clears instantly.
-    final previous = List<NotificationModel>.from(_notifications);
+    final previous = List<NotificationModel>.from(_pagination.items);
     setState(() {
-      for (int i = 0; i < _notifications.length; i++) {
-        if (!_notifications[i].read) {
-          _notifications[i] = _asRead(_notifications[i]);
+      for (int i = 0; i < _pagination.items.length; i++) {
+        if (!_pagination.items[i].read) {
+          _pagination.items[i] = _asRead(_pagination.items[i]);
         }
       }
     });
@@ -192,7 +145,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
     if (!success) {
       if (mounted) {
         setState(() {
-          _notifications
+          _pagination.items
             ..clear()
             ..addAll(previous);
         });
@@ -221,6 +174,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final notifications = _pagination.items;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -285,7 +239,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_notifications.any((n) => !n.read))
+              if (notifications.any((n) => !n.read))
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
@@ -297,40 +251,31 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
                   ),
                 ),
               Expanded(
-                child: _isLoading
+                child: _pagination.isInitialLoading
                     ? const Center(child: CustomLoadingIndicator(size: 40))
-                    : _notifications.isEmpty
+                    : notifications.isEmpty
                         ? _buildEmptyState()
-                        : NotificationListener<ScrollNotification>(
-                            onNotification: (ScrollNotification scrollInfo) {
-                              if (scrollInfo.metrics.pixels >=
-                                      scrollInfo.metrics.maxScrollExtent - 200 &&
-                                  _hasMore &&
-                                  !_isLoadingMore) {
-                                _loadMore();
-                              }
-                              return false;
-                            },
-                            child: RefreshIndicator(
-                              onRefresh: () => _loadNotifications(refresh: true),
-                              child: ListView.builder(
-                                controller: _scrollController,
-                                itemCount: _notifications.length +
-                                    (_showPaginationFooter ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index == _notifications.length) {
-                                    return PaginationListFooter(
-                                      isLoading: _isLoadingMore,
-                                      showEndMessage: !_hasMore,
-                                    );
-                                  }
-                                  final notification = _notifications[index];
-                                  return NotificationItemWidget(
-                                    notification: notification,
-                                    onTap: () => _handleNotificationTap(notification),
+                        : RefreshIndicator(
+                            onRefresh: _refreshNotifications,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              itemCount: notifications.length +
+                                  (_pagination.showFooter ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == notifications.length) {
+                                  return PaginationListFooter(
+                                    isLoading: _pagination.isLoadingMore,
+                                    showEndMessage: !_pagination.hasMore,
                                   );
-                                },
-                              ),
+                                }
+                                _pagination.onItemVisible(index);
+                                final notification = notifications[index];
+                                return NotificationItemWidget(
+                                  notification: notification,
+                                  onTap: () =>
+                                      _handleNotificationTap(notification),
+                                );
+                              },
                             ),
                           ),
               ),

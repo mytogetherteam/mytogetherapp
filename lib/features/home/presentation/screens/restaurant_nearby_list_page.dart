@@ -21,6 +21,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
 import '../../../../core/config/google_maps_config.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
+import '../../../../core/presentation/utils/paginated_list_controller.dart';
+import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class RestaurantNearbyListPage extends StatefulWidget {
@@ -32,7 +34,10 @@ class RestaurantNearbyListPage extends StatefulWidget {
 }
 
 class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
-  Future<List<Restaurant>>? _restaurantsFuture;
+  static const int _pageSize = 20;
+
+  late final PaginatedListController<Restaurant> _pagination;
+  bool _didInitialCamera = false;
   final Map<String, bool> _localFavorites = {};
   final ScrollController _listScrollController = ScrollController();
   final Completer<GoogleMapController> _mapController =
@@ -59,14 +64,56 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   void initState() {
     super.initState();
     _dio = Dio();
-    _fetchRestaurants();
+    _pagination = PaginatedListController<Restaurant>(
+      pageSize: _pageSize,
+      initialPage: 0,
+      itemKey: (restaurant) => restaurant.id,
+      fetchPage: _fetchRestaurantsPage,
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(_listScrollController);
+    _pagination.loadInitial();
     _initLocationService();
     UserLocationRepository.instance.addListener(_onActiveLocationChanged);
   }
 
+  void _onPaginationChanged() {
+    if (!mounted) return;
+    setState(() {});
+    final restaurants = _pagination.items;
+    _updateMarkers(restaurants);
+    if (!_didInitialCamera &&
+        !_pagination.isInitialLoading &&
+        restaurants.isNotEmpty) {
+      _didInitialCamera = true;
+      _animateCameraToRestaurants(restaurants);
+    }
+  }
+
   void _onActiveLocationChanged() {
     if (!mounted) return;
-    _fetchRestaurants();
+    _didInitialCamera = false;
+    _pagination.refresh();
+  }
+
+  Future<PaginatedPage<Restaurant>> _fetchRestaurantsPage(int page) async {
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+    final restaurants = await RestaurantRepository.instance.getNearbyShops(
+      lat: coords.lat,
+      lon: coords.lon,
+      radius: _selectedRadius,
+      page: page,
+      size: _pageSize,
+    );
+    return PaginatedPage(
+      items: restaurants,
+      hasMore: restaurants.length >= _pageSize,
+    );
+  }
+
+  void _fetchRestaurants() {
+    _didInitialCamera = false;
+    _pagination.refresh();
   }
 
   Future<void> _initLocationService() async {
@@ -149,7 +196,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   LatLngBounds? _routeBounds;
 
   Future<void> _onCurrentLocationTapped() async {
-    if (_expandedRestaurantId == null || _restaurantsFuture == null) return;
+    if (_expandedRestaurantId == null || _pagination.items.isEmpty) return;
 
     // SECOND CLICK: route already displayed — re-center camera to show full route
     if (_polylines.isNotEmpty && _routeBounds != null) {
@@ -167,7 +214,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       _isRouting = true;
     });
 
-    final rList = await _restaurantsFuture!;
+    final rList = _pagination.items;
     final selected = rList.cast<Restaurant?>().firstWhere(
       (element) => element?.id == _expandedRestaurantId,
       orElse: () => null,
@@ -296,32 +343,16 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
   }
 
-  void _fetchRestaurants() {
-    _restaurantsFuture = _loadRestaurants();
-  }
 
-  Future<List<Restaurant>> _loadRestaurants() async {
-    // Shared resolver keeps the origin consistent with the home nearby rail
-    // and the food search (saved active location → device GPS → default).
+  Future<void> _animateCameraToRestaurants(List<Restaurant> restaurants) async {
     final coords =
         await UserLocationRepository.instance.resolveActiveCoordinates();
-
-    final restaurants = await RestaurantRepository.instance.getNearbyShops(
-      lat: coords.lat,
-      lon: coords.lon,
-      radius: _selectedRadius,
-    );
-
-    _updateMarkers(restaurants);
 
     final validPoints = restaurants
         .where((r) => r.latitude != null && r.longitude != null)
         .map((r) => LatLng(r.latitude!, r.longitude!))
         .toList();
 
-    // Move the camera to reflect where we actually searched: fit all results
-    // when present, otherwise center on the queried origin (instead of the
-    // hardcoded initial Bangkok view, which made an empty list look wrong).
     Future.delayed(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
       final GoogleMapController controller = await _mapController.future;
@@ -348,8 +379,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         );
       }
     });
-
-    return restaurants;
   }
 
   /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
@@ -639,7 +668,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     });
 
     // Re-render markers to show selected state
-    _restaurantsFuture?.then((restaurants) => _updateMarkers(restaurants));
+    _updateMarkers(_pagination.items);
 
     // Center map on marker with offset
     _centerMapOnRestaurant(r, isExpandedAtTarget: true);
@@ -721,6 +750,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   void dispose() {
     UserLocationRepository.instance.removeListener(_onActiveLocationChanged);
     _positionStreamSubscription?.cancel();
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _listScrollController.dispose();
     super.dispose();
   }
@@ -732,11 +764,97 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   Future<void> _onCameraIdle() async {
     await _mapController.future;
-    if (_restaurantsFuture != null) {
-      final restaurants = await _restaurantsFuture!;
-      _updateMarkers(restaurants);
-    }
+    _updateMarkers(_pagination.items);
   }
+
+  Widget _buildRestaurantList() {
+    if (_pagination.isInitialLoading) {
+      return ListView.builder(
+        padding: const EdgeInsets.only(top: 10),
+        itemCount: 3,
+        itemBuilder: (_, _) => const NearbyRestaurantListItemSkeleton(),
+      );
+    }
+
+    final restaurants = _pagination.items;
+    if (restaurants.isEmpty) {
+      return Center(
+        child: Text(
+          context.tr('nearby.no_nearby'),
+          style: GoogleFonts.poppins(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _listScrollController,
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 40,
+      ),
+      itemCount: restaurants.length + (_pagination.showFooter ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= restaurants.length) {
+          return PaginationListFooter(
+            isLoading: _pagination.isLoadingMore,
+            showEndMessage: !_pagination.hasMore,
+          );
+        }
+
+        _pagination.onItemVisible(index);
+        final data = restaurants[index];
+        final key = _itemKeys.putIfAbsent(
+          data.id,
+          () => GlobalKey(),
+        );
+
+        return RestaurantCard(
+          key: key,
+          name: data.name,
+          category: data.category,
+          rating: data.rating,
+          reviewCount: data.reviewCount,
+          distance: data.distance,
+          imagePath: data.imagePath,
+          logoPath: data.logoPath,
+          deliveryTime: data.deliveryTime,
+          deliveryFee: data.deliveryFee,
+          originalDeliveryFee: data.originalDeliveryFee,
+          deliveryEnabled: data.deliveryEnabled,
+          operatingHours: data.operatingHours,
+          status: data.status,
+          shopId: data.id,
+          isVerified: data.isVerified,
+          isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+          onFavoriteToggle: () => _toggleFavorite(data),
+          onTap: () {
+            if (_expandedRestaurantId == data.id) {
+              _navigateToDetail(data);
+            } else {
+              setState(() {
+                _expandedRestaurantId = data.id;
+                _centerMapOnRestaurant(
+                  data,
+                  isExpandedAtTarget: true,
+                );
+                _updateMarkers(restaurants);
+              });
+            }
+          },
+          width: double.infinity,
+          margin: const EdgeInsets.only(
+            bottom: 24,
+            left: 20,
+            right: 20,
+          ),
+        );
+      },
+    );
+  }
+
   void _showRangeFilterModal() {
     showModalBottomSheet(
       context: context,
@@ -967,16 +1085,14 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                       children: [
                         // Button 1: Explore
                         GestureDetector(
-                          onTap: () async {
-                            if (_restaurantsFuture != null && _expandedRestaurantId != null) {
-                              final restaurants = await _restaurantsFuture!;
-                              final selected = restaurants.cast<Restaurant?>().firstWhere(
-                                (r) => r?.id == _expandedRestaurantId,
-                                orElse: () => null,
-                              );
-                              if (selected != null) {
-                                _navigateToDetail(selected);
-                              }
+                          onTap: () {
+                            if (_expandedRestaurantId == null) return;
+                            final selected = _pagination.items.cast<Restaurant?>().firstWhere(
+                              (r) => r?.id == _expandedRestaurantId,
+                              orElse: () => null,
+                            );
+                            if (selected != null) {
+                              _navigateToDetail(selected);
                             }
                           },
                           child: Container(
@@ -1120,144 +1236,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     ),
                   ),
                   // Scrollable restaurant list
-                  Expanded(
-                    child: FutureBuilder<List<Restaurant>>(
-                      future: _restaurantsFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return ListView.builder(
-                            padding: const EdgeInsets.only(top: 10),
-                            itemCount: 3,
-                            itemBuilder: (_, _) =>
-                                const NearbyRestaurantListItemSkeleton(),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.cloud_off,
-                                    color: Colors.red.shade300,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    context.tr('nearby.connection_error'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    context.tr('nearby.load_failed'),
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.grey[600],
-                                      fontSize: 13,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  PrimaryGradientButton(
-                                    onPressed: _fetchRestaurants,
-                                    height: 42,
-                                    width: 100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Text(
-                                      context.tr('common.retry'),
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return Center(
-                            child: Text(
-                              context.tr('nearby.no_nearby'),
-                              style: GoogleFonts.poppins(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          );
-                        }
-
-                        final restaurants = snapshot.data!;
-                        return ListView.builder(
-                          controller: _listScrollController,
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).padding.bottom + 40,
-                          ),
-                          itemCount: restaurants.length,
-                          itemBuilder: (context, index) {
-                            final data = restaurants[index];
-                            final key = _itemKeys.putIfAbsent(
-                              data.id,
-                              () => GlobalKey(),
-                            );
-
-                            return RestaurantCard(
-                              key: key,
-                              name: data.name,
-                              category: data.category,
-                              rating: data.rating,
-                              reviewCount: data.reviewCount,
-                              distance: data.distance,
-                              imagePath: data.imagePath,
-                              logoPath: data.logoPath,
-                              deliveryTime: data.deliveryTime,
-                              deliveryFee: data.deliveryFee,
-                              originalDeliveryFee: data.originalDeliveryFee,
-                              deliveryEnabled: data.deliveryEnabled,
-                              operatingHours: data.operatingHours,
-                              status: data.status,
-                              shopId: data.id,
-                              isVerified: data.isVerified,
-                              isFavorite:
-                                  _localFavorites[data.id] ?? data.isFavorite,
-                              onFavoriteToggle: () => _toggleFavorite(data),
-                              onTap: () {
-                                if (_expandedRestaurantId == data.id) {
-                                  // Already selected: navigate to detail
-                                  _navigateToDetail(data);
-                                } else {
-                                  // Not selected: select and zoom on map
-                                  setState(() {
-                                    _expandedRestaurantId = data.id;
-                                    _centerMapOnRestaurant(
-                                      data,
-                                      isExpandedAtTarget: true,
-                                    );
-                                    _updateMarkers(restaurants);
-                                  });
-                                }
-                              },
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(
-                                bottom: 24,
-                                left: 20,
-                                right: 20,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
+                  Expanded(child: _buildRestaurantList()),
                 ],
               ),
             ),

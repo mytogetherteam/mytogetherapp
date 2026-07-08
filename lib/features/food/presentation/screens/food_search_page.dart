@@ -7,7 +7,9 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/home/data/models/master_category_dto.dart';
@@ -56,15 +58,24 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     with WidgetsBindingObserver {
   static const _recentSearchesKey = 'food_search_recent';
   static const _shopStatePollInterval = Duration(seconds: 45);
+  static const _typingPreviewSize = 6;
+  static const _searchedPageSize = 20;
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  final ScrollController _resultsScrollController = ScrollController();
+
+  late final PaginatedListController<SearchShopDto> _searchPagination;
 
   SearchFlowState _currentState = SearchFlowState.idle;
   Timer? _debounceTimer;
   Timer? _shopStatePollTimer;
 
-  List<SearchShopDto> _shopResults = [];
+  String _searchQuery = '';
+  int _searchRequestId = 0;
+  bool _typingPreviewMode = false;
+  bool _searchFetchFailed = false;
+
   List<String> _recentSearches = [];
   List<MasterCategoryDto> _popularCategories = [];
   List<MasterCategoryDto> _masterCategories = [];
@@ -72,7 +83,6 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   bool _isLoadingCuisines = false;
   bool _isLoadingCategories = true;
   bool _isLoadingMasterCategories = false;
-  bool _isLoading = false;
   String? _errorMessage;
   SearchFilters _filters = SearchFilters.empty;
   String? _selectedCategoryName;
@@ -84,6 +94,14 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _searchPagination = PaginatedListController<SearchShopDto>(
+      pageSize: _searchedPageSize,
+      initialPage: 1,
+      pageIncrement: 1,
+      itemKey: (shop) => shop.shop.id,
+      fetchPage: _fetchSearchPage,
+    )..addListener(_onSearchPaginationChanged);
+    _searchPagination.attachScrollController(_resultsScrollController);
     _loadRecentSearches();
     _loadPopularCategories();
     _ensureMasterCategoriesLoaded();
@@ -115,10 +133,64 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     WidgetsBinding.instance.removeObserver(this);
     _debounceTimer?.cancel();
     _shopStatePollTimer?.cancel();
+    _searchPagination
+      ..removeListener(_onSearchPaginationChanged)
+      ..dispose();
+    _resultsScrollController.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
   }
+
+  void _onSearchPaginationChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _clearSearchResults() {
+    _searchPagination.items.clear();
+    _stopShopStatePolling();
+  }
+
+  Future<PaginatedPage<SearchShopDto>> _fetchSearchPage(int page) async {
+    try {
+      final loc = await _resolveLocation();
+      final size =
+          _typingPreviewMode ? _typingPreviewSize : _searchedPageSize;
+      final shopPage = await RestaurantRepository.instance.searchShopsWithMenu(
+        lat: loc.lat,
+        lon: loc.lon,
+        query: _searchQuery,
+        radiusKm: _filters.radiusKm ?? 99999.0,
+        page: page,
+        size: size,
+        filters: _filters,
+      );
+      _searchFetchFailed = false;
+      _rememberSearchShopStates(shopPage.shops);
+      return PaginatedPage(
+        items: shopPage.shops,
+        hasMore: !_typingPreviewMode && shopPage.hasMore,
+      );
+    } catch (_) {
+      _searchFetchFailed = true;
+      rethrow;
+    }
+  }
+
+  void _onResultItemVisible(int filteredIndex) {
+    if (_currentState != SearchFlowState.searched) return;
+    final shops = _filteredShopResults;
+    if (filteredIndex < 0 || filteredIndex >= shops.length) return;
+    final shopId = shops[filteredIndex].shop.id;
+    final fullIndex = _searchPagination.items
+        .indexWhere((shop) => shop.shop.id == shopId);
+    if (fullIndex >= 0) {
+      _searchPagination.onItemVisible(fullIndex);
+    }
+  }
+
+  bool get _showPaginationFooter =>
+      _currentState == SearchFlowState.searched && _searchPagination.showFooter;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -141,9 +213,9 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   }
 
   Future<void> _refreshVisibleShopStates() async {
-    if (_shopResults.isEmpty) return;
+    if (_searchPagination.items.isEmpty) return;
     await RestaurantRepository.instance.refreshOrderStatesForShopIds(
-      _shopResults.map((dto) => dto.shop.id),
+      _searchPagination.items.map((dto) => dto.shop.id),
     );
   }
 
@@ -280,10 +352,9 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       } else {
         setState(() {
           _currentState = SearchFlowState.idle;
-          _shopResults = [];
           _errorMessage = null;
-          _isLoading = false;
         });
+        _clearSearchResults();
       }
       return;
     }
@@ -295,7 +366,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), () {
-      _runSearch(value, persistRecent: false);
+      _runSearch(value, persistRecent: false, typingPreview: true);
     });
   }
 
@@ -319,10 +390,9 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     } else {
       setState(() {
         _currentState = SearchFlowState.idle;
-        _shopResults = [];
         _errorMessage = null;
-        _isLoading = false;
       });
+      _clearSearchResults();
       _searchFocus.requestFocus();
     }
   }
@@ -354,55 +424,45 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     return '${ApiClient.baseUrl}/$path';
   }
 
-  Future<void> _runSearch(String query, {required bool persistRecent}) async {
+  Future<void> _runSearch(
+    String query, {
+    required bool persistRecent,
+    bool typingPreview = false,
+  }) async {
     if (!AuthService().isLoggedIn) {
       setState(() {
-        _isLoading = false;
         _errorMessage = context.tr('food.search_sign_in');
-        _shopResults = [];
       });
+      _clearSearchResults();
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final requestId = ++_searchRequestId;
+    _searchQuery = query;
+    _typingPreviewMode = typingPreview;
+    _searchFetchFailed = false;
+    setState(() => _errorMessage = null);
 
-    try {
-      final loc = await _resolveLocation();
-      final shopPage = await RestaurantRepository.instance.searchShopsWithMenu(
-        lat: loc.lat,
-        lon: loc.lon,
-        query: query,
-        radiusKm: _filters.radiusKm ?? 99999.0,
-        size: _currentState == SearchFlowState.searched ? 20 : 6,
-        filters: _filters,
-      );
-
-      if (persistRecent) {
-        await _saveRecentSearch(query);
-      }
-
-      if (mounted) {
-        _rememberSearchShopStates(shopPage.shops);
-        setState(() {
-          _shopResults = shopPage.shops;
-          _isLoading = false;
-        });
-        _startShopStatePolling();
-        unawaited(_refreshVisibleShopStates());
-      }
-    } catch (e) {
-      if (mounted) {
-        _stopShopStatePolling();
-        setState(() {
-          _isLoading = false;
-          _errorMessage = context.tr('food.search_failed');
-          _shopResults = [];
-        });
-      }
+    if (_resultsScrollController.hasClients) {
+      _resultsScrollController.jumpTo(0);
     }
+
+    await _searchPagination.refresh();
+
+    if (!mounted || requestId != _searchRequestId) return;
+
+    if (_searchFetchFailed) {
+      _clearSearchResults();
+      setState(() => _errorMessage = context.tr('food.search_failed'));
+      return;
+    }
+
+    if (persistRecent) {
+      await _saveRecentSearch(query);
+    }
+
+    _startShopStatePolling();
+    unawaited(_refreshVisibleShopStates());
   }
 
   void _rememberSearchShopStates(List<SearchShopDto> shops) {
@@ -580,7 +640,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       );
     }
 
-    if (_isLoading &&
+    if (_searchPagination.isInitialLoading &&
         (_currentState == SearchFlowState.typing ||
             _currentState == SearchFlowState.searched)) {
       return const Center(child: CustomLoadingIndicator());
@@ -796,15 +856,17 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   /// results, since the backend search only supports a `topRated` boolean.
   List<SearchShopDto> get _filteredShopResults {
     final min = _filters.minRating;
-    if (min == null) return _shopResults;
-    return _shopResults.where((s) => s.shop.rating >= min).toList();
+    if (min == null) return _searchPagination.items;
+    return _searchPagination.items
+        .where((s) => s.shop.rating >= min)
+        .toList();
   }
 
   /// Search results: each shop is shown with its preview menu items (matches
   /// the home cards). The menu-only list is intentionally not shown here.
   Widget _buildResultsList() {
     final shops = _filteredShopResults;
-    if (!_isLoading && shops.isEmpty) {
+    if (!_searchPagination.isInitialLoading && shops.isEmpty) {
       final query = _searchController.text.trim();
       return _buildMessageState(
         icon: PhosphorIcons.magnifyingGlass,
@@ -814,10 +876,19 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       );
     }
 
+    final showFooter = _showPaginationFooter;
     return ListView.builder(
+      controller: _resultsScrollController,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: shops.length,
+      itemCount: shops.length + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index >= shops.length) {
+          return PaginationListFooter(
+            isLoading: _searchPagination.isLoadingMore,
+            showEndMessage: !_searchPagination.hasMore,
+          );
+        }
+        _onResultItemVisible(index);
         return _buildSearchedRestaurantBlock(shops[index]);
       },
     );
@@ -830,10 +901,8 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       setState(() => _currentState = SearchFlowState.searched);
       _runSearch(query, persistRecent: false);
     } else {
-      setState(() {
-        _currentState = SearchFlowState.idle;
-        _shopResults = [];
-      });
+      setState(() => _currentState = SearchFlowState.idle);
+      _clearSearchResults();
     }
   }
 

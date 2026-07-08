@@ -45,6 +45,9 @@ class RestaurantRepository {
   final Map<String, ShopFeedSectionDto> _feedCache = {};
   final Map<String, DateTime> _feedCacheTime = {};
 
+  /// Caps in-memory feed pages so long explore scrolls do not grow without bound.
+  static const int _maxFeedCacheEntries = 48;
+
   // Cache for the home discount carousel
   DiscountDealsDto? _cachedDiscountDeals;
   String? _discountDealsCacheKey;
@@ -642,6 +645,24 @@ class RestaurantRepository {
     return response.data;
   }
 
+  void _storeFeedCache(String key, ShopFeedSectionDto value) {
+    while (_feedCache.length >= _maxFeedCacheEntries && _feedCache.isNotEmpty) {
+      String? oldestKey;
+      DateTime? oldestTime;
+      for (final entry in _feedCacheTime.entries) {
+        if (oldestTime == null || entry.value.isBefore(oldestTime)) {
+          oldestTime = entry.value;
+          oldestKey = entry.key;
+        }
+      }
+      if (oldestKey == null) break;
+      _feedCache.remove(oldestKey);
+      _feedCacheTime.remove(oldestKey);
+    }
+    _feedCache[key] = value;
+    _feedCacheTime[key] = DateTime.now();
+  }
+
   /// Returns a cached feed section or fetches from the API.
   /// Cache TTL: 5 minutes per shopId+feedType combination.
   Future<ShopFeedSectionDto> getShopFeed({
@@ -664,13 +685,12 @@ class RestaurantRepository {
       shopId: shopId,
       feedType: feedType,
     );
-    _feedCache[key] = result;
-    _feedCacheTime[key] = now;
+    _storeFeedCache(key, result);
     return result;
   }
 
   /// Returns a cached food tab feed section or fetches from the API.
-  /// Cache TTL: 5 minutes per feedType.
+  /// Cache TTL: 5 minutes per feedType+page (LRU capped at [_maxFeedCacheEntries]).
   Future<ShopFeedSectionDto> getFoodTabFeed({
     required String feedType,
     required double lat,
@@ -697,8 +717,7 @@ class RestaurantRepository {
       page: page,
       size: size,
     );
-    _feedCache[key] = result;
-    _feedCacheTime[key] = now;
+    _storeFeedCache(key, result);
     return result;
   }
 

@@ -617,7 +617,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     if (shopId == 0) return;
 
     final wasNearEnd =
-        !isInitial && PaginationScroll.wasNearEnd(_scrollController, threshold: 500);
+        !isInitial &&
+        PaginationScroll.wasNearEnd(
+          _scrollController,
+          threshold: PaginationScroll.menuEndThreshold,
+        );
     setState(() {
       _isMenuLoading = true;
       if (isInitial) {
@@ -710,9 +714,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   }
 
   bool _onScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollEndNotification) {
+    if (notification is ScrollUpdateNotification ||
+        notification is ScrollEndNotification) {
       final metrics = notification.metrics;
-      if (metrics.pixels >= metrics.maxScrollExtent - 500) {
+      if (metrics.pixels >=
+          metrics.maxScrollExtent - PaginationScroll.menuEndThreshold) {
         _fetchMenu();
       }
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../data/models/shop_feed_item_dto.dart';
@@ -43,27 +44,33 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
   static const int _pageSize = 20;
   static const String _feedType = 'explore';
 
-  final List<ShopFeedItemDto> _items = [];
+  late final PaginatedListController<ShopFeedItemDto> _pagination;
   final Map<int, bool> _localFavorites = {};
-
-  int _currentPage = 0;
-  bool _isInitialLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-
-  bool _armedForNextPage = true;
 
   @override
   void initState() {
     super.initState();
-    widget.scrollController.addListener(_onScroll);
-    _loadInitial();
+    _pagination = PaginatedListController<ShopFeedItemDto>(
+      pageSize: _pageSize,
+      initialPage: 0,
+      pixelPrefetchThreshold: PaginationScroll.exploreEndThreshold,
+      itemKey: (item) => item.id,
+      fetchPage: _fetchPage,
+    )..addListener(_onPaginationChanged);
+    _pagination.attachScrollController(widget.scrollController);
+    _pagination.loadInitial();
   }
 
   @override
   void dispose() {
-    widget.scrollController.removeListener(_onScroll);
+    _pagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _onPaginationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -71,39 +78,14 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.latitude != widget.latitude ||
         oldWidget.longitude != widget.longitude) {
-      setState(() {
-        _items.clear();
-        _currentPage = 0;
-        _hasMore = true;
-        _isInitialLoading = true;
-        _isLoadingMore = false;
-      });
-      _loadInitial();
+      _pagination.loadInitial();
+    }
+    if (oldWidget.scrollController != widget.scrollController) {
+      _pagination.attachScrollController(widget.scrollController);
     }
   }
 
-  void _onScroll() {
-    if (!widget.scrollController.hasClients) return;
-    final position = widget.scrollController.position;
-    final nearEnd = position.pixels >= position.maxScrollExtent - 400;
-
-    if (!nearEnd) {
-      _armedForNextPage = true;
-      return;
-    }
-
-    if (!_armedForNextPage ||
-        _isLoadingMore ||
-        _isInitialLoading ||
-        !_hasMore) {
-      return;
-    }
-
-    _armedForNextPage = false;
-    _loadMore();
-  }
-
-  Future<List<ShopFeedItemDto>> _fetchPage(int page) async {
+  Future<PaginatedPage<ShopFeedItemDto>> _fetchPage(int page) async {
     final section = await RestaurantRepository.instance.getFoodTabFeed(
       feedType: _feedType,
       lat: widget.latitude,
@@ -112,65 +94,11 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
       page: page,
       size: _pageSize,
     );
-    return section.items;
-  }
-
-  Future<void> _loadInitial() async {
-    try {
-      final items = await _fetchPage(0);
-      if (!mounted) return;
-      setState(() {
-        _items
-          ..clear()
-          ..addAll(items);
-        _currentPage = 0;
-        _hasMore = items.length >= _pageSize;
-        _isInitialLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isInitialLoading = false;
-        _hasMore = false;
-      });
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore || _isInitialLoading) return;
-
-    final wasNearEnd = PaginationScroll.wasNearEnd(
-      widget.scrollController,
-      threshold: 400,
+    final items = section.items;
+    return PaginatedPage(
+      items: items,
+      hasMore: items.length >= _pageSize,
     );
-    setState(() => _isLoadingMore = true);
-    PaginationScroll.maintainAfterPageAppend(
-      widget.scrollController,
-      wasNearEnd: wasNearEnd,
-    );
-
-    try {
-      final nextPage = _currentPage + 1;
-      final moreItems = await _fetchPage(nextPage);
-      if (!mounted) return;
-      setState(() {
-        _items.addAll(moreItems);
-        _currentPage = nextPage;
-        _hasMore = moreItems.length >= _pageSize;
-        _isLoadingMore = false;
-      });
-      PaginationScroll.maintainAfterPageAppend(
-        widget.scrollController,
-        wasNearEnd: wasNearEnd,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoadingMore = false);
-      PaginationScroll.maintainAfterPageAppend(
-        widget.scrollController,
-        wasNearEnd: wasNearEnd,
-      );
-    }
   }
 
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {
@@ -178,27 +106,24 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
     final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _localFavorites[item.id] = newStatus);
-
     try {
       await RestaurantRepository.instance.toggleMenuFavorite(item.id, newStatus);
     } catch (_) {
       if (!mounted) return;
       setState(() => _localFavorites[item.id] = !newStatus);
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(context.tr('common.favorite_failed')),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(context.tr('common.favorite_failed'))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isInitialLoading) {
+    if (_pagination.isInitialLoading) {
       return _buildSkeleton();
     }
-    if (_items.isEmpty) {
+
+    if (_pagination.items.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.only(bottom: 20),
@@ -218,7 +143,6 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
     }
 
     final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
-    final showFooter = _isLoadingMore || !_hasMore;
 
     return SliverMainAxisGroup(
       slivers: [
@@ -252,7 +176,8 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
             ),
             delegate: SliverChildBuilderDelegate(
               (context, i) {
-                final item = _items[i];
+                _pagination.onItemVisible(i);
+                final item = _pagination.items[i];
                 return FoodMenuItemCard(
                   id: item.id.toString(),
                   restaurantId: item.shopId.toString(),
@@ -279,15 +204,15 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
                   restaurantStatus: item.restaurantStatus,
                 );
               },
-              childCount: _items.length,
+              childCount: _pagination.items.length,
             ),
           ),
         ),
         SliverToBoxAdapter(
-          child: showFooter
+          child: _pagination.showFooter
               ? PaginationListFooter(
-                  isLoading: _isLoadingMore,
-                  showEndMessage: !_hasMore,
+                  isLoading: _pagination.isLoadingMore,
+                  showEndMessage: !_pagination.hasMore,
                 )
               : const SizedBox(height: 24),
         ),
@@ -328,13 +253,10 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
               childAspectRatio: 0.85,
             ),
             delegate: SliverChildBuilderDelegate(
-              (_, _) => const FoodMenuItemSkeleton(),
+              (_, __) => const FoodMenuItemSkeleton(),
               childCount: crossAxisCount * 2,
             ),
           ),
-        ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
         ),
       ],
     );

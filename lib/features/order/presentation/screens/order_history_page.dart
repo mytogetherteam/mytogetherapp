@@ -14,6 +14,8 @@ import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/cart/data/active_order_state.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
+import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
+import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   final int? shopId;
@@ -27,51 +29,75 @@ class OrderHistoryPage extends StatefulWidget {
 
 class _OrderHistoryPageState extends State<OrderHistoryPage>
     with TickerProviderStateMixin {
-  bool _isLoading = true;
+  static const int _pageSize = 20;
+
   TabController? _tabController;
-  List<OrderHistoryDto> _completedOrders = [];
-  List<OrderHistoryDto> _cancelledOrders = [];
+  late final PaginatedListController<OrderHistoryDto> _completedPagination;
+  late final PaginatedListController<OrderHistoryDto> _cancelledPagination;
+  final ScrollController _completedScrollController = ScrollController();
+  final ScrollController _cancelledScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _completedPagination = _createOrderPagination(const ['DELIVERED'])
+      ..addListener(_onPaginationChanged);
+    _cancelledPagination = _createOrderPagination(const ['CANCELED'])
+      ..addListener(_onPaginationChanged);
+    _completedPagination.attachScrollController(_completedScrollController);
+    _cancelledPagination.attachScrollController(_cancelledScrollController);
     _loadData();
   }
 
+  PaginatedListController<OrderHistoryDto> _createOrderPagination(
+    List<String> statuses,
+  ) {
+    return PaginatedListController<OrderHistoryDto>(
+      pageSize: _pageSize,
+      initialPage: 1,
+      itemKey: (order) => order.id,
+      fetchPage: (page) async {
+        final batch = await OrderRepository().getOrderHistory(
+          statuses: statuses,
+          shopId: widget.shopId,
+          page: page,
+          size: _pageSize,
+        );
+        return PaginatedPage(
+          items: batch,
+          hasMore: batch.length >= _pageSize,
+        );
+      },
+    );
+  }
+
+  void _onPaginationChanged() {
+    if (!mounted) return;
+    if (_tabController == null &&
+        !_completedPagination.isInitialLoading &&
+        !_cancelledPagination.isInitialLoading) {
+      _initTabController();
+    }
+    setState(() {});
+  }
+
   Future<void> _loadData() async {
-    // Guests have no order history; skip the auth-only API calls and show the
-    // sign-in prompt instead.
     if (GuestAuthGuard.isGuest) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() {});
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Server-side filtering via `?status=` (see UserOrdersController). The
-    // backend enum spells it `CANCELED` (single L).
-    final results = await Future.wait([
-      OrderRepository().getOrderHistory(
-        statuses: const ['DELIVERED'],
-        shopId: widget.shopId,
-      ),
-      OrderRepository().getOrderHistory(
-        statuses: const ['CANCELED'],
-        shopId: widget.shopId,
-      ),
+    await Future.wait([
+      _completedPagination.loadInitial(),
+      _cancelledPagination.loadInitial(),
     ]);
-
-    if (mounted) {
-      setState(() {
-        _completedOrders = results[0];
-        _cancelledOrders = results[1];
-        _isLoading = false;
-        _initTabController();
-      });
-    }
+    if (mounted) _initTabController();
   }
+
+  bool get _isLoading =>
+      !GuestAuthGuard.isGuest &&
+      (_completedPagination.isInitialLoading ||
+          _cancelledPagination.isInitialLoading);
 
   void _initTabController() {
     if (_tabController != null) {
@@ -87,6 +113,14 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
 
   @override
   void dispose() {
+    _completedPagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
+    _cancelledPagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
+    _completedScrollController.dispose();
+    _cancelledScrollController.dispose();
     _tabController?.dispose();
     super.dispose();
   }
@@ -181,10 +215,19 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildOrdersList(_completedOrders,
-                              context.tr('orders.no_completed')),
-                          _buildOrdersList(_cancelledOrders,
-                              context.tr('orders.no_cancelled')),
+                          _buildOrdersList(
+                            _completedPagination,
+                            _completedScrollController,
+                            context.tr('orders.no_completed'),
+                            onReviewSubmitted: () {
+                              _completedPagination.refresh();
+                            },
+                          ),
+                          _buildOrdersList(
+                            _cancelledPagination,
+                            _cancelledScrollController,
+                            context.tr('orders.no_cancelled'),
+                          ),
                         ],
                       ),
           ),
@@ -273,10 +316,19 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     );
   }
 
-  Widget _buildOrdersList(List<OrderHistoryDto> orders, String emptyTitle) {
-    if (orders.isEmpty) {
+  Widget _buildOrdersList(
+    PaginatedListController<OrderHistoryDto> pagination,
+    ScrollController scrollController,
+    String emptyTitle, {
+    VoidCallback? onReviewSubmitted,
+  }) {
+    final orders = pagination.items;
+    if (pagination.isInitialLoading && orders.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (orders.isEmpty && !pagination.isInitialLoading) {
       return RefreshIndicator(
-        onRefresh: _loadData,
+        onRefresh: pagination.refresh,
         color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -291,20 +343,26 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     return ListenableBuilder(
       listenable: ActiveOrderState.instance,
       builder: (context, _) {
-        // Reserve space at the bottom so the last card can scroll clear of the
-        // active-order tracking card when one is showing.
         final bottomInset =
             ActiveOrderState.instance.hasActiveOrder ? 128.0 : 8.0;
         return RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: pagination.refresh,
           color: AppColors.primary,
           child: ListView.builder(
+            controller: scrollController,
             padding: EdgeInsets.only(top: 8, bottom: bottomInset),
-            itemCount: orders.length,
+            itemCount: orders.length + (pagination.showFooter ? 1 : 0),
             itemBuilder: (context, index) {
+              if (index == orders.length) {
+                return PaginationListFooter(
+                  isLoading: pagination.isLoadingMore,
+                  showEndMessage: !pagination.hasMore,
+                );
+              }
+              pagination.onItemVisible(index);
               return OrderHistoryCard(
                 order: orders[index],
-                onReviewSubmitted: _loadData,
+                onReviewSubmitted: onReviewSubmitted,
               );
             },
           ),
