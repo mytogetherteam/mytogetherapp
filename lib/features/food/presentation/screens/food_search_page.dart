@@ -628,7 +628,9 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   Widget _buildBodyContent() {
     if (_errorMessage != null) {
       return _buildMessageState(
-        icon: PhosphorIcons.signIn,
+        icon: AuthService().isLoggedIn
+            ? PhosphorIcons.magnifyingGlass
+            : PhosphorIcons.signIn,
         title: _errorMessage!,
         actionLabel: AuthService().isLoggedIn ? null : context.tr('common.sign_in'),
         onAction: AuthService().isLoggedIn
