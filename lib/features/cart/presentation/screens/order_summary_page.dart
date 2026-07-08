@@ -536,6 +536,275 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool get _isShopClosed =>
       _orderAvailability?.reason == OrderBlockReason.closed;
 
+  void _showPlacementBlockedSnackBar(CanPlaceOrderResult result) {
+    if (!mounted) return;
+    final message = switch (result) {
+      CanPlaceOrderResult.checkFailed =>
+        context.tr('cart.order_status_check_failed'),
+      CanPlaceOrderResult.hasOngoingOrder ||
+      CanPlaceOrderResult.allowed =>
+        context.tr('cart.ongoing_order_wait'),
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: const Color(0xFF2563EB),
+      ),
+    );
+  }
+
+  Future<void> _onPlaceOrderPressed() async {
+    if (_isProcessing || _isPlacingOrder) return;
+
+    if (GuestAuthGuard.isGuest) {
+      await GuestAuthGuard.requireAccount(context);
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+      _isPlacingOrder = true;
+    });
+    ActiveOrderState.instance.beginOrderPlacement();
+
+    try {
+      if (_isDelivery) {
+        final hasAddress = await _ensureSavedDeliveryAddressForOrder();
+        if (!hasAddress) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  context.tr('location.forced_setup_required'),
+                ),
+                backgroundColor: AppColors.primary,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      final eligibility =
+          await ActiveOrderState.instance.ensureCanPlaceNewOrder();
+      if (eligibility != CanPlaceOrderResult.allowed) {
+        _showPlacementBlockedSnackBar(eligibility);
+        return;
+      }
+
+      if (!await _confirmFarDeliveryIfNeeded()) {
+        return;
+      }
+
+      final nav = Navigator.of(context);
+      final foodTotal =
+          CartManager.instance.getStoreTotal(widget.store.nameKey);
+      final storeItems = CartManager.instance.stores
+          .firstWhere(
+            (s) => s.nameKey == widget.store.nameKey,
+            orElse: () => widget.store,
+          )
+          .items;
+
+      final response = await ApiClient().dio.post(
+        '${ApiClient.apiPrefix}/user/orders',
+        data: {
+          "shopId":
+              int.tryParse(
+                _restaurant?.id ??
+                    widget.store.items.first.restaurantId,
+              ) ??
+              0,
+          "orderType": _isDelivery ? "DELIVERY" : "PICK_UP",
+          if (_primaryLocation?.latitude != null)
+            "lat": _primaryLocation!.latitude,
+          if (_primaryLocation?.longitude != null)
+            "lon": _primaryLocation!.longitude,
+          ..._orderLocationPayload(),
+          "paymentMethodId": _resolvePaymentMethodId(
+            _paymentTypes,
+            _selectedPaymentMethodId,
+          ),
+          "items": storeItems
+              .map(
+                (item) => {
+                  "menuItemId": item.menuItemId,
+                  "quantity": item.quantity,
+                  if (item.variantId != null && item.variantId! > 0)
+                    "variantId": item.variantId,
+                  if ((item.specialInstructions ?? "").isNotEmpty)
+                    "specialInstructions": item.specialInstructions,
+                  if ((item.optionIds ?? []).isNotEmpty)
+                    "menuItemOptionId": item.optionIds,
+                },
+              )
+              .toList(),
+        },
+      );
+
+      final d = response.data;
+
+      String? orderId;
+      String? lastOrderNo;
+      int? responseUserId;
+      Map<String, dynamic>? responseData;
+
+      if (d['data'] is Map) {
+        responseData = d['data'] as Map<String, dynamic>;
+        orderId = (responseData['id'] ??
+                responseData['orderId'] ??
+                responseData['order_id'])
+            ?.toString();
+        lastOrderNo = responseData['lastOrderNo']?.toString();
+        responseUserId =
+            (responseData['userId'] ?? responseData['user_id']) as int?;
+      } else if (d['data'] != null) {
+        orderId = d['data'].toString();
+      }
+
+      orderId ??= (d['id'] ?? d['orderId'])?.toString();
+      responseUserId ??= (d['userId'] ?? d['user_id']) as int?;
+
+      ActiveOrderState.instance.setActiveOrder(
+        storeName: widget.store.name,
+        restaurantName: _restaurant?.name ?? widget.store.name,
+        logoPath: _restaurant?.logoPath,
+        estimatedTime: _restaurant?.deliveryTime ?? '~30 mins',
+        orderId: orderId,
+        restaurantId:
+            _restaurant?.id ?? widget.store.items.first.restaurantId,
+        orderType: _isDelivery ? 'DELIVERY' : 'PICK_UP',
+        lastOrderNo: lastOrderNo,
+      );
+      ActiveOrderState.instance.restaurantAddress =
+          _restaurant?.address ??
+          _restaurant?.addressEn ??
+          _restaurant?.addressTh;
+      ActiveOrderState.instance.userLocationName = null;
+      ActiveOrderState.instance.deliveryAddress =
+          _primaryLocationAddressText();
+      ActiveOrderState.instance.saveToPrefs();
+
+      if (responseUserId != null &&
+          responseUserId != 0 &&
+          AuthService().currentUser?.id != responseUserId) {
+        final current = AuthService().currentUser;
+        if (current != null) {
+          final updatedUser = UserModel(
+            id: responseUserId,
+            username: current.username,
+            email: current.email,
+            fullName: current.fullName,
+            role: current.role,
+          );
+          AuthService().saveSession(
+            accessToken: AuthService().accessToken ?? '',
+            refreshToken: AuthService().refreshToken ?? '',
+            user: updatedUser,
+            userLocations: AuthService().userLocations,
+          );
+        }
+      }
+
+      final selectedMethodId = _resolvePaymentMethodId(
+        _paymentTypes,
+        _selectedPaymentMethodId,
+      );
+      final selectedMethodImage = _resolvePaymentMethodImageUrl(
+        _paymentTypes,
+        _selectedPaymentMethodId,
+      );
+      if (!context.mounted) return;
+
+      final backendItemPrice =
+          (responseData?['itemPrice'] as num?)?.toDouble() ??
+          foodTotal.toDouble();
+      final orderTaxEnable = _restaurant?.taxEnable ?? true;
+      final backendTaxAmount =
+          (responseData?['taxAmount'] as num?)?.toDouble() ??
+          OrderTax.resolveTaxAmount(backendItemPrice, orderTaxEnable);
+      final backendTotalAmount =
+          (responseData?['totalAmount'] as num?)?.toDouble() ??
+          OrderTax.calculateTotal(
+            itemSubtotal: backendItemPrice,
+            taxEnable: orderTaxEnable,
+          );
+      final backendDisplayTax =
+          responseData?['displayTaxAmount']?.toString();
+
+      ActiveOrderState.instance.setOrderDetails(
+        totalAmount: backendTotalAmount,
+        itemPrice: backendItemPrice,
+        taxAmount: backendTaxAmount,
+        displayTaxAmount: backendDisplayTax,
+        taxEnable: orderTaxEnable,
+        paymentMethod:
+            _selectedPaymentType?.displayName ?? context.tr('cart.payment'),
+        paymentMethodId: selectedMethodId,
+        paymentMethodImageUrl: selectedMethodImage,
+        items: List.from(storeItems),
+        orderId: orderId,
+      );
+
+      if (responseData != null && orderId != null) {
+        ActiveOrderState.instance.updateFromSocket({
+          ...responseData,
+          'orderId': orderId,
+        });
+      }
+
+      await CartManager.instance.removeStore(widget.store.nameKey);
+
+      WebSocketService().connect();
+
+      await _applySelectedCoupon(
+        orderId,
+        foodTotal.toDouble(),
+        storeItems,
+      );
+
+      if (!context.mounted) return;
+      nav.pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => OrderTrackingPage(
+            store: widget.store,
+            restaurant: _restaurant,
+            foodTotal: backendItemPrice.round(),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        String errorMsg = e.toString();
+        if (e is DioException) {
+          errorMsg = e.response?.data?.toString() ??
+              e.message ??
+              LocaleController.instance.tr('cart.unknown_error');
+        }
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              LocaleController.instance.trArgs(
+                'cart.place_order_failed',
+                {'error': errorMsg},
+              ),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      ActiveOrderState.instance.endOrderPlacement();
+      if (mounted) {
+        setState(() {
+          _isPlacingOrder = false;
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -1211,373 +1480,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   hasOngoingOrder ||
                                   isShopClosed)
                               ? null
-                              : () async {
-                                  if (GuestAuthGuard.isGuest) {
-                                    await GuestAuthGuard.requireAccount(context);
-                                    return;
-                                  }
-
-                                  if (_isDelivery) {
-                                    final hasAddress =
-                                        await _ensureSavedDeliveryAddressForOrder();
-                                    if (!hasAddress) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              context.tr(
-                                                'location.forced_setup_required',
-                                              ),
-                                            ),
-                                            backgroundColor: AppColors.primary,
-                                          ),
-                                        );
-                                      }
-                                      return;
-                                    }
-                                  }
-
-                                  if (!await ActiveOrderState.instance
-                                      .ensureCanPlaceNewOrder()) {
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          context.tr('cart.ongoing_order_wait'),
-                                          style: GoogleFonts.poppins(),
-                                        ),
-                                        backgroundColor: const Color(0xFF2563EB),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  setState(() => _isProcessing = true);
-                                  final nav = Navigator.of(context);
-
-                                  final foodTotal = CartManager.instance
-                                      .getStoreTotal(widget.store.nameKey);
-                                  final storeItems = CartManager.instance.stores
-                                      .firstWhere(
-                                        (s) => s.nameKey == widget.store.nameKey,
-                                        orElse: () => widget.store,
-                                      )
-                                      .items;
-
-                                  bool operationCompleted = false;
-
-                                  // Only show loading if it takes longer than 500ms
-                                  Future.delayed(
-                                    const Duration(milliseconds: 500),
-                                    () {
-                                      if (!operationCompleted && mounted) {
-                                        setState(() {
-                                          _isPlacingOrder = true;
-                                        });
-                                      }
-                                    },
-                                  );
-
-                                  try {
-                                  if (!await ActiveOrderState.instance
-                                      .ensureCanPlaceNewOrder()) {
-                                    operationCompleted = true;
-                                    if (mounted) {
-                                      setState(() {
-                                        _isPlacingOrder = false;
-                                        _isProcessing = false;
-                                      });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            context.tr('cart.ongoing_order_wait'),
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                          backgroundColor: const Color(0xFF2563EB),
-                                        ),
-                                      );
-                                    }
-                                    return;
-                                  }
-
-                                  if (!await _confirmFarDeliveryIfNeeded()) {
-                                    operationCompleted = true;
-                                    if (mounted) {
-                                      setState(() {
-                                        _isPlacingOrder = false;
-                                        _isProcessing = false;
-                                      });
-                                    }
-                                    return;
-                                  }
-
-                                    // Call backend: POST /api/user/orders
-                                    // (UserOrdersController.create). Schema
-                                    // matches CreateUserOrderDto: shopId,
-                                    // orderType (DELIVERY|PICK_UP), lat, lon,
-                                    // address fields, paymentMethodId, items[].
-                                    final response = await ApiClient().dio.post(
-                                      '${ApiClient.apiPrefix}/user/orders',
-                                      data: {
-                                        "shopId":
-                                            int.tryParse(
-                                              _restaurant?.id ??
-                                                  widget
-                                                      .store
-                                                      .items
-                                                      .first
-                                                      .restaurantId,
-                                            ) ??
-                                            0,
-                                        "orderType": _isDelivery
-                                            ? "DELIVERY"
-                                            : "PICK_UP",
-                                        if (_primaryLocation?.latitude != null)
-                                          "lat": _primaryLocation!.latitude,
-                                        if (_primaryLocation?.longitude != null)
-                                          "lon": _primaryLocation!.longitude,
-                                        ..._orderLocationPayload(),
-                                        "paymentMethodId":
-                                            _resolvePaymentMethodId(
-                                              _paymentTypes,
-                                              _selectedPaymentMethodId,
-                                            ),
-                                        "items": storeItems
-                                            .map(
-                                              (item) => {
-                                                "menuItemId": item.menuItemId,
-                                                "quantity": item.quantity,
-                                                if (item.variantId != null &&
-                                                    item.variantId! > 0)
-                                                  "variantId": item.variantId,
-                                                if ((item.specialInstructions ??
-                                                            "")
-                                                        .isNotEmpty)
-                                                  "specialInstructions":
-                                                      item.specialInstructions,
-                                                if ((item.optionIds ?? [])
-                                                    .isNotEmpty)
-                                                  "menuItemOptionId":
-                                                      item.optionIds,
-                                              },
-                                            )
-                                            .toList(),
-                                      },
-                                    );
-
-                                    operationCompleted = true;
-                                    final d = response.data;
-
-                                    String? orderId;
-                                    String? lastOrderNo;
-                                    int? responseUserId;
-                                    Map<String, dynamic>? responseData;
-
-                                    if (d['data'] is Map) {
-                                      responseData =
-                                          d['data'] as Map<String, dynamic>;
-                                      orderId =
-                                          (responseData['id'] ??
-                                                  responseData['orderId'] ??
-                                                  responseData['order_id'])
-                                              ?.toString();
-                                      lastOrderNo =
-                                          responseData['lastOrderNo']
-                                              ?.toString();
-                                      responseUserId =
-                                          (responseData['userId'] ??
-                                                  responseData['user_id'])
-                                              as int?;
-                                    } else if (d['data'] != null) {
-                                      // If data is just an ID (int or String)
-                                      orderId = d['data'].toString();
-                                    }
-
-                                    // Fallback to root level if not found in data
-                                    orderId ??= (d['id'] ?? d['orderId'])
-                                        ?.toString();
-                                    responseUserId ??=
-                                        (d['userId'] ?? d['user_id']) as int?;
-
-                                    // 1. Register active order in global state
-                                    ActiveOrderState.instance.setActiveOrder(
-                                      storeName: widget.store.name,
-                                      restaurantName:
-                                          _restaurant?.name ??
-                                          widget.store.name,
-                                      logoPath: _restaurant?.logoPath,
-                                      estimatedTime:
-                                          _restaurant?.deliveryTime ??
-                                          '~30 mins',
-                                      orderId: orderId,
-                                      restaurantId:
-                                          _restaurant?.id ??
-                                          widget.store.items.first.restaurantId,
-                                      orderType: _isDelivery
-                                          ? 'DELIVERY'
-                                          : 'PICK_UP',
-                                      lastOrderNo: lastOrderNo,
-                                    );
-                                    // Store real location data for Delivery Information display
-                                    ActiveOrderState
-                                            .instance
-                                            .restaurantAddress =
-                                        _restaurant?.address ??
-                                        _restaurant?.addressEn ??
-                                        _restaurant?.addressTh;
-                                    ActiveOrderState.instance.userLocationName =
-                                        null;
-                                    ActiveOrderState.instance.deliveryAddress =
-                                        _primaryLocationAddressText();
-                                    ActiveOrderState.instance
-                                        .saveToPrefs(); // persist new fields immediately
-
-                                    // Update User ID in session if it was missing or different
-                                    if (responseUserId != null &&
-                                        responseUserId != 0 &&
-                                        AuthService().currentUser?.id !=
-                                            responseUserId) {
-                                      final current = AuthService().currentUser;
-                                      if (current != null) {
-                                        final updatedUser = UserModel(
-                                          id: responseUserId,
-                                          username: current.username,
-                                          email: current.email,
-                                          fullName: current.fullName,
-                                          role: current.role,
-                                        );
-                                        AuthService().saveSession(
-                                          accessToken:
-                                              AuthService().accessToken ?? '',
-                                          refreshToken:
-                                              AuthService().refreshToken ?? '',
-                                          user: updatedUser,
-                                          userLocations:
-                                              AuthService().userLocations,
-                                        );
-                                      }
-                                    }
-
-                                    // 2. Snapshot order items BEFORE cart is cleared
-                                    final selectedMethodId =
-                                        _resolvePaymentMethodId(
-                                          _paymentTypes,
-                                          _selectedPaymentMethodId,
-                                        );
-                                    final selectedMethodImage =
-                                        _resolvePaymentMethodImageUrl(
-                                          _paymentTypes,
-                                          _selectedPaymentMethodId,
-                                        );
-                                    if (!context.mounted) return;
-
-                                    final backendItemPrice =
-                                        (responseData?['itemPrice'] as num?)
-                                            ?.toDouble() ??
-                                        foodTotal.toDouble();
-                                    final orderTaxEnable =
-                                        _restaurant?.taxEnable ?? true;
-                                    final backendTaxAmount =
-                                        (responseData?['taxAmount'] as num?)
-                                            ?.toDouble() ??
-                                        OrderTax.resolveTaxAmount(
-                                          backendItemPrice,
-                                          orderTaxEnable,
-                                        );
-                                    final backendTotalAmount =
-                                        (responseData?['totalAmount'] as num?)
-                                            ?.toDouble() ??
-                                        OrderTax.calculateTotal(
-                                          itemSubtotal: backendItemPrice,
-                                          taxEnable: orderTaxEnable,
-                                        );
-                                    final backendDisplayTax =
-                                        responseData?['displayTaxAmount']
-                                            ?.toString();
-
-                                    ActiveOrderState.instance.setOrderDetails(
-                                      totalAmount: backendTotalAmount,
-                                      itemPrice: backendItemPrice,
-                                      taxAmount: backendTaxAmount,
-                                      displayTaxAmount: backendDisplayTax,
-                                      taxEnable: orderTaxEnable,
-                                      paymentMethod:
-                                          _selectedPaymentType?.displayName ??
-                                          context.tr('cart.payment'),
-                                      paymentMethodId: selectedMethodId,
-                                      paymentMethodImageUrl:
-                                          selectedMethodImage,
-                                      items: List.from(storeItems),
-                                      orderId: orderId,
-                                    );
-
-                                    if (responseData != null && orderId != null) {
-                                      ActiveOrderState.instance.updateFromSocket({
-                                        ...responseData,
-                                        'orderId': orderId,
-                                      });
-                                    }
-
-                                    // 4. Clear cart for this store (via API sync)
-                                    await CartManager.instance.removeStore(
-                                      widget.store.nameKey,
-                                    );
-
-                                    // Start WebSocket tracking immediately upon successful order creation
-                                    WebSocketService().connect();
-
-                                    // 4b. Apply the coupon the user chose on this
-                                    // page (if any) to the freshly created PENDING
-                                    // order. Purely additive — a failure here
-                                    // never blocks reaching the tracking page.
-                                    await _applySelectedCoupon(
-                                      orderId,
-                                      foodTotal.toDouble(),
-                                      storeItems,
-                                    );
-
-                                    // 5. Navigate to tracking page
-                                    if (!context.mounted) return;
-                                    nav.pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (context) => OrderTrackingPage(
-                                          store: widget.store,
-                                          restaurant: _restaurant,
-                                          foodTotal: backendItemPrice.round(),
-                                        ),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isPlacingOrder = false;
-                                        _isProcessing = false;
-                                      });
-                                      String errorMsg = e.toString();
-                                      if (e is DioException) {
-                                        errorMsg =
-                                            e.response?.data?.toString() ??
-                                            e.message ??
-                                            LocaleController.instance
-                                                .tr('cart.unknown_error');
-                                      }
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            LocaleController.instance.trArgs(
-                                              'cart.place_order_failed',
-                                              {'error': errorMsg},
-                                            ),
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
+                              : _onPlaceOrderPressed,
                           isLoading: _isPlacingOrder,
                           child: Text(
                             isShopClosed

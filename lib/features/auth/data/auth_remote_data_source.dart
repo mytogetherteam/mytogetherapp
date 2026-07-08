@@ -141,11 +141,11 @@ class AuthRemoteDataSource {
     final Response response;
     if (profilePhoto != null) {
       final formData = FormData.fromMap({
-        if (name != null) 'name': name,
-        if (username != null) 'username': username,
-        if (phone != null) 'phone': phone,
-        if (email != null) 'email': email,
-        if (address != null) 'address': address,
+        'name': ?name,
+        'username': ?username,
+        'phone': ?phone,
+        'email': ?email,
+        'address': ?address,
         'profilePhoto': profilePhoto.toMultipartFile(
           filenameOverride:
               'profile_${DateTime.now().millisecondsSinceEpoch}.${profilePhoto.extension}',
@@ -159,11 +159,11 @@ class AuthRemoteDataSource {
       response = await _dio.put(
         '${ApiClient.apiPrefix}/user/profile',
         data: {
-          if (name != null) 'name': name,
-          if (username != null) 'username': username,
-          if (phone != null) 'phone': phone,
-          if (email != null) 'email': email,
-          if (address != null) 'address': address,
+          'name': ?name,
+          'username': ?username,
+          'phone': ?phone,
+          'email': ?email,
+          'address': ?address,
         },
       );
     }

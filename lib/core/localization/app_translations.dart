@@ -307,6 +307,8 @@ class AppTranslations {
     'cart.place_order': 'Place Order',
     'cart.ongoing_order_wait':
         'You have an ongoing order. Please wait until it completes.',
+    'cart.order_status_check_failed':
+        'Unable to verify your orders right now. Please check your connection and try again.',
     'cart.pickup_note_title': 'This is a pickup',
     'cart.pickup_note_body':
         'Remember to collect your food at the restaurant when it is ready!',
@@ -1379,6 +1381,8 @@ class AppTranslations {
     'cart.place_order': 'အော်ဒါတင်မယ်',
     'cart.ongoing_order_wait':
         'လက်ရှိ အော်ဒါတစ်ခု ရှိနေပါတယ်။ ပြီးဆုံးသည်အထိ စောင့်ပေးပါဗျ။',
+    'cart.order_status_check_failed':
+        'အော်ဒါအခြေအနေကို ယခု အတည်မပြုနိုင်ပါ။ အင်တာနက်ချိတ်ဆက်မှု စစ်ပြီး ထပ်မံကြိုးစားပါ။',
     'cart.pickup_note_title': 'ကိုယ်တိုင်ယူမယ်',
     'cart.pickup_note_body': 'အစားအစာအဆင်ဘော်ဒါ့ဖြစ်တဲ့အခါ ဆိုင်မှာ သွားယူပါ!',
     'cart.promotion': 'ပရိုမိုးရှင်း',
@@ -2460,6 +2464,8 @@ class AppTranslations {
     'cart.place_order': 'สั่งซื้อ',
     'cart.ongoing_order_wait':
         'มีคำสั่งซื้อที่กำลังดำเนินการอยู่ กรุณารอให้เสร็จสิ้นก่อนนะ',
+    'cart.order_status_check_failed':
+        'ไม่สามารถตรวจสอบคำสั่งซื้อได้ในขณะนี้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
     'cart.pickup_note_title': 'รับเองที่ร้าน',
     'cart.pickup_note_body': 'อย่าลืมไปรับอาหารที่ร้านเมื่อพร้อมแล้ว!',
     'cart.promotion': 'โปรโมชัน',

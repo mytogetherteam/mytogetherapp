@@ -19,6 +19,13 @@ import 'order_shop_coupon_info.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/auth/order_ownership.dart';
 
+/// Result of [ActiveOrderState.ensureCanPlaceNewOrder].
+enum CanPlaceOrderResult {
+  allowed,
+  hasOngoingOrder,
+  checkFailed,
+}
+
 /// Normalizes `deliveryAddress` from API/WebSocket payloads. The backend
 /// returns a nested object (`address`, `addressMm`, `buildingName`, …) while
 /// older payloads may still be a plain string.
@@ -501,6 +508,22 @@ class ActiveOrderState extends ChangeNotifier {
   // them (the user instead sees a dedicated apology page).
   final Set<String> _userCancelledOrderIds = {};
 
+  /// True while [OrderSummaryPage] is mid-checkout (POST in flight). Blocks a
+  /// second concurrent placement before the server/local state catches up.
+  bool _orderPlacementInFlight = false;
+
+  void beginOrderPlacement() {
+    if (_orderPlacementInFlight) return;
+    _orderPlacementInFlight = true;
+    notifyListeners();
+  }
+
+  void endOrderPlacement() {
+    if (!_orderPlacementInFlight) return;
+    _orderPlacementInFlight = false;
+    notifyListeners();
+  }
+
   /// True when [orderId] was cancelled by the user via [cancelActiveOrder]
   /// (as opposed to being cancelled by the restaurant).
   bool wasCancelledByUser(String? orderId) {
@@ -542,7 +565,8 @@ class ActiveOrderState extends ChangeNotifier {
   }
 
   // --- Properties & Backward Compatibility ---
-  bool get hasActiveOrder => activeOrdersList.isNotEmpty;
+  bool get hasActiveOrder =>
+      _orderPlacementInFlight || activeOrdersList.isNotEmpty;
   set hasActiveOrder(bool val) {
     /* Legacy compatibility setter */
   }
@@ -575,6 +599,7 @@ class ActiveOrderState extends ChangeNotifier {
     _orders.clear();
     _primaryOrderId = null;
     _userCancelledOrderIds.clear();
+    _orderPlacementInFlight = false;
     notifyListeners();
   }
 
@@ -910,16 +935,51 @@ class ActiveOrderState extends ChangeNotifier {
         return;
       }
       if (response.statusCode == 404) {
-        clearOrder(orderId: targetId);
+        await _reconcileOrderAfterDetailNotFound(targetId);
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        clearOrder(orderId: targetId);
+        await _reconcileOrderAfterDetailNotFound(targetId);
       }
       // Keep local state on transient network/API errors so the Place Order
       // guard stays active while the backend order is still in progress.
     } catch (_) {
       // Same as above — do not clear on unknown failures.
+    }
+  }
+
+  /// Detail endpoint returned 404 — confirm via the order list before dropping
+  /// local state (avoids enabling a second checkout while #2133 is still live).
+  Future<void> _reconcileOrderAfterDetailNotFound(String targetId) async {
+    final sanitized = targetId.replaceAll('#', '');
+    try {
+      final all = await OrderRepository().getOrderHistory();
+      OrderHistoryDto? match;
+      for (final o in all) {
+        if (o.id.replaceAll('#', '') == sanitized) {
+          match = o;
+          break;
+        }
+      }
+
+      if (match != null && match.ongoing) {
+        var item = _findTrackedOrder(targetId);
+        if (item == null) {
+          item = _buildActiveOrderItemFromHistory(match);
+          _orders[item.orderId] = item;
+          _primaryOrderId ??= item.orderId;
+        } else {
+          _applyOrderHistorySnapshot(item, match);
+        }
+        applyStatusString(item, match.status);
+        saveToPrefs();
+        notifyListeners();
+        return;
+      }
+
+      clearOrder(orderId: targetId);
+    } catch (_) {
+      // List API unavailable — keep the local guard rather than assume gone.
     }
   }
 
@@ -1770,17 +1830,23 @@ class ActiveOrderState extends ChangeNotifier {
 
   /// Confirms with the server that the user has no in-flight order before
   /// starting checkout. Hydrates any ongoing orders found on the backend.
-  Future<bool> ensureCanPlaceNewOrder() async {
+  Future<CanPlaceOrderResult> ensureCanPlaceNewOrder() async {
+    if (_orderPlacementInFlight || activeOrdersList.isNotEmpty) {
+      return CanPlaceOrderResult.hasOngoingOrder;
+    }
     try {
-      final all = await OrderRepository().getOrderHistory();
+      final all = await OrderRepository().getOrderHistoryStrict();
       final ongoing = all.where((o) => o.ongoing).toList();
       if (ongoing.isNotEmpty) {
         await _registerOngoingOrdersFromHistory(ongoing, enrichDetails: false);
-        return false;
+        return CanPlaceOrderResult.hasOngoingOrder;
       }
-      return !hasActiveOrder;
+      if (_orderPlacementInFlight || activeOrdersList.isNotEmpty) {
+        return CanPlaceOrderResult.hasOngoingOrder;
+      }
+      return CanPlaceOrderResult.allowed;
     } catch (_) {
-      return !hasActiveOrder;
+      return CanPlaceOrderResult.checkFailed;
     }
   }
 

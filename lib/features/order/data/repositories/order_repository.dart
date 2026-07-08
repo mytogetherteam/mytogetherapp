@@ -30,6 +30,9 @@ class OrderRepository {
   ///
   /// [statuses] is sent to the backend via `?status=` (comma-separated). The
   /// backend uses `ParseStringArrayPipe` and validates against `OrderStatus`.
+  ///
+  /// On network/API failure this returns an empty list (best-effort reads).
+  /// Use [getOrderHistoryStrict] for checkout guards that must fail closed.
   Future<List<OrderHistoryDto>> getOrderHistory({
     List<String>? statuses,
     int? shopId,
@@ -37,40 +40,75 @@ class OrderRepository {
     int size = 50,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'size': size,
-      };
-      if (statuses != null && statuses.isNotEmpty) {
-        queryParams['status'] = statuses.join(',');
-      }
-      if (shopId != null) queryParams['shopId'] = shopId;
-
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/user/orders',
-        queryParameters: queryParams,
-        options: Options(
-          extra: {
-            '@dio_cache_interceptor@': CacheOptions(
-              store: MemCacheStore(),
-              policy: CachePolicy.refresh,
-            ),
-          },
-        ),
+      return await _fetchOrderHistory(
+        statuses: statuses,
+        shopId: shopId,
+        page: page,
+        size: size,
       );
+    } catch (_) {
+      return [];
+    }
+  }
 
-      if (response.statusCode == 200 && response.data != null) {
-        final body = response.data;
-        // Envelope shape: { success, data: [...], meta }
-        final rawData = body is Map ? body['data'] : body;
-        final List<dynamic> list =
-            rawData is List ? rawData : <dynamic>[];
-        return list
-            .map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
-            .toList();
-      }
-    } catch (_) {}
-    return [];
+  /// Same as [getOrderHistory] but propagates errors so callers can block
+  /// checkout when the server cannot be reached.
+  Future<List<OrderHistoryDto>> getOrderHistoryStrict({
+    List<String>? statuses,
+    int? shopId,
+    int page = 1,
+    int size = 50,
+  }) {
+    return _fetchOrderHistory(
+      statuses: statuses,
+      shopId: shopId,
+      page: page,
+      size: size,
+    );
+  }
+
+  Future<List<OrderHistoryDto>> _fetchOrderHistory({
+    List<String>? statuses,
+    int? shopId,
+    int page = 1,
+    int size = 50,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'size': size,
+    };
+    if (statuses != null && statuses.isNotEmpty) {
+      queryParams['status'] = statuses.join(',');
+    }
+    if (shopId != null) queryParams['shopId'] = shopId;
+
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/orders',
+      queryParameters: queryParams,
+      options: Options(
+        extra: {
+          '@dio_cache_interceptor@': CacheOptions(
+            store: MemCacheStore(),
+            policy: CachePolicy.refresh,
+          ),
+        },
+      ),
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      final body = response.data;
+      final rawData = body is Map ? body['data'] : body;
+      final List<dynamic> list = rawData is List ? rawData : <dynamic>[];
+      return list
+          .map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      message: 'GET /user/orders failed with status ${response.statusCode}',
+    );
   }
 
   /// Responds to a REVISED order by re-submitting a new item list.
