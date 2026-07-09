@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:any_link_preview/any_link_preview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/websocket_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
@@ -405,7 +408,13 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   void _showMessageActions(ChatMessage message) {
-    if (!message.isMe || message.isDeleted) return;
+    if (message.isDeleted) return;
+
+    // Extract links
+    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
+    final matches = urlRegExp.allMatches(message.content ?? '');
+    final urls = matches.map((m) => m.group(0)!).toList();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -418,6 +427,30 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
           children: [
             if (message.kind == ChatMessageKind.text)
               ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: Text(context.tr('common.copy') == 'common.copy' ? 'Copy Text' : context.tr('common.copy')),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: message.content ?? ''));
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(context.tr('chat.copied') == 'chat.copied' ? 'Copied to clipboard' : context.tr('chat.copied'))),
+                  );
+                },
+              ),
+            for (var url in urls)
+              ListTile(
+                leading: const Icon(Icons.open_in_browser_rounded),
+                title: Text('Open link: $url', maxLines: 1, overflow: TextOverflow.ellipsis),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  }
+                },
+              ),
+            if (message.isMe && message.kind == ChatMessageKind.text)
+              ListTile(
                 leading: const Icon(Icons.edit_rounded),
                 title: Text(context.tr('chat.edit_title')),
                 onTap: () {
@@ -425,16 +458,17 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   _editMessage(message);
                 },
               ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded,
-                  color: Color(0xFFEF4444)),
-              title: Text(context.tr('chat.delete_title'),
-                  style: const TextStyle(color: Color(0xFFEF4444))),
-              onTap: () {
-                Navigator.pop(ctx);
-                _deleteMessage(message);
-              },
-            ),
+            if (message.isMe)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded,
+                    color: Color(0xFFEF4444)),
+                title: Text(context.tr('chat.delete_title'),
+                    style: const TextStyle(color: Color(0xFFEF4444))),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _deleteMessage(message);
+                },
+              ),
           ],
         ),
       ),
@@ -639,6 +673,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         ? '📷 ${context.tr('chat.photo')}'
         : (message.content ?? '');
 
+    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
+    final urls = urlRegExp.allMatches(displayText).map((m) => m.group(0)!).toList();
+    final firstUrl = urls.isNotEmpty ? urls.first : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -673,6 +711,35 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 ),
               ),
             ),
+            if (firstUrl != null)
+              FutureBuilder(
+                future: AnyLinkPreview.getMetadata(
+                  link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+                  final metadata = snapshot.data;
+                  if (metadata == null || metadata.image == null || metadata.image!.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.72,
+                    ),
+                    child: AnyLinkPreview(
+                      link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
+                      displayDirection: UIDirection.uiDirectionHorizontal,
+                      cache: const Duration(hours: 1),
+                      backgroundColor: Colors.white,
+                      errorWidget: const SizedBox.shrink(),
+                      borderRadius: 12,
+                    ),
+                  );
+                },
+              ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),

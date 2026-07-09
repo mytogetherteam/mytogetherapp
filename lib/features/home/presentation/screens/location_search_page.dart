@@ -475,13 +475,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             onPressed: () => Navigator.pop(context, _hasChanges),
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
           ),
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-            child: const Icon(PhosphorIconsFill.mapPin, color: Colors.white, size: 14),
-          ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 4),
           Expanded(
             child: Container(
               height: 42,
@@ -498,9 +492,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 onChanged: _onSearchChanged,
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
-                  hintText: context.tr('location.search_hint'),
+                  hintText: context.tr('location.search_hint') ?? 'Find an address, building, or place',
                   hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
                   border: InputBorder.none,
+                  prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey, size: 20),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -525,6 +520,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         _buildCurrentLocationTile(),
+        _buildMapPickerTile(),
         _buildSavedLocationsHeader(),
         if (_isLoadingApi)
           const LocationSkeletonLoader(isList: true, itemCount: 4)
@@ -599,49 +595,46 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             const SizedBox(height: 10),
             _buildLimitBanner(),
           ] else ...[
-            const SizedBox(height: 10),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _isProcessingApi ? null : _openMapPicker,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                    ),
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        PhosphorIconsFill.mapPinPlus,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.tr('location.add_new_short'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapPickerTile() {
+    return InkWell(
+      onTap: _isProcessingApi ? null : _openMapPicker,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                PhosphorIcons.mapTrifold,
+                size: 22,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                context.tr('location.select_via_map') ?? 'Select location via map',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
             ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
           ],
-        ],
+        ),
       ),
     );
   }

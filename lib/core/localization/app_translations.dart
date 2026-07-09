@@ -28,6 +28,8 @@ class AppTranslations {
   // English
   // ---------------------------------------------------------------------------
   static const Map<String, String> _en = {
+    'location.where_to': 'Your Order Location',
+    'location.select_via_map': 'Select location via map',
     // Onboarding
     'onboarding.food_title': 'Don\'t overthink it... \n Just eat!',
     'onboarding.food_desc':
@@ -1111,6 +1113,8 @@ class AppTranslations {
   // Myanmar (မြန်မာ)
   // ---------------------------------------------------------------------------
   static const Map<String, String> _mm = {
+    'location.where_to': 'ဘယ်ကိုသွားမလဲ?',
+    'location.select_via_map': 'မြေပုံပေါ်မှ ရွေးချယ်မည်',
     // Onboarding
     'onboarding.food_title': 'စဉ်းစားမနေနဲ့ စားသာစား!',
     'onboarding.food_desc':
@@ -2193,6 +2197,8 @@ class AppTranslations {
   // Thai (ไทย)
   // ---------------------------------------------------------------------------
   static const Map<String, String> _th = {
+    'location.where_to': 'จะไปที่ไหน?',
+    'location.select_via_map': 'เลือกจากแผนที่',
     // Onboarding
     'onboarding.food_title': 'ไม่ต้องคิดมาก... กินเลย!',
     'onboarding.food_desc':

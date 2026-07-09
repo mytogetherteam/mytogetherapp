@@ -101,7 +101,7 @@ class AuthService {
     _initialized = true;
   }
 
-  bool get isLoggedIn => _accessToken != null && _accessToken!.isNotEmpty;
+  bool get isLoggedIn => _accessToken != null && _accessToken!.isNotEmpty && _currentUser != null;
 
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
@@ -237,6 +237,12 @@ class AuthService {
           final newRefreshToken = data['refreshToken'] as String?;
           if (newToken.isNotEmpty) {
             await updateTokens(newToken, newRefreshToken);
+            // The backend's toAuthPayload returns the latest user profile.
+            // Update it silently to keep the app in sync.
+            try {
+              final userModel = UserModel.fromJson(data);
+              await updateCurrentUser(userModel);
+            } catch (_) {}
           } else {
             newToken = null;
           }

@@ -45,7 +45,7 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/location/geo_distance.dart';
-
+import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../home/data/shop_storage.dart';
 
 class OrderSummaryPage extends StatefulWidget {
@@ -75,6 +75,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   List<CouponModel> _shopCoupons = const [];
   CouponModel? _selectedCoupon;
   bool _forcedAddressFlowOpen = false;
+  double _draftDistanceKm = 0.0;
+  double _draftDeliveryFee = 0.0;
 
   @override
   void initState() {
@@ -396,12 +398,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
 
-        ActiveOrderState.instance.updateRouteData(
-          points: [start, ...points, dest],
-          distanceKm: km,
-          durationMins: mins,
-          fee: (30.0 + (km * 15.0)).roundToDouble(),
-        );
+        final baseFee = km <= 2.0 ? 30.0 : (30.0 + ((km - 2.0) * 10.0)).floorToDouble();
+        if (mounted) {
+          setState(() {
+            _draftDistanceKm = km;
+            _draftDeliveryFee = baseFee;
+          });
+        }
       } else {
         // Fallback to straight line even in pre-fetch if OSRM is up but returns no route
         _setFallbackRoute(start, dest);
@@ -423,12 +426,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
     final km = distanceM / 1000;
 
-    ActiveOrderState.instance.updateRouteData(
-      points: [start, dest],
-      distanceKm: km,
-      durationMins: (km * 2).ceil(),
-      fee: (30.0 + (km * 15.0)).roundToDouble(),
-    );
+    final baseFee = km <= 2.0 ? 30.0 : (30.0 + ((km - 2.0) * 10.0)).floorToDouble();
+    if (mounted) {
+      setState(() {
+        _draftDistanceKm = km;
+        _draftDeliveryFee = baseFee;
+      });
+    }
+  }
+
+  String _getEstimatedDeliveryFeeText() {
+    final km = _draftDistanceKm;
+    if (km == 0.0) {
+      return '฿ 0.00';
+    }
+    final double baseFee = _draftDeliveryFee;
+    final double maxFee = (baseFee * 1.3).ceilToDouble();
+    if (baseFee == maxFee) return baseFee.toFormattedPrice();
+    return '฿ ${baseFee.toStringAsFixed(0)} - ฿ ${maxFee.toStringAsFixed(0)}';
   }
 
   Widget _buildAddressText() {
@@ -877,7 +892,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             (checkoutTotal - couponDiscount).clamp(0, double.infinity).toDouble();
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFFF7F7F7),
           appBar: AppBar(
             backgroundColor: Colors.white,
             scrolledUnderElevation: 0,
@@ -914,122 +929,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Notice to check before order
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFFCA5A5),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              PhosphorIconsFill.info,
-                              color: Color(0xFFEF4444),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                context.tr('cart.check_order_notice'),
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF991B1B),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Store Header inside a Card-like container
+// Deliver Information Section
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header Row
-                            Row(
-                              children: [
-                                _buildStoreLogo(
-                                  currentStore.items.first.restaurantId,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    currentStore.name,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            RestaurantDetailPage(
-                                              id: currentStore
-                                                  .items
-                                                  .first
-                                                  .restaurantId,
-                                              name: currentStore.name,
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    context.tr('cart.add_items'),
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFFF59E0B),
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                            const SizedBox(height: 16),
-
-                            // Items List
-                            ...currentStore.items.map(
-                              (item) =>
-                                  _buildSummaryItem(currentStore.name, item),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Deliver Information Section
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            width: 1.5,
-                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1169,10 +1081,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ),
                               ),
-                              if (ActiveOrderState.instance.deliveryFee !=
-                                      null &&
-                                  ActiveOrderState.instance.deliveryFee! >
-                                      0) ...[
+                              if (_draftDeliveryFee > 0) ...[
                                 const SizedBox(height: 16),
                                 Row(
                                   children: [
@@ -1190,9 +1099,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       ),
                                     ),
                                     GradientText(
-                                      ActiveOrderState
-                                          .instance.deliveryFee!
-                                          .toFormattedPrice(),
+                                      _getEstimatedDeliveryFeeText(),
                                       style: GoogleFonts.poppins(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -1235,18 +1142,119 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+                      // Store Header inside a Card-like container
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header Row
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              RestaurantDetailPage(
+                                                id: currentStore
+                                                    .items
+                                                    .first
+                                                    .restaurantId,
+                                                name: currentStore.name,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        _buildStoreLogo(
+                                          currentStore.items.first.restaurantId,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            currentStore.name,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            RestaurantDetailPage(
+                                              id: currentStore
+                                                  .items
+                                                  .first
+                                                  .restaurantId,
+                                              name: currentStore.name,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    context.tr('cart.add_items'),
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFFF59E0B),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                            const SizedBox(height: 16),
 
+                            // Items List
+                            ...currentStore.items.map(
+                              (item) =>
+                                  _buildSummaryItem(currentStore.name, item),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Apply Coupon entry (opens the movie-ticket sheet).
+                      _buildCouponSection(foodSubtotal, currentStore.items),
                       // Payment Option Section
                       Container(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            width: 1.5,
-                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1326,31 +1334,56 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
-
-                      // Apply Coupon entry (opens the movie-ticket sheet).
-                      _buildCouponSection(foodSubtotal, currentStore.items),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Bottom Checkout Bar
-              Container(
-                padding: EdgeInsets.zero,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.black.withValues(alpha: 0.05),
-                    ),
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 28, 4),
+                      const SizedBox(height: 12),
+                      // Notice to check before order
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              PhosphorIconsFill.info,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                context.tr('cart.check_order_notice'),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF334155),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child:                       Padding(
+                        padding: EdgeInsets.zero,
                         child: Column(
                           children: [
                             _buildCheckoutPriceRow(
@@ -1421,6 +1454,31 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom Checkout Bar
+              Container(
+                padding: EdgeInsets.zero,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+
                       if (hasOngoingOrder)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1468,26 +1526,55 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       ],
                       const SizedBox(height: 12),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: PrimaryGradientButton(
-                          onPressed: (_isPlacingOrder ||
-                                  _isProcessing ||
-                                  _isVerifyingOrderEligibility ||
-                                  hasOngoingOrder ||
-                                  isShopClosed)
-                              ? null
-                              : _onPlaceOrderPressed,
-                          isLoading: _isPlacingOrder,
-                          child: Text(
-                            isShopClosed
-                                ? context.tr('cart.closed_now')
-                                : context.tr('cart.place_order'),
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('cart.total'),
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF64748B),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  GradientText(
+                                    payableTotal.toFormattedPrice(),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: PrimaryGradientButton(
+                                onPressed: (_isPlacingOrder ||
+                                        _isProcessing ||
+                                        _isVerifyingOrderEligibility ||
+                                        hasOngoingOrder ||
+                                        isShopClosed)
+                                    ? null
+                                    : _onPlaceOrderPressed,
+                                isLoading: _isPlacingOrder,
+                                child: Text(
+                                  isShopClosed
+                                      ? context.tr('cart.closed_now')
+                                      : context.tr('cart.place_order'),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1574,19 +1661,27 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
           color: isHighlighted 
               ? AppColors.primary.withValues(alpha: 0.04) 
               : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isHighlighted
-                ? AppColors.primary.withValues(alpha: 0.35)
-                : Colors.black.withValues(alpha: 0.05),
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            if (!isHighlighted)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
+          border: isHighlighted
+              ? Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.35),
+                  width: 1.5,
+                )
+              : null,
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -2130,22 +2225,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 fit: BoxFit.cover,
                 width: 70,
                 height: 70,
-                placeholder: (context, url) => const ImageSkeletonLoader(width: 70, height: 70),
-                errorWidget: (context, url, error) => Container(
-                  width: 70,
-                  height: 70,
-                  color: Colors.grey[100],
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.image_not_supported_outlined,
-                        color: Colors.grey[400],
-                        size: 24,
-                      ),
-                    ],
-                  ),
-                ),
+                placeholder: (context, url) => const MenuImagePlaceholder(),
+                errorWidget: (context, url, error) => const MenuImagePlaceholder(),
               ),
             ),
           ),

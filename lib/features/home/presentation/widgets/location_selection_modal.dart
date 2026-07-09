@@ -15,6 +15,7 @@ import '../../../auth/presentation/screens/auth_entry_page.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
 import '../screens/location_search_page.dart';
+import '../screens/location_picker_page.dart';
 import 'location_address_display.dart';
 import 'location_skeleton_loader.dart';
 
@@ -327,11 +328,11 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 child: Row(
                   children: [
                     Text(
-                      context.tr('location.select_title'),
+                      context.tr('location.where_to') ?? 'Where to?', // Fallback if missing
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: Colors.black87,
                       ),
                     ),
                     const Spacer(),
@@ -346,7 +347,34 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+
+              // Mock Search Bar (Routes to Search Page)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                child: InkWell(
+                  onTap: _isGuest ? _promptSignInForAddresses : _onViewAddresses,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey, size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          context.tr('location.search_hint') ?? 'Find an address, building, or place',
+                          style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               Divider(height: 1, color: Colors.grey.shade100),
 
               // Scrollable Body
@@ -369,6 +397,51 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           ),
                         ),
                       ],
+                      // Map Picker
+                      if (!_isGuest)
+                        InkWell(
+                          onTap: () async {
+                            Navigator.pop(context); // Close modal
+                            // Then open map picker
+                            final rootNav = Navigator.of(context, rootNavigator: true);
+                            await rootNav.push(
+                              MaterialPageRoute(builder: (_) => const LocationPickerPage()),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1F5F9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    PhosphorIcons.mapTrifold,
+                                    size: 22,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    context.tr('location.select_via_map') ?? 'Select location via map',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+
                       Divider(
                         height: 1,
                         color: Colors.grey.shade100,
@@ -424,76 +497,12 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           endIndent: 20,
                         ),
                       ],
+                      SizedBox(height: bottomInset > 0 ? bottomInset + 16 : 24),
                     ],
                   ),
                 ),
               ),
 
-              // Fixed footer — signed-in users only.
-              if (!_isGuest)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomInset),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _isProcessing ? null : _onViewAddresses,
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              PhosphorIcons.mapPin,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              context.tr('location.view_addresses'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20, 8, 20, 12 + bottomInset),
-                  child: TextButton(
-                    onPressed: _isProcessing ? null : _promptSignInForAddresses,
-                    child: Text(
-                      context.tr('guest.create_or_login'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
           if (_isProcessing)
@@ -537,15 +546,14 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : const Color(0xFFF1F5F9),
+                gradient: isSelected ? AppColors.primaryGradient : null,
+                color: isSelected ? null : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 PhosphorIcons.crosshairSimple,
                 size: 22,
-                color: isSelected ? AppColors.primary : Colors.grey.shade700,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
               ),
             ),
             const SizedBox(width: 14),
@@ -557,7 +565,9 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                     children: [
                       Expanded(
                         child: Text(
-                          context.tr('location.current'),
+                          _currentLocationResult?.name ?? context.tr('location.current'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -572,7 +582,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
+                            gradient: AppColors.primaryGradient,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -580,7 +590,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -669,15 +679,14 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : const Color(0xFFF1F5F9),
+                gradient: isSelected ? AppColors.primaryGradient : null,
+                color: isSelected ? null : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getLocationIcon(location.locationType),
                 size: 22,
-                color: isSelected ? AppColors.primary : Colors.grey.shade600,
+                color: isSelected ? Colors.white : Colors.grey.shade600,
               ),
             ),
             const SizedBox(width: 14),
@@ -706,7 +715,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
+                            gradient: AppColors.primaryGradient,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -714,7 +723,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                              color: Colors.white,
                             ),
                           ),
                         ),

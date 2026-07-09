@@ -16,6 +16,6 @@ class GoogleMapsConfig {
     return '';
   }
 
-  /// Places text search / autocomplete (paid). Off until billing is enabled.
-  static const bool placesSearchEnabled = false;
+  /// Places text search / autocomplete (paid). Enabled based on user request.
+  static const bool placesSearchEnabled = true;
 }

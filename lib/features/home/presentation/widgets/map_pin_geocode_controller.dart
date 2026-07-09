@@ -117,9 +117,17 @@ class MapPinGeocodeController extends ChangeNotifier {
 
     isGeocoding = false;
     if (place != null && !addressTouched) {
+      String resolved = LocationDisplayUtil.readableAddress(place.displayName) ??
+          place.displayName;
+      
+      final name = place.name.trim();
+      // Don't prepend if it's a Plus Code (contains +) or already in the address
+      if (name.isNotEmpty && !name.contains('+') && !resolved.contains(name)) {
+        resolved = '$name, $resolved';
+      }
+      
       _applyAddress(
-        LocationDisplayUtil.readableAddress(place.displayName) ??
-            place.displayName,
+        resolved,
         target,
         place: place,
       );

@@ -14,5 +14,7 @@ class GooglePlacesClient {
 
   Future<PlaceResult?> getPlaceDetails(PlaceResult place) async => place;
 
+  Future<PlaceResult?> nearbySearch(double lat, double lon) async => null;
+
   Future<PlaceResult?> reverseGeocode(double lat, double lon) async => null;
 }

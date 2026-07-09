@@ -26,6 +26,26 @@ class PlaceResult {
     this.distanceKm,
   });
 
+  PlaceResult copyWith({
+    String? placeId,
+    String? name,
+    String? displayName,
+    double? lat,
+    double? lon,
+    String? type,
+    double? distanceKm,
+  }) {
+    return PlaceResult(
+      placeId: placeId ?? this.placeId,
+      name: name ?? this.name,
+      displayName: displayName ?? this.displayName,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      type: type ?? this.type,
+      distanceKm: distanceKm ?? this.distanceKm,
+    );
+  }
+
   /// Factory for Google Maps Places API (Autocomplete) results
   /// Note: Autocomplete doesn't return lat/lon directly without a details call,
   /// but we can use this for the initial list.
@@ -108,6 +128,31 @@ class PlaceResult {
     );
   }
 
+  /// Factory for Google Maps Places Nearby Search API results
+  factory PlaceResult.fromGoogleNearbySearch(Map<String, dynamic> json, {double? userLat, double? userLon}) {
+    final geometry = json['geometry'] as Map<String, dynamic>? ?? {};
+    final location = geometry['location'] as Map<String, dynamic>? ?? {};
+    final lat = double.tryParse(location['lat']?.toString() ?? '') ?? 0;
+    final lon = double.tryParse(location['lng']?.toString() ?? '') ?? 0;
+    final name = json['name']?.toString() ?? '';
+    final vicinity = json['vicinity']?.toString() ?? name;
+
+    double? distance;
+    if (userLat != null && userLon != null) {
+      distance = _haversine(userLat, userLon, lat, lon);
+    }
+
+    return PlaceResult(
+      placeId: json['place_id']?.toString() ?? '',
+      name: name,
+      displayName: vicinity,
+      lat: lat,
+      lon: lon,
+      type: (json['types'] as List?)?.firstOrNull?.toString(),
+      distanceKm: distance,
+    );
+  }
+
   /// Create a copy with evaluated distance
   PlaceResult copyWithDistance(double userLat, double userLon) {
      return PlaceResult(
@@ -162,6 +207,11 @@ class LocationSearchService {
     return _client.getPlaceDetails(place);
   }
 
+  Future<PlaceResult?> nearbySearch(double lat, double lon) async {
+    if (kIsWeb) return null; // Fallback or implement if needed
+    return _client.nearbySearch(lat, lon);
+  }
+
   /// Reverse geocode: get full address string and components from coordinates.
   /// On web, Nominatim is tried first (fast, no billing). Google is the fallback.
   Future<PlaceResult?> reverseGeocode(double lat, double lon) async {
@@ -194,10 +244,31 @@ class LocationSearchService {
 
   Future<PlaceResult?> _reverseGeocodeGoogleFirst(double lat, double lon) async {
     try {
+      // 1. Try to snap to a nearby POI (within 30m) like Grab does
+      final nearby = await nearbySearch(lat, lon).timeout(const Duration(seconds: 4));
+      if (nearby != null && nearby.name.trim().isNotEmpty) {
+        return nearby;
+      }
+    } catch (_) {}
+
+    try {
       final google = await _client
           .reverseGeocode(lat, lon)
           .timeout(const Duration(seconds: 4));
       if (google != null && google.displayName.trim().isNotEmpty) {
+        final type = google.type ?? '';
+        if (google.placeId.isNotEmpty &&
+            (type.contains('establishment') ||
+                type.contains('point_of_interest') ||
+                type.contains('premise') ||
+                type.contains('building'))) {
+          // If it's a POI, fetch the true name using Place Details
+          // Zero lat/lon to force getPlaceDetails to actually fetch.
+          final details = await getPlaceDetails(google.copyWith(lat: 0, lon: 0));
+          if (details != null && details.name.trim().isNotEmpty) {
+            return google.copyWith(name: details.name);
+          }
+        }
         return google;
       }
     } catch (_) {}

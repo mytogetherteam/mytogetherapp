@@ -84,7 +84,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
 
   Future<void> _launchContact(BuildContext context, Uri uri) async {
     try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!await launchUrl(uri)) {
         throw StateError('launch failed');
       }
     } catch (_) {
@@ -120,8 +120,6 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
           fontSize: 15,
           color: AppColors.primary,
           height: 1.5,
-          decoration: TextDecoration.underline,
-          decorationColor: AppColors.primary.withValues(alpha: 0.4),
         ),
       ),
     );
@@ -296,6 +294,18 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                       ),
                     ),
                   ],
+                  if (restaurant.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      restaurant.description.trim(),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Colors.grey[800],
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -337,14 +347,6 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                           Uri(scheme: 'mailto', path: _contactEmail),
                         ),
                       ),
-                    ),
-                  ],
-                  if (restaurant.description.trim().isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildSectionCard(
-                      iconData: PhosphorIcons.info,
-                      title: context.tr('restaurant.description_title'),
-                      content: restaurant.description.trim(),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -562,7 +564,11 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                 SizedBox(
                   width: 32,
                   height: 32,
-                  child: Icon(iconData, size: 24, color: AppColors.primary),
+                  child: ShaderMask(
+                    shaderCallback: (bounds) =>
+                        AppColors.primaryGradient.createShader(bounds),
+                    child: Icon(iconData, size: 24, color: Colors.white),
+                  ),
                 ),
               const SizedBox(width: 12),
               Text(

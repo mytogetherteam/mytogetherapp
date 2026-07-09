@@ -84,6 +84,37 @@ class GooglePlacesClient {
     return [];
   }
 
+  Future<PlaceResult?> nearbySearch(double lat, double lon) async {
+    try {
+      final response = await _dio.get('/place/nearbysearch/json', queryParameters: {
+        'location': '$lat,$lon',
+        'rankby': 'distance',
+        'type': 'point_of_interest',
+        'key': _apiKey,
+        'language': 'en',
+      });
+      if (response.statusCode == 200 && response.data['status'] == 'OK') {
+        final results = response.data['results'] as List<dynamic>? ?? [];
+        for (final r in results) {
+          final res = r as Map<String, dynamic>;
+          final types = (res['types'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+          // Skip generic routes and localities, we want buildings or establishments
+          if (types.contains('route') || types.contains('locality') || types.contains('political')) continue;
+          
+          if (types.contains('establishment') || types.contains('point_of_interest') || types.contains('premise') || types.contains('building')) {
+             final place = PlaceResult.fromGoogleNearbySearch(res, userLat: lat, userLon: lon);
+             if (place.distanceKm != null && place.distanceKm! > 0.05) {
+               // Too far (> 50m), don't snap to it
+               continue;
+             }
+             return place;
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<PlaceResult>> _textSearch(
     String query, {
     double? lat,
@@ -209,8 +240,22 @@ class GooglePlacesClient {
       if (response.statusCode == 200 && response.data['status'] == 'OK') {
         final results = response.data['results'] as List<dynamic>? ?? [];
         if (results.isNotEmpty) {
+          Map<String, dynamic>? bestResult;
+          for (final r in results) {
+            final res = r as Map<String, dynamic>;
+            final types = (res['types'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+            if (types.contains('establishment') ||
+                types.contains('point_of_interest') ||
+                types.contains('premise') ||
+                types.contains('building')) {
+              bestResult = res;
+              break;
+            }
+          }
+          bestResult ??= results.first as Map<String, dynamic>;
+
           return PlaceResult.fromGoogleGeocode(
-            results.first as Map<String, dynamic>,
+            bestResult,
             userLat: lat,
             userLon: lon,
           );
