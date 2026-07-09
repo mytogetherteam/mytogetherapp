@@ -257,7 +257,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     final int pageCount = (items.length / 2).ceil();
 
     return SizedBox(
-      height: 244, // Height for 2 compact cards vertically
+      height: 264, // Height for 2 compact cards vertically
       child: PageView.builder(
         itemCount: pageCount > 10 ? 10 : pageCount, // Cap at 10 pages (20 items)
         padEnds: false,

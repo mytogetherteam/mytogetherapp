@@ -286,31 +286,11 @@ class _OutOfStockListWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isDisabled && !orderBlocked) return child;
     if (orderBlocked && !isDisabled) {
-      return Stack(
-        children: [
-          ColorFiltered(
-            colorFilter: const ColorFilter.matrix(<double>[
-              0.2126, 0.7152, 0.0722, 0, 0,
-              0.2126, 0.7152, 0.0722, 0, 0,
-              0.2126, 0.7152, 0.0722, 0, 0,
-              0,      0,      0,      1, 0,
-            ]),
-            child: Opacity(opacity: 0.5, child: child),
-          ),
-        ],
-      );
+      return child;
     }
     return Stack(
       children: [
-        ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0,      0,      0,      1, 0,
-          ]),
-          child: Opacity(opacity: 0.6, child: child),
-        ),
+        child,
         Positioned.fill(
           child: Center(
             child: Container(

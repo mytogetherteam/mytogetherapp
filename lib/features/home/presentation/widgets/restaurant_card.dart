@@ -214,33 +214,7 @@ class RestaurantCard extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
-                if (status.toLowerCase() == 'open')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 2),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFACC15).withValues(alpha: 0.2), // Yellow
-                        border: Border.all(color: const Color(0xFFFACC15)),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🏅', style: TextStyle(fontSize: 10)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Reliable Shop',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFCA8A04),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+
                 if (showStatusLine)
                   OrderBlockedStatusLine(
                     text: blockedLine,
