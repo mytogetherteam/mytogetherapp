@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/utils/api_response_utils.dart';
 import '../models/notification_model.dart';
+
+class NotificationPageResult {
+  final List<NotificationModel> items;
+  final bool hasMore;
+
+  const NotificationPageResult({required this.items, required this.hasMore});
+}
 
 /// User order notifications on the NestJS backend:
 ///   GET    /api/user/notifications
@@ -24,6 +32,14 @@ class NotificationRepository {
     int page = 0,
     int size = 20,
   }) async {
+    final result = await getNotificationsPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<NotificationPageResult> getNotificationsPage({
+    int page = 0,
+    int size = 20,
+  }) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/notifications',
       queryParameters: {
@@ -33,16 +49,23 @@ class NotificationRepository {
     );
 
     if (response.statusCode != 200 || response.data == null) {
-      return [];
+      return const NotificationPageResult(items: [], hasMore: false);
     }
 
     final raw = response.data;
     final dynamic payload = raw is Map ? raw['data'] : raw;
     final List<dynamic> items = _extractItems(payload);
-
-    return items
+    final models = items
         .map((json) => NotificationModel.fromJson(json as Map<String, dynamic>))
         .toList();
+    final paged = PagedApiResult.fromBody(
+      body: raw,
+      page: page,
+      pageSize: size,
+      items: models,
+      zeroBased: true,
+    );
+    return NotificationPageResult(items: paged.items, hasMore: paged.hasMore);
   }
 
   Future<int> getUnreadCount() async {

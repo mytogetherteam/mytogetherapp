@@ -18,6 +18,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
+import '../models/nearby_shops_page_result.dart';
 import '../shop_order_state_cache.dart';
 import '../shop_storage.dart';
 
@@ -30,6 +31,7 @@ class RestaurantRepository {
 
   // Simple cache for nearby shops
   List<Restaurant>? _cachedNearbyShops;
+  NearbyShopsPageResult? _cachedNearbyPageResult;
   String? _lastCacheKey;
   DateTime? _lastFetchTime;
 
@@ -97,24 +99,43 @@ class RestaurantRepository {
     int size = 20,
     String? search,
   }) async {
+    final result = await getNearbyShopsPage(
+      lat: lat,
+      lon: lon,
+      radius: radius,
+      page: page,
+      size: size,
+      search: search,
+    );
+    return result.restaurants;
+  }
+
+  Future<NearbyShopsPageResult> getNearbyShopsPage({
+    required double lat,
+    required double lon,
+    double radius = 5.0,
+    int page = 0,
+    int size = 20,
+    String? search,
+  }) async {
     // Generate a unique key for this request
     final cacheKey = '$lat-$lon-$radius-$page-$size-$search';
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
-    if (_cachedNearbyShops != null &&
+    if (_cachedNearbyPageResult != null &&
         _lastCacheKey == cacheKey &&
         _lastFetchTime != null &&
         now.difference(_lastFetchTime!).inSeconds < 30) {
-      unawaited(_prefetchOrderStateForRestaurants(_cachedNearbyShops!));
-      return _cachedNearbyShops!;
+      unawaited(_prefetchOrderStateForRestaurants(_cachedNearbyPageResult!.restaurants));
+      return _cachedNearbyPageResult!;
     }
 
     try {
       List<Restaurant> results;
+      SearchPageResult response;
 
       if (AuthService().isLoggedIn) {
-        final SearchPageResult response;
         final hasSearch = search != null && search.trim().isNotEmpty;
         if (hasSearch) {
           response = await SearchRepository.instance.searchShops(
@@ -138,7 +159,7 @@ class RestaurantRepository {
             .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
             .toList();
       } else {
-        final response = await SearchRepository.instance.searchNearby(
+        response = await SearchRepository.instance.searchNearby(
           latitude: lat,
           longitude: lon,
           radiusKm: radius,
@@ -150,18 +171,33 @@ class RestaurantRepository {
             .toList();
       }
 
+      final pageResult = NearbyShopsPageResult(
+        restaurants: results,
+        page: response.currentPage,
+        lastPage: response.lastPage,
+        total: response.total,
+        pageSize: size,
+      );
+
       // Update cache
       _cachedNearbyShops = results;
+      _cachedNearbyPageResult = pageResult;
       _lastCacheKey = cacheKey;
       _lastFetchTime = now;
 
       unawaited(_prefetchOrderStateForRestaurants(results));
 
-      return results;
+      return pageResult;
     } catch (e) {
       // If we have a recent in-memory cache, return it silently
       if (_cachedNearbyShops != null) {
-        return _cachedNearbyShops!;
+        return NearbyShopsPageResult(
+          restaurants: _cachedNearbyShops!,
+          page: page + 1,
+          lastPage: page + 1,
+          total: _cachedNearbyShops!.length,
+          pageSize: size,
+        );
       }
       // No cache — let the error propagate so the UI shows the retry card
       rethrow;
@@ -208,19 +244,41 @@ class RestaurantRepository {
     int page = 1,
     int size = 10,
   }) async {
+    final result = await getPopularShopsPage(
+      lat: lat,
+      lon: lon,
+      page: page,
+      size: size,
+    );
+    return result.restaurants;
+  }
+
+  Future<NearbyShopsPageResult> getPopularShopsPage({
+    required double lat,
+    required double lon,
+    int page = 1,
+    int size = 10,
+  }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getPopularShops(
         page: page,
         size: size,
       );
-      return _prefetchAndReturn(
+      final restaurants = await _prefetchAndReturn(
         response.shops
             .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
             .toList(),
       );
+      return NearbyShopsPageResult(
+        restaurants: restaurants,
+        page: response.currentPage,
+        lastPage: response.lastPage,
+        total: response.total,
+        pageSize: size,
+      );
     }
 
-    return getNearbyShops(
+    return getNearbyShopsPage(
       lat: lat,
       lon: lon,
       radius: 10.0,
@@ -260,18 +318,43 @@ class RestaurantRepository {
     int size = 10,
     int? days,
   }) async {
+    final result = await getTrendingShopsPage(
+      lat: lat,
+      lon: lon,
+      page: page,
+      size: size,
+      days: days,
+    );
+    return result.restaurants;
+  }
+
+  Future<NearbyShopsPageResult> getTrendingShopsPage({
+    required double lat,
+    required double lon,
+    int page = 1,
+    int size = 10,
+    int? days,
+  }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getTrendingShops(
         page: page,
         size: size,
         days: days,
       );
-      return response.shops
+      final restaurants = response.shops
           .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
           .toList();
+      unawaited(_prefetchOrderStateForRestaurants(restaurants));
+      return NearbyShopsPageResult(
+        restaurants: restaurants,
+        page: response.currentPage,
+        lastPage: response.lastPage,
+        total: response.total,
+        pageSize: size,
+      );
     }
 
-    return getNearbyShops(
+    return getNearbyShopsPage(
       lat: lat,
       lon: lon,
       radius: 10.0,
@@ -326,19 +409,45 @@ class RestaurantRepository {
     double? originLat,
     double? originLon,
   }) async {
+    final result = await getShopProfilesPage(
+      search: search,
+      categoryId: categoryId,
+      page: page,
+      size: size,
+      originLat: originLat,
+      originLon: originLon,
+    );
+    return result.restaurants;
+  }
+
+  Future<NearbyShopsPageResult> getShopProfilesPage({
+    String? search,
+    int? categoryId,
+    int page = 1,
+    int size = 20,
+    double? originLat,
+    double? originLon,
+  }) async {
     final response = await SearchRepository.instance.listShopProfiles(
       search: search,
       categoryId: categoryId,
       page: page,
       size: size,
     );
-    return response.shops.map((dto) {
+    final restaurants = response.shops.map((dto) {
       final shop = dto.shop;
       if (originLat != null && originLon != null) {
         return _mapShopWithDistance(shop, lat: originLat, lon: originLon);
       }
       return _mapShopDtoToDomain(shop);
     }).toList();
+    return NearbyShopsPageResult(
+      restaurants: restaurants,
+      page: response.currentPage,
+      lastPage: response.lastPage,
+      total: response.total,
+      pageSize: size,
+    );
   }
 
   Future<Restaurant> getShopById(int id, {double? lat, double? lon}) async {
@@ -852,6 +961,7 @@ class RestaurantRepository {
   /// shop profiles, or other non-location data.
   void clearNearbyCache() {
     _cachedNearbyShops = null;
+    _cachedNearbyPageResult = null;
     _lastCacheKey = null;
     _lastFetchTime = null;
     _feedCache.removeWhere((key, _) => key.startsWith('food-tab-'));

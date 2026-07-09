@@ -9,6 +9,11 @@ class NavigationController {
   final ValueNotifier<int?> tabChangeRequest = ValueNotifier(null);
 
   void goToTab(int index) {
+    // Re-assign even when already on [index] so listeners still run after
+    // navigation pops back to an existing [MainNavigationScreen].
+    if (tabChangeRequest.value == index) {
+      tabChangeRequest.value = null;
+    }
     tabChangeRequest.value = index;
   }
 

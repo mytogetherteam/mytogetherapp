@@ -2,7 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:mytogetherapp/core/utils/api_response_utils.dart';
 import '../models/order_history_dto.dart';
+
+class OrderHistoryPageResult {
+  final List<OrderHistoryDto> items;
+  final bool hasMore;
+
+  const OrderHistoryPageResult({required this.items, required this.hasMore});
+}
 
 /// Talks to the new backend's user-orders endpoint.
 /// Backend route: `GET /api/user/orders` (UserOrdersController.findAll).
@@ -40,15 +48,30 @@ class OrderRepository {
     int size = 50,
   }) async {
     try {
-      return await _fetchOrderHistory(
+      final result = await getOrderHistoryPage(
         statuses: statuses,
         shopId: shopId,
         page: page,
         size: size,
       );
+      return result.items;
     } catch (_) {
       return [];
     }
+  }
+
+  Future<OrderHistoryPageResult> getOrderHistoryPage({
+    List<String>? statuses,
+    int? shopId,
+    int page = 1,
+    int size = 50,
+  }) {
+    return _fetchOrderHistoryPage(
+      statuses: statuses,
+      shopId: shopId,
+      page: page,
+      size: size,
+    );
   }
 
   /// Same as [getOrderHistory] but propagates errors so callers can block
@@ -58,16 +81,17 @@ class OrderRepository {
     int? shopId,
     int page = 1,
     int size = 50,
-  }) {
-    return _fetchOrderHistory(
+  }) async {
+    final result = await _fetchOrderHistoryPage(
       statuses: statuses,
       shopId: shopId,
       page: page,
       size: size,
     );
+    return result.items;
   }
 
-  Future<List<OrderHistoryDto>> _fetchOrderHistory({
+  Future<OrderHistoryPageResult> _fetchOrderHistoryPage({
     List<String>? statuses,
     int? shopId,
     int page = 1,
@@ -99,9 +123,19 @@ class OrderRepository {
       final body = response.data;
       final rawData = body is Map ? body['data'] : body;
       final List<dynamic> list = rawData is List ? rawData : <dynamic>[];
-      return list
+      final items = list
           .map((e) => OrderHistoryDto.fromJson(e as Map<String, dynamic>))
           .toList();
+      final paged = PagedApiResult.fromBody(
+        body: body,
+        page: page,
+        pageSize: size,
+        items: items,
+      );
+      return OrderHistoryPageResult(
+        items: paged.items,
+        hasMore: paged.hasMore,
+      );
     }
 
     throw DioException(

@@ -85,9 +85,113 @@ class ApiResponseUtils {
       return int.tryParse(page['totalPages'].toString()) ?? 0;
     }
     if (body is Map && body['meta'] is Map) {
-      final last = (body['meta'] as Map)['last_page'];
+      final meta = body['meta'] as Map;
+      final last = meta['last_page'] ?? meta['lastPage'];
       return int.tryParse(last?.toString() ?? '') ?? 0;
     }
     return 0;
+  }
+
+  static int parseCurrentPage(dynamic body, {required int requestedPage}) {
+    if (body is Map && body['meta'] is Map) {
+      final meta = body['meta'] as Map;
+      final page = meta['page'] ?? meta['current_page'];
+      final parsed = int.tryParse(page?.toString() ?? '');
+      if (parsed != null && parsed >= 0) return parsed;
+    }
+    final page = _pageBody(body);
+    if (page is Map) {
+      if (page['page'] != null) {
+        final parsed = int.tryParse(page['page'].toString());
+        if (parsed != null && parsed >= 0) return parsed;
+      }
+      if (page['number'] != null) {
+        return (int.tryParse(page['number'].toString()) ?? 0) + 1;
+      }
+    }
+    return requestedPage;
+  }
+
+  /// Derives continuation from API meta when present; falls back to a full page
+  /// of items when meta is absent so plain-list endpoints still paginate.
+  static bool hasMoreFromMeta({
+    required dynamic body,
+    required int currentPage,
+    required int itemCount,
+    required int pageSize,
+    bool zeroBased = false,
+  }) {
+    bool? springLastFlag;
+    final page = _pageBody(body);
+    if (page is Map && page.containsKey('last')) {
+      springLastFlag = page['last'] != true;
+    }
+
+    return hasMorePages(
+      page: currentPage,
+      lastPage: parseLastPage(body),
+      itemCount: itemCount,
+      pageSize: pageSize,
+      totalCount: parseTotalElements(body),
+      zeroBased: zeroBased,
+      springLastFlag: springLastFlag,
+    );
+  }
+
+  /// Shared continuation check for repository meta and feed DTOs.
+  static bool hasMorePages({
+    required int page,
+    required int lastPage,
+    required int itemCount,
+    required int pageSize,
+    int? totalCount,
+    bool zeroBased = false,
+    bool? springLastFlag,
+  }) {
+    if (lastPage > 0) {
+      return zeroBased ? page + 1 < lastPage : page < lastPage;
+    }
+
+    if (totalCount != null && totalCount > 0) {
+      final loaded = zeroBased
+          ? page * pageSize + itemCount
+          : (page - 1) * pageSize + itemCount;
+      return loaded < totalCount;
+    }
+
+    if (springLastFlag != null) return springLastFlag;
+
+    return itemCount >= pageSize;
+  }
+}
+
+/// Generic paginated API payload with explicit [hasMore] from server meta.
+class PagedApiResult<T> {
+  final List<T> items;
+  final bool hasMore;
+
+  const PagedApiResult({required this.items, required this.hasMore});
+
+  factory PagedApiResult.fromBody({
+    required dynamic body,
+    required int page,
+    required int pageSize,
+    required List<T> items,
+    bool zeroBased = false,
+  }) {
+    final currentPage = ApiResponseUtils.parseCurrentPage(
+      body,
+      requestedPage: page,
+    );
+    return PagedApiResult(
+      items: items,
+      hasMore: ApiResponseUtils.hasMoreFromMeta(
+        body: body,
+        currentPage: currentPage,
+        itemCount: items.length,
+        pageSize: pageSize,
+        zeroBased: zeroBased,
+      ),
+    );
   }
 }

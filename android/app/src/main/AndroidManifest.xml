@@ -18,6 +18,11 @@
         android:fullBackupContent="false"
         android:enableOnBackInvokedCallback="true">
 
+        <!-- Required by Google Maps on Android 9+ (Apache HTTP was removed from the boot classpath). -->
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
         <!-- Prevent live_activities plugin from intercepting Firebase messages and crashing on Android -->
         <service
             android:name="com.example.live_activities.LiveActivityFirebaseMessagingService"

@@ -1,4 +1,5 @@
 import '../../../../core/location/geo_distance.dart';
+import '../../../../core/utils/api_response_utils.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../shop_order_state_parser.dart';
@@ -239,8 +240,23 @@ class ShopFeedItemDto {
 /// Wraps the top-level API response for any shop feed endpoint
 class ShopFeedSectionDto {
   final List<ShopFeedItemDto> items;
+  final int page;
+  final int lastPage;
+  final int pageSize;
 
-  ShopFeedSectionDto({required this.items});
+  const ShopFeedSectionDto({
+    required this.items,
+    this.page = 1,
+    this.lastPage = 0,
+    this.pageSize = 20,
+  });
+
+  bool get hasMore => ApiResponseUtils.hasMorePages(
+        page: page,
+        lastPage: lastPage,
+        itemCount: items.length,
+        pageSize: pageSize,
+      );
 
   factory ShopFeedSectionDto.fromJson(Map<String, dynamic> json) {
     // Safely extract data -> items, handling missing or null keys
@@ -255,6 +271,8 @@ class ShopFeedSectionDto {
           .whereType<Map<String, dynamic>>()
           .map((e) => ShopFeedItemDto.fromJson(e))
           .toList(),
+      page: ApiResponseUtils.parseCurrentPage(json, requestedPage: 1),
+      lastPage: ApiResponseUtils.parseLastPage(json),
     );
   }
 }

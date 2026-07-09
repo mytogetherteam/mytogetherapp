@@ -20,6 +20,8 @@ import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
 import 'awaiting_payment_page.dart';
 import 'order_cancel_page.dart';
+import 'order_complete_page.dart';
+import 'order_status_page.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -161,6 +163,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   StreamSubscription? _orderSubscription;
   Timer? _statusPollTimer;
+  int? _lastReconciledOrderStatus;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
@@ -209,6 +212,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     // confirmation" for minutes, reconcile against the backend on open, when
     // the app resumes, and on a short poll while we wait.
     WidgetsBinding.instance.addObserver(this);
+    _lastReconciledOrderStatus = ActiveOrderState.instance.orderStatus;
     _reconcileWithBackend();
     _statusPollTimer = Timer.periodic(
       const Duration(seconds: 12),
@@ -234,13 +238,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       if (status != null) {
         final upperStatus = status.toUpperCase();
 
-        // If the shop accepted, navigate to Payment
-        final transitionStatuses = [
-          'CONFIRMED',
-          'AWAITING_PAYMENT',
-          'PAYMENT_SLIP_REQUESTED',
-        ];
-        if (transitionStatuses.contains(upperStatus)) {
+        if (ActiveOrderState.isPaymentTransitionStatus(upperStatus)) {
           final state = ActiveOrderState.instance;
           if (upperStatus == 'PAYMENT_SLIP_REQUESTED') {
             if (!state.hasNotifiedSlipRequest) {
@@ -250,7 +248,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToPayment();
           });
-        } else if (upperStatus == 'CANCELLED' || upperStatus == 'CANCELED' || status == '-1') {
+        } else if (ActiveOrderState.isCookingTransitionStatus(upperStatus)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _navigateToOrderStatus();
+          });
+        } else if (upperStatus == 'CANCELLED' ||
+            upperStatus == 'CANCELED' ||
+            status == '-1') {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _navigateToCancelPage();
           });
@@ -385,29 +389,58 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       // Socket may have been torn down while backgrounded; force a reconnect
       // and immediately catch up via REST in case an update was missed.
       WebSocketService().connect(force: true);
-      _reconcileWithBackend();
+      _reconcileWithBackend(forceNavigation: true);
     }
   }
 
-  Future<void> _reconcileWithBackend() async {
+  /// Syncs order state from the API. Navigation only runs when [forceNavigation]
+  /// is true (app resume) or when status advances past "awaiting shop" (0→…)
+  /// so the 12s poll does not repeatedly replace routes.
+  Future<void> _reconcileWithBackend({bool forceNavigation = false}) async {
     await ActiveOrderState.instance.syncActiveOrder();
     if (!mounted) return;
-    final status = ActiveOrderState.instance.orderStatus;
-    if (status >= 1 && status < 4 && status != -1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _navigateToPayment();
-      });
-    } else if (status == -1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          if (ActiveOrderState.instance.wasCancelledByUser(ActiveOrderState.instance.orderId)) {
-            Navigator.popUntil(context, (route) => route.isFirst);
-          } else {
-            _navigateToCancelPage();
-          }
+
+    final state = ActiveOrderState.instance;
+    final status = state.orderStatus;
+    final previousStatus = _lastReconciledOrderStatus;
+    _lastReconciledOrderStatus = status;
+
+    if (mounted) setState(() {});
+
+    final advancedFromAwaitingShop =
+        previousStatus == 0 && status != 0;
+    final advancedToCooking = previousStatus == 1 && status == 2;
+    final shouldNavigate = (forceNavigation ||
+            advancedFromAwaitingShop ||
+            advancedToCooking) &&
+        status != 0 &&
+        status != 3;
+
+    if (!shouldNavigate) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (status == 1) {
+        if (!AwaitingPaymentPage.isCurrentlyVisible) {
+          _navigateToPayment();
         }
-      });
-    }
+      } else if (status == 2) {
+        if (!OrderStatusPage.isCurrentlyVisible) {
+          _navigateToOrderStatus();
+        }
+      } else if (status == 4 && !OrderCompletePage.isCurrentlyVisible) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrderCompletePage()),
+        );
+      } else if (status == -1) {
+        if (state.wasCancelledByUser(state.orderId)) {
+          Navigator.popUntil(context, (route) => route.isFirst);
+        } else {
+          _navigateToCancelPage();
+        }
+      }
+    });
   }
 
   void _navigateToCancelPage() {
@@ -438,6 +471,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _statusPollTimer?.cancel();
     _idleSolidController.dispose();
     _lightProgressController.dispose();
     _idleSequenceTimer?.cancel();
@@ -997,6 +1031,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _navigateToPayment() {
     if (!mounted || AwaitingPaymentPage.isCurrentlyVisible) return;
+    _statusPollTimer?.cancel();
     _idleSequenceTimer?.cancel();
     _idleSolidController.stop();
     _lightProgressController.stop();
@@ -1007,6 +1042,21 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(
           orderId: ActiveOrderState.instance.orderId,
+          foodTotal: widget.foodTotal.toDouble(),
+          deliveryFee: fee,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToOrderStatus() {
+    if (!mounted || OrderStatusPage.isCurrentlyVisible) return;
+    _statusPollTimer?.cancel();
+    final fee = _deliveryFee ?? ActiveOrderState.instance.deliveryFee ?? 0.0;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderStatusPage(
           foodTotal: widget.foodTotal.toDouble(),
           deliveryFee: fee,
         ),

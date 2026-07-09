@@ -520,6 +520,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   bool _isProcessing = false;
   bool _hasShownEmptyToast = false;
+  /// Set after a successful place-order navigation so the empty-cart auto-pop
+  /// does not pop [OrderTrackingPage] off the stack in the same frame.
+  bool _navigatedAfterPlaceOrder = false;
 
   RestaurantOrderAvailability? get _orderAvailability {
     final restaurant = _restaurant;
@@ -761,18 +764,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         });
       }
 
-      await CartManager.instance.removeStore(widget.store.nameKey);
-
       WebSocketService().connect();
 
-      await _applySelectedCoupon(
-        orderId,
-        foodTotal.toDouble(),
-        storeItems,
-      );
-
       if (!context.mounted) return;
-      nav.pushReplacement(
+      _navigatedAfterPlaceOrder = true;
+      await nav.pushReplacement(
         MaterialPageRoute(
           builder: (context) => OrderTrackingPage(
             store: widget.store,
@@ -780,6 +776,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             foodTotal: backendItemPrice.round(),
           ),
         ),
+      );
+
+      await CartManager.instance.removeStore(widget.store.nameKey);
+
+      await _applySelectedCoupon(
+        orderId,
+        foodTotal.toDouble(),
+        storeItems,
       );
     } catch (e) {
       if (mounted) {
@@ -804,7 +808,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       }
     } finally {
       ActiveOrderState.instance.endOrderPlacement();
-      if (mounted) {
+      if (mounted && !_navigatedAfterPlaceOrder) {
         setState(() {
           _isPlacingOrder = false;
           _isProcessing = false;
@@ -832,7 +836,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // Show empty state if store not found or items empty (unless we are performing an action)
         if ((currentStoreIdx == -1 ||
                 CartManager.instance.stores[currentStoreIdx].items.isEmpty) &&
-            !_isProcessing) {
+            !_isProcessing &&
+            !_isPlacingOrder &&
+            !_navigatedAfterPlaceOrder) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted && !_hasShownEmptyToast) {
               _hasShownEmptyToast = true;

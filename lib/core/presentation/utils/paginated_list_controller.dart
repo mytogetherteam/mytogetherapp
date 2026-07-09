@@ -5,9 +5,8 @@ import 'package:flutter/widgets.dart';
 
 import 'pagination_scroll.dart';
 
-/// Result of a single paginated fetch. Use [hasMore] when the API exposes an
-/// explicit continuation flag; otherwise omit it and the controller falls back
-/// to `items.length >= pageSize`.
+/// Result of a single paginated fetch. [hasMore] must be set from API meta when
+/// the backend exposes pagination; omit only for non-paginated feeds.
 class PaginatedPage<T> {
   final List<T> items;
   final bool? hasMore;
@@ -132,7 +131,7 @@ class PaginatedListController<T> extends ChangeNotifier {
       final page = await fetchPage(_currentPage);
       if (_disposed || epoch != _loadEpoch) return;
       items.addAll(page.items);
-      _hasMore = page.hasMore ?? page.items.length >= pageSize;
+      _hasMore = page.hasMore ?? false;
       _isInitialLoading = false;
       notifyListeners();
     } catch (_) {
@@ -157,34 +156,31 @@ class PaginatedListController<T> extends ChangeNotifier {
 
     _isLoadingMore = true;
     notifyListeners();
-    PaginationScroll.maintainAfterPageAppend(
-      controller,
-      wasNearEnd: wasNearEnd,
-    );
 
     try {
       final nextPage = _currentPage + pageIncrement;
       final page = await fetchPage(nextPage);
       if (_disposed) return;
 
-      _appendUnique(page.items);
+      final batch = page.items;
+      _appendUnique(batch);
       _currentPage = nextPage;
-      _hasMore = page.hasMore ?? page.items.length >= pageSize;
+      _hasMore = page.hasMore ?? false;
       _isLoadingMore = false;
       notifyListeners();
 
-      PaginationScroll.maintainAfterPageAppend(
-        controller,
-        wasNearEnd: wasNearEnd,
-      );
+      // Re-anchor only when more pages remain; skipping on the last page
+      // avoids the footer swapping (spinner → end) from nudging scroll up.
+      if (wasNearEnd && batch.isNotEmpty && _hasMore) {
+        PaginationScroll.maintainAfterPageAppend(
+          controller,
+          wasNearEnd: true,
+        );
+      }
     } catch (_) {
       if (_disposed) return;
       _isLoadingMore = false;
       notifyListeners();
-      PaginationScroll.maintainAfterPageAppend(
-        controller,
-        wasNearEnd: wasNearEnd,
-      );
     }
   }
 

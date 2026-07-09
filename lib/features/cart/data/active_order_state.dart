@@ -1630,6 +1630,33 @@ class ActiveOrderState extends ChangeNotifier {
   /// Single source of truth shared by the WebSocket handler
   /// ([updateFromSocket]) and the API hydration path
   /// ([hydrateActiveOrdersFromApi]) so they can never drift apart.
+  static const paymentTransitionStatuses = {
+    'PAYMENT_SLIP_REQUESTED',
+    'AWAITING_APPROVAL',
+    'PAYMENT_UPLOADED',
+    'PAYMENT_CHECKING',
+    'CONFIRMED',
+    'AWAITING_PAYMENT',
+  };
+
+  static const cookingTransitionStatuses = {
+    'PAID',
+    'PAYMENT_VERIFIED',
+    'PREPARING',
+    'COOKING',
+    'READY_FOR_PICKUP',
+  };
+
+  static bool isPaymentTransitionStatus(String? status) {
+    if (status == null) return false;
+    return paymentTransitionStatuses.contains(status.toUpperCase());
+  }
+
+  static bool isCookingTransitionStatus(String? status) {
+    if (status == null) return false;
+    return cookingTransitionStatuses.contains(status.toUpperCase());
+  }
+
   static void applyStatusString(
     ActiveOrderItem item,
     String statusStr, {
@@ -1659,6 +1686,11 @@ class ActiveOrderState extends ChangeNotifier {
         item.isPaymentChecking = true;
         break;
       case 'CONFIRMED':
+        item.orderStatus = 1;
+        item.showUploadSection = false;
+        item.isPaymentChecking = false;
+        break;
+      case 'AWAITING_PAYMENT':
         item.orderStatus = 1;
         item.showUploadSection = false;
         item.isPaymentChecking = false;

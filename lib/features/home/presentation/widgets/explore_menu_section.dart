@@ -94,10 +94,9 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
       page: page,
       size: _pageSize,
     );
-    final items = section.items;
     return PaginatedPage(
-      items: items,
-      hasMore: items.length >= _pageSize,
+      items: section.items,
+      hasMore: section.hasMore,
     );
   }
 

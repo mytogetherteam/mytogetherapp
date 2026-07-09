@@ -36,6 +36,8 @@ class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
   final double deliveryFee;
 
+  static bool isCurrentlyVisible = false;
+
   const OrderStatusPage({
     super.key,
     required this.foodTotal,
@@ -83,6 +85,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   @override
   void initState() {
     super.initState();
+    OrderStatusPage.isCurrentlyVisible = true;
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     _backendStatus = ActiveOrderState.instance.backendStatus;
     _startFakeTimer();
@@ -321,6 +324,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   @override
   void dispose() {
+    OrderStatusPage.isCurrentlyVisible = false;
     _fakeTimer?.cancel();
     _processingController.dispose();
     WidgetsBinding.instance.removeObserver(this);
