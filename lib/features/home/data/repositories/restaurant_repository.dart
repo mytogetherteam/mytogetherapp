@@ -168,6 +168,38 @@ class RestaurantRepository {
     }
   }
 
+  /// Loads every shop within [radius] km for map markers. The nearby API caps
+  /// each page at 100; this walks pages until [SearchPageResult.hasMore] is false.
+  Future<List<Restaurant>> getAllNearbyShopsWithinRadius({
+    required double lat,
+    required double lon,
+    double radius = 5.0,
+  }) async {
+    const fetchSize = 100;
+    final all = <Restaurant>[];
+    var page = 1;
+
+    while (true) {
+      final response = await SearchRepository.instance.searchNearby(
+        latitude: lat,
+        longitude: lon,
+        radiusKm: radius,
+        page: page,
+        size: fetchSize,
+      );
+      all.addAll(
+        response.shops
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+            .toList(),
+      );
+      if (!response.hasMore) break;
+      page++;
+    }
+
+    unawaited(_prefetchOrderStateForRestaurants(all));
+    return all;
+  }
+
   /// Popular shops from `GET /api/user/shop-profile/popular`.
   /// Falls back to nearby search when the user is not logged in.
   Future<List<Restaurant>> getPopularShops({

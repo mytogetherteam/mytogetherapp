@@ -56,6 +56,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   bool _showMap = false;
   double _currentZoom = 14.0;
   double _selectedRadius = 5.0;
+  List<Restaurant> _mapRestaurants = [];
+  int _mapFetchEpoch = 0;
 
   late final Dio _dio;
   String get _googleMapsApiKey => GoogleMapsConfig.apiKey;
@@ -72,6 +74,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_listScrollController);
     _pagination.loadInitial();
+    _loadMapRestaurants();
     _initLocationService();
     UserLocationRepository.instance.addListener(_onActiveLocationChanged);
   }
@@ -79,20 +82,46 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   void _onPaginationChanged() {
     if (!mounted) return;
     setState(() {});
-    final restaurants = _pagination.items;
-    _updateMarkers(restaurants);
-    if (!_didInitialCamera &&
-        !_pagination.isInitialLoading &&
-        restaurants.isNotEmpty) {
-      _didInitialCamera = true;
-      _animateCameraToRestaurants(restaurants);
+  }
+
+  Future<void> _loadMapRestaurants() async {
+    final epoch = ++_mapFetchEpoch;
+    try {
+      final coords =
+          await UserLocationRepository.instance.resolveActiveCoordinates();
+      final restaurants =
+          await RestaurantRepository.instance.getAllNearbyShopsWithinRadius(
+        lat: coords.lat,
+        lon: coords.lon,
+        radius: _selectedRadius,
+      );
+      if (!mounted || epoch != _mapFetchEpoch) return;
+      setState(() => _mapRestaurants = restaurants);
+      _updateMarkers(_mapRestaurants);
+      if (!_didInitialCamera && restaurants.isNotEmpty) {
+        _didInitialCamera = true;
+        _animateCameraToRestaurants(restaurants);
+      }
+    } catch (_) {
+      // Keep existing markers on failure.
     }
+  }
+
+  Restaurant? _restaurantById(String id) {
+    for (final r in _mapRestaurants) {
+      if (r.id == id) return r;
+    }
+    for (final r in _pagination.items) {
+      if (r.id == id) return r;
+    }
+    return null;
   }
 
   void _onActiveLocationChanged() {
     if (!mounted) return;
     _didInitialCamera = false;
     _pagination.refresh();
+    _loadMapRestaurants();
   }
 
   Future<PaginatedPage<Restaurant>> _fetchRestaurantsPage(int page) async {
@@ -114,6 +143,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   void _fetchRestaurants() {
     _didInitialCamera = false;
     _pagination.refresh();
+    _loadMapRestaurants();
   }
 
   Future<void> _initLocationService() async {
@@ -196,7 +226,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   LatLngBounds? _routeBounds;
 
   Future<void> _onCurrentLocationTapped() async {
-    if (_expandedRestaurantId == null || _pagination.items.isEmpty) return;
+    if (_expandedRestaurantId == null) return;
 
     // SECOND CLICK: route already displayed — re-center camera to show full route
     if (_polylines.isNotEmpty && _routeBounds != null) {
@@ -214,11 +244,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       _isRouting = true;
     });
 
-    final rList = _pagination.items;
-    final selected = rList.cast<Restaurant?>().firstWhere(
-      (element) => element?.id == _expandedRestaurantId,
-      orElse: () => null,
-    );
+    final selected = _restaurantById(_expandedRestaurantId!);
 
     if (selected == null ||
         selected.latitude == null ||
@@ -668,7 +694,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     });
 
     // Re-render markers to show selected state
-    _updateMarkers(_pagination.items);
+    _updateMarkers(_mapRestaurants);
 
     // Center map on marker with offset
     _centerMapOnRestaurant(r, isExpandedAtTarget: true);
@@ -764,7 +790,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
   Future<void> _onCameraIdle() async {
     await _mapController.future;
-    _updateMarkers(_pagination.items);
+    _updateMarkers(_mapRestaurants);
   }
 
   Widget _buildRestaurantList() {
@@ -840,7 +866,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                   data,
                   isExpandedAtTarget: true,
                 );
-                _updateMarkers(restaurants);
+                _updateMarkers(_mapRestaurants);
               });
             }
           },
@@ -1087,10 +1113,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         GestureDetector(
                           onTap: () {
                             if (_expandedRestaurantId == null) return;
-                            final selected = _pagination.items.cast<Restaurant?>().firstWhere(
-                              (r) => r?.id == _expandedRestaurantId,
-                              orElse: () => null,
-                            );
+                            final selected = _restaurantById(_expandedRestaurantId!);
                             if (selected != null) {
                               _navigateToDetail(selected);
                             }
