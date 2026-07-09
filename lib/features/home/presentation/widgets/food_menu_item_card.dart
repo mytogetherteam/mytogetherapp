@@ -544,16 +544,7 @@ class _OutOfStockWrapper extends StatelessWidget {
     if (orderBlocked && !isDisabled) return child;
     return Stack(
       children: [
-        // Grayscale effect for the whole card when disabled
-        ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0,      0,      0,      1, 0,
-          ]),
-          child: Opacity(opacity: 0.5, child: child),
-        ),
+        child,
         // "Unavailable" overlay centered specifically over the image area
         Positioned.fill(
           child: LayoutBuilder(

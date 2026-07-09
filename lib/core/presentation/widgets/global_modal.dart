@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 class GlobalModal {
   /// Displays a generic, globally styled modal dialog.
   /// This layout wraps any [Widget] child passed into it.
-  static void show({
+  static Future<T?> show<T>({
     required BuildContext context,
     required Widget child,
     bool barrierDismissible = true,
   }) {
-    showModalBottomSheet(
+    return showModalBottomSheet<T>(
       context: context,
       isDismissible: barrierDismissible,
       isScrollControlled: true,

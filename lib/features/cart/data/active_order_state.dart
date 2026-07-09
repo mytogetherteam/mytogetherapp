@@ -1831,15 +1831,12 @@ class ActiveOrderState extends ChangeNotifier {
   /// Confirms with the server that the user has no in-flight order before
   /// starting checkout. Hydrates any ongoing orders found on the backend.
   Future<CanPlaceOrderResult> ensureCanPlaceNewOrder() async {
-    if (activeOrdersList.isNotEmpty) {
-      return CanPlaceOrderResult.hasOngoingOrder;
-    }
     try {
       final all = await OrderRepository().getOrderHistoryStrict();
       final ongoing = all.where((o) => o.ongoing).toList();
 
       if (ongoing.isEmpty && activeOrdersList.isNotEmpty) {
-        // Local state is stuck on a ghost order, clear it.
+        // Local state is stuck on a ghost order, clear it
         clearOrder();
       }
 
@@ -1869,7 +1866,7 @@ class ActiveOrderState extends ChangeNotifier {
       final ongoing = all.where((o) => o.ongoing).toList();
 
       if (ongoing.isEmpty && activeOrdersList.isNotEmpty) {
-        // Backend confirms no ongoing orders, clear local ghost orders.
+        // Backend confirms no ongoing orders, clear local ghost orders
         clearOrder();
       }
 

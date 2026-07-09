@@ -236,18 +236,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
     if (!mounted) return false;
     final distanceStr = km.toStringAsFixed(1);
-    final result = await AppDialog.show<bool>(
+    final result = await GlobalModal.show<bool>(
       context: context,
-      title: context.tr('order.far_delivery_title'),
-      content: context.trArgs('order.far_delivery_message', {
-        'distance': distanceStr,
-        'limit': GeoDistance.distanceConfirmThresholdKm.toStringAsFixed(0),
-      }),
-      buttonText: context.tr('order.far_delivery_continue'),
-      secondaryButtonText: context.tr('common.cancel'),
-      onButtonPressed: () => Navigator.pop(context, true),
-      onSecondaryPressed: () => Navigator.pop(context, false),
-      showCloseIcon: false,
+      child: _FarDeliveryModal(
+        distanceStr: distanceStr,
+        limitStr: GeoDistance.distanceConfirmThresholdKm.toStringAsFixed(0),
+      ),
     );
     return result == true;
   }
@@ -548,7 +542,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: GoogleFonts.poppins()),
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: const Color(0xFFEF4444),
       ),
     );
   }
@@ -1210,6 +1204,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ],
+
                               // Delivery fee estimate appears after shop confirms.
                               /*
                               const SizedBox(height: 20),
@@ -1432,46 +1427,36 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       if (hasOngoingOrder)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                  horizontal: 14,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  PhosphorIconsRegular.info,
+                                  size: 18,
+                                  color: Colors.white,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.45),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(0xFFEF4444),
-                                    width: 1,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    context.tr('cart.ongoing_order_wait'),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      PhosphorIconsRegular.info,
-                                      size: 18,
-                                      color: Color(0xFFDC2626),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        context.tr('cart.ongoing_order_wait'),
-                                        style: GoogleFonts.poppins(
-                                          color: const Color(0xFFDC2626),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -2462,6 +2447,83 @@ class _CouponRowIconButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FarDeliveryModal extends StatelessWidget {
+  final String distanceStr;
+  final String limitStr;
+
+  const _FarDeliveryModal({
+    super.key,
+    required this.distanceStr,
+    required this.limitStr,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          context.tr('order.far_delivery_title'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          context.trArgs('order.far_delivery_message', {
+            'distance': distanceStr,
+            'limit': limitStr,
+          }),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: const Color(0xFF475569),
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 32),
+        PrimaryGradientButton(
+          onPressed: () => Navigator.pop(context, true),
+          height: 54,
+          borderRadius: BorderRadius.circular(16),
+          child: Text(
+            context.tr('order.far_delivery_continue'),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text(
+              context.tr('common.cancel'),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

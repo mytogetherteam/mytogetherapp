@@ -130,7 +130,7 @@ class _CartPageState extends State<CartPage> {
                 ),
               );
             },
-            backgroundColor: AppColors.primary,
+            backgroundColor: Colors.red,
             foregroundColor: Colors.white,
             icon: Icons.delete_outline,
             label: context.tr('common.remove'),
