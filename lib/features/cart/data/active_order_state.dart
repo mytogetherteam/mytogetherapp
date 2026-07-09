@@ -1831,21 +1831,28 @@ class ActiveOrderState extends ChangeNotifier {
   /// Confirms with the server that the user has no in-flight order before
   /// starting checkout. Hydrates any ongoing orders found on the backend.
   Future<CanPlaceOrderResult> ensureCanPlaceNewOrder() async {
-    if (_orderPlacementInFlight || activeOrdersList.isNotEmpty) {
+    if (activeOrdersList.isNotEmpty) {
       return CanPlaceOrderResult.hasOngoingOrder;
     }
     try {
       final all = await OrderRepository().getOrderHistoryStrict();
       final ongoing = all.where((o) => o.ongoing).toList();
+
+      if (ongoing.isEmpty && activeOrdersList.isNotEmpty) {
+        // Local state is stuck on a ghost order, clear it.
+        clearOrder();
+      }
+
       if (ongoing.isNotEmpty) {
         await _registerOngoingOrdersFromHistory(ongoing, enrichDetails: false);
         return CanPlaceOrderResult.hasOngoingOrder;
       }
-      if (_orderPlacementInFlight || activeOrdersList.isNotEmpty) {
-        return CanPlaceOrderResult.hasOngoingOrder;
-      }
+
       return CanPlaceOrderResult.allowed;
     } catch (_) {
+      if (activeOrdersList.isNotEmpty) {
+        return CanPlaceOrderResult.hasOngoingOrder;
+      }
       return CanPlaceOrderResult.checkFailed;
     }
   }
@@ -1860,6 +1867,12 @@ class ActiveOrderState extends ChangeNotifier {
     try {
       final all = await OrderRepository().getOrderHistory();
       final ongoing = all.where((o) => o.ongoing).toList();
+
+      if (ongoing.isEmpty && activeOrdersList.isNotEmpty) {
+        // Backend confirms no ongoing orders, clear local ghost orders.
+        clearOrder();
+      }
+
       await _registerOngoingOrdersFromHistory(ongoing);
     } catch (_) {
       // Best-effort hydration; silent on failure.

@@ -565,7 +565,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       _isProcessing = true;
       _isPlacingOrder = true;
     });
-    ActiveOrderState.instance.beginOrderPlacement();
 
     try {
       if (_isDelivery) {
@@ -595,6 +594,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (!await _confirmFarDeliveryIfNeeded()) {
         return;
       }
+
+      // Lock checkout only after preflight passes — beginOrderPlacement() sets
+      // [_orderPlacementInFlight], which must not run before ensureCanPlaceNewOrder().
+      ActiveOrderState.instance.beginOrderPlacement();
 
       final nav = Navigator.of(context);
       final foodTotal =

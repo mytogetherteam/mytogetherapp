@@ -657,6 +657,7 @@ class AppTranslations {
     'payment.account_name': 'Account Name',
     'payment.account_number': 'Account Number',
     'payment.payment_details': 'Payment Details',
+    'payment.awaiting_image': 'Awaiting payment image...',
     'payment.awaiting_title': 'Awaiting Payment',
     'payment.back': 'Back',
     'payment.calculate_later': 'Calculate Later',
