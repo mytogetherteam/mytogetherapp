@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
+import '../../data/models/nearby_shops_page_result.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
@@ -67,17 +68,17 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
 
   Future<PaginatedPage<Restaurant>> _fetchPage(int page) async {
     final loc = await _resolveLocation();
-    final List<Restaurant> results;
+    final NearbyShopsPageResult pageResult;
     switch (widget.kind) {
       case FoodCollectionKind.trending:
-        results = await RestaurantRepository.instance.getTrendingShops(
+        pageResult = await RestaurantRepository.instance.getTrendingShopsPage(
           lat: loc.lat,
           lon: loc.lon,
           page: page,
           size: _pagination.pageSize,
         );
       case FoodCollectionKind.popular:
-        results = await RestaurantRepository.instance.getPopularShops(
+        pageResult = await RestaurantRepository.instance.getPopularShopsPage(
           lat: loc.lat,
           lon: loc.lon,
           page: page,
@@ -85,8 +86,8 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
         );
     }
     return PaginatedPage(
-      items: results,
-      hasMore: results.length >= _pagination.pageSize,
+      items: pageResult.restaurants,
+      hasMore: pageResult.hasMore,
     );
   }
 

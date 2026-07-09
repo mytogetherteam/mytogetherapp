@@ -57,15 +57,15 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       initialPage: 1,
       itemKey: (order) => order.id,
       fetchPage: (page) async {
-        final batch = await OrderRepository().getOrderHistory(
+        final batch = await OrderRepository().getOrderHistoryPage(
           statuses: statuses,
           shopId: widget.shopId,
           page: page,
           size: _pageSize,
         );
         return PaginatedPage(
-          items: batch,
-          hasMore: batch.length >= _pageSize,
+          items: batch.items,
+          hasMore: batch.hasMore,
         );
       },
     );

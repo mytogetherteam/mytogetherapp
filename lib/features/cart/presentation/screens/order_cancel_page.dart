@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
+import '../../../main_navigation/presentation/screens/main_navigation_screen.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/active_order_state.dart';
@@ -77,14 +78,25 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
         (route) => route.isFirst,
       );
     } else {
-      _goHome(context);
+      _exitToFoodTab(context);
     }
   }
 
-  void _goHome(BuildContext context) {
+  void _exitToFoodTab(BuildContext context) {
     ActiveOrderState.instance.clearOrder(orderId: widget.orderId);
-    NavigationController.instance.goToFoodTab();
-    _rootNavigator.popUntil((route) => route.isFirst);
+    final nav = App.navigatorKey.currentState ??
+        Navigator.of(context, rootNavigator: true);
+    if (nav.canPop()) {
+      nav.popUntil((route) => route.isFirst);
+    } else {
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NavigationController.instance.goToFoodTab();
+    });
   }
 
   Widget _buildNoImagePlaceholder(BuildContext context, {bool isLogo = false}) {
@@ -130,7 +142,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _goHome(context);
+        if (!didPop) _exitToFoodTab(context);
       },
       child: Scaffold(
       backgroundColor: Colors.white,
@@ -139,7 +151,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIcons.x, color: Colors.black),
-          onPressed: () => _goHome(context),
+          onPressed: () => _exitToFoodTab(context),
         ),
       ),
       body: SafeArea(

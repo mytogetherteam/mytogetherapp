@@ -305,7 +305,18 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       );
       return;
     }
-    if (s == 2 || s == -1) {
+    if (s == 2) {
+      if (OrderStatusPage.isCurrentlyVisible) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: order.resolvedItemSubtotal,
+            deliveryFee: order.deliveryFee ?? 0,
+          ),
+        ),
+      );
+    } else if (s == -1) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -316,6 +327,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         ),
       );
     } else if (s == 1) {
+      if (AwaitingPaymentPage.isCurrentlyVisible) return;
       Navigator.push(
         context,
         MaterialPageRoute(

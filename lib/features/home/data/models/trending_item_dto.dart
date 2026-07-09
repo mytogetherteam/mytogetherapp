@@ -1,5 +1,6 @@
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/location/geo_distance.dart';
+import '../../../../core/utils/api_response_utils.dart';
 import '../shop_order_state_parser.dart';
 import 'shop_dto.dart' show OperatingHourDto;
 
@@ -227,6 +228,9 @@ class TrendingSectionDto {
   final List<TrendingItemDto> items;
   final int totalCount;
   final String? mealType;
+  final int page;
+  final int lastPage;
+  final int pageSize;
 
   TrendingSectionDto({
     required this.title,
@@ -234,7 +238,18 @@ class TrendingSectionDto {
     required this.items,
     required this.totalCount,
     this.mealType,
+    this.page = 1,
+    this.lastPage = 0,
+    this.pageSize = 20,
   });
+
+  bool get hasMore => ApiResponseUtils.hasMorePages(
+        page: page,
+        lastPage: lastPage,
+        itemCount: items.length,
+        pageSize: pageSize,
+        totalCount: totalCount,
+      );
 
   factory TrendingSectionDto.fromJson(Map<String, dynamic> json) {
     return TrendingSectionDto(
@@ -252,6 +267,7 @@ class TrendingSectionDto {
     Map<String, dynamic> json, {
     double? originLat,
     double? originLon,
+    int pageSize = 20,
   }) {
     final data = json['data'];
     final items = data is List
@@ -270,6 +286,10 @@ class TrendingSectionDto {
         ? json['meta'] as Map<String, dynamic>
         : const <String, dynamic>{};
     final total = (meta['total'] as num?)?.toInt() ?? items.length;
+    final currentPage = (meta['page'] as num?)?.toInt() ?? 1;
+    final lastPage = (meta['last_page'] as num?)?.toInt() ??
+        (meta['lastPage'] as num?)?.toInt() ??
+        0;
 
     return TrendingSectionDto(
       title: 'Trending Near By',
@@ -277,6 +297,9 @@ class TrendingSectionDto {
       items: items,
       totalCount: total,
       mealType: json['mealType']?.toString(),
+      page: currentPage,
+      lastPage: lastPage,
+      pageSize: pageSize,
     );
   }
 }

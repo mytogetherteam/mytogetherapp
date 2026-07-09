@@ -31,10 +31,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       initialPage: 1,
       itemKey: (item) => item.id,
       fetchPage: (page) async {
-        final fresh = await _repository.getAnnouncements(page: page, size: 20);
+        final fresh = await _repository.getAnnouncementsPage(page: page, size: 20);
         return PaginatedPage(
-          items: fresh,
-          hasMore: fresh.length >= 20,
+          items: fresh.items,
+          hasMore: fresh.hasMore,
         );
       },
     )..addListener(_onPaginationChanged);

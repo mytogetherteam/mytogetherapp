@@ -13,6 +13,7 @@ import '../../data/models/shop_feed_item_dto.dart';
 import '../../../../core/presentation/widgets/empty_state_view.dart';
 import '../../../../core/presentation/utils/paginated_list_controller.dart';
 import '../../../../core/presentation/widgets/pagination_list_footer.dart';
+import '../../../../core/utils/api_response_utils.dart';
 
 class TodayOverviewDetailPage extends StatefulWidget {
   /// When provided, the page paginates this shop-feed type (e.g. `hot-deals`)
@@ -44,7 +45,6 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
 
   final ScrollController _scrollController = ScrollController();
   late final PaginatedListController<MenuItemDto> _pagination;
-  int _discountTotalCount = 0;
   final Map<String, bool> _localFavorites = {};
 
   @override
@@ -74,17 +74,6 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
   }
 
   Future<PaginatedPage<MenuItemDto>> _fetchPageForController(int page) async {
-    final items = await _fetchPage(page);
-    final bool hasMore;
-    if (widget.feedType == 'hot-deals' && _discountTotalCount > 0) {
-      hasMore = (page * _pageSize + items.length) < _discountTotalCount;
-    } else {
-      hasMore = items.length >= _pageSize;
-    }
-    return PaginatedPage(items: items, hasMore: hasMore);
-  }
-
-  Future<List<MenuItemDto>> _fetchPage(int page) async {
     final activeLoc = UserLocationRepository.instance.activeLocation;
     final pos = await LocationService().getCurrentPosition();
     final lat = activeLoc?.latitude ?? pos.latitude;
@@ -100,10 +89,20 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         size: _pageSize,
         forceRefresh: page == 0,
       );
-      if (page == 0) {
-        _discountTotalCount = deals.totalCount;
-      }
-      return deals.items.map(_mapShopFeedToMenuItem).toList();
+      final items = deals.items.map(_mapShopFeedToMenuItem).toList();
+      final lastPage = deals.totalCount > 0
+          ? ((deals.totalCount + _pageSize - 1) / _pageSize).ceil()
+          : 0;
+      return PaginatedPage(
+        items: items,
+        hasMore: ApiResponseUtils.hasMorePages(
+          page: page + 1,
+          lastPage: lastPage,
+          itemCount: items.length,
+          pageSize: _pageSize,
+          totalCount: deals.totalCount,
+        ),
+      );
     }
 
     if (widget.feedType != null) {
@@ -114,7 +113,10 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
         page: page,
         size: _pageSize,
       );
-      return section.items.map(_mapShopFeedToMenuItem).toList();
+      return PaginatedPage(
+        items: section.items.map(_mapShopFeedToMenuItem).toList(),
+        hasMore: section.hasMore,
+      );
     }
 
     final section = await RestaurantRepository.instance.getTrendingItems(
@@ -123,7 +125,10 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       page: page,
       size: _pageSize,
     );
-    return section.items.map(_mapTrendingToMenuItem).toList();
+    return PaginatedPage(
+      items: section.items.map(_mapTrendingToMenuItem).toList(),
+      hasMore: section.hasMore,
+    );
   }
 
   MenuItemDto _mapShopFeedToMenuItem(ShopFeedItemDto s) {
@@ -237,7 +242,6 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          _discountTotalCount = 0;
           await _pagination.refresh();
         },
         color: AppColors.primary,

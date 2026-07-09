@@ -1,7 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import '../../../../core/network/api_client.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/api_response_utils.dart';
 import '../models/announcement_model.dart';
+
+class AnnouncementPageResult {
+  final List<AnnouncementModel> items;
+  final bool hasMore;
+
+  const AnnouncementPageResult({required this.items, required this.hasMore});
+}
 
 /// Recipient-facing announcements (admin broadcasts), separate from the
 /// order-notification feed. Backend (`dev`):
@@ -25,13 +33,21 @@ class AnnouncementRepository {
     int page = 1,
     int size = 20,
   }) async {
+    final result = await getAnnouncementsPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<AnnouncementPageResult> getAnnouncementsPage({
+    int page = 1,
+    int size = 20,
+  }) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/announcements',
       queryParameters: {'page': page, 'size': size},
     );
 
     if (response.statusCode != 200 || response.data == null) {
-      return [];
+      return const AnnouncementPageResult(items: [], hasMore: false);
     }
 
     final raw = response.data;
@@ -39,9 +55,16 @@ class AnnouncementRepository {
         ? (raw['data'] as List<dynamic>? ?? const [])
         : (raw is List ? raw : const []);
 
-    return list
+    final models = list
         .map((e) => AnnouncementModel.fromJson(e as Map<String, dynamic>))
         .toList();
+    final paged = PagedApiResult.fromBody(
+      body: raw,
+      page: page,
+      pageSize: size,
+      items: models,
+    );
+    return AnnouncementPageResult(items: paged.items, hasMore: paged.hasMore);
   }
 
   /// Optimistic bump for the badge when a new broadcast arrives in real time,

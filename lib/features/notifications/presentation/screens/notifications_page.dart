@@ -37,10 +37,10 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
       initialPage: 0,
       itemKey: (item) => item.id,
       fetchPage: (page) async {
-        final batch = await _repository.getNotifications(page: page, size: 20);
+        final batch = await _repository.getNotificationsPage(page: page, size: 20);
         return PaginatedPage(
-          items: batch,
-          hasMore: batch.length >= 20,
+          items: batch.items,
+          hasMore: batch.hasMore,
         );
       },
     )..addListener(_onPaginationChanged);

@@ -1,7 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/api_response_utils.dart';
 import '../models/wishlist_item_dto.dart';
+
+class WishlistPageResult {
+  final List<WishlistItemDto> items;
+  final bool hasMore;
+
+  const WishlistPageResult({required this.items, required this.hasMore});
+}
 
 /// Wraps the new backend's `WishlistModule`:
 ///   POST   /api/user/wishlist                  body: {menuItemId} | {shopId} | {placeId}
@@ -97,13 +105,21 @@ class WishlistRepository extends ChangeNotifier {
     int page = 1,
     int size = 50,
   }) async {
+    final result = await listMenuItemsPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<WishlistPageResult> listMenuItemsPage({
+    int page = 1,
+    int size = 50,
+  }) async {
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/wishlist/menu-items',
       queryParameters: {'page': page, 'size': size},
     );
 
-    final items = _parseList(response.data);
-    for (final item in items) {
+    final paged = _parsePagedResponse(response.data, page: page, size: size);
+    for (final item in paged.items) {
       if (item.menuItemId != null) {
         _menuItemIndex[item.menuItemId!] = item.id;
       } else if (item.menuItem != null) {
@@ -111,10 +127,18 @@ class WishlistRepository extends ChangeNotifier {
       }
     }
     notifyListeners();
-    return items;
+    return paged;
   }
 
   Future<List<WishlistItemDto>> listShops({
+    int page = 1,
+    int size = 50,
+  }) async {
+    final result = await listShopsPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<WishlistPageResult> listShopsPage({
     int page = 1,
     int size = 50,
   }) async {
@@ -123,8 +147,8 @@ class WishlistRepository extends ChangeNotifier {
       queryParameters: {'page': page, 'size': size},
     );
 
-    final items = _parseList(response.data);
-    for (final item in items) {
+    final paged = _parsePagedResponse(response.data, page: page, size: size);
+    for (final item in paged.items) {
       if (item.shopId != null) {
         _shopIndex[item.shopId!] = item.id;
       } else if (item.shop != null) {
@@ -132,7 +156,7 @@ class WishlistRepository extends ChangeNotifier {
       }
     }
     notifyListeners();
-    return items;
+    return paged;
   }
 
   /// Adds a menu item to the wishlist. Returns the created row.
@@ -173,13 +197,21 @@ class WishlistRepository extends ChangeNotifier {
     int page = 1,
     int size = 50,
   }) async {
+    final result = await listPlacesPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<WishlistPageResult> listPlacesPage({
+    int page = 1,
+    int size = 50,
+  }) async {
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/wishlist/places',
       queryParameters: {'page': page, 'size': size},
     );
 
-    final items = _parseList(response.data);
-    for (final item in items) {
+    final paged = _parsePagedResponse(response.data, page: page, size: size);
+    for (final item in paged.items) {
       if (item.placeId != null) {
         _placeIndex[item.placeId!] = item.id;
       } else if (item.place != null) {
@@ -187,7 +219,7 @@ class WishlistRepository extends ChangeNotifier {
       }
     }
     notifyListeners();
-    return items;
+    return paged;
   }
 
   Future<WishlistItemDto?> addShop(int shopId) async {
@@ -383,6 +415,21 @@ class WishlistRepository extends ChangeNotifier {
           .toList();
     }
     return const [];
+  }
+
+  WishlistPageResult _parsePagedResponse(
+    dynamic body, {
+    required int page,
+    required int size,
+  }) {
+    final items = _parseList(body);
+    final paged = PagedApiResult.fromBody(
+      body: body,
+      page: page,
+      pageSize: size,
+      items: items,
+    );
+    return WishlistPageResult(items: paged.items, hasMore: paged.hasMore);
   }
 
   WishlistItemDto? _parseSingle(dynamic body) {

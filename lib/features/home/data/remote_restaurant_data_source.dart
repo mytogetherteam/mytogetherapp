@@ -7,6 +7,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../../../../core/auth/auth_service.dart';
+import '../../../../core/utils/api_response_utils.dart';
 import 'models/banner_image_dto.dart';
 import 'models/shop_dto.dart';
 import 'models/trending_item_dto.dart';
@@ -244,6 +245,9 @@ class RemoteRestaurantDataSource {
       );
       return ShopFeedSectionDto(
         items: section.items.map(ShopFeedItemDto.fromTrendingItem).toList(),
+        page: section.page,
+        lastPage: section.lastPage,
+        pageSize: size,
       );
     }
 
@@ -265,14 +269,33 @@ class RemoteRestaurantDataSource {
         page: page + 1,
         size: size,
       );
-      return ShopFeedSectionDto(items: deals.items);
+      final lastPage = deals.totalCount > 0
+          ? ((deals.totalCount + size - 1) / size).ceil()
+          : 0;
+      return ShopFeedSectionDto(
+        items: deals.items,
+        page: page + 1,
+        lastPage: lastPage,
+        pageSize: size,
+      );
     }
 
     if (feedType == 'popular-dishes') {
-      final rawItems = await _fetchMenuItemMaps(page: page + 1, size: size);
-      final recommended = rawItems
-          .where((m) => m['isRecommended'] == true)
-          .toList();
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/menu-items',
+        queryParameters: {
+          'page': page + 1,
+          'size': size,
+        },
+      );
+      final raw = response.data;
+      final data = raw is Map ? raw['data'] : null;
+      final content = data is Map ? data['content'] : null;
+      final rawItems = content is List
+          ? content.whereType<Map<String, dynamic>>().toList()
+          : <Map<String, dynamic>>[];
+      final recommended =
+          rawItems.where((m) => m['isRecommended'] == true).toList();
       final maps = recommended.isNotEmpty ? recommended : rawItems;
       return ShopFeedSectionDto(
         items: maps
@@ -284,6 +307,9 @@ class RemoteRestaurantDataSource {
               ),
             )
             .toList(),
+        page: ApiResponseUtils.parseCurrentPage(raw, requestedPage: page + 1),
+        lastPage: ApiResponseUtils.parseLastPage(raw),
+        pageSize: size,
       );
     }
 
@@ -329,7 +355,12 @@ class RemoteRestaurantDataSource {
             )
             .toList()
         : <ShopFeedItemDto>[];
-    return ShopFeedSectionDto(items: items);
+    return ShopFeedSectionDto(
+      items: items,
+      page: ApiResponseUtils.parseCurrentPage(raw, requestedPage: page),
+      lastPage: ApiResponseUtils.parseLastPage(raw),
+      pageSize: size,
+    );
   }
 
   /// "Explore menu" — paginated catalog of published menu items visible to the
@@ -365,7 +396,12 @@ class RemoteRestaurantDataSource {
             )
             .toList()
         : <ShopFeedItemDto>[];
-    return ShopFeedSectionDto(items: items);
+    return ShopFeedSectionDto(
+      items: items,
+      page: ApiResponseUtils.parseCurrentPage(raw, requestedPage: page),
+      lastPage: ApiResponseUtils.parseLastPage(raw),
+      pageSize: size,
+    );
   }
 
   /// Nearby discounted menu items for the home "Together — Up to X% Off" strip.

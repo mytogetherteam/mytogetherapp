@@ -67,27 +67,32 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         activeLoc?.longitude ?? pos?.longitude ?? LocationService.defaultLon;
 
     final List<Restaurant> results;
+    bool hasMore;
     if (AuthService().isLoggedIn) {
-      results = await RestaurantRepository.instance.getShopProfiles(
+      final pageResult = await RestaurantRepository.instance.getShopProfilesPage(
         page: page + 1,
         size: _pagination.pageSize,
         search: _searchQuery.trim().isEmpty ? null : _searchQuery,
         originLat: lat,
         originLon: lon,
       );
+      results = pageResult.restaurants;
+      hasMore = pageResult.hasMore;
     } else {
-      results = await RestaurantRepository.instance.getNearbyShops(
+      final pageResult = await RestaurantRepository.instance.getNearbyShopsPage(
         lat: lat,
         lon: lon,
         page: page,
         size: _pagination.pageSize,
         search: _searchQuery,
       );
+      results = pageResult.restaurants;
+      hasMore = pageResult.hasMore;
     }
 
     return PaginatedPage(
       items: results,
-      hasMore: results.length >= _pagination.pageSize,
+      hasMore: hasMore,
     );
   }
 

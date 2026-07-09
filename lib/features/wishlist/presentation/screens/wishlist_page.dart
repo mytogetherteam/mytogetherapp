@@ -69,11 +69,11 @@ class _WishlistPageState extends State<WishlistPage>
       initialIndex: widget.initialTab.clamp(0, 2),
     );
 
-    _menuPagination = _createWishlistController(_repo.listMenuItems)
+    _menuPagination = _createWishlistController(_repo.listMenuItemsPage)
       ..addListener(_onPaginationChanged);
-    _shopPagination = _createWishlistController(_repo.listShops)
+    _shopPagination = _createWishlistController(_repo.listShopsPage)
       ..addListener(_onPaginationChanged);
-    _placePagination = _createWishlistController(_repo.listPlaces)
+    _placePagination = _createWishlistController(_repo.listPlacesPage)
       ..addListener(_onPaginationChanged);
 
     _menuPagination.attachScrollController(_menuScrollController);
@@ -86,17 +86,17 @@ class _WishlistPageState extends State<WishlistPage>
   }
 
   PaginatedListController<WishlistItemDto> _createWishlistController(
-    Future<List<WishlistItemDto>> Function({int page, int size}) fetch,
+    Future<WishlistPageResult> Function({int page, int size}) fetch,
   ) {
     return PaginatedListController<WishlistItemDto>(
       pageSize: _pageSize,
       initialPage: 1,
       itemKey: (item) => item.id,
       fetchPage: (page) async {
-        final items = await fetch(page: page, size: _pageSize);
+        final pageResult = await fetch(page: page, size: _pageSize);
         return PaginatedPage(
-          items: items,
-          hasMore: items.length >= _pageSize,
+          items: pageResult.items,
+          hasMore: pageResult.hasMore,
         );
       },
     );
