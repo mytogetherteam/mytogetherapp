@@ -72,6 +72,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   /// status updates (WebSocket + backend reconcile) land close together.
   bool _hasNavigated = false;
 
+  /// When the QR URL fails to load, hide the image area instead of showing an
+  /// error placeholder.
+  bool _qrLoadFailed = false;
+  String? _lastQrUrl;
+
   /// A payment-only revision: the shop sent the order back (status REVISED)
   /// without flagging any unavailable items, meaning the customer just needs to
   /// re-upload a correct payment slip. The new payment image is submitted to
@@ -229,7 +234,12 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         // We intentionally do not override _showUploadSection here anymore.
         // It will only change when the user clicks context.tr('payment.save_qr') or context.tr('payment.done_payment').
       });
-      if (order?.paymentMethodImageUrl == null) {
+      final qrUrl = _resolveQrUrl(order);
+      if (qrUrl != _lastQrUrl) {
+        _lastQrUrl = qrUrl;
+        _qrLoadFailed = false;
+      }
+      if (_needsPaymentMethodFetch(order)) {
         _fetchPaymentMethodDetails();
       }
       // A status change applied to global state (e.g. from a backend sync or a
@@ -238,10 +248,44 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     }
   }
 
+  bool _hasAccountDetails(ActiveOrderItem? order) {
+    final hasNumber =
+        order?.paymentAccountNumber != null &&
+        order!.paymentAccountNumber!.trim().isNotEmpty;
+    final hasName =
+        order?.paymentAccountName != null &&
+        order!.paymentAccountName!.trim().isNotEmpty;
+    return hasNumber || hasName;
+  }
+
+  bool _needsPaymentMethodFetch(ActiveOrderItem? order) {
+    if (order == null || order.paymentMethodId == null) return false;
+    return _resolveQrUrl(order) == null || !_hasAccountDetails(order);
+  }
+
+  String? _resolveQrUrl(ActiveOrderItem? order) {
+    String? qrUrl = order?.shopPaymentQrUrl ?? order?.paymentMethodImageUrl;
+    if (qrUrl == null || qrUrl.isEmpty) return null;
+
+    qrUrl = qrUrl.replaceAll('\\', '/');
+    if (qrUrl.startsWith('http://localhost') ||
+        qrUrl.startsWith('http://10.0.2.2')) {
+      qrUrl = qrUrl.replaceAll(
+        RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
+        ApiClient.baseUrl,
+      );
+    } else if (!qrUrl.startsWith('http')) {
+      qrUrl = qrUrl.startsWith('/')
+          ? '${ApiClient.baseUrl}$qrUrl'
+          : '${ApiClient.baseUrl}/$qrUrl';
+    }
+    return qrUrl;
+  }
+
   Future<void> _fetchPaymentMethodDetails() async {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     if (order == null || order.paymentMethodId == null) return;
-    if (order.paymentMethodImageUrl != null) return;
+    if (_resolveQrUrl(order) != null && _hasAccountDetails(order)) return;
 
     try {
       Response? response;
@@ -760,107 +804,100 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     }
   }
 
-  Widget _buildPaymentImage() {
-    final order = ActiveOrderState.instance.getOrder(widget.orderId);
-    String? qrUrl = order?.shopPaymentQrUrl ?? order?.paymentMethodImageUrl;
+  Widget _buildAccountDetails(ActiveOrderItem order) {
+    final hasName =
+        order.paymentAccountName != null &&
+        order.paymentAccountName!.trim().isNotEmpty;
+    final hasNumber =
+        order.paymentAccountNumber != null &&
+        order.paymentAccountNumber!.trim().isNotEmpty;
+    if (!hasName && !hasNumber) return const SizedBox.shrink();
 
-    if (qrUrl != null && qrUrl.isNotEmpty) {
-      qrUrl = qrUrl.replaceAll('\\', '/');
-      if (qrUrl.startsWith('http://localhost') ||
-          qrUrl.startsWith('http://10.0.2.2')) {
-        qrUrl = qrUrl.replaceAll(
-          RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
-          ApiClient.baseUrl,
-        );
-      } else if (!qrUrl.startsWith('http')) {
-        qrUrl = qrUrl.startsWith('/')
-            ? '${ApiClient.baseUrl}$qrUrl'
-            : '${ApiClient.baseUrl}/$qrUrl';
-      }
-    }
-
-    if (qrUrl == null || qrUrl.isEmpty) {
-      if (order?.paymentAccountNumber != null && order!.paymentAccountNumber!.isNotEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasName) ...[
+          Text(
+            context.tr('payment.account_name'),
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            order.paymentAccountName!,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (hasNumber) ...[
+          Text(
+            context.tr('payment.account_number'),
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
             children: [
-              if (order.paymentAccountName != null && order.paymentAccountName!.isNotEmpty)
-                Text(
-                  order.paymentAccountName!,
+              Expanded(
+                child: Text(
+                  order.paymentAccountNumber!,
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
                 ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    order.paymentAccountNumber!,
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: order.paymentAccountNumber!));
-                      AppDialog.showToast(context, context.tr('payment.copied') ?? 'Copied to clipboard');
-                    },
-                    child: const Icon(PhosphorIconsRegular.copy, size: 24, color: Colors.grey),
-                  ),
-                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(
+                    ClipboardData(text: order.paymentAccountNumber!),
+                  );
+                  AppDialog.showToast(context, context.tr('common.copied'));
+                },
+                child: const Icon(
+                  PhosphorIconsRegular.copy,
+                  size: 22,
+                  color: Colors.grey,
+                ),
               ),
             ],
           ),
-        );
-      }
-      return const Center(child: CustomLoadingIndicator(size: 40));
-    }
-
-    return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-      imageUrl: qrUrl,
-      fit: BoxFit.contain,
-      placeholder: (context, url) =>
-          const Center(child: CustomLoadingIndicator(size: 24)),
-      errorWidget: (context, url, error) =>
-          _buildNoImageState(isError: true, failedUrl: url),
+        ],
+      ],
     );
   }
 
-  Widget _buildNoImageState({bool isError = false, String? failedUrl}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isError ? Icons.error_outline : Icons.image_not_supported_outlined,
-            size: 48,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              isError
-                  ? context.tr('payment.error_loading_image')
-                  : context.tr('payment.awaiting_image'),
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 10,
-                color: Colors.grey[500],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+  Widget _buildQrImage(String qrUrl) {
+    return RepaintBoundary(
+      key: _qrKey,
+      child: CachedNetworkImage(
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        imageUrl: qrUrl,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: CustomLoadingIndicator(size: 24)),
+        ),
+        errorWidget: (context, url, error) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_qrLoadFailed) {
+              setState(() => _qrLoadFailed = true);
+            }
+          });
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -1371,69 +1408,86 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 const SizedBox(height: 24),
               ] else ...[
                 if (!_showUploadSection) ...[
-                  // ── STEP 1: Payment QR Image ──
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
+                  // ── STEP 1: Payment details (account + optional QR) ──
+                  Builder(
+                    builder: (context) {
+                      final qrUrl = _resolveQrUrl(order);
+                      final showQr = qrUrl != null && !_qrLoadFailed;
+                      final hasAccount = _hasAccountDetails(order);
+                      final isLoadingDetails =
+                          !showQr &&
+                          !hasAccount &&
+                          order?.paymentMethodId != null;
 
-                        // Header of the card (QR Code and Actions)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Payment QR',
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _iconActionButton(
-                                  icon: PhosphorIconsRegular.downloadSimple,
-                                  onTap: _saveQrToGallery,
-                                ),
-                                const SizedBox(width: 8),
-                                _iconActionButton(
-                                  icon: PhosphorIconsRegular.shareNetwork,
-                                  onTap: _shareQrCode,
-                                ),
-                              ],
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        // Payment image
-                        RepaintBoundary(
-                          key: _qrKey,
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 200),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  context.tr('payment.payment_details'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                if (showQr)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _iconActionButton(
+                                        icon: PhosphorIconsRegular.downloadSimple,
+                                        onTap: _saveQrToGallery,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _iconActionButton(
+                                        icon: PhosphorIconsRegular.shareNetwork,
+                                        onTap: _shareQrCode,
+                                      ),
+                                    ],
+                                  ),
+                              ],
                             ),
-                            child: _buildPaymentImage(),
-                          ),
+                            const SizedBox(height: 16),
+                            if (hasAccount && order != null && !showQr)
+                              _buildAccountDetails(order),
+                            if (showQr)
+                              Container(
+                                width: double.infinity,
+                                constraints: const BoxConstraints(minHeight: 200),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: _buildQrImage(qrUrl),
+                              ),
+                            if (isLoadingDetails)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32),
+                                child: Center(
+                                  child: CustomLoadingIndicator(size: 40),
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ] else ...[
                   // ── STEP 2: Upload Receipt ──

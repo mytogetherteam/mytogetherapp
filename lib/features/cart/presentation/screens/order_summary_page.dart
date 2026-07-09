@@ -714,6 +714,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         _paymentTypes,
         _selectedPaymentMethodId,
       );
+      final selectedMethod = _resolveSelectedPaymentMethod(
+        _paymentTypes,
+        _selectedPaymentMethodId,
+      );
       if (!context.mounted) return;
 
       final backendItemPrice =
@@ -745,6 +749,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         items: List.from(storeItems),
         orderId: orderId,
       );
+      if (selectedMethod != null) {
+        ActiveOrderState.instance.updatePaymentMethodDetails(
+          accountNumber: selectedMethod.accountNumber,
+          accountName: selectedMethod.accountName,
+          orderId: orderId,
+        );
+      }
 
       if (responseData != null && orderId != null) {
         ActiveOrderState.instance.updateFromSocket({
@@ -1718,12 +1729,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     List<ShopPaymentTypeDto>? paymentTypes,
     int? selectedId,
   ) {
-    if (paymentTypes == null || paymentTypes.isEmpty) return null;
-    final active = paymentTypes.where((t) => t.isActive).toList();
-    final match =
-        active.where((t) => t.paymentMethodId == selectedId).firstOrNull;
+    final match = _resolveSelectedPaymentMethod(paymentTypes, selectedId);
     if (match == null) return null;
     return _normalizeImageUrl(match.qrImageUrl);
+  }
+
+  ShopPaymentTypeDto? _resolveSelectedPaymentMethod(
+    List<ShopPaymentTypeDto>? paymentTypes,
+    int? selectedId,
+  ) {
+    if (paymentTypes == null || paymentTypes.isEmpty) return null;
+    final active = paymentTypes.where((t) => t.isActive).toList();
+    return active.where((t) => t.paymentMethodId == selectedId).firstOrNull ??
+        (active.isNotEmpty ? active.first : null);
   }
 
   /// Rewrites a stored image path/URL to an absolute, reachable URL.
