@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,8 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../data/models/shop_feed_item_dto.dart';
-import '../../data/repositories/restaurant_repository.dart';
-import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../data/repositories/swipe_ranking_repository.dart';
 import '../screens/restaurant_detail_page.dart';
 
 // ─── Page entry point ─────────────────────────────────────────────────────────
@@ -33,6 +32,10 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   bool _isLikeAction = true;
   AnimationController? _actionController;
 
+  List<ShopFeedItemDto> _todayLikedItems = [];
+  bool _isFetchingLikedItems = false;
+  bool _hasFetchedLikedItems = false;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +56,8 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _isLoading = true;
       _page = 0;
+      _hasFetchedLikedItems = false;
+      _todayLikedItems = [];
     });
     await _fetchPage(_page);
     setState(() {
@@ -62,32 +67,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
 
   Future<void> _fetchPage(int pageToFetch) async {
     try {
-      final coords =
-          await UserLocationRepository.instance.resolveActiveCoordinates();
-      final section = await RestaurantRepository.instance.getFoodTabFeed(
-        feedType: 'explore',
-        lat: coords.lat,
-        lon: coords.lon,
-        radiusKm: 10,
-        page: pageToFetch,
-        size: _pageSize,
-      );
-      
-      List<ShopFeedItemDto> newItems = section.items.toList()..shuffle(Random());
-      
-      // If we reached the end of the feed, loop back to page 0
-      if (newItems.isEmpty && pageToFetch > 0) {
-        _page = 0;
-        final resetSection = await RestaurantRepository.instance.getFoodTabFeed(
-          feedType: 'explore',
-          lat: coords.lat,
-          lon: coords.lon,
-          radiusKm: 10,
-          page: 0,
-          size: _pageSize,
-        );
-        newItems = resetSection.items.toList()..shuffle(Random());
-      }
+      final newItems = await SwipeRankingRepository.instance.getSwipeCandidates(limit: _pageSize);
 
       if (mounted) {
         setState(() {
@@ -130,6 +110,9 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
 
   void _onLike() {
     if (_items.isEmpty) return;
+    final item = _items[0];
+    SwipeRankingRepository.instance.submitSwipe(item.id, true);
+    
     _triggerActionAnimation(true);
     setState(() {
       _items.removeAt(0);
@@ -141,6 +124,9 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
 
   void _onSkip() {
     if (_items.isEmpty) return;
+    final item = _items[0];
+    SwipeRankingRepository.instance.submitSwipe(item.id, false);
+    
     _triggerActionAnimation(false);
     setState(() {
       _items.removeAt(0);
@@ -314,10 +300,13 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
       );
     }
     if (_items.isEmpty) {
-      if (_isFetchingMore) {
+      if (_isLoading) {
         return const Center(
           child: CircularProgressIndicator(color: Color(0xFFFF4D6D)),
         );
+      }
+      if (!_hasFetchedLikedItems && !_isFetchingLikedItems) {
+        _fetchTodayLikedItems();
       }
       return _buildEmptyState();
     }
@@ -357,13 +346,30 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     );
   }
 
+  Future<void> _fetchTodayLikedItems() async {
+    setState(() {
+      _isFetchingLikedItems = true;
+    });
+    final items = await SwipeRankingRepository.instance.getTodayLikedItems();
+    if (mounted) {
+      setState(() {
+        _todayLikedItems = items;
+        _isFetchingLikedItems = false;
+        _hasFetchedLikedItems = true;
+      });
+    }
+  }
+
   Widget _buildEmptyState() {
+    if (_isFetchingLikedItems) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFFF4D6D)));
+    }
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('🍽️', style: const TextStyle(fontSize: 64)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             context.tr('food.swipe_done_title'),
             style: GoogleFonts.poppins(
@@ -374,33 +380,89 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
           ),
           const SizedBox(height: 8),
           Text(
-            '❤️ $_likeCount   ✖ $_skipCount',
+            'Come back tomorrow!',
             style: GoogleFonts.poppins(
               fontSize: 16,
               color: Colors.white54,
             ),
           ),
-          const SizedBox(height: 28),
-          GestureDetector(
-            onTap: () { setState(() { _isLoading = true; }); _loadInitial(); },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF4D6D), Color(0xFFFF8E53)],
-                ),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                context.tr('food.swipe_again'),
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+          const SizedBox(height: 32),
+          if (_todayLikedItems.isNotEmpty)
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    'Your Choices Today:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: _todayLikedItems.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = _todayLikedItems[index];
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: item.imageUrl!,
+                                        width: 60,
+                                        height: 60,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: 60,
+                                        height: 60,
+                                        color: Colors.white12,
+                                        child: const Icon(Icons.fastfood, color: Colors.white30),
+                                      ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      item.shopName,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
         ],
       ),
     );

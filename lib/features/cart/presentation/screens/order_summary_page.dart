@@ -398,7 +398,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
 
-        final baseFee = km <= 2.0 ? 30.0 : (30.0 + ((km - 2.0) * 10.0)).floorToDouble();
+        final baseFee = (15.0 + (km * 8.5)).floorToDouble();
         if (mounted) {
           setState(() {
             _draftDistanceKm = km;
@@ -426,7 +426,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
     final km = distanceM / 1000;
 
-    final baseFee = km <= 2.0 ? 30.0 : (30.0 + ((km - 2.0) * 10.0)).floorToDouble();
+    final baseFee = (15.0 + (km * 8.5)).floorToDouble();
     if (mounted) {
       setState(() {
         _draftDistanceKm = km;
@@ -440,10 +440,25 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     if (km == 0.0) {
       return '฿ 0.00';
     }
-    final double baseFee = _draftDeliveryFee;
-    final double maxFee = (baseFee * 1.3).ceilToDouble();
+    // Bolt style (minimum): Base 15 + 8.5/km
+    final double baseFee = (15.0 + (km * 8.5)).floorToDouble();
+    // Grab style (maximum): Base 35 + 7.2/km
+    final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
+    
     if (baseFee == maxFee) return baseFee.toFormattedPrice();
     return '฿ ${baseFee.toStringAsFixed(0)} - ฿ ${maxFee.toStringAsFixed(0)}';
+  }
+
+  String _getTotalWithDeliveryRange(double payableTotal) {
+    if (_draftDistanceKm == 0.0) return payableTotal.toFormattedPrice();
+    final double baseFee = (15.0 + (_draftDistanceKm * 8.5)).floorToDouble();
+    final double maxFee = (35.0 + (_draftDistanceKm * 7.2)).ceilToDouble();
+    
+    final minTotal = payableTotal + baseFee;
+    final maxTotal = payableTotal + maxFee;
+    
+    if (minTotal == maxTotal) return minTotal.toFormattedPrice();
+    return '฿ ${minTotal.toStringAsFixed(0)} - ฿ ${maxTotal.toStringAsFixed(0)}';
   }
 
   Widget _buildAddressText() {
@@ -1075,19 +1090,22 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           ? const LocationSkeletonLoader()
                                           : _buildAddressText(),
                                     ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: _showLocationModal,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          context.tr('cart.edit_location'),
+                                          style: GoogleFonts.poppins(
+                                            color: AppColors.primary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              InkWell(
-                                onTap: _showLocationModal,
-                                child: Text(
-                                  context.tr('cart.edit_location'),
-                                  style: GoogleFonts.poppins(
-                                    color: AppColors.primary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
                                 ),
                               ),
                               if (_draftDeliveryFee > 0) ...[
@@ -1343,41 +1361,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      // Notice to check before order
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              PhosphorIconsFill.info,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                context.tr('cart.check_order_notice'),
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF334155),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1437,7 +1421,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ],
                               ),
                             ],
-                            const SizedBox(height: 8),
+                            if (_isDelivery && _draftDeliveryFee > 0) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(PhosphorIconsRegular.motorcycle, size: 16, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        context.tr('cart.est_delivery_fee'),
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFF64748B),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    _getEstimatedDeliveryFeeText(),
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF64748B),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Divider(color: Color(0xFFF1F5F9), height: 1),
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -1446,13 +1463,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       ? context.tr('cart.total_pay_now')
                                       : context.tr('cart.total'),
                                   style: GoogleFonts.poppins(
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF1E293B),
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 GradientText(
-                                  payableTotal.toFormattedPrice(),
+                                  _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
                                   style: GoogleFonts.poppins(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -1488,7 +1505,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
 
-                      if (hasOngoingOrder)
+                      if (hasOngoingOrder && !_isPlacingOrder)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Container(
@@ -1533,7 +1550,41 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 12),
+                      // Notice to check before order and delivery fee estimate
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              PhosphorIconsFill.info,
+                              color: AppColors.primary,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _isDelivery
+                                    ? '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}'
+                                    : context.tr('cart.check_order_notice'),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF334155),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                         child: Row(
@@ -1551,7 +1602,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ),
                                   ),
                                   GradientText(
-                                    payableTotal.toFormattedPrice(),
+                                    _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
                                     style: GoogleFonts.poppins(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,

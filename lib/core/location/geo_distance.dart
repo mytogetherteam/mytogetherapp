@@ -38,6 +38,16 @@ class GeoDistance {
     return earthRadiusKm * c;
   }
 
+  /// Applies a standard 1.4x detour factor to straight-line distance to estimate driving distance.
+  static double estimatedRoutingKm(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    return haversineKm(lat1, lon1, lat2, lon2) * 1.4;
+  }
+
   static double? tryParseCoord(dynamic value) {
     if (value == null) return null;
     if (value is num) return value.toDouble();
@@ -54,7 +64,7 @@ class GeoDistance {
   }) {
     if (apiDistanceKm != null && apiDistanceKm > 0) return apiDistanceKm;
     if (shopLat == null || shopLon == null) return apiDistanceKm;
-    return haversineKm(originLat, originLon, shopLat, shopLon);
+    return estimatedRoutingKm(originLat, originLon, shopLat, shopLon);
   }
 
   static double? shopDistanceFromJson(

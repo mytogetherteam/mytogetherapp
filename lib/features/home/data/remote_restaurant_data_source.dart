@@ -781,7 +781,7 @@ class RemoteRestaurantDataSource {
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadiusKm * c;
+    return (earthRadiusKm * c) * 1.4;
   }
 
   double _deg2rad(double deg) => deg * (math.pi / 180.0);

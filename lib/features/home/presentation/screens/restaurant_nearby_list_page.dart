@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -442,8 +442,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     required double zoom,
     required int index,
   }) async {
-    // To prevent map clutter, we only show text for the selected marker.
-    bool showText = selected;
+    // Show text if selected OR if the map is zoomed in enough
+    bool showText = selected || zoom >= 15.5;
 
     final String nameStr = restaurant.name.length > 14
         ? '${restaurant.name.substring(0, 12)}…'
@@ -456,7 +456,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       style: GoogleFonts.poppins(
         fontSize: fontSize,
         fontWeight: FontWeight.w700,
-        color: selected ? Colors.white : AppColors.primary,
+        color: Colors.white,
       ),
     );
     final textPainter = TextPainter(
@@ -474,7 +474,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
           fontSize: showText ? 14 : 12,
           fontFamily: PhosphorIcons.forkKnife.fontFamily,
           package: PhosphorIcons.forkKnife.fontPackage,
-          color: selected ? AppColors.primary : Colors.white,
+          color: showText ? AppColors.primary : Colors.white,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -506,22 +506,14 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       ..color = Colors.black.withValues(alpha: 0.2)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
-    if (selected || showText) {
-      if (selected) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(2, 2, pillW, pillH),
-            const Radius.circular(20),
-          ),
-          shadowPaint,
-        );
-      } else {
-        canvas.drawCircle(
-          Offset(vPad / 2 + iconCircleSize / 2 + 1, pillH / 2 + 2),
-          iconCircleSize / 2,
-          shadowPaint,
-        );
-      }
+    if (showText) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(2, 2, pillW, pillH),
+          const Radius.circular(20),
+        ),
+        shadowPaint,
+      );
     } else {
       // Small icon shadow
       canvas.drawCircle(
@@ -532,11 +524,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
 
     // Pill background
-    final bgPaint = Paint()
-      ..color = selected
-          ? AppColors.primary
-          : (showText ? Colors.transparent : AppColors.primary);
-    if (selected) {
+    final bgPaint = Paint()..color = AppColors.primary;
+    
+    if (showText) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(0, 0, pillW, pillH),
@@ -547,9 +537,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
 
     // Icon Circle
-    if (showText || selected) {
-      final circlePaint = Paint()
-        ..color = selected ? Colors.white : AppColors.primary;
+    if (showText) {
+      final circlePaint = Paint()..color = Colors.white;
       canvas.drawCircle(
         Offset(vPad / 2 + iconCircleSize / 2, pillH / 2),
         iconCircleSize / 2,

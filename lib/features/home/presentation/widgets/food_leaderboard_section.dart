@@ -1,10 +1,9 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../data/models/shop_feed_item_dto.dart';
-import '../../data/repositories/restaurant_repository.dart';
-import '../../../auth/data/repositories/user_location_repository.dart';
+import '../../data/repositories/swipe_ranking_repository.dart';
 import 'image_skeleton_loader.dart';
 import 'food_leaderboard_page.dart';
 import '../screens/food_swipe_rank_page.dart';
@@ -28,19 +27,8 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
 
   Future<List<ShopFeedItemDto>> _load() async {
     try {
-      final coords =
-          await UserLocationRepository.instance.resolveActiveCoordinates();
-      final section = await RestaurantRepository.instance.getFoodTabFeed(
-        feedType: 'explore',
-        lat: coords.lat,
-        lon: coords.lon,
-        radiusKm: 10,
-        page: 0,
-        size: 20,
-      );
-      final items = section.items.toList();
-      items.shuffle(Random());
-      return items.take(20).toList();
+      final items = await SwipeRankingRepository.instance.getLeaderboard(limit: 20);
+      return items;
     } catch (_) {
       return [];
     }
@@ -55,7 +43,6 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
           return _buildSkeleton();
         }
         final items = snapshot.data ?? [];
-        if (items.isEmpty) return const SizedBox.shrink();
         return _buildContent(items);
       },
     );
@@ -179,20 +166,36 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        // Top 3 podium preview
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (top3.length > 1)
-                              Expanded(child: _MiniRankCard(item: top3[1], rank: 2)),
-                            const SizedBox(width: 8),
-                            if (top3.isNotEmpty)
-                              Expanded(child: _MiniRankCard(item: top3[0], rank: 1)),
-                            const SizedBox(width: 8),
-                            if (top3.length > 2)
-                              Expanded(child: _MiniRankCard(item: top3[2], rank: 3)),
-                          ],
-                        ),
+                        // Top 3 podium preview or Empty State
+                        if (top3.isEmpty)
+                          Container(
+                            height: 120,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              context.tr('food.leaderboard_empty_msg'),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.white70,
+                                height: 1.5,
+                              ),
+                            ),
+                          )
+                        else
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (top3.length > 1)
+                                Expanded(child: _MiniRankCard(item: top3[1], rank: 2)),
+                              const SizedBox(width: 8),
+                              if (top3.isNotEmpty)
+                                Expanded(child: _MiniRankCard(item: top3[0], rank: 1)),
+                              const SizedBox(width: 8),
+                              if (top3.length > 2)
+                                Expanded(child: _MiniRankCard(item: top3[2], rank: 3)),
+                            ],
+                          ),
                         const SizedBox(height: 14),
                         Center(
                           child: Text(

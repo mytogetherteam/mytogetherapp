@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -139,7 +139,29 @@ class _PodiumSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (top3.isEmpty) return const SizedBox.shrink();
+    if (top3.isEmpty) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1E)],
+          ),
+        ),
+        child: Text(
+          context.tr('food.leaderboard_empty_msg'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Colors.white70,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
 
     // Build the three columns: 2nd | 1st | 3rd  (podium order)
     final podiumOrder = <ShopFeedItemDto?>[];

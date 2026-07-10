@@ -465,7 +465,7 @@ class RestaurantRepository {
         lon != null &&
         detail.latitude != null &&
         detail.longitude != null) {
-      final dist = GeoDistance.haversineKm(
+      final dist = GeoDistance.estimatedRoutingKm(
           lat, lon, detail.latitude!, detail.longitude!);
       return detail.copyWith(
         distance: '${dist.toStringAsFixed(1)} km',
