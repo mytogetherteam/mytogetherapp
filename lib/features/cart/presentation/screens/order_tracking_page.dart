@@ -208,6 +208,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     super.initState();
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
     _initSlideImages();
+    if (ActiveOrderState.instance.shopPhone == null || ActiveOrderState.instance.shopPhone!.isEmpty) {
+      if (widget.restaurant?.phone != null && widget.restaurant!.phone!.isNotEmpty) {
+        ActiveOrderState.instance.shopPhone = widget.restaurant!.phone;
+      }
+    }
+
     _waitingStartedAt = DateTime.now();
     _waitingHintTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted) return;

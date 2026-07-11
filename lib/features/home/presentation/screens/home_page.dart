@@ -103,6 +103,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NotificationRepository().getUnreadCount();
     AnnouncementRepository().getUnreadCount();
     _fetchBanners();
+
+    // Double-tap same bottom tab → scroll to top + refresh
+    NavigationController.instance.tabScrollToTopRequest.addListener(
+      _onScrollToTopRequested,
+    );
+  }
+
+  void _onScrollToTopRequested() {
+    if (NavigationController.instance.tabScrollToTopRequest.value != 0) return;
+    if (!mounted) return;
+    // Scroll to top with smooth animation
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    // Refresh data
+    RestaurantRepository.instance.clearCache();
+    setState(() {
+      _isLoadingBanners = true;
+      _refreshKey++;
+    });
+    _fetchBanners();
   }
 
   Future<void> _fetchBanners() async {
@@ -222,6 +247,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _bannerController.dispose();
     _promoController.dispose();
     _scrollController.dispose();
+    NavigationController.instance.tabScrollToTopRequest.removeListener(
+      _onScrollToTopRequested,
+    );
     super.dispose();
   }
 
@@ -379,14 +407,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   });
                   await _fetchBanners();
                 },
-                color: AppColors.primary,
-                displacement: MediaQuery.of(context).padding.top + 60,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  ),
-                  child: Column(
+                  color: AppColors.primary,
+                  displacement: MediaQuery.of(context).padding.top + 60,
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    child: Column(
                     children: [
                       SizedBox(
                         height: MediaQuery.of(context).padding.top + 70,

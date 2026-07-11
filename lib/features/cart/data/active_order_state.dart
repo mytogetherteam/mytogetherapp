@@ -1113,10 +1113,15 @@ class ActiveOrderState extends ChangeNotifier {
     // Shop contact number. The backend exposes it under a few shapes depending
     // on the endpoint (flat field or nested `shop` object), so try each.
     final shopMapForPhone = data['shop'];
+    final restMapForPhone = data['restaurant'];
     final parsedShopPhone = _parseSafeString(
       data['shopPhone'] ??
           data['shopPhoneNo'] ??
-          (shopMapForPhone is Map ? shopMapForPhone['phone'] : null),
+          data['restaurantPhone'] ??
+          data['storePhone'] ??
+          data['phone'] ??
+          (shopMapForPhone is Map ? shopMapForPhone['phone'] : null) ??
+          (restMapForPhone is Map ? restMapForPhone['phone'] : null),
     );
     if (parsedShopPhone != null && parsedShopPhone.isNotEmpty) {
       item.shopPhone = parsedShopPhone;

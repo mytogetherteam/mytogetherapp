@@ -22,6 +22,7 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 import '../widgets/guest_welcome_banner.dart';
+import '../../../../core/utils/haptic_splash_factory.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -183,9 +184,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    // Fire iOS 3D-touch-style haptic on every bottom nav icon tap
+    AppHaptics.buttonTap();
+
+    if (index == _currentIndex) {
+      // Same tab tapped again → scroll to top + refresh that tab's content
+      NavigationController.instance.triggerScrollToTop(index);
+    } else {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -26,6 +26,7 @@ import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_leaderboard_section.dart';
+import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -51,6 +52,10 @@ class _FoodPageState extends State<FoodPage> {
     UserLocationRepository.instance.getPrimaryLocation().then((_) {
       _loadCoordinates();
     });
+    // Double-tap same bottom tab → scroll to top + refresh
+    NavigationController.instance.tabScrollToTopRequest.addListener(
+      _onScrollToTopRequested,
+    );
   }
 
   @override
@@ -58,6 +63,9 @@ class _FoodPageState extends State<FoodPage> {
     UserLocationRepository.instance.removeListener(_onLocationChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    NavigationController.instance.tabScrollToTopRequest.removeListener(
+      _onScrollToTopRequested,
+    );
     super.dispose();
   }
 
@@ -77,6 +85,13 @@ class _FoodPageState extends State<FoodPage> {
   /// Rebuild geo-scoped sections when the user picks a new delivery location.
   void _onLocationChanged() {
     _loadCoordinates();
+  }
+
+  void _onScrollToTopRequested() {
+    if (NavigationController.instance.tabScrollToTopRequest.value != 1) return;
+    if (!mounted) return;
+    _scrollToTop();
+    _onRefresh();
   }
 
   void _onScroll() {

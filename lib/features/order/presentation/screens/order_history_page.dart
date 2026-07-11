@@ -47,6 +47,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     _completedPagination.attachScrollController(_completedScrollController);
     _cancelledPagination.attachScrollController(_cancelledScrollController);
     _loadData();
+    // Double-tap same bottom tab → scroll to top + refresh
+    NavigationController.instance.tabScrollToTopRequest.addListener(
+      _onScrollToTopRequested,
+    );
   }
 
   PaginatedListController<OrderHistoryDto> _createOrderPagination(
@@ -94,6 +98,25 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     if (mounted) _initTabController();
   }
 
+  void _onScrollToTopRequested() {
+    if (NavigationController.instance.tabScrollToTopRequest.value != 2) return;
+    if (!mounted) return;
+    // Scroll the active tab's list to top
+    final activeController = (_tabController?.index ?? 0) == 0
+        ? _completedScrollController
+        : _cancelledScrollController;
+    if (activeController.hasClients) {
+      activeController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    // Refresh both lists
+    _completedPagination.refresh();
+    _cancelledPagination.refresh();
+  }
+
   bool get _isLoading =>
       !GuestAuthGuard.isGuest &&
       (_completedPagination.isInitialLoading ||
@@ -122,6 +145,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     _completedScrollController.dispose();
     _cancelledScrollController.dispose();
     _tabController?.dispose();
+    NavigationController.instance.tabScrollToTopRequest.removeListener(
+      _onScrollToTopRequested,
+    );
     super.dispose();
   }
 

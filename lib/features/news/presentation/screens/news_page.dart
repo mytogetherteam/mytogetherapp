@@ -10,6 +10,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
+import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -33,10 +34,27 @@ class _NewsPageState extends State<NewsPage> {
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_scrollController);
     _pagination.loadInitial();
+    // Double-tap same bottom tab → scroll to top + refresh
+    NavigationController.instance.tabScrollToTopRequest.addListener(
+      _onScrollToTopRequested,
+    );
   }
 
   void _onPaginationChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onScrollToTopRequested() {
+    if (NavigationController.instance.tabScrollToTopRequest.value != 3) return;
+    if (!mounted) return;
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    _pagination.refresh();
   }
 
   @override
@@ -45,6 +63,9 @@ class _NewsPageState extends State<NewsPage> {
       ..removeListener(_onPaginationChanged)
       ..dispose();
     _scrollController.dispose();
+    NavigationController.instance.tabScrollToTopRequest.removeListener(
+      _onScrollToTopRequested,
+    );
     super.dispose();
   }
 

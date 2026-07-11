@@ -72,47 +72,47 @@ struct OrderTrackerWidgetLiveActivity: Widget {
                         }
                         .padding(.horizontal, 8)
                         
-                        ProgressBarView(progress: Int(getString(context: context, key: "progress") ?? "0") ?? 0)
-                            .padding(.horizontal, 4)
-                            .padding(.bottom, 4)
+                        let isPickup = (getString(context: context, key: "isPickup") ?? "0") == "1"
+                        ProgressBarView(
+                            progress: Int(getString(context: context, key: "progress") ?? "0") ?? 0,
+                            isPickup: isPickup
+                        )
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 4)
                     }
                 }
             } compactLeading: {
-                if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 20, height: 20)
-                        .clipShape(Circle())
-                } else {
-                    Image("AppLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
-                        .clipShape(Circle())
-                }
+                // Always show MyTogether AppLogo on the left
+                Image("AppLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 22, height: 22)
+                    .clipShape(Circle())
+                    .padding(.leading, 2)
             } compactTrailing: {
+                // Always show ETA on the right; fallback to progress ring
                 if let eta = getString(context: context, key: "estimatedTime"), !eta.isEmpty {
-                    Text(eta)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(primaryGradient)
+                    HStack(spacing: 2) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(primaryGradient)
+                        Text(eta)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(primaryGradient)
+                            .lineLimit(1)
+                    }
+                    .padding(.trailing, 2)
                 } else {
                     ProgressRingView(progress: Int(getString(context: context, key: "progress") ?? "0") ?? 0)
+                        .padding(.trailing, 2)
                 }
             } minimal: {
-                if let logoPath = getString(context: context, key: "shopLogoPath"), let uiImage = UIImage(contentsOfFile: logoPath) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 20, height: 20)
-                        .clipShape(Circle())
-                } else {
-                    Image("AppLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
-                        .clipShape(Circle())
-                }
+                // Minimal (two activities): show MyTogether AppLogo
+                Image("AppLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 20, height: 20)
+                    .clipShape(Circle())
             }
         }
     }
@@ -181,30 +181,57 @@ struct LiveActivityView: View {
                 }
                 
                 Spacer(minLength: 0)
+                
+                // ETA badge (right side)
+                if !eta.isEmpty {
+                    VStack(spacing: 2) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(primaryGradient)
+                        Text(eta)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(primaryGradient)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(red: 237/255, green: 57/255, blue: 115/255).opacity(0.1))
+                    )
+                }
             }
             
-            // Progress Bar
-            ProgressBarView(progress: progress)
+            // Progress Bar — real-time animated
+            let isPickup = (getString(context: context, key: "isPickup") ?? "0") == "1"
+            ProgressBarView(progress: progress, isPickup: isPickup)
         }
         .padding(16)
     }
 }
 
+// MARK: - Progress Bar (Step-based, animated)
+
 struct ProgressBarView: View {
     let progress: Int
+    let isPickup: Bool
     
     var body: some View {
         HStack(spacing: 0) {
             StepIconView(iconName: "building.2.fill", isActive: progress >= 0)
-            ConnectorView(isActive: progress >= 2, isProcessing: progress == 0 || progress == 1)
+            AnimatedConnectorView(isActive: progress >= 2, isProcessing: progress == 0 || progress == 1)
             StepIconView(iconName: "doc.text.fill", isActive: progress >= 2)
-            ConnectorView(isActive: progress >= 3, isProcessing: progress == 2)
-            StepIconView(iconName: "bicycle", isActive: progress >= 3)
-            ConnectorView(isActive: progress >= 4, isProcessing: progress == 3)
-            StepIconView(iconName: "house.fill", isActive: progress >= 4)
+            AnimatedConnectorView(isActive: progress >= 3, isProcessing: progress == 2)
+            // Pickup: show shippingbox.fill; Delivery: show bicycle
+            StepIconView(iconName: isPickup ? "shippingbox.fill" : "bicycle", isActive: progress >= 3)
+            AnimatedConnectorView(isActive: progress >= 4, isProcessing: progress == 3)
+            // Pickup: show bag.fill; Delivery: show house.fill
+            StepIconView(iconName: isPickup ? "bag.fill" : "house.fill", isActive: progress >= 4)
         }
     }
 }
+
+// MARK: - Step Icon
 
 struct StepIconView: View {
     let iconName: String
@@ -226,39 +253,85 @@ struct StepIconView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(isActive ? .white : .gray)
         }
+        // Pulse animation on the active step icon (real-time feel)
+        .scaleEffect(isActive ? 1.0 : 1.0)
+        .animation(.easeInOut(duration: 0.4), value: isActive)
     }
 }
 
-struct ConnectorView: View {
+// MARK: - Animated Connector (real-time shimmer when processing)
+
+struct AnimatedConnectorView: View {
     let isActive: Bool
     let isProcessing: Bool
     
+    // Shimmer animation state — drives the moving highlight
+    @State private var shimmerOffset: CGFloat = -1.0
+
     var body: some View {
         GeometryReader { geometry in
+            let w = max(geometry.size.width, 1)
+            
             ZStack(alignment: .leading) {
-                Rectangle()
+                // Background track
+                RoundedRectangle(cornerRadius: 2)
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 4)
-                    .cornerRadius(2)
-                
+
                 if isActive {
-                    Rectangle()
+                    // Fully filled — order passed this step
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(primaryGradient)
                         .frame(height: 4)
-                        .cornerRadius(2)
+                        .animation(.easeInOut(duration: 0.5), value: isActive)
+
                 } else if isProcessing {
-                    Rectangle()
-                        .fill(primaryGradient)
-                        .frame(width: geometry.size.width * 0.5, height: 4)
-                        .cornerRadius(2)
+                    // Half-filled with animated shimmer to convey "in progress"
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(primaryGradient)
+                            .frame(width: w * 0.5, height: 4)
+
+                        // Shimmer overlay
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0),
+                                        Color.white.opacity(0.6),
+                                        Color.white.opacity(0),
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: w * 0.3, height: 4)
+                            .offset(x: shimmerOffset * w)
+                            .clipped()
+                            .onAppear {
+                                withAnimation(
+                                    Animation.linear(duration: 1.4)
+                                        .repeatForever(autoreverses: false)
+                                ) {
+                                    shimmerOffset = 0.5
+                                }
+                            }
+                            .onDisappear {
+                                shimmerOffset = -1.0
+                            }
+                    }
+                    .frame(width: w * 0.5)
+                    .clipped()
                 }
             }
-            .frame(height: 32)
+            .frame(height: 32, alignment: .center)
         }
         .frame(height: 32)
         .padding(.horizontal, 4)
     }
 }
+
+// MARK: - Compact Ring View
 
 struct ProgressRingView: View {
     let progress: Int
@@ -272,6 +345,7 @@ struct ProgressRingView: View {
                 .trim(from: 0, to: CGFloat(progress) / 4.0)
                 .stroke(primaryGradient, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.5), value: progress)
             
             Text("\(progress)/4")
                 .font(.system(size: 8, weight: .bold))

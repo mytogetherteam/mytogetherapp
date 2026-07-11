@@ -25,6 +25,7 @@ class LockScreenWidgetManager {
   String? _lastEstimatedTime;
   String? _lastRiderName;
   String? _lastLogoUrl;
+  bool? _lastIsPickup;
   LiveActivityFileFromMemory? _lastLogoFile;
 
   bool get _isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
@@ -87,13 +88,15 @@ class LockScreenWidgetManager {
     final estimatedTime = order.estimatedTime ?? '';
     final riderName = order.riderName ?? '';
     final logoUrl = resolveMediaUrl(order.shopLogo ?? order.logoPath);
+    final isPickup = order.isPickupFulfillment;
 
     if (_lastStatusText == statusText &&
         _lastProgress == progress &&
         _lastShopName == shopName &&
         _lastEstimatedTime == estimatedTime &&
         _lastRiderName == riderName &&
-        _lastLogoUrl == logoUrl) {
+        _lastLogoUrl == logoUrl &&
+        _lastIsPickup == isPickup) {
       return; // No changes to show
     }
 
@@ -103,6 +106,7 @@ class LockScreenWidgetManager {
     _lastEstimatedTime = estimatedTime;
     _lastRiderName = riderName;
     _lastLogoUrl = logoUrl;
+    _lastIsPickup = isPickup;
 
     if (_isIOS) {
       final Map<String, dynamic> data = {
@@ -111,6 +115,7 @@ class LockScreenWidgetManager {
         'progress': progress.toString(),
         'estimatedTime': order.estimatedTime ?? '',
         'riderName': order.riderName ?? '',
+        'isPickup': isPickup ? '1' : '0',
       };
 
       if (logoUrl.isNotEmpty) {
@@ -187,6 +192,7 @@ class LockScreenWidgetManager {
     _lastEstimatedTime = null;
     _lastRiderName = null;
     _lastLogoUrl = null;
+    _lastIsPickup = null;
     _lastLogoFile = null;
 
     if (_isIOS) {
