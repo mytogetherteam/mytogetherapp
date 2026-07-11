@@ -445,8 +445,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     // Grab style (maximum): Base 35 + 7.2/km
     final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
     
-    if (baseFee == maxFee) return baseFee.toFormattedPrice();
-    return '฿ ${baseFee.toStringAsFixed(0)} - ฿ ${maxFee.toStringAsFixed(0)}';
+    final minVal = baseFee < maxFee ? baseFee : maxFee;
+    final maxVal = baseFee > maxFee ? baseFee : maxFee;
+    
+    if (minVal == maxVal) return minVal.toFormattedPrice();
+    return '฿ ${minVal.toStringAsFixed(0)} - ฿ ${maxVal.toStringAsFixed(0)}';
   }
 
   String _getTotalWithDeliveryRange(double payableTotal) {
@@ -454,8 +457,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final double baseFee = (15.0 + (_draftDistanceKm * 8.5)).floorToDouble();
     final double maxFee = (35.0 + (_draftDistanceKm * 7.2)).ceilToDouble();
     
-    final minTotal = payableTotal + baseFee;
-    final maxTotal = payableTotal + maxFee;
+    final minTotal = payableTotal + (baseFee < maxFee ? baseFee : maxFee);
+    final maxTotal = payableTotal + (baseFee > maxFee ? baseFee : maxFee);
     
     if (minTotal == maxTotal) return minTotal.toFormattedPrice();
     return '฿ ${minTotal.toStringAsFixed(0)} - ฿ ${maxTotal.toStringAsFixed(0)}';
@@ -2604,6 +2607,22 @@ class _FarDeliveryModal extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        Image.asset(
+          'assets/images/far_delivery_baby.png',
+          height: 140,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 140,
+              width: 140,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.image, color: Colors.grey, size: 40),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
         Text(
           context.tr('order.far_delivery_title'),
           textAlign: TextAlign.center,

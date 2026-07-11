@@ -655,8 +655,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                       false;
                                   return _buildSelectionItem(
                                     title: option.name,
-                                    price:
-                                        '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
+                                    price: option.price == 0
+                                        ? context.tr('common.free')
+                                        : '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
                                     isSelected: isSelected,
                                     isRadio: false,
                                     onChanged: (value) {
@@ -1388,9 +1389,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         widgets.add(
           _buildSelectionItem(
             title: variant.name,
-            price: variant.price
-                .toStringAsFixed(0)
-                .toFormattedPrice(currency: _currentFood!.currency),
+            price: variant.price == 0
+                ? context.tr('common.free')
+                : variant.price
+                    .toStringAsFixed(0)
+                    .toFormattedPrice(currency: _currentFood!.currency),
             isSelected: _selectedVariantId == variant.id,
             isRadio: true,
             onChanged: (_) {

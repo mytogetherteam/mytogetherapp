@@ -8,12 +8,35 @@ import '../../data/models/shop_feed_item_dto.dart';
 import '../screens/menu_detail_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import '../screens/food_swipe_rank_page.dart';
+import '../../data/repositories/swipe_ranking_repository.dart';
 
 /// Full-screen leaderboard page — top 3 podium + ranked list 4-20.
-class FoodLeaderboardPage extends StatelessWidget {
+class FoodLeaderboardPage extends StatefulWidget {
   final List<ShopFeedItemDto> items;
 
   const FoodLeaderboardPage({super.key, required this.items});
+
+  @override
+  State<FoodLeaderboardPage> createState() => _FoodLeaderboardPageState();
+}
+
+class _FoodLeaderboardPageState extends State<FoodLeaderboardPage> {
+  late List<ShopFeedItemDto> items;
+
+  @override
+  void initState() {
+    super.initState();
+    items = widget.items;
+  }
+
+  Future<void> _onRefresh() async {
+    try {
+      final newItems = await SwipeRankingRepository.instance.getLeaderboard(limit: 20);
+      setState(() {
+        items = newItems;
+      });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +46,14 @@ class FoodLeaderboardPage extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F0F1E),
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        backgroundColor: const Color(0xFF1A1A2E),
+        body: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: const Color(0xFFFF4D6D),
+          backgroundColor: const Color(0xFF1A1A2E),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
             // ── App Bar ──────────────────────────────────────────────
             SliverAppBar(
               pinned: true,
@@ -73,7 +100,7 @@ class FoodLeaderboardPage extends StatelessWidget {
 
             // ── Swipe Promo Banner ────────────────────────────────
             SliverToBoxAdapter(
-              child: _SwipePromoBanner(),
+              child: _SwipePromoBanner(onReturn: _onRefresh),
             ),
 
             // ── Divider ───────────────────────────────────────────────
@@ -126,6 +153,7 @@ class FoodLeaderboardPage extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }
@@ -603,7 +631,8 @@ class _PriceTag extends StatelessWidget {
 // ── Swipe Promo Banner ────────────────────────────────────────────────────────
 
 class _SwipePromoBanner extends StatelessWidget {
-  const _SwipePromoBanner();
+  final VoidCallback onReturn;
+  const _SwipePromoBanner({required this.onReturn});
 
   @override
   Widget build(BuildContext context) {
@@ -611,7 +640,7 @@ class _SwipePromoBanner extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const FoodSwipeRankPage()),
-      ),
+      ).then((_) => onReturn()),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),

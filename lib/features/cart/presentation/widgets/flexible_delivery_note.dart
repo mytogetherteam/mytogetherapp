@@ -11,8 +11,14 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 class FlexibleDeliveryNote extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final String? estimatedFee;
+  final bool isActualFee;
 
-  const FlexibleDeliveryNote({super.key, this.margin, this.estimatedFee});
+  const FlexibleDeliveryNote({
+    super.key, 
+    this.margin, 
+    this.estimatedFee,
+    this.isActualFee = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +55,9 @@ class FlexibleDeliveryNote extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      context.tr('payment.est_delivery_fee'),
+                      isActualFee 
+                          ? context.tr('payment.actual_delivery_fee')
+                          : context.tr('payment.est_delivery_fee'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -63,37 +71,6 @@ class FlexibleDeliveryNote extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Bottom part: The Note (Integrated seamlessly)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.04),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                border: Border(top: BorderSide(color: AppColors.primary.withValues(alpha: 0.1))),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const GradientIcon(icon: PhosphorIconsFill.info, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      context.tr('cart.flexible_delivery_note'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[800],
-                        height: 1.5,
-                      ),
                     ),
                   ),
                 ],

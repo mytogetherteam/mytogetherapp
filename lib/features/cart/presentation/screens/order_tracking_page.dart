@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
+import 'package:mytogetherapp/core/presentation/widgets/animated_dots_text.dart';
+import 'package:mytogetherapp/core/presentation/widgets/radar_animation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -26,6 +28,13 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/utils/price_formatter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/data/services/chat_unread_controller.dart';
+import '../../../chat/presentation/widgets/chat_unread_badge.dart';
+import '../../../../app.dart';
+import '../../../chat/presentation/widgets/floating_chat_head.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -44,7 +53,7 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   List<LatLng> _routePoints = [];
@@ -171,8 +180,33 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   BitmapDescriptor? _restaurantBubbleIcon;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      App.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPopNext() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPop() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
+  }
+
+  @override
   void initState() {
     super.initState();
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
     _initSlideImages();
     _waitingStartedAt = DateTime.now();
     _waitingHintTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -297,76 +331,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (!mounted) return;
 
     final startValue = _idleSolidController.value;
+    final remainingSeconds = (600 * (1.0 - startValue)).toInt(); // 10 minutes total
 
-    // Stage 0: 0% -> 100% Light Trail (Solid stays at 0)
-    if (startValue <= 0.0) {
-      _idleSolidController.value = 0.0;
-      _lightProgressController.duration = const Duration(seconds: 3);
-      await _lightProgressController.forward(from: 0.0);
-      if (!mounted) return;
-      _lightProgressController.value = 0.0; // Disappear
-    }
-
-    // Stage 1: Solid glides to 20%, then light trail runs 20% -> 100%
-    if (startValue < 0.2) {
-      await _idleSolidController.animateTo(
-        0.2,
-        duration: const Duration(seconds: 3),
-        curve: Curves.linear,
-      );
-      if (!mounted) return;
-      _lightProgressController.duration = const Duration(
-        seconds: 6,
-      ); // Slowed down
-      await _lightProgressController.forward(from: 0.0);
-      if (!mounted) return;
-      _lightProgressController.value = 0.0; // Disappear
-    }
-
-    // Stage 2: Solid glides to 40%, then light trail runs 40% -> 100%
-    if (startValue < 0.4) {
-      await _idleSolidController.animateTo(
-        0.4,
-        duration: const Duration(seconds: 4),
-        curve: Curves.linear,
-      );
-      if (!mounted) return;
-      _lightProgressController.duration = const Duration(
-        seconds: 8,
-      ); // Slowed down
-      await _lightProgressController.forward(from: 0.0);
-      if (!mounted) return;
-      _lightProgressController.value = 0.0; // Disappear
-    }
-
-    // Stage 3: Solid glides to 60%, then light trail runs 60% -> 100%
-    if (startValue < 0.6) {
-      await _idleSolidController.animateTo(
-        0.6,
-        duration: const Duration(seconds: 4),
-        curve: Curves.linear,
-      );
-      if (!mounted) return;
-      _lightProgressController.duration = const Duration(
-        seconds: 8,
-      ); // Slowed down
-      await _lightProgressController.forward(from: 0.0);
-      if (!mounted) return;
-      _lightProgressController.value = 0.0; // Disappear
-    }
-
-    // Stage 4: Solid glides to 70%, then light trail loops
-    if (startValue < 0.7) {
-      await _idleSolidController.animateTo(
-        0.7,
-        duration: const Duration(seconds: 4),
+    if (remainingSeconds > 0) {
+      _idleSolidController.animateTo(
+        1.0,
+        duration: Duration(seconds: remainingSeconds),
         curve: Curves.linear,
       );
     }
-
-    if (!mounted) return;
-    _lightProgressController.duration = const Duration(seconds: 6);
-    _lightProgressController.repeat();
   }
 
   void _checkCachedData() {
@@ -470,6 +443,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   @override
   void dispose() {
+    App.routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _statusPollTimer?.cancel();
     _idleSolidController.dispose();
@@ -1125,12 +1099,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                          GradientText(
+                          Text(
                             context.tr('order_tracking.awaiting_confirmation'),
                             style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1E293B), // Dark slate
+                              letterSpacing: -0.3,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -1138,8 +1113,8 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text(
-                                  context.tr('order_tracking.restaurant_reviewing'),
+                                child: AnimatedDotsText(
+                                  baseText: context.tr('order_tracking.restaurant_reviewing'),
                                   style: GoogleFonts.poppins(
                                     fontSize: 13,
                                     color: Colors.grey[600],
@@ -1176,7 +1151,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(5),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Stack(
                                       children: [
@@ -1189,19 +1164,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                               color: AppColors.primary
                                                   .withValues(alpha: 0.15),
                                               borderRadius:
-                                                  BorderRadius.circular(5),
+                                                  BorderRadius.circular(8),
                                             ),
                                           ),
-                                        // Solid Pink Component (With gradient tip)
+                                        // Solid Primary Component
                                         if (idleSolidWidth > 0)
                                           Container(
                                             height: 10,
                                             width: idleSolidWidth,
                                             decoration: BoxDecoration(
-                                              gradient:
-                                                  AppColors.primaryGradient,
+                                              color: AppColors.primary,
                                               borderRadius:
-                                                  BorderRadius.circular(5),
+                                                  BorderRadius.circular(8),
                                             ),
                                           ),
                                       ],
@@ -1212,43 +1186,97 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             },
                           ),
 
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
 
-                          _buildInfoRow(
-                            label: context.tr('order_status.food_total'),
-                            value: ActiveOrderState.instance.displayFoodPrice ??
-                                widget.foodTotal.toFormattedPrice(),
-                            valueColor: Colors.black,
+                          // Chat button
+                          ChatUnreadBadge(
+                            orderId: _currentOrderId,
+                            child: GestureDetector(
+                              onTap: () {
+                                final state = ActiveOrderState.instance;
+                                _openChat(
+                                  name: state.restaurantName ?? widget.store.name,
+                                  subtitle: context.tr('common.restaurant'),
+                                  avatarUrl: state.logoPath,
+                                );
+                              },
+                              child: Container(
+                                height: 48,
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(PhosphorIcons.chatCircleTextFill, color: const Color(0xFF1E293B), size: 20),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      context.tr('order_confirm.chat'),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
 
-                          if (ActiveOrderState.instance.taxEnable) ...[
-                            const SizedBox(height: 12),
-                            _buildInfoRow(
-                              label: context.tr('order_status.tax'),
-                              value: ActiveOrderState.instance.displayTaxAmount ??
-                                  ActiveOrderState.instance.resolvedTaxAmount
-                                      .toFormattedPrice(),
-                              valueColor: Colors.black,
+                          const SizedBox(height: 24),
+                          
+                          // Receipt Card
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                          ],
+                            child: Column(
+                              children: [
+                                _buildInfoRow(
+                                  label: context.tr('order_status.food_total'),
+                                  value: ActiveOrderState.instance.displayFoodPrice ??
+                                      widget.foodTotal.toFormattedPrice(),
+                                  valueColor: const Color(0xFF334155),
+                                ),
 
-                          if (ActiveOrderState.instance.hasAppliedCoupon) ...[
-                            const SizedBox(height: 12),
-                            OrderCouponDiscountSection(
-                              couponName: ActiveOrderState.instance.couponName,
-                              discountAmount:
-                                  ActiveOrderState.instance.discountAmount,
-                              displayDiscountAmount: ActiveOrderState
-                                  .instance.displayDiscountAmount,
-                              shopCoupon:
-                                  ActiveOrderState.instance.shopCoupon,
+                                if (ActiveOrderState.instance.taxEnable) ...[
+                                  const SizedBox(height: 12),
+                                  _buildInfoRow(
+                                    label: context.tr('order_status.tax'),
+                                    value: ActiveOrderState.instance.displayTaxAmount ??
+                                        ActiveOrderState.instance.resolvedTaxAmount
+                                            .toFormattedPrice(),
+                                    valueColor: const Color(0xFF334155),
+                                  ),
+                                ],
+
+                                if (ActiveOrderState.instance.hasAppliedCoupon) ...[
+                                  const SizedBox(height: 12),
+                                  OrderCouponDiscountSection(
+                                    couponName: ActiveOrderState.instance.couponName,
+                                    discountAmount:
+                                        ActiveOrderState.instance.discountAmount,
+                                    displayDiscountAmount: ActiveOrderState
+                                        .instance.displayDiscountAmount,
+                                    shopCoupon:
+                                        ActiveOrderState.instance.shopCoupon,
+                                  ),
+                                ],
+
+                                if (!ActiveOrderState.instance.isPickupFulfillment) ...[
+                                  const SizedBox(height: 16),
+                                  _buildDeliveryFeeRow(),
+                                ],
+                              ],
                             ),
-                          ],
-
-                          if (!ActiveOrderState.instance.isPickupFulfillment) ...[
-                            const SizedBox(height: 12),
-                            _buildDeliveryFeeRow(),
-                          ],
+                          ),
 
 
                           const SizedBox(height: 28),
@@ -1324,6 +1352,64 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
 
 
+  int? get _currentOrderId {
+    final orderIdStr = ActiveOrderState.instance.orderId?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    return (orderId != null && orderId > 0) ? orderId : null;
+  }
+
+  Future<void> _makeCall(String? phone) async {
+    final number = phone?.trim() ?? '';
+    if (number.isEmpty || number == '-') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.no_phone_number'))),
+        );
+      }
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: number);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        );
+      }
+    }
+  }
+
+  Future<void> _openChat({
+    required String? name,
+    required String subtitle,
+    String? avatarUrl,
+    IconData fallbackIcon = Icons.storefront_rounded,
+  }) async {
+    final orderId = _currentOrderId;
+    if (orderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.order_unavailable'))),
+      );
+      return;
+    }
+
+    ChatUnreadController.instance.clear(orderId);
+
+    final peerName = (name == null || name.trim().isEmpty) ? subtitle : name;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          orderId: orderId,
+          peerName: peerName,
+          peerSubtitle: subtitle,
+          avatarUrl: avatarUrl,
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoRow({
     required String label,
     required String value,
@@ -1359,54 +1445,77 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 
+  String _getEstimatedDeliveryFeeText() {
+    final state = ActiveOrderState.instance;
+    final km = state.routeDistanceKm ?? 0.0;
+    
+    if (km == 0.0) {
+      return state.displayDeliveryFee ?? 
+          (_deliveryFee ?? state.deliveryFee ?? 0.0).toFormattedPrice();
+    }
+    
+    final double baseFee = (15.0 + (km * 8.5)).floorToDouble();
+    final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
+    
+    final minVal = baseFee < maxFee ? baseFee : maxFee;
+    final maxVal = baseFee > maxFee ? baseFee : maxFee;
+    
+    if (minVal == maxVal) return minVal.toFormattedPrice();
+    return '฿ ${minVal.toStringAsFixed(0)} - ฿ ${maxVal.toStringAsFixed(0)}';
+  }
+
   Widget _buildDeliveryFeeRow() {
-    final isPickup = ActiveOrderState.instance.isPickupFulfillment;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Text(
-              isPickup
-                  ? context.tr('order_status.pickup_fee')
-                  : context.tr('order_status.delivery_fee'),
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
-          ],
-        ),
-        AnimatedBuilder(
-          animation: _dotsAnimController,
-          builder: (context, _) {
-            final dots = '.' * ((_dotsAnimController.value * 4).floor() % 4);
-            return Row(
-              mainAxisSize: MainAxisSize.min,
+    final state = ActiveOrderState.instance;
+    final isPickup = state.isPickupFulfillment;
+    final feeValue = _getEstimatedDeliveryFeeText();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
               children: [
-                Text(
-                  context.tr('order_tracking.calculating'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
+                Icon(
+                  isPickup ? Icons.storefront : Icons.delivery_dining, 
+                  size: 18, 
+                  color: AppColors.primary,
                 ),
-                SizedBox(
-                  width: 16,
+                const SizedBox(width: 6),
+                Flexible(
                   child: Text(
-                    dots,
+                    isPickup
+                        ? context.tr('order_status.pickup_fee')
+                        : context.tr('cart.est_delivery_fee'),
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14, 
+                      fontWeight: FontWeight.w600, 
                       color: AppColors.primary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
               ],
-            );
-          },
-        ),
-      ],
+            ),
+          ),
+          Text(
+            feeValue,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1473,7 +1582,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           
           // Slideshow Foreground (Original Size, Crisp)
           Align(
-            alignment: const Alignment(0, -0.6), // Center perfectly in the top visible half
+            alignment: const Alignment(0, -0.87), // Center higher in the top visible half
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1511,9 +1620,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 const SizedBox(height: 16),
                 
                 // Food Image Slideshow
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.28, // Reduced size (28% of screen)
-                  child: AspectRatio(
+                RadarAnimation(
+                  color: Colors.white,
+                  scale: 2.2,
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.18, // Reduced size
+                    child: AspectRatio(
                     aspectRatio: 1.0, // Force a perfect square (1:1)
                     child: Container(
                       decoration: BoxDecoration(
@@ -1546,6 +1658,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       ),
                     ),
                   ),
+                ),
                 ),
               ],
             ),

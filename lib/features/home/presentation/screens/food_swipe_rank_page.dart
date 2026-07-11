@@ -71,7 +71,9 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
 
       if (mounted) {
         setState(() {
-          _items.addAll(newItems);
+          final existingIds = _items.map((e) => e.id).toSet();
+          final uniqueNewItems = newItems.where((e) => !existingIds.contains(e.id)).toList();
+          _items.addAll(uniqueNewItems);
         });
       }
     } catch (_) {
@@ -248,24 +250,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
             ],
           ),
           const Spacer(),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '${_items.length}',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white60,
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(width: 40), // Invisible placeholder to keep title centered
         ],
       ),
     );
@@ -304,9 +289,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
         return const Center(
           child: CircularProgressIndicator(color: Color(0xFFFF4D6D)),
         );
-      }
-      if (!_hasFetchedLikedItems && !_isFetchingLikedItems) {
-        _fetchTodayLikedItems();
       }
       return _buildEmptyState();
     }
@@ -361,10 +343,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   }
 
   Widget _buildEmptyState() {
-    if (_isFetchingLikedItems) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFFF4D6D)));
-    }
-
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -386,83 +364,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
               color: Colors.white54,
             ),
           ),
-          const SizedBox(height: 32),
-          if (_todayLikedItems.isNotEmpty)
-            Expanded(
-              child: Column(
-                children: [
-                  Text(
-                    'Your Choices Today:',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: _todayLikedItems.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = _todayLikedItems[index];
-                        return Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: item.imageUrl!,
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        width: 60,
-                                        height: 60,
-                                        color: Colors.white12,
-                                        child: const Icon(Icons.fastfood, color: Colors.white30),
-                                      ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.name,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    Text(
-                                      item.shopName,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

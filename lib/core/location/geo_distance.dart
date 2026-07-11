@@ -8,7 +8,7 @@ class GeoDistance {
 
   /// Show a confirm dialog when delivery distance exceeds this (km).
   /// GrabFood long-distance is typically up to ~10 km.
-  static const double distanceConfirmThresholdKm = 10.0;
+  static const double distanceConfirmThresholdKm = 6.0;
 
   /// Delivery ETA label from straight-line distance (matches feed DTOs).
   static String deliveryEtaFromKm(double distanceKm) {

@@ -73,7 +73,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         (o) => o.shopId == widget.shopId?.toString(),
       );
     } else {
-      isActive = state.hasActiveOrder;
+      isActive = state.activeOrdersList.isNotEmpty;
     }
 
     if (isActive) {
@@ -96,7 +96,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
           (o) => o.shopId == widget.shopId?.toString(),
         );
       } else {
-        isActive = state.hasActiveOrder;
+        isActive = state.activeOrdersList.isNotEmpty;
       }
 
       if (isActive && !_wasActive) {
@@ -305,7 +305,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       );
       return;
     }
-    if (s == 2) {
+    if (s == 2 || s == 3) {
       if (OrderStatusPage.isCurrentlyVisible) return;
       Navigator.push(
         context,
@@ -338,7 +338,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
           ),
         ),
       );
-    } else if (s == 3 || s == 0) {
+    } else if (s == 0) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -412,7 +412,9 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
             ),
           ),
           _buildStepIcon(
-            Icons.delivery_dining_outlined,
+            order.isPickupFulfillment
+                ? Icons.inventory_2_outlined
+                : Icons.delivery_dining_outlined,
             active: order.orderStatus >= 3,
           ),
           Expanded(

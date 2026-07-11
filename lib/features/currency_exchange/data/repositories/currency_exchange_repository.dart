@@ -116,8 +116,14 @@ class CurrencyExchangeRepository {
         final targetBlackMarketMmK = usdBlackMarket / crossRate;
 
         // synthesized realistic Buy/Sell spread data (e.g., ~1.6% total spread)
-      final buy = targetBlackMarketMmK * 0.992;
-      final sell = targetBlackMarketMmK * 1.008;
+        double buy = targetBlackMarketMmK * 0.992;
+        double sell = targetBlackMarketMmK * 1.008;
+
+        // Hardcoded real prices for THB as requested
+        if (code == 'THB') {
+          buy = 128.21;
+          sell = 131.58;
+        }
 
         list.add(CurrencyRateModel(currency: code, buy: buy, sell: sell));
       }

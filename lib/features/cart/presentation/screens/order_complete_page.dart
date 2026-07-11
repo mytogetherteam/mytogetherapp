@@ -5,20 +5,14 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/active_order_state.dart';
-import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
-import '../../data/cart_manager.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
-import '../../../../core/presentation/widgets/primary_gradient_button.dart';
-
-import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/time_formatter.dart';
-import '../../../../core/presentation/widgets/gradient_text.dart';
-import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 import '../../../reviews/data/repositories/shop_review_repository.dart';
-import '../widgets/flexible_delivery_note.dart';
+import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/presentation/widgets/floating_chat_head.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -73,6 +67,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     super.initState();
     _orderId = ActiveOrderState.instance.orderId;
     OrderCompletePage.isCurrentlyVisible = true;
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_orderId != null) {
         ActiveOrderState.instance.setOrderStatus(4, orderId: _orderId);
@@ -83,6 +78,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
   @override
   void dispose() {
     OrderCompletePage.isCurrentlyVisible = false;
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
     if (!_orderFinalized) {
       _finalizeOrder(silent: true);
     }
@@ -151,39 +147,46 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     _goToFoodTab();
   }
 
+  Future<void> _openChat() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+
+    final order = ActiveOrderState.instance.getOrder(_orderId);
+    final shopIdStr = order?.shopId ?? ActiveOrderState.instance.shopId;
+    final shopId = int.tryParse(shopIdStr ?? '');
+    final orderIdStr = order?.orderId.replaceAll('#', '') ?? ActiveOrderState.instance.orderId?.replaceAll('#', '');
+    final orderId = int.tryParse(orderIdStr ?? '');
+    
+    if (shopId == null || orderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.order_unavailable'))),
+      );
+      return;
+    }
+
+    if (mounted) {
+      final peerName = order?.displayShopName ?? context.tr('common.restaurant');
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatPage(
+            orderId: orderId,
+            peerName: peerName,
+            peerSubtitle: context.tr('order_confirm.chat'),
+            avatarUrl: order?.logoPath,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final order = ActiveOrderState.instance.getOrder(_orderId);
     final storeName = (order?.displayShopName ?? '').isNotEmpty
         ? order!.displayShopName
         : context.tr('common.restaurant');
-    final deliveryFee = order?.deliveryFee ?? 0.0;
-    final foodFromItems = (order?.orderItems ?? const <CartItem>[]).fold<double>(
-      0,
-      (sum, item) => sum + item.total,
-    );
-    final foodPrice = order?.itemPrice ??
-        order?.resolvedItemSubtotal ??
-        (foodFromItems > 0 ? foodFromItems : 0);
-    final taxAmount = order?.resolvedTaxAmount ?? 0;
-    final total = order == null
-        ? 0.0
-        : (order.isFlexibleDelivery
-            ? order.resolvedPayNowTotal(
-                fallbackDeliveryFee: deliveryFee,
-              )
-            : (order.totalAmount ??
-                order.resolvedGrandTotal(
-                  fallbackDeliveryFee:
-                      order.isPickupFulfillment ? 0 : deliveryFee,
-                )));
-    final displayTotal =
-        order?.displayTotalAmount?.toFormattedPrice() ??
-            total.toFormattedPrice();
-    
     final arrivalTime = TimeFormatter.formatClock(DateTime.now());
     final logoPath = order?.logoPath;
-    final orderItems = order?.orderItems ?? const <CartItem>[];
 
     return PopScope(
       canPop: false,
@@ -214,12 +217,15 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                 children: [
                   TweenAnimationBuilder<double>(
                     tween: Tween<double>(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.elasticOut,
-                    builder: (context, scale, child) {
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutBack,
+                    builder: (context, value, child) {
                       return Transform.scale(
-                        scale: scale,
-                        child: child,
+                        scale: value,
+                        child: Opacity(
+                          opacity: value.clamp(0.0, 1.0),
+                          child: child,
+                        ),
                       );
                     },
                     child: Container(
@@ -271,12 +277,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             ),
             const SizedBox(height: 32),
 
-            // Delivery proof photo (if the shop attached one on delivery)
-            if (order?.proofPhotoUrl != null &&
-                order!.proofPhotoUrl!.isNotEmpty) ...[
-              _buildDeliveryProof(order.proofPhotoUrl!),
-              const SizedBox(height: 24),
-            ],
+
 
             // Rating Card
             Container(
@@ -350,6 +351,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                             }
                             if (!mounted) return;
                             setState(() => _rating = index + 1);
+                            _onDone();
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -365,238 +367,51 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         );
                       }),
                     ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: _openChat,
+                      child: Container(
+                        height: 48,
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              context.tr('order_confirm.chat'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
             
-            const SizedBox(height: 16),
-            
-            // Order Summary Card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  if (order?.isFlexibleDelivery == true) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      child: FlexibleDeliveryNote(
-                        estimatedFee: order?.displayDeliveryFee?.isNotEmpty == true
-                            ? order!.displayDeliveryFee!
-                            : (deliveryFee > 0 ? deliveryFee.toFormattedPrice() : '+฿ 0'),
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                  ],
-                  Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      title: Text(
-                        context.tr('cart.total'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            displayTotal,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(PhosphorIcons.caretDown, size: 18, color: Colors.grey[500]),
-                        ],
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildSummaryRow(
-                                context.tr('payment.food_price'),
-                                order?.displayFoodPrice?.toFormattedPrice() ??
-                                    foodPrice.toFormattedPrice(),
-                              ),
-                              if (order?.resolvedTaxEnable ?? true) ...[
-                                const SizedBox(height: 12),
-                                _buildSummaryRow(
-                                  context.tr('order_status.tax'),
-                                  order?.displayTaxAmount?.toFormattedPrice() ??
-                                      taxAmount.toFormattedPrice(),
-                                ),
-                              ],
-                              if (!order!.isPickupFulfillment &&
-                                  order.hasDeliveryFeeEstimate &&
-                                  !order.isFlexibleDelivery) ...[
-                                const SizedBox(height: 12),
-                                _buildDeliveryFeeRow(context, order, deliveryFee),
-                              ],
-                              if (order.hasAppliedCoupon) ...[
-                                const SizedBox(height: 12),
-                                OrderCouponDiscountSection(
-                                  couponName: order.couponName,
-                                  discountAmount: order.discountAmount ?? 0,
-                                  displayDiscountAmount:
-                                      order.displayDiscountAmount,
-                                  shopCoupon: order.shopCoupon,
-                                ),
-                              ],
-                              if (orderItems.isNotEmpty) ...[
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  child: Divider(
-                                    height: 1,
-                                    color: Color(0xFFF1F5F9),
-                                  ),
-                                ),
-                                ...orderItems.map((item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              '${item.quantity}x ${item.title}',
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 14,
-                                                color: const Color(0xFF475569),
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            item.total.toFormattedPrice(),
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF1E293B),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )),
-                              ] else
-                                Text(
-                                  context.tr('order_complete.items_placeholder'),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: const Color(0xFF94A3B8),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            // "Done" button: submit rating (if any), clear order, go home
-            PrimaryGradientButton(
-              onPressed: _isSubmitting ? null : _onDone,
-              child: _isSubmitting
-                  ? const CustomLoadingIndicator(size: 22, color: Colors.white)
-                  : Text(
-                      context.tr('order_complete.done'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-            const SizedBox(height: 8),
+            // Delivery proof photo (if the shop attached one on delivery)
+            if (order?.proofPhotoUrl != null &&
+                order!.proofPhotoUrl!.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _buildDeliveryProof(order.proofPhotoUrl!),
+            ],
           ],
         ),
       ),
       ),
     );
   }
-
-  Widget _buildSummaryRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: const Color(0xFF64748B),
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF1E293B),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeliveryFeeRow(
-    BuildContext context,
-    ActiveOrderItem? order,
-    double deliveryFee,
-  ) {
-    final isFlexible = order?.isFlexibleDelivery == true;
-    final isConfirmed = deliveryFee > 0;
-    final feeLabel = isFlexible || !isConfirmed
-        ? context.tr('payment.est_delivery_fee')
-        : context.tr('order_status.delivery_fee');
-    final feeAmount = order?.displayDeliveryFee?.isNotEmpty == true
-        ? order!.displayDeliveryFee!.toFormattedPrice()
-        : (isConfirmed ? deliveryFee.toFormattedPrice() : '+฿ 0');
-
-    return Row(
-      children: [
-        const GradientIcon(icon: PhosphorIconsFill.moped, size: 20),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            feeLabel,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ),
-        GradientText(
-          feeAmount,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildNoImageAvatar() {
     return Container(
       width: 80,
@@ -670,40 +485,4 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     );
   }
 
-  Widget _buildProgressBar() {
-    return Row(
-      children: [
-        _buildStepNode(PhosphorIcons.wallet),
-        _buildStepLine(),
-        _buildStepNode(PhosphorIcons.cookingPot),
-        _buildStepLine(),
-        _buildStepNode(PhosphorIcons.moped),
-        _buildStepLine(),
-        _buildStepNode(PhosphorIcons.house),
-      ],
-    );
-  }
-
-  Widget _buildStepNode(IconData icon) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: 18, color: Colors.white),
-    );
-  }
-
-  Widget _buildStepLine() {
-    return Expanded(
-      child: Container(
-        height: 3,
-        decoration: const BoxDecoration(
-          gradient: AppColors.primaryGradient,
-        ),
-      ),
-    );
-  }
 }

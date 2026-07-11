@@ -25,6 +25,12 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
     _future = _load();
   }
 
+  void _refresh() {
+    setState(() {
+      _future = _load();
+    });
+  }
+
   Future<List<ShopFeedItemDto>> _load() async {
     try {
       final items = await SwipeRankingRepository.instance.getLeaderboard(limit: 20);
@@ -73,7 +79,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
               MaterialPageRoute(
                 builder: (_) => FoodLeaderboardPage(items: items),
               ),
-            ),
+            ).then((_) => _refresh()),
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -138,31 +144,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700).withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: const Color(0xFFFFD700).withValues(alpha: 0.5)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    context.tr('common.see_all'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFFFD700),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.arrow_forward_ios_rounded,
-                                      size: 10, color: Color(0xFFFFD700)),
-                                ],
-                              ),
-                            ),
+
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -219,7 +201,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const FoodSwipeRankPage()),
-            ),
+            ).then((_) => _refresh()),
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(

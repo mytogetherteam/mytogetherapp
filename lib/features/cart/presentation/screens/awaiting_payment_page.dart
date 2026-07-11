@@ -37,7 +37,10 @@ import '../../../../core/presentation/widgets/gradient_icon.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
+import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import '../../../reviews/presentation/widgets/image_upload_bottom_sheet.dart';
+import '../../../../app.dart';
+import '../../../chat/presentation/widgets/floating_chat_head.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -57,7 +60,7 @@ class AwaitingPaymentPage extends StatefulWidget {
 }
 
 class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
   bool _showUploadSection = false;
@@ -92,6 +95,30 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         ?.replaceAll('#', '');
     final orderId = int.tryParse(orderIdStr ?? '');
     return (orderId != null && orderId > 0) ? orderId : null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      App.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPopNext() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPop() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
 
   @override
@@ -213,6 +240,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
   @override
   void dispose() {
+    App.routeObserver.unsubscribe(this);
     _dotsAnimController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     ActiveOrderState.instance.removeListener(_onStateUpdated);
@@ -1056,14 +1084,38 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             ? context.tr('payment.verifying')
             : context.tr('payment.confirm_title'));
 
-    return Scaffold(
+    return PopScope(
+      canPop: !(_showUploadSection && !isReupload),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_showUploadSection && !isReupload) {
+          setState(() => _showUploadSection = false);
+          ActiveOrderState.instance.setShowUploadSection(
+            false,
+            orderId: widget.orderId,
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
+        leading: (_showUploadSection && !isReupload)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  setState(() => _showUploadSection = false);
+                  ActiveOrderState.instance.setShowUploadSection(
+                    false,
+                    orderId: widget.orderId,
+                  );
+                },
+              )
+            : null,
         centerTitle: false,
-        titleSpacing: 20,
+        titleSpacing: (_showUploadSection && !isReupload) ? 0 : 20,
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         ),
@@ -1175,6 +1227,229 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 ),
                 const SizedBox(height: 16),
               ],
+
+              // ── VERIFYING STATE ──
+              if (isVerifying) ...[
+                _buildVerifyingSection(),
+                const SizedBox(height: 24),
+              ] else ...[
+                if (!_showUploadSection) ...[
+                  // ── STEP 1: Payment details (account + optional QR) ──
+                  Builder(
+                    builder: (context) {
+                      final qrUrl = _resolveQrUrl(order);
+                      final showQr = qrUrl != null && !_qrLoadFailed;
+                      final hasAccount = _hasAccountDetails(order);
+                      final isLoadingDetails =
+                          !showQr &&
+                          !hasAccount &&
+                          order?.paymentMethodId != null;
+
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  context.tr('payment.payment_details'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                if (showQr)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _iconActionButton(
+                                        icon: PhosphorIconsRegular.downloadSimple,
+                                        onTap: _saveQrToGallery,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _iconActionButton(
+                                        icon: PhosphorIconsRegular.shareNetwork,
+                                        onTap: _shareQrCode,
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (hasAccount && order != null && !showQr)
+                              _buildAccountDetails(order),
+                            if (showQr)
+                              Container(
+                                width: double.infinity,
+                                constraints: const BoxConstraints(minHeight: 200),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: _buildQrImage(qrUrl),
+                              ),
+                            if (isLoadingDetails)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32),
+                                child: Center(
+                                  child: CustomLoadingIndicator(size: 40),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ] else ...[
+                  // ── STEP 2: Upload Receipt ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: const BoxDecoration(
+                                    gradient: AppColors.primaryGradient,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      '2',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  context.tr('payment.upload_receipt'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Back Button to return to Step 1
+                            if (!isReupload)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() => _showUploadSection = false);
+                                  ActiveOrderState.instance
+                                      .setShowUploadSection(
+                                        false,
+                                        orderId: widget.orderId,
+                                      );
+                                },
+                                child: GradientText(
+                                  context.tr('payment.back'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 38),
+                          child: Text(
+                            context.tr('payment.upload_hint'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        // Upload box
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _isUploading ? null : _pickReceiptImage,
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(minHeight: 160),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            child: _receiptImage == null
+                                ? _buildUploadPlaceholder()
+                                : _buildReceiptPreview(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              PhosphorIcons.info,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: GradientText(
+                                isReupload
+                                    ? context.tr('payment.receipt_requested')
+                                    : context.tr('payment.receipt_visible_hint'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+              const SizedBox(height: 20),
 
               // ── Payment Summary Card ──
               Container(
@@ -1402,227 +1677,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 const SizedBox(height: 20),
               ],
 
-              // ── VERIFYING STATE ──
-              if (isVerifying) ...[
-                _buildVerifyingSection(),
-                const SizedBox(height: 24),
-              ] else ...[
-                if (!_showUploadSection) ...[
-                  // ── STEP 1: Payment details (account + optional QR) ──
-                  Builder(
-                    builder: (context) {
-                      final qrUrl = _resolveQrUrl(order);
-                      final showQr = qrUrl != null && !_qrLoadFailed;
-                      final hasAccount = _hasAccountDetails(order);
-                      final isLoadingDetails =
-                          !showQr &&
-                          !hasAccount &&
-                          order?.paymentMethodId != null;
-
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  context.tr('payment.payment_details'),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                if (showQr)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _iconActionButton(
-                                        icon: PhosphorIconsRegular.downloadSimple,
-                                        onTap: _saveQrToGallery,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _iconActionButton(
-                                        icon: PhosphorIconsRegular.shareNetwork,
-                                        onTap: _shareQrCode,
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (hasAccount && order != null && !showQr)
-                              _buildAccountDetails(order),
-                            if (showQr)
-                              Container(
-                                width: double.infinity,
-                                constraints: const BoxConstraints(minHeight: 200),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: _buildQrImage(qrUrl),
-                              ),
-                            if (isLoadingDetails)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 32),
-                                child: Center(
-                                  child: CustomLoadingIndicator(size: 40),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ] else ...[
-                  // ── STEP 2: Upload Receipt ──
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: const BoxDecoration(
-                                    gradient: AppColors.primaryGradient,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      '2',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  context.tr('payment.upload_receipt'),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // Back Button to return to Step 1
-                            if (!isReupload)
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() => _showUploadSection = false);
-                                  ActiveOrderState.instance
-                                      .setShowUploadSection(
-                                        false,
-                                        orderId: widget.orderId,
-                                      );
-                                },
-                                child: GradientText(
-                                  context.tr('payment.back'),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 38),
-                          child: Text(
-                            context.tr('payment.upload_hint'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        // Upload box
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _isUploading ? null : _pickReceiptImage,
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 160),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: AppColors.primary,
-                                width: 2,
-                              ),
-                            ),
-                            child: _receiptImage == null
-                                ? _buildUploadPlaceholder()
-                                : _buildReceiptPreview(),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              PhosphorIcons.info,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: GradientText(
-                                isReupload
-                                    ? context.tr('payment.receipt_requested')
-                                    : context.tr('payment.receipt_visible_hint'),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
 
 
             ],
@@ -1642,68 +1696,115 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 color: Colors.white,
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          order!.usesPayNowTotal == true ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
-                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                  ChatShakeAnimator(
+                    orderId: _chatOrderId,
+                    child: GestureDetector(
+                      onTap: () {
+                        final state = ActiveOrderState.instance;
+                        _openChat(
+                          name: state.restaurantName,
+                          subtitle: context.tr('common.restaurant'),
+                          avatarUrl: state.logoPath,
+                        );
+                      },
+                      child: Container(
+                        height: 48,
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                        Text(
-                          order.usesPayNowTotal == true
-                            ? order.resolvedPayNowTotal(fallbackDeliveryFee: widget.deliveryFee).toFormattedPrice()
-                            : (order.displayTotalAmount ?? order.resolvedGrandTotal(fallbackDeliveryFee: order.deliveryFee ?? widget.deliveryFee).toFormattedPrice()),
-                          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ChatUnreadBadge(
+                              orderId: _chatOrderId,
+                              child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              context.tr('order_confirm.chat'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: (!_showUploadSection)
-                        ? PrimaryGradientButton(
-                            height: 52,
-                            onPressed: () {
-                              setState(() => _showUploadSection = true);
-                              ActiveOrderState.instance.setShowUploadSection(
-                                true,
-                                orderId: widget.orderId,
-                              );
-                            },
-                            child: Text(
-                              context.tr('payment.done_payment'),
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              order!.usesPayNowTotal == true ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
+                              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
                             ),
-                          )
-                        : PrimaryGradientButton(
-                            height: 52,
-                            onPressed: (canSubmit && !_isUploading)
-                                ? _submitReceipt
-                                : null,
-                            isLoading: _isUploading,
-                            child: Text(
-                              context.tr('payment.submit_receipt'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                            Text(
+                              order.usesPayNowTotal == true
+                                ? order.resolvedPayNowTotal(fallbackDeliveryFee: widget.deliveryFee).toFormattedPrice()
+                                : (order.displayTotalAmount ?? order.resolvedGrandTotal(fallbackDeliveryFee: order.deliveryFee ?? widget.deliveryFee).toFormattedPrice()),
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
-                          ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: (!_showUploadSection)
+                            ? PrimaryGradientButton(
+                                height: 52,
+                                onPressed: () {
+                                  setState(() => _showUploadSection = true);
+                                  ActiveOrderState.instance.setShowUploadSection(
+                                    true,
+                                    orderId: widget.orderId,
+                                  );
+                                },
+                                child: Text(
+                                  context.tr('payment.done_payment'),
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : PrimaryGradientButton(
+                                height: 52,
+                                onPressed: (canSubmit && !_isUploading)
+                                    ? _submitReceipt
+                                    : null,
+                                isLoading: _isUploading,
+                                child: Text(
+                                  context.tr('payment.submit_receipt'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+      ),
     );
   }
 
@@ -1881,6 +1982,35 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     );
   }
 
+  Future<void> _openChat({
+    required String? name,
+    required String subtitle,
+    String? avatarUrl,
+  }) async {
+    final orderId = _chatOrderId;
+    if (orderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.order_unavailable'))),
+      );
+      return;
+    }
+
+    ChatUnreadController.instance.clear(orderId);
+
+    final peerName = (name == null || name.trim().isEmpty) ? subtitle : name;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          orderId: orderId,
+          peerName: peerName,
+          peerSubtitle: subtitle,
+          avatarUrl: avatarUrl,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRiderInfoCard() {
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
     final name = order?.riderName ?? context.tr('payment.unknown_rider');
@@ -1960,50 +2090,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 PhosphorIconsFill.phoneCall,
                 color: Colors.white,
                 size: 22,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          ChatUnreadBadge(
-            orderId: _chatOrderId,
-            child: GestureDetector(
-              onTap: () async {
-                final orderId = _chatOrderId;
-                if (orderId == null) {
-                  AppDialog.showToast(
-                    context,
-                    context.tr('chat.order_unavailable'),
-                    isError: true,
-                  );
-                  return;
-                }
-                ChatUnreadController.instance.clear(orderId);
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatPage(
-                      orderId: orderId,
-                      peerName: order?.riderName ??
-                          context.tr('order_status.delivery_rider'),
-                      peerSubtitle: context.tr('order_status.delivery_rider'),
-                      fallbackIcon: Icons.delivery_dining_rounded,
-                    ),
-                  ),
-                );
-                if (!mounted) return;
-                await ChatUnreadController.instance.refreshOrder(orderId);
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const GradientIcon(
-                  icon: PhosphorIconsFill.chatCircleText,
-                  size: 22,
-                ),
               ),
             ),
           ),

@@ -16,6 +16,7 @@ import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
+import '../../../../core/presentation/widgets/animated_dots_text.dart';
 import '../../data/active_order_state.dart';
 import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../widgets/flexible_delivery_note.dart';
@@ -29,8 +30,12 @@ import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
+import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/pickup_order_qr_card.dart';
+import '../widgets/looping_gif.dart';
+import '../../../../app.dart';
+import '../../../chat/presentation/widgets/floating_chat_head.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -49,9 +54,10 @@ class OrderStatusPage extends StatefulWidget {
 }
 
 class _OrderStatusPageState extends State<OrderStatusPage>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   int _currentStatus = 1;
   String? _backendStatus;
+  bool _hasShownDeliveryFeeModal = false;
 
   GoogleMapController? _mapController;
   // ignore: unused_field
@@ -72,6 +78,30 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   StreamSubscription? _orderSubscription;
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      App.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPopNext() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+  }
+
+  @override
+  void didPop() {
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
+  }
+
   void _startFakeTimer() {
     final orderId = ActiveOrderState.instance.orderId;
     if (orderId != null && !_orderStartTimes.containsKey(orderId)) {
@@ -85,6 +115,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   @override
   void initState() {
     super.initState();
+    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
     OrderStatusPage.isCurrentlyVisible = true;
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     _backendStatus = ActiveOrderState.instance.backendStatus;
@@ -190,23 +221,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             !AwaitingPaymentPage.isCurrentlyVisible) {
           if (!state.hasNotifiedSlipRequest) {
             state.setNotifiedSlipRequest(true);
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(
-            //     content: Row(
-            //       children: [
-            //         Icon(PhosphorIcons.warningCircleFill, color: Colors.white, size: 20),
-            //         const SizedBox(width: 10),
-            //         Expanded(
-            //           child: Text('New payment slip requested by restaurant',
-            //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
-            //         ),
-            //       ],
-            //     ),
-            //     backgroundColor: AppColors.primary,
-            //     behavior: SnackBarBehavior.floating,
-            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            //   ),
-            // );
           }
           Navigator.pushReplacement(
             context,
@@ -327,6 +341,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     OrderStatusPage.isCurrentlyVisible = false;
     _fakeTimer?.cancel();
     _processingController.dispose();
+    App.routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
     super.dispose();
@@ -525,6 +540,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       case 1:
         return context.tr('order_status.checking_payment');
       case 2:
+        if (_backendStatus?.toUpperCase() == 'COOKING') {
+          return context.tr('order_status.cooking_now');
+        }
         return context.tr('order_status.preparing');
       case 3:
         return context.tr('order_status.delivering');
@@ -543,9 +561,28 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         : context.tr('common.restaurant');
     final taxAmount = state.resolvedTaxAmount;
     final delivery = state.deliveryFee ?? widget.deliveryFee;
-    final total = state.usesPayNowTotal
+    final showFlexibleDeliveryFee = state.isFlexibleDelivery && _currentStatus >= 3;
+    
+    if (showFlexibleDeliveryFee && delivery != null && delivery > 0 && !_hasShownDeliveryFeeModal) {
+      _hasShownDeliveryFeeModal = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showDeliveryFeeModal(delivery);
+      });
+    }
+    
+    double? adjustedTotalAmount = state.totalAmount;
+    bool backendTotalAdjusted = false;
+    if (showFlexibleDeliveryFee && adjustedTotalAmount != null) {
+      final payNowWithoutDelivery = state.resolvedPayNowTotal(fallbackDeliveryFee: 0);
+      if ((adjustedTotalAmount - payNowWithoutDelivery).abs() < 0.01) {
+        adjustedTotalAmount += (delivery ?? 0.0);
+        backendTotalAdjusted = true;
+      }
+    }
+
+    final total = (state.usesPayNowTotal && !showFlexibleDeliveryFee)
         ? state.resolvedPayNowTotal(fallbackDeliveryFee: delivery)
-        : (state.totalAmount ??
+        : (adjustedTotalAmount ??
               state.resolvedGrandTotal(fallbackDeliveryFee: delivery));
 
     return Scaffold(
@@ -589,29 +626,71 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             ),
             const SizedBox(height: 4),
             if (_currentStatus != -1) ...[
-              if (state.hasPrepTimeEstimate)
-                GradientText(
-                  '${context.tr('order_status.est_waiting_time')}: ${_getFakeEstTime(state.estimatedTime!, state.orderId)}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+              if (!(state.isPickupFulfillment && state.isReadyForPickup)) ...[
+                if (state.hasPrepTimeEstimate)
+                  GradientText(
+                    '${context.tr('order_status.est_waiting_time')}: ${_getFakeEstTime(state.estimatedTime!, state.orderId)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                else
+                  AnimatedDotsText(
+                    baseText: state.isPickupFulfillment
+                        ? context.tr('order_status.preparing')
+                        : context.tr('order_tracking.restaurant_reviewing'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                )
-              else
-                Text(
-                  state.isPickupFulfillment
-                      ? context.tr('order_status.preparing')
-                      : context.tr('order_tracking.restaurant_reviewing'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              ],
               const SizedBox(height: 24),
               // Progress Bar
-              _buildProgressBar(),
-              const SizedBox(height: 32),
+              if (!(state.isPickupFulfillment && state.isReadyForPickup)) ...[
+                _buildProgressBar(),
+                const SizedBox(height: 32),
+              ],
+              
+              // Animated Cooking GIF
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      axisAlignment: -1.0,
+                      child: child,
+                    ),
+                  );
+                },
+                child: (_currentStatus == 2 && _backendStatus?.toUpperCase() == 'COOKING')
+                    ? Center(
+                        key: const ValueKey('cooking_gif'),
+                        child: LoopingGif(
+                          assetPath: 'assets/images/cooking.gif',
+                          loopDuration: const Duration(seconds: 4), // Loop every 4 seconds to prevent freeze/disappear
+                          height: 220,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty_gif')),
+              ),
+              
+              if (state.isFlexibleDelivery && !state.isAwaitingShopConfirmation) ...[
+                const SizedBox(height: 16),
+                FlexibleDeliveryNote(
+                  estimatedFee:
+                      state.displayDeliveryFee ??
+                      state.deliveryFee!.toFormattedPrice(),
+                  isActualFee: _currentStatus >= 3,
+                ),
+                const SizedBox(height: 16),
+              ],
+              
               if (state.isPickupFulfillment &&
                   state.isReadyForPickup &&
                   state.orderId != null) ...[
@@ -1039,18 +1118,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           PhosphorIcons.phoneCallFill,
                           onTap: () => _makeCall(state.shopPhone),
                         ),
-                        const SizedBox(width: 6),
-                        ChatUnreadBadge(
-                          orderId: _currentOrderId,
-                          child: _buildSmallCircleButton(
-                            PhosphorIcons.chatCircleTextFill,
-                            onTap: () => _openChat(
-                              name: storeName,
-                              subtitle: context.tr('common.restaurant'),
-                              avatarUrl: state.logoPath,
-                            ),
-                          ),
-                        ),
+
                       ],
                     ),
                   ],
@@ -1125,7 +1193,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             Row(
                               children: [
                                 Text(
-                                  state.displayTotalAmount ??
+                                  (backendTotalAdjusted ? null : state.displayTotalAmount) ??
                                       total.toFormattedPrice(),
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
@@ -1324,7 +1392,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         if (!state.isPickupFulfillment &&
                             state.hasDeliveryFeeEstimate &&
                             !state.isAwaitingShopConfirmation &&
-                            !state.isFlexibleDelivery) ...[
+                            (!state.isFlexibleDelivery || showFlexibleDeliveryFee)) ...[
                           const SizedBox(height: 8),
                           _buildSummaryRow(
                             context.tr('order_status.delivery_fee'),
@@ -1337,25 +1405,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           child: Divider(color: Color(0xFFF3F4F6)),
                         ),
                         _buildSummaryRow(
-                          state.usesPayNowTotal
+                          (state.usesPayNowTotal && !showFlexibleDeliveryFee)
                               ? context.tr('cart.total_pay_now')
                               : context.tr('order_status.total_amount'),
-                          state.usesPayNowTotal
+                          (state.usesPayNowTotal && !showFlexibleDeliveryFee)
                               ? total.toFormattedPrice()
-                              : (state.displayTotalAmount ??
+                              : ((backendTotalAdjusted ? null : state.displayTotalAmount) ??
                                     total.toFormattedPrice()),
                           isBold: true,
                         ),
 
-                        if (state.isFlexibleDelivery &&
-                            !state.isAwaitingShopConfirmation) ...[
-                          const SizedBox(height: 16),
-                          FlexibleDeliveryNote(
-                            estimatedFee:
-                                state.displayDeliveryFee ??
-                                state.deliveryFee!.toFormattedPrice(),
-                          ),
-                        ],
+                        // Flexible delivery note removed as requested
                       ],
                     ),
                   ),
@@ -1550,6 +1610,94 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          12 + MediaQuery.of(context).padding.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showFlexibleDeliveryFee && delivery != null && delivery > 0) ...[
+              GestureDetector(
+                onTap: () => _showDeliveryFeeModal(delivery),
+                child: Container(
+                  color: Colors.transparent,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            context.tr('order_status.delivery_fee'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(PhosphorIconsRegular.info, size: 16, color: Colors.grey[400]),
+                        ],
+                      ),
+                      GradientText(
+                        delivery.toFormattedPrice(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ChatShakeAnimator(
+              orderId: _currentOrderId,
+              child: GestureDetector(
+                onTap: () => _openChat(
+                  name: state.shopName ?? state.restaurantName ?? state.storeName ?? 'Restaurant',
+                  subtitle: context.tr('common.restaurant'),
+                  avatarUrl: state.logoPath ?? state.shopLogo,
+                ),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ChatUnreadBadge(
+                        orderId: _currentOrderId,
+                        child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('order_confirm.chat'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1630,7 +1778,12 @@ class _OrderStatusPageState extends State<OrderStatusPage>
           children: [
             _buildStepNode(1, PhosphorIcons.packageFill),
             _buildStepNode(2, PhosphorIcons.cookingPotFill),
-            _buildStepNode(3, PhosphorIcons.mopedFill),
+            _buildStepNode(
+              3,
+              ActiveOrderState.instance.isPickupFulfillment
+                  ? PhosphorIcons.packageFill
+                  : PhosphorIcons.mopedFill,
+            ),
             _buildStepNode(4, PhosphorIcons.house),
           ],
         ),
@@ -1857,18 +2010,101 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       }
       final key = switch (_currentStatus) {
         1 => 'order_status.checking_payment_shop',
-        2 => 'order_status.preparing_shop',
+        2 => _backendStatus?.toUpperCase() == 'COOKING' ? 'order_status.cooking_now_shop' : 'order_status.preparing_shop',
         _ => 'order_status.picked_up',
       };
       return context.trArgs(key, {'shop': storeName});
     }
     final key = switch (_currentStatus) {
       1 => 'order_status.checking_payment_shop',
-      2 => 'order_status.preparing_shop',
+      2 => _backendStatus?.toUpperCase() == 'COOKING' ? 'order_status.cooking_now_shop' : 'order_status.preparing_shop',
       3 => 'order_status.delivering_shop',
       _ => 'order_status.completing_shop',
     };
     return context.trArgs(key, {'shop': storeName});
+  }
+
+  void _showDeliveryFeeModal(double delivery) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const GradientIcon(icon: PhosphorIcons.mopedFill, size: 40),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.tr('order_status.delivery_fee'),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            GradientText(
+              delivery.toFormattedPrice(),
+              style: GoogleFonts.poppins(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
