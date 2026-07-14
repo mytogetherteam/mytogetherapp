@@ -63,7 +63,7 @@ String couponBogoGiftSummary(BuildContext context, CouponModel coupon) {
   final buyNames =
       coupon.buyItems.map((e) => e.name).where((e) => e.isNotEmpty);
   final freeNames =
-      coupon.freeItems.map((e) => e.name).where((e) => e.isNotEmpty);
+      coupon.previewFreeItems.map((e) => e.name).where((e) => e.isNotEmpty);
 
   if (buyNames.isNotEmpty && freeNames.isNotEmpty) {
     return context.trArgs('coupon.buy_get_summary', {

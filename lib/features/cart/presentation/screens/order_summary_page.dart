@@ -69,10 +69,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isLoadingLocation = true;
   List<ShopPaymentTypeDto>? _paymentTypes;
 
-  // Coupons eligible for this shop (raw); the precise discount per coupon is
-  // previewed client-side against the current cart. _selectedCoupon is the one
-  // the user picked on this page; it's applied to the order at place-order time.
+  // Shop coupon catalog (browse). Cart-specific ฿-off / free-item amounts come
+  // from POST /user/coupons/preview — the app must not invent them locally.
   List<CouponModel> _shopCoupons = const [];
+  List<CouponModel> _previewCoupons = const [];
+  String? _previewCartSignature;
   CouponModel? _selectedCoupon;
   bool _forcedAddressFlowOpen = false;
   double _draftDistanceKm = 0.0;
@@ -149,53 +150,85 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _selectedCoupon == null) {
-          _openCouponSheet(totalStorePrice.toDouble(), currentStore.items);
+          _openCouponSheet(currentStore.items);
         }
       });
     }
   }
 
-  /// Coupons that actually apply to the current cart, each with a live,
-  /// client-computed discount preview (mirrors the backend).
-  List<CouponModel> _applicableCoupons(double subtotal, List<CartItem> items) {
-    if (_shopCoupons.isEmpty) return const [];
-    final lines = items
-        .map<CouponCartLine>(
-          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
-        )
-        .toList();
-    final out = <CouponModel>[];
-    for (final c in _shopCoupons) {
-      final discount = CouponService.computePreview(
-        coupon: c,
-        subtotal: subtotal,
-        items: lines,
-      );
-      out.add(c.copyWith(discountPreview: discount));
-    }
-    return out;
+  List<CouponCartLine> _couponCartLines(List<CartItem> items) => items
+      .map(
+        (i) => (
+          menuItemId: i.menuItemId,
+          quantity: i.quantity,
+          price: i.price,
+        ),
+      )
+      .toList();
+
+  int? get _shopIdForCoupons {
+    final fromRestaurant = int.tryParse(_restaurant?.id ?? '');
+    if (fromRestaurant != null) return fromRestaurant;
+    return int.tryParse(widget.store.items.first.restaurantId);
   }
 
-  double _discountForSelected(double subtotal, List<CartItem> items) {
-    final coupon = _selectedCoupon;
-    if (coupon == null) return 0;
-    final lines = items
-        .map<CouponCartLine>(
-          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
-        )
-        .toList();
-    return CouponService.computePreview(
-      coupon: coupon,
-      subtotal: subtotal,
-      items: lines,
+  /// Coupons that qualify for the current cart — amounts come from the server
+  /// (`POST /user/coupons/preview`), not local Buy 1 Get 1 / discount math.
+  Future<List<CouponModel>> _loadPreviewCoupons(List<CartItem> items) async {
+    final shopId = _shopIdForCoupons;
+    if (shopId == null || items.isEmpty) return const [];
+    return CouponService.instance.previewForCart(
+      shopId: shopId,
+      items: _couponCartLines(items),
     );
   }
 
-  Future<void> _openCouponSheet(
-    double subtotal,
-    List<CartItem> items,
-  ) async {
-    final applicable = _applicableCoupons(subtotal, items);
+  String _cartPreviewSignature(List<CartItem> items) => items
+      .map((i) => '${i.menuItemId}:${i.quantity}:${i.price}')
+      .join('|');
+
+  /// Refreshes server preview when cart lines change.
+  Future<void> _refreshCouponPreview(List<CartItem> items) async {
+    final coupons = await _loadPreviewCoupons(items);
+    if (!mounted) return;
+    setState(() {
+      _previewCoupons = coupons;
+      _previewCartSignature = _cartPreviewSignature(items);
+      final selectedId = _selectedCoupon?.id;
+      if (selectedId != null) {
+        CouponModel? updated;
+        for (final c in coupons) {
+          if (c.id == selectedId) {
+            updated = c;
+            break;
+          }
+        }
+        _selectedCoupon = updated;
+      }
+    });
+  }
+
+  void _maybeRefreshCouponPreview(List<CartItem> items) {
+    final sig = _cartPreviewSignature(items);
+    if (sig == _previewCartSignature) return;
+    _refreshCouponPreview(items);
+  }
+
+  double _discountForSelected() => _selectedCoupon?.discountPreview ?? 0;
+
+  bool _selectedCouponApplies() {
+    final c = _selectedCoupon;
+    if (c == null) return false;
+    if (c.isFreeItem) {
+      return c.previewFreeItems.isNotEmpty || c.isBogoAllItems;
+    }
+    return c.discountPreview > 0;
+  }
+
+  Future<void> _openCouponSheet(List<CartItem> items) async {
+    final applicable = await _loadPreviewCoupons(items);
+    if (!mounted) return;
+    setState(() => _previewCoupons = applicable);
     if (applicable.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -913,10 +946,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           itemSubtotal: foodSubtotal,
           taxEnable: taxEnable,
         );
-        final couponDiscount =
-            _discountForSelected(foodSubtotal, currentStore.items);
+        final couponDiscount = _discountForSelected();
         final payableTotal =
             (checkoutTotal - couponDiscount).clamp(0, double.infinity).toDouble();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _maybeRefreshCouponPreview(currentStore.items);
+        });
 
         return Scaffold(
           backgroundColor: const Color(0xFFF7F7F7),
@@ -1393,28 +1429,56 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 taxAmount.toFormattedPrice(),
                               ),
                             ],
-                            if (couponDiscount > 0) ...[
+                            if (couponDiscount > 0 ||
+                                (_selectedCoupon?.isFreeItem == true &&
+                                    _selectedCouponApplies())) ...[
                               const SizedBox(height: 6),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Flexible(
-                                    child: Text(
-                                      _selectedCoupon?.name.isNotEmpty == true
-                                          ? _selectedCoupon!.name
-                                          : context.tr('order_status.discount'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                        color: AppColors.primary,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedCoupon?.name.isNotEmpty ==
+                                                  true
+                                              ? _selectedCoupon!.name
+                                              : context.tr(
+                                                  'order_status.discount',
+                                                ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.poppins(
+                                            color: AppColors.primary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (_selectedCoupon?.isFreeItem ==
+                                            true) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            couponBogoGiftSummary(
+                                              context,
+                                              _selectedCoupon!,
+                                            ),
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   Text(
-                                    '- ${couponDiscount.toFormattedPrice()}',
+                                    couponDiscount > 0
+                                        ? '- ${couponDiscount.toFormattedPrice()}'
+                                        : context.tr('coupon.free'),
                                     style: GoogleFonts.poppins(
                                       color: AppColors.primary,
                                       fontSize: 13,
@@ -1664,8 +1728,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final couponOrderId = int.tryParse((orderId ?? '').replaceAll('#', ''));
     if (couponOrderId == null) return;
 
-    // Skip if the selection no longer applies to the final cart.
-    if (_discountForSelected(subtotal, items) <= 0) return;
+    // Skip if server preview says the coupon no longer applies to this cart.
+    if (!_selectedCouponApplies()) return;
 
     try {
       final result = await CouponService.instance.apply(
@@ -1702,10 +1766,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   ) {
     if (coupon.isFreeItem) {
       final gift = couponBogoGiftSummary(context, coupon);
-      if (discount > 0) {
-        return '${coupon.name}  •  $gift  •  - ${discount.toFormattedPrice()}';
-      }
-      return '${coupon.name}  •  $gift';
+      return gift.isNotEmpty ? '${coupon.name}  •  $gift' : coupon.name;
     }
     return '${coupon.name}  •  - ${discount.toFormattedPrice()}';
   }
@@ -1713,8 +1774,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   /// The "Apply Coupon" card shown on the summary page. Hidden when the shop has
   /// no coupons that apply to the current cart (and none is selected).
   Widget _buildCouponSection(double subtotal, List<CartItem> items) {
-    final applicable = _applicableCoupons(subtotal, items);
-    final discount = _discountForSelected(subtotal, items);
+    final applicable = _previewCoupons;
+    final discount = _discountForSelected();
     final hasSelection = _selectedCoupon != null;
     final hasCoupons = _shopCoupons.isNotEmpty;
     final isHighlighted = hasSelection || hasCoupons;
@@ -1748,7 +1809,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => _openCouponSheet(subtotal, items),
+          onTap: () => _openCouponSheet(items),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -1810,7 +1871,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     icon: PhosphorIconsRegular.arrowsLeftRight,
                     tooltip: context.tr('coupon.change'),
                     color: AppColors.primary,
-                    onTap: () => _openCouponSheet(subtotal, items),
+                    onTap: () => _openCouponSheet(items),
                   ),
                   const SizedBox(width: 4),
                   _CouponRowIconButton(

@@ -602,11 +602,20 @@ class _CouponWishlistButtonState extends State<_CouponWishlistButton> {
         _loading = false;
       });
       if (saved) {
+        // Capture the root navigator now, while this context is guaranteed
+        // mounted. The toast can be tapped after the sheet's own context is
+        // gone, and the coupon sheet lives on a nested navigator — so we must
+        // push Saved Coupons on the ROOT navigator, not this sheet's one.
+        final rootNavigator = Navigator.of(context, rootNavigator: true);
         AppDialog.showToast(
           context,
           context.tr('coupon.saved_to_wishlist'),
           actionLabel: context.tr('wishlist.view_action'),
-          onAction: () => SavedCouponsPage.open(context),
+          onAction: () {
+            rootNavigator.push(
+              MaterialPageRoute(builder: (_) => const SavedCouponsPage()),
+            );
+          },
         );
       } else {
         AppDialog.showToast(
