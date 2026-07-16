@@ -226,15 +226,22 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
                   // (PickupOrderQrCard) so both QRs look identical.
                   child: PrettyQrView.data(
                     data: _token!.qrPayload,
+                    // High error correction (~30%) is required so the centered
+                    // logo doesn't make the code unscannable, plus a standard
+                    // 4-module quiet zone. The coupon payload is denser than the
+                    // pickup one, so these margins matter even more here.
+                    errorCorrectLevel: QrErrorCorrectLevel.H,
                     decoration: const PrettyQrDecoration(
                       shape: PrettyQrSmoothSymbol(
                         color: Colors.black,
                         roundFactor: 0.5,
                       ),
                       background: Colors.white,
+                      quietZone: PrettyQrQuietZone.standard,
                       image: PrettyQrDecorationImage(
                         image: AssetImage('assets/images/app_icon_small.png'),
                         position: PrettyQrDecorationImagePosition.embedded,
+                        scale: 0.16,
                       ),
                     ),
                   ),
