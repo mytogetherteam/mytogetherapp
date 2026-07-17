@@ -219,17 +219,16 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             children: [
               Opacity(
                 opacity: expired ? 0.15 : 1,
-                child: SizedBox(
-                  width: 220,
-                  height: 220,
-                  // Same renderer/style as the order pickup QR
-                  // (PickupOrderQrCard) so both QRs look identical.
+                // Full-width square, same as [PickupOrderQrCard]. The old fixed
+                // 220×220 box made modules too small for this denser JSON payload.
+                child: AspectRatio(
+                  aspectRatio: 1,
                   child: PrettyQrView.data(
                     data: _token!.qrPayload,
                     // High error correction (~30%) is required so the centered
                     // logo doesn't make the code unscannable, plus a standard
                     // 4-module quiet zone. The coupon payload is denser than the
-                    // pickup one, so these margins matter even more here.
+                    // pickup one, so the logo is scaled down a little further.
                     errorCorrectLevel: QrErrorCorrectLevel.H,
                     decoration: const PrettyQrDecoration(
                       shape: PrettyQrSmoothSymbol(
@@ -241,7 +240,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
                       image: PrettyQrDecorationImage(
                         image: AssetImage('assets/images/app_icon_small.png'),
                         position: PrettyQrDecorationImagePosition.embedded,
-                        scale: 0.16,
+                        scale: 0.14,
                       ),
                     ),
                   ),
