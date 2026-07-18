@@ -1,6 +1,6 @@
 import 'models/menu_item_dto.dart';
 import 'models/shop_dto.dart'
-    show OperatingHourDto, ShopPaymentTypeDto, LocalTimeDto;
+    show OperatingHourDto, ShopPaymentTypeDto, LocalTimeDto, ShopMyDayDto;
 import '../../../core/localization/locale_controller.dart';
 
 class Restaurant {
@@ -51,6 +51,9 @@ class Restaurant {
   /// Whether MyTogether has verified this shop.
   final bool isVerified;
 
+  /// Active shop MyDay stories (24h photo posts).
+  final List<ShopMyDayDto> myDays;
+
   // Amenities / features
   final bool hasParking;
   final bool hasWifi;
@@ -69,6 +72,8 @@ class Restaurant {
 
   /// Whether at least one amenity is available (used to hide the section).
   bool get hasAnyFeature => hasParking || hasWifi || isHalal || isVegetarian;
+
+  bool get hasActiveMyDays => myDays.isNotEmpty;
 
   /// Live open/closed state computed from [operatingHours] against the device
   /// clock. Falls back to the API [status] flag when no schedule is available.
@@ -117,6 +122,7 @@ class Restaurant {
     this.paymentQrUrl,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.myDays = const [],
   }) : _name = name;
 
   Restaurant copyWith({
@@ -158,6 +164,11 @@ class Restaurant {
     bool? deliveryEnabled,
     bool? taxEnable,
     bool? isVerified,
+    bool? hasParking,
+    bool? hasWifi,
+    bool? isHalal,
+    bool? isVegetarian,
+    List<ShopMyDayDto>? myDays,
   }) {
     return Restaurant(
       id: id ?? this.id,
@@ -198,6 +209,11 @@ class Restaurant {
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
       taxEnable: taxEnable ?? this.taxEnable,
       isVerified: isVerified ?? this.isVerified,
+      hasParking: hasParking ?? this.hasParking,
+      hasWifi: hasWifi ?? this.hasWifi,
+      isHalal: isHalal ?? this.isHalal,
+      isVegetarian: isVegetarian ?? this.isVegetarian,
+      myDays: myDays ?? this.myDays,
     );
   }
 }

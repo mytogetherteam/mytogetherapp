@@ -314,6 +314,40 @@ class PageableDto {
   }
 }
 
+class ShopMyDayDto {
+  final int id;
+  final int shopId;
+  final String imageUrl;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+
+  const ShopMyDayDto({
+    required this.id,
+    required this.shopId,
+    required this.imageUrl,
+    required this.createdAt,
+    required this.expiresAt,
+  });
+
+  bool get isActive => expiresAt.isAfter(DateTime.now());
+
+  factory ShopMyDayDto.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is DateTime) return value.toLocal();
+      return DateTime.tryParse(value?.toString() ?? '')?.toLocal() ??
+          DateTime.now();
+    }
+
+    return ShopMyDayDto(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      shopId: (json['shopId'] as num?)?.toInt() ?? 0,
+      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']?.toString()) ?? '',
+      createdAt: parseDate(json['createdAt']),
+      expiresAt: parseDate(json['expiresAt']),
+    );
+  }
+}
+
 class ApiResponseShopDetailDto {
   final bool success;
   final String message;
@@ -386,6 +420,7 @@ class ShopDetailDto {
   final int? minEta;
   final int? maxEta;
   final List<DeliveryTierDto> deliveryTiers;
+  final List<ShopMyDayDto> myDays;
 
   String get name => LocaleController.instance.localizedOr(
     _name,
@@ -465,6 +500,7 @@ class ShopDetailDto {
     this.minEta,
     this.maxEta,
     this.deliveryTiers = const [],
+    this.myDays = const [],
   }) : _name = name,
        _estimatedTime = estimatedTime;
 
@@ -532,6 +568,11 @@ class ShopDetailDto {
       maxEta: json['maxEta'],
       deliveryTiers: (json['deliveryTiers'] as List? ?? [])
           .map((e) => DeliveryTierDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      myDays: (json['myDays'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => ShopMyDayDto.fromJson(e.cast<String, dynamic>()))
+          .where((d) => d.imageUrl.isNotEmpty && d.isActive)
           .toList(),
     );
   }
@@ -611,6 +652,10 @@ class ShopDetailDto {
       normalized['distance'] = distanceKm;
     } else {
       normalized['distance'] = json['distanceKm'] ?? json['distance'] ?? 0;
+    }
+
+    if (json['myDays'] is List) {
+      normalized['myDays'] = json['myDays'];
     }
 
     return ShopDetailDto.fromJson(normalized);

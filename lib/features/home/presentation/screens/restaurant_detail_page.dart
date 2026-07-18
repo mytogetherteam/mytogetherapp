@@ -42,6 +42,7 @@ import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
+import '../widgets/shop_myday_viewer.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -1110,69 +1111,139 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 ),
                                 child: Row(
                                   children: [
-                                // Logo Container
-                                Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child:
-                                        resolveMediaUrl(
-                                          _currentRestaurant?.logoPath,
-                                        ).isNotEmpty
-                                        ? GestureDetector(
-                                            onTap: () {
-                                              final img = resolveMediaUrl(_currentRestaurant!.logoPath);
-                                              if (img.isNotEmpty) {
-                                                Navigator.push(
-                                                  context,
-                                                  PageRouteBuilder(
-                                                    opaque: false,
-                                                    barrierDismissible: true,
-                                                    pageBuilder: (context, _, _) => FullScreenImageViewer(
-                                                      imageUrls: [img],
-                                                      initialIndex: 0,
-                                                      heroTagPrefix: 'restaurant_logo_${widget.id}_',
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                              imageUrl: resolveMediaUrl(
-                                                _currentRestaurant!.logoPath,
+                                // Logo Container (MyDay story ring when active)
+                                Builder(
+                                  builder: (context) {
+                                    final hasStories =
+                                        _currentRestaurant?.hasActiveMyDays ==
+                                            true;
+                                    final logo = Padding(
+                                      padding: EdgeInsets.all(hasStories ? 3 : 0),
+                                      child: Container(
+                                        width: hasStories ? 64 : 70,
+                                        height: hasStories ? 64 : 70,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.1,
                                               ),
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) =>
-                                                  const ImageSkeletonLoader(),
-                                              errorWidget:
-                                                  (
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          child: resolveMediaUrl(
+                                                    _currentRestaurant
+                                                        ?.logoPath,
+                                                  ).isNotEmpty
+                                              ? CachedNetworkImage(
+                                                  fadeInDuration:
+                                                      Duration.zero,
+                                                  fadeOutDuration:
+                                                      Duration.zero,
+                                                  imageUrl: resolveMediaUrl(
+                                                    _currentRestaurant!
+                                                        .logoPath,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (context, url) =>
+                                                          const ImageSkeletonLoader(),
+                                                  errorWidget: (
                                                     context,
                                                     url,
                                                     error,
-                                                  ) => _buildLogoFallback(
-                                                    _currentRestaurant?.name ??
+                                                  ) =>
+                                                      _buildLogoFallback(
+                                                    _currentRestaurant
+                                                            ?.name ??
                                                         '',
                                                   ),
-                                            ),
-                                          )
-                                        : _buildLogoFallback(
-                                            _currentRestaurant?.name ?? '',
+                                                )
+                                              : _buildLogoFallback(
+                                                  _currentRestaurant?.name ??
+                                                      '',
+                                                ),
+                                        ),
+                                      ),
+                                    );
+
+                                    Widget child = logo;
+                                    if (hasStories) {
+                                      child = Container(
+                                        width: 70,
+                                        height: 70,
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: const BoxDecoration(
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(18),
                                           ),
-                                  ),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              Color(0xFFF58529),
+                                              Color(0xFFDD2A7B),
+                                              Color(0xFF8134AF),
+                                              Color(0xFF515BD4),
+                                            ],
+                                          ),
+                                        ),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          child: logo,
+                                        ),
+                                      );
+                                    }
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        final restaurant = _currentRestaurant;
+                                        if (restaurant == null) return;
+                                        if (restaurant.hasActiveMyDays) {
+                                          ShopMyDayViewer.open(
+                                            context,
+                                            shopName: restaurant.name,
+                                            shopLogoUrl: restaurant.logoPath,
+                                            stories: restaurant.myDays,
+                                          );
+                                          return;
+                                        }
+                                        final img = resolveMediaUrl(
+                                          restaurant.logoPath,
+                                        );
+                                        if (img.isNotEmpty) {
+                                          Navigator.push(
+                                            context,
+                                            PageRouteBuilder(
+                                              opaque: false,
+                                              barrierDismissible: true,
+                                              pageBuilder:
+                                                  (context, _, _) =>
+                                                      FullScreenImageViewer(
+                                                imageUrls: [img],
+                                                initialIndex: 0,
+                                                heroTagPrefix:
+                                                    'restaurant_logo_${widget.id}_',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: child,
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(

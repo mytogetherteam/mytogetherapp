@@ -729,6 +729,9 @@ class AppTranslations {
     'chat.message_deleted': 'Message deleted',
     'chat.edited': 'edited',
     'chat.photo': 'Photo',
+    'chat.voice': 'Voice message',
+    'chat.mic_permission':
+        'Microphone permission is required to send voice messages.',
     'chat.order_unavailable': 'Chat is unavailable for this order.',
     'chat.preview_notice':
         'Chat is in preview. Messages are saved on this device only.',
@@ -1810,6 +1813,9 @@ class AppTranslations {
     'chat.message_deleted': 'မက်ဆေ့ချ် ဖျက်ပြီး',
     'chat.edited': 'ပြင်ဆင်ပြီး',
     'chat.photo': 'ဓာတ်ပုံ',
+    'chat.voice': 'အသံ မက်ဆေ့ချ်',
+    'chat.mic_permission':
+        'အသံမက်ဆေ့ချ် ပို့ရန် မိုက်ခရိုဖုန်း ခွင့်ပြုချက် လိုအပ်ပါသည်။',
     'chat.order_unavailable': 'ဤအော်ဒါအတွက် chat မရရှိနိုင်ပါ။',
     'chat.preview_notice':
         'Chatသည် နမူနာအဆင့်ဖြစ်တယ်။ မက်ဆေ့ချ်များကို ဤစက်တွင်သာ သိမ်းဆည်းထားတယ်။',
@@ -2900,6 +2906,9 @@ class AppTranslations {
     'chat.message_deleted': 'ลบข้อความแล้ว',
     'chat.edited': 'แก้ไขแล้ว',
     'chat.photo': 'รูปภาพ',
+    'chat.voice': 'ข้อความเสียง',
+    'chat.mic_permission':
+        'ต้องอนุญาตไมโครโฟนเพื่อส่งข้อความเสียง',
     'chat.order_unavailable': 'แชทไม่พร้อมใช้งานสำหรับคำสั่งซื้อนี้',
     'chat.preview_notice':
         'แชทอยู่ในเวอร์ชันตัวอย่าง ข้อความจะถูกบันทึกไว้บนอุปกรณ์นี้เท่านั้น',

@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
 import '../widgets/my_together_verified_badge.dart';
+import '../widgets/shop_myday_viewer.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
@@ -187,36 +188,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.primary, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: resolveMediaUrl(restaurant.logoPath).isNotEmpty
-                            ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                imageUrl: resolveMediaUrl(restaurant.logoPath),
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    const ImageSkeletonLoader(),
-                                errorWidget: (context, url, error) =>
-                                    _buildLogoFallback(restaurant.name),
-                              )
-                            : _buildLogoFallback(restaurant.name),
-                      ),
-                    ),
+                    child: _buildLogoAvatar(context),
                   ),
                 ),
               ],
@@ -655,6 +627,90 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
   }
 
 
+
+  Widget _buildLogoAvatar(BuildContext context) {
+    final hasStories = restaurant.hasActiveMyDays;
+    final logoImage = ClipRRect(
+      borderRadius: BorderRadius.circular(hasStories ? 12 : 12),
+      child: resolveMediaUrl(restaurant.logoPath).isNotEmpty
+          ? CachedNetworkImage(
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              imageUrl: resolveMediaUrl(restaurant.logoPath),
+              fit: BoxFit.cover,
+              width: hasStories ? 68 : 72,
+              height: hasStories ? 68 : 72,
+              placeholder: (context, url) => const ImageSkeletonLoader(),
+              errorWidget: (context, url, error) =>
+                  _buildLogoFallback(restaurant.name),
+            )
+          : _buildLogoFallback(restaurant.name),
+    );
+
+    final logo = Container(
+      width: hasStories ? 74 : 80,
+      height: hasStories ? 74 : 80,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: hasStories
+            ? null
+            : Border.all(color: AppColors.primary, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(hasStories ? 3 : 4),
+      child: logoImage,
+    );
+
+    Widget avatar = logo;
+    if (hasStories) {
+      avatar = Container(
+        width: 80,
+        height: 80,
+        padding: const EdgeInsets.all(2.5),
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(18)),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color(0xFFF58529),
+              Color(0xFFDD2A7B),
+              Color(0xFF8134AF),
+              Color(0xFF515BD4),
+            ],
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: logo,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (restaurant.hasActiveMyDays) {
+          ShopMyDayViewer.open(
+            context,
+            shopName: restaurant.name,
+            shopLogoUrl: restaurant.logoPath,
+            stories: restaurant.myDays,
+          );
+        }
+      },
+      child: avatar,
+    );
+  }
 
   Widget _buildLogoFallback(String name) {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : 'S';

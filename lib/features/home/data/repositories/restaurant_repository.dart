@@ -644,6 +644,7 @@ class RestaurantRepository {
       isFavorite: dto.isFavorite,
       paymentTypes: dto.paymentTypes,
       paymentQrUrl: dto.paymentQrUrl,
+      myDays: dto.myDays,
     );
     return _published(restaurant);
   }

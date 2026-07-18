@@ -33,7 +33,7 @@
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>We need permission to save images (such as payment receipts) to your photo library.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>We need access to your microphone for video recording features if required by camera usage.</string>
+		<string>We need access to your microphone so you can record and send voice messages in chat.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>fetch</string>

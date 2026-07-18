@@ -14,7 +14,10 @@ import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
+import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/audio_message_bubble.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
 import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -42,11 +45,13 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with RouteAware {
+class _ChatPageState extends State<ChatPage>
+    with RouteAware, WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final List<ChatMessage> _messages = [];
+  final ChatVoiceRecorder _voiceRecorder = ChatVoiceRecorder();
 
   late int _conversationId;
   bool _isLoading = true;
@@ -61,9 +66,13 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _conversationId = 0;
     WebSocketService().connect();
     _scrollController.addListener(_onScroll);
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
     _chatSub = WebSocketService().chatUpdates.listen(_onChatEvent);
     // Opening a thread marks the shop's messages as read; clear its badge.
     ChatUnreadController.instance.start();
@@ -106,9 +115,19 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _voiceRecorder.cancel();
+    }
+  }
+
+  @override
   void dispose() {
     App.routeObserver.unsubscribe(this);
-    
+    WidgetsBinding.instance.removeObserver(this);
+    _voiceRecorder.dispose();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -325,6 +344,45 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } else {
       _controller.text = text;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.send_failed'))),
+      );
+    }
+  }
+
+  Future<void> _sendVoiceMessage(VoiceRecordingResult result) async {
+    if (_isSending) {
+      await ChatVoiceRecorder.deleteFile(result.path);
+      return;
+    }
+
+    setState(() => _isSending = true);
+    final sent = await ChatService.instance.sendVoiceMessage(
+      widget.orderId,
+      result.path,
+      durationSeconds: result.durationSeconds,
+    );
+    await ChatVoiceRecorder.deleteFile(result.path);
+    if (!mounted) return;
+
+    setState(() {
+      _isSending = false;
+      if (sent != null) {
+        if (_conversationId <= 0 && sent.conversationId != null) {
+          _conversationId = sent.conversationId!;
+        }
+        final index = _messages.indexWhere((m) => m.id == sent.id);
+        if (index == -1) {
+          _messages.add(sent);
+        } else {
+          _messages[index] = sent;
+        }
+      }
+    });
+
+    if (sent != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('chat.send_failed'))),
       );
@@ -671,11 +729,14 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     final timeLabel = TimeFormatter.formatClock(message.createdAt);
     final displayText = message.kind == ChatMessageKind.image
         ? '📷 ${context.tr('chat.photo')}'
-        : (message.content ?? '');
+        : message.isVoice
+            ? '🎤 ${context.tr('chat.voice')}'
+            : (message.content ?? '');
 
     final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
     final urls = urlRegExp.allMatches(displayText).map((m) => m.group(0)!).toList();
     final firstUrl = urls.isNotEmpty ? urls.first : null;
+    final voiceUrl = message.voiceUrl;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -702,14 +763,22 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 ),
                 border: isMine ? null : Border.all(color: Colors.grey.shade200),
               ),
-              child: Text(
-                displayText,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  height: 1.4,
-                  color: isMine ? Colors.white : const Color(0xFF1E293B),
-                ),
-              ),
+              child: message.isVoice && voiceUrl != null && voiceUrl.isNotEmpty
+                  ? AudioMessageBubble(
+                      url: voiceUrl,
+                      durationSeconds: message.voiceDurationSeconds,
+                      isMine: isMine,
+                      foreground: isMine ? Colors.white : const Color(0xFF1E293B),
+                      background: Colors.transparent,
+                    )
+                  : Text(
+                      displayText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: isMine ? Colors.white : const Color(0xFF1E293B),
+                      ),
+                    ),
             ),
             if (firstUrl != null)
               FutureBuilder(
@@ -777,6 +846,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   Widget _buildInputBar() {
+    final hasText = _controller.text.trim().isNotEmpty;
     return SafeArea(
       top: false,
       child: Container(
@@ -791,63 +861,93 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendMessage(),
-                  style: GoogleFonts.poppins(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: context.tr('chat.input_hint'),
-                    hintStyle: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.grey[400],
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _isSending ? null : _sendMessage,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: _isSending ? null : AppColors.primaryGradient,
-                  color: _isSending ? Colors.grey[300] : null,
-                  shape: BoxShape.circle,
-                ),
-                child: _isSending
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+        child: ValueListenableBuilder<VoiceRecordPhase>(
+          valueListenable: _voiceRecorder.phaseNotifier,
+          builder: (context, phase, _) {
+            final recording = phase != VoiceRecordPhase.idle;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Messenger-style: recording replaces the text box entirely.
+                Expanded(
+                  child: recording
+                      ? VoiceRecordingStrip(
+                          recorder: _voiceRecorder,
+                          isBusy: _isSending,
+                          onSend: _sendVoiceMessage,
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            minLines: 1,
+                            maxLines: 5,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendMessage(),
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: context.tr('chat.input_hint'),
+                              hintStyle: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[400],
+                              ),
+                              border: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
                         ),
-                      )
-                    : const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
+                ),
+                const SizedBox(width: 8),
+                if (hasText && !recording)
+                  GestureDetector(
+                    onTap: _isSending ? null : _sendMessage,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient:
+                            _isSending ? null : AppColors.primaryGradient,
+                        color: _isSending ? Colors.grey[300] : null,
+                        shape: BoxShape.circle,
                       ),
-              ),
-            ),
-          ],
+                      child: _isSending
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                    ),
+                  )
+                else
+                  VoiceRecordButton(
+                    recorder: _voiceRecorder,
+                    enabled: !_isSending,
+                    isBusy: _isSending,
+                    onSend: _sendVoiceMessage,
+                    onPermissionDenied: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.tr('chat.mic_permission')),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
