@@ -26,6 +26,7 @@ import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
+import 'package:mytogetherapp/features/jobs/presentation/screens/jobs_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
@@ -638,10 +639,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: context.tr('home.category_store'),
+                                    title: context.tr('home.category_jobs'),
                                     assetPath:
-                                        'assets/images/services/store_3d.png',
-                                    isComingSoon: true,
+                                        'assets/images/services/jobs_3d.png',
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const JobsListPage(),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
