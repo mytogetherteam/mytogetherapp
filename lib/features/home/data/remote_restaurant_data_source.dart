@@ -230,6 +230,7 @@ class RemoteRestaurantDataSource {
       return getExploreMenuItems(
         lat: lat,
         lon: lon,
+        radiusKm: radiusKm,
         page: page + 1,
         size: size,
       );
@@ -363,20 +364,23 @@ class RemoteRestaurantDataSource {
     );
   }
 
-  /// "Explore menu" — paginated catalog of published menu items visible to the
-  /// user. Backend (auth): GET /api/user/menu-items (UserMenuItemsController.findAll).
+  /// "Explore menu" — nearby published menu items sorted image-first then
+  /// nearest-first. Backend (optional auth): GET /api/user/menu-items/explore
+  /// (UserMenuItemsController.explore). Requires latitude/longitude.
   /// Returns `{ data: { content: [...menu items...] } }`.
-  /// The catalog endpoint is not geo-aware; [lat]/[lon] are used client-side to
-  /// compute distance from each item's nested shop coordinates.
   Future<ShopFeedSectionDto> getExploreMenuItems({
     required double lat,
     required double lon,
+    double? radiusKm,
     int page = 1,
     int size = 20,
   }) async {
     final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/user/menu-items',
+      '${ApiClient.apiPrefix}/user/menu-items/explore',
       queryParameters: {
+        'latitude': lat,
+        'longitude': lon,
+        'radiusKm': ?radiusKm,
         'page': page,
         'size': size,
       },
