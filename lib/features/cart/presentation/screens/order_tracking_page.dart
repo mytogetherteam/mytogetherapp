@@ -35,6 +35,7 @@ import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
+import '../../../home/data/repositories/restaurant_repository.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -474,11 +475,41 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       urls.add(_restaurantLogoUrl!);
     }
     _slideImages = urls.toList();
-    
+
     if (_slideImages.length > 1) {
       _slideshowTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (mounted) setState(() => _currentImageIndex++);
       });
+    }
+
+    // Prefer admin "Order Waiting" banners as the confirming-screen hero.
+    _fetchOrderWaitingBanner();
+  }
+
+  Future<void> _fetchOrderWaitingBanner() async {
+    try {
+      final banners = await RestaurantRepository.instance.getBanners(
+        position: 'Order',
+      );
+      if (!mounted || banners.isEmpty) return;
+      final orderUrls = banners
+          .map((b) => b.imageUrl)
+          .where((url) => url.isNotEmpty)
+          .toList();
+      if (orderUrls.isEmpty) return;
+
+      _slideshowTimer?.cancel();
+      setState(() {
+        _slideImages = orderUrls;
+        _currentImageIndex = 0;
+      });
+      if (_slideImages.length > 1) {
+        _slideshowTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+          if (mounted) setState(() => _currentImageIndex++);
+        });
+      }
+    } catch (e) {
+      debugPrint('Order waiting banner fetch failed: $e');
     }
   }
 

@@ -68,6 +68,9 @@ class RestaurantRepository {
     return '${ApiClient.baseUrl}/$path';
   }
 
+  /// Active banners for [position]: Ads, Promotions, Order, or Splash.
+  /// Results are cached briefly and ordered by [BannerImageDto.displayOrder].
+  /// Network failures are not written to cache (important for Order / Splash).
   Future<List<BannerImageDto>> getBanners({String? position}) async {
     final cacheKey = position ?? 'all';
     final now = DateTime.now();
@@ -80,8 +83,13 @@ class RestaurantRepository {
 
     try {
       final banners = await _remoteDataSource.getBanners(position: position);
-      _cachedBanners[cacheKey] = banners;
-      _bannersLastFetch = now;
+      // Don't cache empty Order/Splash — a failed/empty fetch must not block a
+      // newly published banner for the full 10-minute window.
+      final isOrderOrSplash = position == 'Order' || position == 'Splash';
+      if (!isOrderOrSplash || banners.isNotEmpty) {
+        _cachedBanners[cacheKey] = banners;
+        _bannersLastFetch = now;
+      }
       return banners;
     } catch (e) {
       if (_cachedBanners.containsKey(cacheKey)) {

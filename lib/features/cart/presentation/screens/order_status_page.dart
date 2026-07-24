@@ -78,6 +78,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
 
   StreamSubscription? _orderSubscription;
 
+  /// Remote Order-position banner (waiting/cooking visual). Null = use asset GIF.
+  String? _orderWaitingImageUrl;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -112,6 +115,20 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     });
   }
 
+  Future<void> _fetchOrderWaitingBanner() async {
+    try {
+      final banners = await RestaurantRepository.instance.getBanners(
+        position: 'Order',
+      );
+      if (!mounted || banners.isEmpty) return;
+      final url = banners.first.imageUrl;
+      if (url.isEmpty) return;
+      setState(() => _orderWaitingImageUrl = url);
+    } catch (e) {
+      debugPrint('Order waiting banner fetch failed: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -120,6 +137,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     _currentStatus = ActiveOrderState.instance.orderStatus.clamp(1, 4);
     _backendStatus = ActiveOrderState.instance.backendStatus;
     _startFakeTimer();
+    _fetchOrderWaitingBanner();
 
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
@@ -654,7 +672,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 const SizedBox(height: 32),
               ],
               
-              // Animated Cooking GIF
+              // Order waiting visual (remote Order banner, else cooking.gif)
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
                 transitionBuilder: (Widget child, Animation<double> animation) {
@@ -667,12 +685,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                     ),
                   );
                 },
-                child: (_currentStatus == 2 && _backendStatus?.toUpperCase() == 'COOKING')
+                child: (_currentStatus == 2 &&
+                        (_orderWaitingImageUrl != null ||
+                            _backendStatus?.toUpperCase() == 'COOKING'))
                     ? Center(
-                        key: const ValueKey('cooking_gif'),
+                        key: ValueKey(
+                          _orderWaitingImageUrl ?? 'cooking_gif_asset',
+                        ),
                         child: LoopingGif(
                           assetPath: 'assets/images/cooking.gif',
-                          loopDuration: const Duration(seconds: 4), // Loop every 4 seconds to prevent freeze/disappear
+                          networkUrl: _orderWaitingImageUrl,
+                          loopDuration: const Duration(seconds: 4),
                           height: 220,
                           fit: BoxFit.contain,
                         ),

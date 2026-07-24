@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'core/auth/auth_service.dart';
 import 'core/network/api_client.dart';
 import 'core/localization/locale_controller.dart';
+import 'core/splash/branded_splash.dart';
 import 'features/cart/data/active_order_state.dart';
 import 'features/cart/data/cart_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -190,6 +191,13 @@ void main() async {
     debugPrint('[BOOT] Checking onboarding status...');
     hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
     debugPrint('[BOOT] Onboarding status loaded: $hasSeenOnboarding');
+
+    debugPrint('[BOOT] Prefetching Splash banner...');
+    try {
+      await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
+    } catch (e) {
+      debugPrint('[BOOT] Splash banner prefetch timed out/failed: $e');
+    }
   } catch (e, stackTrace) {
     debugPrint('[BOOT] Critical error during initialization: $e\n$stackTrace');
   }
