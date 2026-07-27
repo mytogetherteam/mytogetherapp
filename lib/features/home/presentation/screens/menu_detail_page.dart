@@ -101,6 +101,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
   // Special instructions
   final TextEditingController _instructionsController = TextEditingController();
+  final FocusNode _instructionsFocusNode = FocusNode();
 
   // Mock recommended items - To be replaced by API if available
   final List<Map<String, String>> _recommendedItems = [];
@@ -132,6 +133,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     _instructionsController.text = widget.initialInstructions ?? '';
     _instructionsController.addListener(() {
       setState(() {});
+    });
+    _instructionsFocusNode.addListener(() {
+      if (mounted) setState(() {});
     });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
@@ -360,6 +364,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     _hoursRefreshTimer?.cancel();
     ShopOrderStateCache.instance.removeListener(_orderStateListener);
     _instructionsController.dispose();
+    _instructionsFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -381,6 +386,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             CustomScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverAppBar(
                   expandedHeight: 270.0,
@@ -706,9 +712,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                           child: TextField(
                             controller: _instructionsController,
-                            maxLines: null,
+                            focusNode: _instructionsFocusNode,
+                            maxLines: 4,
+                            minLines: 3,
                             maxLength: 200,
                             maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) =>
+                                _instructionsFocusNode.unfocus(),
+                            onTapOutside: (_) =>
+                                _instructionsFocusNode.unfocus(),
+                            scrollPadding: EdgeInsets.only(
+                              bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                            ),
                             buildCounter:
                                 (
                                   context, {
@@ -730,15 +746,43 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: Text(
-                            '${_instructionsController.text.length}/200',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[500],
-                              fontSize: 12,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (_instructionsFocusNode.hasFocus)
+                              TextButton(
+                                onPressed: _instructionsFocusNode.unfocus,
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  context.tr('common.done'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            Text(
+                              '${_instructionsController.text.length}/200',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: MediaQuery.viewInsetsOf(context).bottom + 24,
                         ),
                         const SizedBox(height: 32),
 
@@ -986,6 +1030,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         onTap: (_isAddingToCart || _orderBlocked)
                             ? null
                             : () async {
+                                FocusScope.of(context).unfocus();
                                 if (_currentFood == null && widget.price == 0) {
                                   return; // Basic validation
                                 }
