@@ -134,9 +134,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     _instructionsController.addListener(() {
       setState(() {});
     });
-    _instructionsFocusNode.addListener(() {
-      if (mounted) setState(() {});
-    });
     CartManager.instance.addListener(_onCartChanged);
     _initializeSelections();
     _isFavorite = widget.isFavorite ?? false;
@@ -659,6 +656,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         option.id,
                                       ) ??
                                       false;
+                                  final maxSelection = group.maxSelection;
+                                  final atMaxSelection = maxSelection != null &&
+                                      !isSelected &&
+                                      (_selectedOptions[group.id]?.length ??
+                                              0) >=
+                                          maxSelection;
                                   return _buildSelectionItem(
                                     title: option.name,
                                     price: option.price == 0
@@ -666,19 +669,46 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         : '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
                                     isSelected: isSelected,
                                     isRadio: false,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        final current =
-                                            _selectedOptions[group.id] ?? {};
-                                        if (value == true) {
-                                          current.add(option.id);
-                                        } else {
-                                          current.remove(option.id);
-                                        }
-                                        _selectedOptions[group.id] = current;
-                                        _syncWithCart();
-                                      });
-                                    },
+                                    onChanged: atMaxSelection
+                                        ? (_) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  context.trArgs(
+                                                    'menu.max_addon_reached',
+                                                    {
+                                                      'max': maxSelection
+                                                          .toString(),
+                                                      'group': group.name
+                                                              .trim()
+                                                              .isNotEmpty
+                                                          ? group.name
+                                                          : context.tr(
+                                                              'menu.add_on',
+                                                            ),
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        : (value) {
+                                            setState(() {
+                                              final current = Set<int>.from(
+                                                _selectedOptions[group.id] ??
+                                                    const {},
+                                              );
+                                              if (value == true) {
+                                                current.add(option.id);
+                                              } else {
+                                                current.remove(option.id);
+                                              }
+                                              _selectedOptions[group.id] =
+                                                  current;
+                                              _syncWithCart();
+                                            });
+                                          },
                                   );
                                 }),
                                 const SizedBox(height: 20),
@@ -746,40 +776,15 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (_instructionsFocusNode.hasFocus)
-                              TextButton(
-                                onPressed: _instructionsFocusNode.unfocus,
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  context.tr('common.done'),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                            else
-                              const SizedBox.shrink(),
-                            Text(
-                              '${_instructionsController.text.length}/200',
-                              style: GoogleFonts.poppins(
-                                color: Colors.grey[500],
-                                fontSize: 12,
-                              ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${_instructionsController.text.length}/200',
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[500],
+                              fontSize: 12,
                             ),
-                          ],
+                          ),
                         ),
                         SizedBox(
                           height: MediaQuery.viewInsetsOf(context).bottom + 24,

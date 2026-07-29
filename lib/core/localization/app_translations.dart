@@ -462,6 +462,8 @@ class AppTranslations {
         'Please save a delivery address to place your order.',
     'menu.default_cuisine_tag': 'Myanmar Culture',
     'menu.add_on': 'Add On',
+    'menu.max_addon_reached':
+        'You can choose up to {max} option(s) from "{group}"',
     'menu.cart_cleared_added': 'Cart cleared and item added',
     'menu.clear_and_add': 'Clear and Add',
     'menu.customer_reviews': 'Customer Reviews ({count})',
@@ -1565,6 +1567,8 @@ class AppTranslations {
         'အော်ဒါတင်ရန် ပို့ဆောင်ရမည့် လိပ်စာ သိမ်းထားရန် လိုအပ်ပါသည်။',
     'menu.default_cuisine_tag': 'မြန်မာယဉ်ကျေးမှု',
     'menu.add_on': 'ထပ်တိုးရွေးချယ်မှု',
+    'menu.max_addon_reached':
+        '"{group}" မှ ရွေးချယ်မှုကို {max} ခုအထိသာ ရွေးနိုင်ပါသည်',
     'menu.cart_cleared_added': 'ခြင်းတောင်းရှင်းပြီး ပစ္စည်းထည့်ပြီး',
     'menu.clear_and_add': 'ရှင်းပြီး ထည့်မယ်',
     'menu.customer_reviews': 'စားသုံးသူရဲ့သုံးသပ်ချက်များ ({count})',
@@ -2676,6 +2680,8 @@ class AppTranslations {
     'location.forced_setup_required': 'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
     'menu.default_cuisine_tag': 'วัฒนธรรมพม่า',
     'menu.add_on': 'เพิ่มเติม',
+    'menu.max_addon_reached':
+        'เลือกได้สูงสุด {max} รายการจาก "{group}"',
     'menu.cart_cleared_added': 'ล้างตะกร้าและเพิ่มรายการแล้ว',
     'menu.clear_and_add': 'ล้างและเพิ่ม',
     'menu.customer_reviews': 'รีวิวจากลูกค้า ({count})',

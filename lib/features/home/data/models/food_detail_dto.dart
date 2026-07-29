@@ -334,6 +334,9 @@ class MenuItemOptionGroupDto {
   final String? nameTh;
   final int? displayOrder;
   final bool isAvailable;
+  final int minSelection;
+  /// null = unlimited
+  final int? maxSelection;
   final List<MenuItemOptionDto> options;
 
   String get name => LocaleController.instance
@@ -347,6 +350,8 @@ class MenuItemOptionGroupDto {
     this.nameTh,
     this.displayOrder,
     this.isAvailable = true,
+    this.minSelection = 0,
+    this.maxSelection,
     required this.options,
   }) : _name = name;
 
@@ -358,6 +363,8 @@ class MenuItemOptionGroupDto {
     String? nameTh,
     int? displayOrder,
     bool? isAvailable,
+    int? minSelection,
+    int? maxSelection,
     List<MenuItemOptionDto>? options,
   }) {
     return MenuItemOptionGroupDto(
@@ -368,6 +375,8 @@ class MenuItemOptionGroupDto {
       nameTh: nameTh ?? this.nameTh,
       displayOrder: displayOrder ?? this.displayOrder,
       isAvailable: isAvailable ?? this.isAvailable,
+      minSelection: minSelection ?? this.minSelection,
+      maxSelection: maxSelection ?? this.maxSelection,
       options: options ?? this.options,
     );
   }
@@ -390,6 +399,11 @@ class MenuItemOptionGroupDto {
       nameTh: json['nameTh'] as String?,
       displayOrder: json['displayOrder'] as int?,
       isAvailable: isAvailable,
+      minSelection: ((json['minSelection'] ?? json['min_selection']) as num?)
+              ?.toInt() ??
+          0,
+      maxSelection:
+          ((json['maxSelection'] ?? json['max_selection']) as num?)?.toInt(),
       options: options,
     );
   }
