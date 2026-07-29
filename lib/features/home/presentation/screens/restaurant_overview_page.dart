@@ -669,33 +669,6 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
     );
 
     Widget avatar = logo;
-    if (hasStories) {
-      avatar = Container(
-        width: 80,
-        height: 80,
-        padding: const EdgeInsets.all(2.5),
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(18)),
-          gradient: LinearGradient(
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-            colors: [
-              Color(0xFFF58529),
-              Color(0xFFDD2A7B),
-              Color(0xFF8134AF),
-              Color(0xFF515BD4),
-            ],
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: logo,
-        ),
-      );
-    }
 
     return GestureDetector(
       onTap: () {

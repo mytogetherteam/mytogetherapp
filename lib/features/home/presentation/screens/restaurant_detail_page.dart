@@ -43,6 +43,9 @@ import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 import '../widgets/shop_myday_viewer.dart';
+import '../widgets/shop_myday_list_section.dart';
+import '../../../call/data/call_session.dart';
+import '../../../call/presentation/screens/call_screen.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -541,10 +544,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     final targetId = widget.targetMenuItemId;
     if (targetId == null || targetId.isEmpty) return;
 
+    int retries = 0;
     while (mounted &&
         _hasMoreMenu &&
-        !_menuItems.any((it) => it.id.toString() == targetId)) {
+        !_menuItems.any((it) => it.id.toString() == targetId) &&
+        retries < 5) {
+      final prevCount = _menuItems.length;
       await _fetchMenu();
+      if (_menuItems.length == prevCount) {
+        retries++;
+      } else {
+        retries = 0;
+      }
     }
 
     if (mounted) _scheduleScrollToTarget();
@@ -655,7 +666,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     } catch (e) {
       debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
       if (mounted) {
-        setState(() => _isMenuLoading = false);
+        setState(() {
+          _isMenuLoading = false;
+          _hasMoreMenu = false;
+        });
         if (!isInitial) {
           PaginationScroll.maintainAfterPageAppend(
             _scrollController,
@@ -844,9 +858,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              child: Wrap(
+                                alignment: WrapAlignment.spaceEvenly,
+                                spacing: 12,
                                 children: [
                                   _buildActionButton(
                                     imageAsset:
@@ -964,6 +978,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         ),
                       ),
                     ),
+                    if (_currentRestaurant != null && _currentRestaurant!.hasActiveMyDays)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: ShopMyDayListSection(
+                            shopName: _currentRestaurant!.name,
+                            shopLogoUrl: _currentRestaurant!.logoPath,
+                            stories: _currentRestaurant!.myDays,
+                          ),
+                        ),
+                      ),
                     ..._buildMenuSlivers(context),
                     if (_isMenuLoading)
                       const SliverToBoxAdapter(
@@ -1099,8 +1124,22 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 Colors.white.withValues(alpha: 0.7),
                                 BlendMode.srcOver,
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_currentRestaurant != null) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            RestaurantOverviewPage(
+                                          restaurant: _currentRestaurant!,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(28),
@@ -1176,52 +1215,14 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     );
 
                                     Widget child = logo;
-                                    if (hasStories) {
-                                      child = Container(
-                                        width: 70,
-                                        height: 70,
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: const BoxDecoration(
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(18),
-                                          ),
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topRight,
-                                            end: Alignment.bottomLeft,
-                                            colors: [
-                                              Color(0xFFF58529),
-                                              Color(0xFFDD2A7B),
-                                              Color(0xFF8134AF),
-                                              Color(0xFF515BD4),
-                                            ],
-                                          ),
-                                        ),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: logo,
-                                        ),
-                                      );
-                                    }
 
-                                    return GestureDetector(
-                                      onTap: () {
-                                        final restaurant = _currentRestaurant;
-                                        if (restaurant == null) return;
-                                        if (restaurant.hasActiveMyDays) {
-                                          ShopMyDayViewer.open(
-                                            context,
-                                            shopName: restaurant.name,
-                                            shopLogoUrl: restaurant.logoPath,
-                                            stories: restaurant.myDays,
-                                          );
-                                          return;
-                                        }
-                                        final img = resolveMediaUrl(
-                                          restaurant.logoPath,
+                                      return GestureDetector(
+                                        onTap: () {
+                                          final restaurant = _currentRestaurant;
+                                          if (restaurant == null) return;
+                                          
+                                          final img = resolveMediaUrl(
+                                            restaurant.logoPath,
                                         );
                                         if (img.isNotEmpty) {
                                           Navigator.push(
@@ -1376,14 +1377,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               ],
                             ),
                           ),
+                         ),
                         ),
                       ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              );
+            },
             ),
 
             // Active Order Bar & Cart Summary

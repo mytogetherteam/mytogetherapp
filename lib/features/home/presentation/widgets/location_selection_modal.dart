@@ -203,6 +203,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
       latitude: place.lat,
       longitude: place.lon,
       locationName: context.tr('location.current'),
+      buildingName: place.name != context.tr('location.current') ? place.name : null,
       address: place.displayName,
       locationType: 'OTHER',
       isPrimary: true,

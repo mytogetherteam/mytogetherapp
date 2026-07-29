@@ -118,6 +118,24 @@ class RestaurantRepository {
     return result.restaurants;
   }
 
+  Future<List<Restaurant>> getShopsWithActiveMyDays({
+    int size = 20,
+  }) async {
+    try {
+      final response = await SearchRepository.instance.searchNearbyActiveMyDays(
+        page: 1,
+        size: size,
+      );
+      return response.shops
+          .map((dto) => _mapShopWithDistance(dto.shop, lat: 0, lon: 0))
+          .toList();
+    } catch (e) {
+      print('Error fetching shops with active mydays: $e');
+      return [];
+    }
+  }
+
+
   Future<NearbyShopsPageResult> getNearbyShopsPage({
     required double lat,
     required double lon,
@@ -589,6 +607,7 @@ class RestaurantRepository {
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
       isFavorite: dto.isFavorite,
+      myDays: dto.myDays,
     );
     return _published(restaurant);
   }

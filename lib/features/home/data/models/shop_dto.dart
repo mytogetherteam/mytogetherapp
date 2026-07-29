@@ -127,6 +127,7 @@ class ShopListItemDto {
   final List<String> imageUrls;
   final String? displayDeliveryFee;
   final String? originalDeliveryFee;
+  final List<ShopMyDayDto> myDays;
 
   String get name => LocaleController.instance.localizedOr(
     _name,
@@ -196,6 +197,7 @@ class ShopListItemDto {
     this.imageUrls = const <String>[],
     this.displayDeliveryFee,
     this.originalDeliveryFee,
+    this.myDays = const [],
   }) : _name = name,
        _category = category,
        _estimatedTime = estimatedTime;
@@ -262,6 +264,10 @@ class ShopListItemDto {
       imageUrls: imageUrls,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
+      myDays: (json['myDays'] as List? ?? [])
+          .map((e) => ShopMyDayDto.fromJson(e as Map<String, dynamic>))
+          .where((d) => d.isActive)
+          .toList(),
     );
   }
 

@@ -135,6 +135,19 @@ class NotificationService {
       await _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(orderDeliveredChannel);
+
+      const AndroidNotificationChannel callChannel = AndroidNotificationChannel(
+        'user_call_channel_v1',
+        'Incoming Calls',
+        description: 'This channel is used for incoming calls.',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('ringtone'),
+        enableVibration: true,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(callChannel);
     }
 
     // Permissions are now requested via MainNavigationScreen rationale modal
