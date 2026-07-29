@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/auth/auth_service.dart';
 import 'core/localization/locale_controller.dart';
+import 'core/splash/branded_splash.dart';
 import 'features/auth/presentation/screens/login_page.dart';
 import 'features/auth/presentation/screens/auth_entry_page.dart';
 import 'features/main_navigation/presentation/screens/main_navigation_screen.dart';
@@ -97,13 +98,15 @@ class _AppState extends State<App> {
             navigatorKey: App.navigatorKey,
             scaffoldMessengerKey: App.scaffoldMessengerKey,
             // Auth-aware initial route
-            home: UpgradeAlert(
-              showIgnore: false,
-              showLater: false,
-              upgrader: Upgrader(),
-              child: !widget.hasSeenOnboarding
-                  ? const OnboardingScreen()
-                  : const MainNavigationScreen(),
+            home: BrandedSplashGate(
+              child: UpgradeAlert(
+                showIgnore: false,
+                showLater: false,
+                upgrader: Upgrader(),
+                child: !widget.hasSeenOnboarding
+                    ? const OnboardingScreen()
+                    : const MainNavigationScreen(),
+              ),
             ),
             routes: {
               '/home': (context) => const MainNavigationScreen(),

@@ -24,28 +24,39 @@ import 'shop_storage.dart';
 class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
 
-  /// Backend (auth): GET /api/user/banners?position=Ads|Promotions
+  /// Backend: GET /api/user/banners?position=Ads|Promotions|Order|Splash
   Future<List<BannerImageDto>> getBanners({String? position}) async {
-    try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/user/banners',
-        queryParameters: position != null ? {'position': position} : null,
-      );
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/banners',
+      queryParameters: position != null ? {'position': position} : null,
+      // Always hit network — empty Order/Splash responses must not stick in
+      // Dio's 7-day memory cache after an expired date window.
+      options: Options(
+        extra: {
+          '@dio_cache_interceptor@': CacheOptions(
+            store: MemCacheStore(),
+            policy: CachePolicy.refresh,
+          ),
+        },
+      ),
+    );
 
-      if (response.statusCode == 200) {
-        final raw = response.data;
-        final List<dynamic> data = raw is Map
-            ? (raw['data'] as List<dynamic>? ?? const [])
-            : (raw is List ? raw : const []);
-        return data
-            .whereType<Map<String, dynamic>>()
-            .map(BannerImageDto.fromJson)
-            .toList();
-      }
-      return [];
-    } catch (_) {
-      return [];
+    if (response.statusCode == 200) {
+      final raw = response.data;
+      final List<dynamic> data = raw is Map
+          ? (raw['data'] as List<dynamic>? ?? const [])
+          : (raw is List ? raw : const []);
+      final banners = data
+          .whereType<Map<String, dynamic>>()
+          .map(BannerImageDto.fromJson)
+          .toList();
+      banners.sort((a, b) {
+        final byOrder = a.displayOrder.compareTo(b.displayOrder);
+        return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
+      });
+      return banners;
     }
+    return [];
   }
 
   Future<Map<String, dynamic>?> getBackgroundTheme() async {

@@ -12,6 +12,7 @@ class BannerImageDto {
   final String? link;
   final String position;
   final String status;
+  final int displayOrder;
 
   BannerImageDto({
     required this.id,
@@ -25,6 +26,7 @@ class BannerImageDto {
     this.link,
     required this.position,
     required this.status,
+    this.displayOrder = 0,
   });
 
   /// Backward-compatible alias used by [HomePage].
@@ -45,6 +47,7 @@ class BannerImageDto {
       link: json['link']?.toString(),
       position: json['position']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
+      displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -61,6 +64,7 @@ class BannerImageDto {
       'link': link,
       'position': position,
       'status': status,
+      'displayOrder': displayOrder,
     };
   }
 }
