@@ -35,6 +35,8 @@ import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
+import '../../../call/presentation/screens/call_screen.dart';
+import '../../../call/data/call_session.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -1194,8 +1196,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
                           const SizedBox(height: 24),
 
-                          // Chat button
-                          ChatUnreadBadge(
+                          // Chat and Call buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ChatUnreadBadge(
                             orderId: _currentOrderId,
                             child: GestureDetector(
                               onTap: () {
@@ -1232,6 +1237,52 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               ),
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () async {
+                              final state = ActiveOrderState.instance;
+                              final shopIdStr = state.shopId;
+                              final shopId = int.tryParse(shopIdStr ?? '');
+                              if (shopId == null || shopId <= 0) return;
+                              
+                              final ok = await CallSession().initiateCall(
+                                shopId: shopId,
+                                shopName: state.restaurantName ?? widget.store.name,
+                                shopImageUrl: state.logoPath,
+                              );
+                              
+                              if (!mounted) return;
+                              if (!ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Could not start call. Please try again.')),
+                                );
+                                return;
+                              }
+                              
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CallScreen(
+                                    shopName: state.restaurantName ?? widget.store.name,
+                                    shopImageUrl: state.logoPath,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 48,
+                              width: 48,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF8FAFC),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: Icon(PhosphorIcons.phoneCallFill, color: Color(0xFF1E293B), size: 20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
 
                           const SizedBox(height: 24),
                           

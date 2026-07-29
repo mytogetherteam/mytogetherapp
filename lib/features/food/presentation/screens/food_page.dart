@@ -26,6 +26,7 @@ import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_leaderboard_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/all_shop_my_days_section.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
 class FoodPage extends StatefulWidget {
@@ -228,6 +229,8 @@ class _FoodPageState extends State<FoodPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 28),
+                        const AllShopMyDaysSection(),
                         const SizedBox(height: 28),
                         const FoodLeaderboardSection(),
                         const SizedBox(height: 28),

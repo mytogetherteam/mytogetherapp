@@ -179,90 +179,97 @@ class _ResetPinPageState extends State<ResetPinPage>
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            GradientText(
-              titleText,
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Please enter a 6-digit PIN.',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            AnimatedBuilder(
-              animation: _shakeAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(_shakeAnimation.value, 0),
-                  child: child,
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (index) {
-                  final isFilled = index < currentPin.length;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: (isFilled && !_hasError)
-                          ? AppColors.primaryGradient
-                          : null,
-                      color: isFilled
-                          ? (_hasError ? Colors.red : null)
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: isFilled
-                            ? (_hasError ? Colors.red : AppColors.primary)
-                            : Colors.grey[400]!,
-                        width: 1.5,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-
-            const SizedBox(height: 60),
-
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 20),
-                child: CustomLoadingIndicator(size: 32),
-              )
-            else
-              const SizedBox(height: 56),
-
-            const Spacer(),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
               child: Column(
                 children: [
-                  _buildNumpadRow(['1', '2', '3']),
-                  const SizedBox(height: 24),
-                  _buildNumpadRow(['4', '5', '6']),
-                  const SizedBox(height: 24),
-                  _buildNumpadRow(['7', '8', '9']),
-                  const SizedBox(height: 24),
-                  _buildNumpadRow(['', '0', 'delete']),
+                  const SizedBox(height: 20),
+                  GradientText(
+                    titleText,
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please enter a 6-digit PIN.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  AnimatedBuilder(
+                    animation: _shakeAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(_shakeAnimation.value, 0),
+                        child: child,
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(6, (index) {
+                        final isFilled = index < currentPin.length;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: (isFilled && !_hasError)
+                                ? AppColors.primaryGradient
+                                : null,
+                            color: isFilled
+                                ? (_hasError ? Colors.red : null)
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isFilled
+                                  ? (_hasError ? Colors.red : AppColors.primary)
+                                  : Colors.grey[400]!,
+                              width: 1.5,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: CustomLoadingIndicator(size: 32),
+                    )
+                  else
+                    const SizedBox(height: 56),
+
+                  const Spacer(),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                    child: Column(
+                      children: [
+                        _buildNumpadRow(['1', '2', '3']),
+                        const SizedBox(height: 24),
+                        _buildNumpadRow(['4', '5', '6']),
+                        const SizedBox(height: 24),
+                        _buildNumpadRow(['7', '8', '9']),
+                        const SizedBox(height: 24),
+                        _buildNumpadRow(['', '0', 'delete']),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 48), // Increased bottom spacing
                 ],
               ),
             ),
-            const SizedBox(height: 30),
           ],
         ),
       ),

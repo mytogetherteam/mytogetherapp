@@ -9,6 +9,7 @@ import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
+import 'package:mytogetherapp/features/call/presentation/widgets/floating_call_banner.dart';
 
 class App extends StatefulWidget {
   final bool hasSeenOnboarding;
@@ -72,6 +73,7 @@ class _AppState extends State<App> {
                   textDirection: TextDirection.ltr,
                   children: [
                     child ?? const SizedBox.shrink(),
+                    const FloatingCallBanner(),
                     ValueListenableBuilder<bool>(
                       valueListenable: FloatingChatHead.isHiddenNotifier,
                       builder: (context, isHidden, child) {

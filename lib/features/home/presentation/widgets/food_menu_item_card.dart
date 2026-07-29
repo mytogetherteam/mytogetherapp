@@ -252,198 +252,202 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                           ),
                         );
                       },
-                child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image Section
+                  Expanded(
+                    child: Stack(
                       children: [
-                        // Image Section
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: AnimatedBuilder(
-                                  animation: _borderController,
-                                  builder: (context, child) {
-                                    return ShaderMask(
-                                      blendMode: BlendMode.srcATop,
-                                      shaderCallback: (Rect bounds) {
-                                        final double slide = (_borderController.value * 3) - 1.5;
-                                        return LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Colors.white.withValues(alpha: 0.0),
-                                            Colors.white.withValues(alpha: 0.0),
-                                            Colors.white.withValues(alpha: 0.6),
-                                            Colors.white.withValues(alpha: 0.8),
-                                            Colors.white.withValues(alpha: 0.6),
-                                            Colors.white.withValues(alpha: 0.0),
-                                            Colors.white.withValues(alpha: 0.0),
-                                          ],
-                                          stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
-                                          transform: GradientRotation(0.35),
-                                          tileMode: TileMode.clamp,
-                                        ).createShader(
-                                          Rect.fromLTWH(
-                                            bounds.width * slide,
-                                            bounds.height * slide,
-                                            bounds.width,
-                                            bounds.height,
-                                          ),
-                                        );
-                                      },
-                                      child: child,
-                                    );
-                                  },
-                                  child: UnavailableImageDim(
-                                    active: shouldDimImage,
-                                    child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
+                        Positioned.fill(
+                          child: AnimatedBuilder(
+                            animation: _borderController,
+                            builder: (context, child) {
+                              return ShaderMask(
+                                blendMode: BlendMode.srcATop,
+                                shaderCallback: (Rect bounds) {
+                                  final double slide = (_borderController.value * 3) - 1.5;
+                                  return LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.6),
+                                      Colors.white.withValues(alpha: 0.8),
+                                      Colors.white.withValues(alpha: 0.6),
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.0),
+                                    ],
+                                    stops: const [0.0, 0.35, 0.45, 0.5, 0.55, 0.65, 1.0],
+                                    transform: GradientRotation(0.35),
+                                    tileMode: TileMode.clamp,
+                                  ).createShader(
+                                    Rect.fromLTWH(
+                                      bounds.width * slide,
+                                      bounds.height * slide,
+                                      bounds.width,
+                                      bounds.height,
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      clipBehavior: Clip.antiAlias,
-                                      child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
-                                          ? MenuImagePlaceholder(title: widget.title)
-                                          : (isNetworkImage
-                                              ? CachedNetworkImage(
-                                                  imageUrl: networkUrl,
-                                                  width: double.infinity,
-                                                  fit: BoxFit.cover,
-                                                  memCacheWidth: 400,
-                                                  placeholder: (context, url) => const ImageSkeletonLoader(),
-                                                  errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
-                                                  fadeInDuration: Duration.zero, 
-                                                  fadeOutDuration: Duration.zero,
-                                                )
-                                              : Image.asset(
-                                                  widget.imagePath,
-                                                  width: double.infinity,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) => MenuImagePlaceholder(title: widget.title),
-                                                )),
-                                    ),
-                                  ),
-                                  ),
+                                  );
+                                },
+                                child: child,
+                              );
+                            },
+                            child: UnavailableImageDim(
+                              active: shouldDimImage,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: (widget.imagePath.isEmpty || widget.imagePath.trim().isEmpty)
+                                      ? MenuImagePlaceholder(title: widget.title)
+                                      : (isNetworkImage
+                                          ? CachedNetworkImage(
+                                              imageUrl: networkUrl,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              memCacheWidth: 400,
+                                              placeholder: (context, url) => const ImageSkeletonLoader(),
+                                              errorWidget: (context, url, error) => MenuImagePlaceholder(title: widget.title),
+                                              fadeInDuration: Duration.zero, 
+                                              fadeOutDuration: Duration.zero,
+                                            )
+                                          : Image.asset(
+                                              widget.imagePath,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => MenuImagePlaceholder(title: widget.title),
+                                            )),
                                 ),
                               ),
-                              if (showBadge)
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: OrderStatusImageBadge(
-                                    reason: availability.reason,
-                                  ),
-                                ),
-                              if (discountBadge != null)
-                                Positioned(
-                                  left: 8,
-                                  top: 8,
-                                  child: MenuItemDiscountBadge(label: discountBadge),
-                                ),
-                              Positioned(
-                                top: 10,
-                                right: 10,
-                                child: _buildFavoriteButton(context),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                        // Text Info Section
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        if (showBadge)
+                          Positioned(
+                            left: 8,
+                            bottom: 8,
+                            child: OrderStatusImageBadge(
+                              reason: availability.reason,
+                            ),
+                          ),
+                        if (discountBadge != null)
+                          Positioned(
+                            left: 8,
+                            top: 8,
+                            child: MenuItemDiscountBadge(label: discountBadge),
+                          ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: _buildFavoriteButton(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Text Info Section
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0, left: 2.0, right: 2.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: Colors.black87,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        if (effectivePrice > 0 ||
+                            hasDiscount ||
+                            (widget.displayPrice != null &&
+                                widget.displayPrice != '฿ 0' &&
+                                widget.displayPrice != '฿0' &&
+                                widget.displayPrice != '0')) ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
                             children: [
-                              const SizedBox(height: 8),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      widget.title,
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                        color: Colors.black,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (effectivePrice > 0 ||
-                                      hasDiscount ||
-                                      (widget.displayPrice != null &&
-                                          widget.displayPrice != '฿ 0' &&
-                                          widget.displayPrice != '฿0' &&
-                                          widget.displayPrice != '0')) ...[
-                                    const SizedBox(width: 4),
-                                    if (hasDiscount) ...[
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2.0),
-                                        child: Text(
-                                          widget.originalPrice!
-                                              .toStringAsFixed(0)
-                                              .toFormattedPrice(currency: widget.currency),
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.grey[400],
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 10,
-                                            decoration: TextDecoration.lineThrough,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                    ],
-                                    GradientText(
-                                      widget.displayPrice ??
-                                          effectivePrice
-                                              .toStringAsFixed(0)
-                                              .toFormattedPrice(currency: widget.currency),
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                              GradientText(
+                                widget.displayPrice ??
+                                    effectivePrice
+                                        .toStringAsFixed(0)
+                                        .toFormattedPrice(currency: widget.currency),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
                               ),
-                              OrderBlockedMenuHint(
-                                text: hintLine,
-                                reason: availability.reason,
-                              ),
-                              if (hintLine.isNotEmpty) const SizedBox(height: 2),
-                              if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
+                              if (hasDiscount) ...[
+                                const SizedBox(width: 6),
                                 Text(
+                                  widget.originalPrice!
+                                      .toStringAsFixed(0)
+                                      .toFormattedPrice(currency: widget.currency),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey[500],
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 11,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        OrderBlockedMenuHint(
+                          text: hintLine,
+                          reason: availability.reason,
+                        ),
+                        if (hintLine.isNotEmpty) const SizedBox(height: 2),
+                        if (widget.showRestaurantName && widget.restaurantName.isNotEmpty) ...[
+                          Row(
+                            children: [
+                              Icon(PhosphorIcons.storefront, size: 12, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
                                   widget.restaurantName,
                                   style: GoogleFonts.poppins(
                                     fontSize: 11,
                                     color: Colors.grey[600],
-                                    fontWeight: FontWeight.w400,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                              const SizedBox(height: 4),
-                              Transform.translate(
-                                offset: const Offset(-1.5, 0),
-                                child: ShopItemMetadataRow(
-                                  rating: widget.rating > 0 ? widget.rating : null,
-                                  reviewCount: widget.reviewCount,
-                                  distanceKm: widget.distanceKm,
-                                  deliveryTime: widget.estimatedTime,
-                                  showDeliveryFee: false,
-                                  fontSize: 10,
-                                  iconSize: 12,
-                                ),
                               ),
-                              const SizedBox(height: 4),
                             ],
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        Transform.translate(
+                          offset: const Offset(-1.5, 0),
+                          child: ShopItemMetadataRow(
+                            rating: widget.rating > 0 ? widget.rating : null,
+                            reviewCount: widget.reviewCount,
+                            distanceKm: widget.distanceKm,
+                            deliveryTime: widget.estimatedTime,
+                            showDeliveryFee: false,
+                            fontSize: 10,
+                            iconSize: 12,
                           ),
                         ),
                       ],
                     ),
+                  ),
+                ],
+              ),
                   ),
                 ),
               ),
@@ -500,13 +504,20 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: Colors.white,
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Icon(
           saved ? PhosphorIcons.heartFill : PhosphorIcons.heart,
-          color: saved ? AppColors.primary : Colors.white,
-          size: 16,
+          color: saved ? AppColors.primary : Colors.grey[400],
+          size: 18,
         ),
       ),
     );
