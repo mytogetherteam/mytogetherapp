@@ -17,6 +17,7 @@ import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/audio_message_bubble.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
 import 'package:mytogetherapp/app.dart';
@@ -254,9 +255,11 @@ class _ChatPageState extends State<ChatPage>
 
   String get _headerSubtitle {
     if (_isChatClosed) return context.tr('chat.closed_title');
-    final timeLeft = ChatWindow.compactTimeLeft(_chatClosesAt);
-    if (timeLeft.isEmpty) return widget.peerSubtitle;
-    return context.trArgs('chat.support_subtitle', {'time': timeLeft});
+    final timeLeft = ChatWindow.timeLeftUntil(_chatClosesAt);
+    if (timeLeft == null) return widget.peerSubtitle;
+    return context.trArgs('chat.support_subtitle', {
+      'time': context.countdown(timeLeft),
+    });
   }
 
   Future<void> _loadMessages() async {
@@ -714,6 +717,11 @@ class _ChatPageState extends State<ChatPage>
       ),
       body: Column(
         children: [
+          if (!_isChatClosed && _chatClosesAt != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: ChatWindowHint(closesAt: _chatClosesAt, filled: true),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CustomLoadingIndicator())

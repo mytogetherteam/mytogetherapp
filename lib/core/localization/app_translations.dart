@@ -756,6 +756,11 @@ class AppTranslations {
     'chat.help_card_body': 'Message the shop about missing or incorrect items.',
     'chat.message_shop': 'Message shop',
     'chat.time_left': '{time} left',
+    'chat.window_hint':
+        '{time}\u00A0left · you can message the shop for 4 hours '
+        'after the order is completed',
+    'chat.window_hint_no_time':
+        'You can message the shop for 4 hours after the order is completed.',
     'chat.view_messages': 'View messages',
     'chat.support_subtitle': 'Order support · {time} left',
     'chat.closed_title': 'Chat closed',
@@ -1032,6 +1037,11 @@ class AppTranslations {
     'time.minutes_ago': '{count}m ago',
     'time.hours_ago': '{count}h ago',
     'time.days_ago': '{count}d ago',
+    // Non-breaking spaces keep a value glued to its unit so a line break can
+    // never leave a bare "3" at the end of a line.
+    'time.duration_hm': '{h}\u00A0hr {m}\u00A0min',
+    'time.duration_h': '{h}\u00A0hr',
+    'time.duration_m': '{m}\u00A0min',
     'help.contact_us': 'Contact Us',
     'help.call': 'Call',
     'help.email': 'Email',
@@ -1875,6 +1885,10 @@ class AppTranslations {
         'ပစ္စည်းပျောက်ခြင်း သို့မဟုတ် မှားယွင်းခြင်းအတွက် ဆိုင်သို့ စာပို့ပါ။',
     'chat.message_shop': 'ဆိုင်သို့ စာပို့ရန်',
     'chat.time_left': '{time} ကျန်',
+    'chat.window_hint':
+        '{time}\u00A0ကျန် · အော်ဒါပြီးဆုံးပြီးနောက် ၄ နာရီအတွင်း ဆိုင်သို့ စာပို့နိုင်ပါတယ်',
+    'chat.window_hint_no_time':
+        'အော်ဒါပြီးဆုံးပြီးနောက် ၄ နာရီအတွင်း ဆိုင်သို့ စာပို့နိုင်ပါတယ်။',
     'chat.view_messages': 'မက်ဆေ့ချ်များ ကြည့်ရန်',
     'chat.support_subtitle': 'အော်ဒါအကူအညီ · {time} ကျန်',
     'chat.closed_title': 'Chat ပိတ်ထားပါသည်',
@@ -2152,6 +2166,9 @@ class AppTranslations {
     'time.minutes_ago': '{count} မိနစ်က',
     'time.hours_ago': '{count} နာရီက',
     'time.days_ago': '{count} ရက်က',
+    'time.duration_hm': '{h}\u00A0နာရီ {m}\u00A0မိနစ်',
+    'time.duration_h': '{h}\u00A0နာရီ',
+    'time.duration_m': '{m}\u00A0မိနစ်',
     'help.contact_us': 'ဆက်သွယ်ရန်',
     'help.call': 'ဖုန်းဆက်ရန်',
     'help.email': 'အီးမေးလ်ပို့ရန်',
@@ -2996,6 +3013,10 @@ class AppTranslations {
         'ส่งข้อความถึงร้านค้าเกี่ยวกับสินค้าที่ขาดหรือไม่ถูกต้อง',
     'chat.message_shop': 'ส่งข้อความถึงร้าน',
     'chat.time_left': 'เหลือ {time}',
+    'chat.window_hint':
+        'เหลือ\u00A0{time} · คุณส่งข้อความถึงร้านได้ภายใน 4 ชั่วโมงหลังออเดอร์เสร็จสิ้น',
+    'chat.window_hint_no_time':
+        'คุณส่งข้อความถึงร้านได้ภายใน 4 ชั่วโมงหลังออเดอร์เสร็จสิ้น',
     'chat.view_messages': 'ดูข้อความ',
     'chat.support_subtitle': 'ช่วยเหลือออเดอร์ · เหลือ {time}',
     'chat.closed_title': 'ปิดแชทแล้ว',
@@ -3263,6 +3284,9 @@ class AppTranslations {
     'time.minutes_ago': '{count} นาทีที่แล้ว',
     'time.hours_ago': '{count} ชม.ที่แล้ว',
     'time.days_ago': '{count} วันที่แล้ว',
+    'time.duration_hm': '{h}\u00A0ชม. {m}\u00A0นาที',
+    'time.duration_h': '{h}\u00A0ชม.',
+    'time.duration_m': '{m}\u00A0นาที',
     'help.contact_us': 'ติดต่อเรา',
     'help.call': 'โทร',
     'help.email': 'อีเมล',
@@ -3401,6 +3425,9 @@ extension LocalizationX on BuildContext {
 
   String relativeTime(DateTime date, {String olderFormat = 'MMM d'}) =>
       LocaleController.instance.relativeTime(date, olderFormat: olderFormat);
+
+  String countdown(Duration remaining) =>
+      LocaleController.instance.countdown(remaining);
 
   String localizedStatus(String status) =>
       LocaleController.instance.localizedStatus(status);

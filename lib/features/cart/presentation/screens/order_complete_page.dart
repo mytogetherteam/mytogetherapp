@@ -14,6 +14,7 @@ import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../reviews/data/repositories/order_review_repository.dart';
 import '../../../reviews/data/repositories/shop_review_repository.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
+import '../../../chat/presentation/widgets/chat_window_hint.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import '../../../chat/data/models/chat_window.dart';
 import '../../../chat/data/services/chat_service.dart';
@@ -132,8 +133,6 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
     return closesAt == null || DateTime.now().isBefore(closesAt);
   }
 
-  String get _chatTimeLeft => ChatWindow.compactTimeLeft(_chatClosesAt);
-
   void _finalizeOrder({bool silent = false}) {
     if (_orderFinalized) return;
     _orderFinalized = true;
@@ -234,7 +233,6 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
 
   Widget _buildChatSupportCard() {
     final isOpen = _isChatWindowOpen;
-    final timeLeft = _chatTimeLeft;
     final title = isOpen
         ? context.tr('chat.help_card_title')
         : context.tr('chat.closed_title');
@@ -304,6 +302,10 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
               ),
             ],
           ),
+          if (isOpen && !_isChatWindowLoading) ...[
+            const SizedBox(height: 12),
+            ChatWindowHint(closesAt: _chatClosesAt),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -329,12 +331,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
               ),
               label: Text(
                 isOpen
-                    ? [
-                        context.tr('chat.message_shop'),
-                        if (!_isChatWindowLoading && timeLeft.isNotEmpty)
-                          context.trArgs('chat.time_left', {'time': timeLeft}),
-                      ].join(' · ')
+                    ? context.tr('chat.message_shop')
                     : context.tr('chat.view_messages'),
+                textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

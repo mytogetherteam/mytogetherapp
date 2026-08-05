@@ -23,6 +23,7 @@ import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart'
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -96,13 +97,11 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       _isCompletedOrder &&
       (_isChatWritable || widget.order.hasChatConversation);
 
-  String get _chatActionLabel {
-    if (!_isChatWritable) return context.tr('chat.view_messages');
-    final timeLeft = ChatWindow.compactTimeLeft(_chatClosesAt);
-    if (timeLeft.isEmpty) return context.tr('chat.message_shop');
-    return '${context.tr('chat.message_shop')} · '
-        '${context.trArgs('chat.time_left', {'time': timeLeft})}';
-  }
+  /// Stays short so it fits the half-width button; the remaining time is shown
+  /// by the [ChatWindowHint] line underneath.
+  String get _chatActionLabel => _isChatWritable
+      ? context.tr('chat.message_shop')
+      : context.tr('chat.view_messages');
 
   void _startChatTicker() {
     _chatTicker?.cancel();
@@ -407,6 +406,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -430,6 +430,10 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ),
             ],
           ),
+          if (_showChatAction && _isChatWritable) ...[
+            const SizedBox(height: 8),
+            ChatWindowHint(closesAt: _chatClosesAt),
+          ],
         ],
       );
     }

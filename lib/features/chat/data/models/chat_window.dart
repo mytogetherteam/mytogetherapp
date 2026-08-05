@@ -28,16 +28,11 @@ class ChatWindow {
     return timeLeft == null || timeLeft > Duration.zero;
   }
 
-  static String compactTimeLeft(DateTime? deadline) {
-    if (deadline == null) return '';
+  /// Time left until [deadline], or null when there is no deadline or it has
+  /// already passed. Callers localize it via `context.countdown(...)`.
+  static Duration? timeLeftUntil(DateTime? deadline) {
+    if (deadline == null) return null;
     final remaining = deadline.difference(DateTime.now());
-    if (remaining <= Duration.zero) return '';
-
-    final totalMinutes = (remaining.inSeconds / 60).ceil();
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    if (hours == 0) return '${minutes}m';
-    if (minutes == 0) return '${hours}h';
-    return '${hours}h ${minutes}m';
+    return remaining <= Duration.zero ? null : remaining;
   }
 }
