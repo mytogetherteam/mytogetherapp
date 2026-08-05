@@ -57,6 +57,7 @@ class OrderHistoryDto {
   final int? waitingTimeMinutes;
   final bool? taxEnable;
   final OrderReviewDto? orderReview;
+  final bool hasChatConversation;
 
   OrderHistoryDto({
     required this.id,
@@ -85,6 +86,7 @@ class OrderHistoryDto {
     this.waitingTimeMinutes,
     this.taxEnable,
     this.orderReview,
+    this.hasChatConversation = false,
   }) : _shopName = shopName;
 
   bool get isPickupFulfillment {
@@ -126,11 +128,8 @@ class OrderHistoryDto {
 
   /// The backend only sends an English `statusLabel`, so localize from the
   /// stable `status` enum and fall back to the English label.
-  String get displayStatusLabel =>
-      LocaleController.instance.localizedOrderStatus(
-        status,
-        fallback: statusLabel ?? status,
-      );
+  String get displayStatusLabel => LocaleController.instance
+      .localizedOrderStatus(status, fallback: statusLabel ?? status);
 
   String get dateDisplay {
     try {
@@ -143,7 +142,8 @@ class OrderHistoryDto {
 
   factory OrderHistoryDto.fromJson(Map<String, dynamic> json) {
     final shop = json['shop'] as Map<String, dynamic>?;
-    final shopNameEn = json['shopName'] as String? ??
+    final shopNameEn =
+        json['shopName'] as String? ??
         shop?['name'] as String? ??
         shop?['nameEn'] as String?;
     final shopImageUrl = _resolveShopImageUrl(json, shop);
@@ -158,7 +158,9 @@ class OrderHistoryDto {
       'CANCELLED',
       'COMPLETED',
     };
-    final ongoing = (json['ongoing'] as bool?) ?? !terminalStatuses.contains(status.toUpperCase());
+    final ongoing =
+        (json['ongoing'] as bool?) ??
+        !terminalStatuses.contains(status.toUpperCase());
 
     return OrderHistoryDto(
       id: json['id'].toString(),
@@ -195,6 +197,7 @@ class OrderHistoryDto {
       orderReview: json['orderReview'] is Map<String, dynamic>
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,
+      hasChatConversation: json['hasChatConversation'] == true,
     );
   }
 
@@ -262,19 +265,19 @@ class OrderHistoryItemDto {
   factory OrderHistoryItemDto.fromJson(Map<String, dynamic> json) {
     // New backend (mapUserOrderListItem) uses: nameEn / nameMm / imageUrl.
     // Legacy shape used: menuItemName / menuItemNameMm / menuItemImageUrl.
-    final menuItemNameEn = (json['menuItemName'] as String?) ??
-        (json['nameEn'] as String?);
-    final rawImage = (json['menuItemImageUrl'] as String?) ??
-        (json['imageUrl'] as String?);
+    final menuItemNameEn =
+        (json['menuItemName'] as String?) ?? (json['nameEn'] as String?);
+    final rawImage =
+        (json['menuItemImageUrl'] as String?) ?? (json['imageUrl'] as String?);
     final resolvedImage = FileUrlUtil.resolve(rawImage);
     return OrderHistoryItemDto(
       menuItemId: json['menuItemId'] as int?,
       menuItemName: menuItemNameEn ?? 'Item',
       menuItemNameEn: menuItemNameEn,
-      menuItemNameMm: (json['menuItemNameMm'] as String?) ??
-          (json['nameMm'] as String?),
-      menuItemNameTh: (json['menuItemNameTh'] as String?) ??
-          (json['nameTh'] as String?),
+      menuItemNameMm:
+          (json['menuItemNameMm'] as String?) ?? (json['nameMm'] as String?),
+      menuItemNameTh:
+          (json['menuItemNameTh'] as String?) ?? (json['nameTh'] as String?),
       menuItemImageUrl: resolvedImage.isEmpty ? null : resolvedImage,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,

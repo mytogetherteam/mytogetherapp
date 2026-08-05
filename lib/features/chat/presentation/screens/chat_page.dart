@@ -12,6 +12,7 @@ import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
+import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
@@ -58,10 +59,15 @@ class _ChatPageState extends State<ChatPage>
   bool _hasError = false;
   bool _isSending = false;
   bool _isLoadingOlder = false;
+  bool _isChatClosed = false;
   int _currentPage = 1;
   int _lastPage = 1;
 
   StreamSubscription<Map<String, dynamic>>? _chatSub;
+  StreamSubscription<Map<String, dynamic>>? _orderSub;
+  Timer? _chatWindowTimer;
+  Timer? _countdownTicker;
+  DateTime? _chatClosesAt;
 
   @override
   void initState() {
@@ -74,10 +80,11 @@ class _ChatPageState extends State<ChatPage>
       if (mounted) setState(() {});
     });
     _chatSub = WebSocketService().chatUpdates.listen(_onChatEvent);
+    _orderSub = WebSocketService().orderUpdates.listen(_onOrderEvent);
     // Opening a thread marks the shop's messages as read; clear its badge.
     ChatUnreadController.instance.start();
     ChatUnreadController.instance.clear(widget.orderId);
-    
+
     _bootstrap();
   }
 
@@ -116,6 +123,10 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshChatWindow();
+      return;
+    }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
@@ -132,6 +143,9 @@ class _ChatPageState extends State<ChatPage>
     _scrollController.dispose();
     _focusNode.dispose();
     _chatSub?.cancel();
+    _orderSub?.cancel();
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
     // Anything received while the thread was open has now been seen.
     ChatUnreadController.instance.clear(widget.orderId);
     super.dispose();
@@ -143,23 +157,106 @@ class _ChatPageState extends State<ChatPage>
       _hasError = false;
     });
 
-    final conversation =
-        await ChatService.instance.getConversationByOrder(widget.orderId);
+    final conversation = await ChatService.instance.getConversationByOrder(
+      widget.orderId,
+    );
 
     if (!mounted) return;
 
     if (conversation != null) {
       _conversationId = conversation.id;
-      await ChatService.instance.markAsRead(_conversationId);
-      ChatUnreadController.instance.clear(widget.orderId);
-      await _loadMessages();
-      return;
+      _isChatClosed = !conversation.isChatWritable;
+      _setChatWindow(
+        status: conversation.orderStatus,
+        orderUpdatedAt: conversation.orderUpdatedAt,
+      );
+      if (_conversationId > 0) {
+        await ChatService.instance.markAsRead(_conversationId);
+        ChatUnreadController.instance.clear(widget.orderId);
+        await _loadMessages();
+        return;
+      }
     }
 
     setState(() {
       _isLoading = false;
       _hasError = false;
     });
+  }
+
+  void _onOrderEvent(Map<String, dynamic> event) {
+    if (!mounted) return;
+
+    Map<String, dynamic> order = event;
+    if (event['order'] is Map) {
+      order = Map<String, dynamic>.from(event['order'] as Map);
+    } else if (event['data'] is Map) {
+      order = Map<String, dynamic>.from(event['data'] as Map);
+    }
+
+    final orderId =
+        (order['id'] as num?)?.toInt() ?? (event['orderId'] as num?)?.toInt();
+    if (orderId != widget.orderId) return;
+
+    _setChatWindow(
+      status: order['status']?.toString(),
+      orderUpdatedAt: DateTime.tryParse(
+        order['updatedAt']?.toString() ?? '',
+      )?.toLocal(),
+    );
+  }
+
+  void _setChatWindow({
+    required String? status,
+    required DateTime? orderUpdatedAt,
+  }) {
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
+    final normalized = status?.toUpperCase();
+
+    if (normalized == 'CANCELED' || normalized == 'CANCELLED') {
+      _chatClosesAt = null;
+      if (mounted) setState(() => _isChatClosed = true);
+      return;
+    }
+
+    if ((normalized != 'DELIVERED' && normalized != 'PICKED_UP') ||
+        orderUpdatedAt == null) {
+      _chatClosesAt = null;
+      return;
+    }
+
+    _chatClosesAt = ChatWindow.closesAt(normalized, orderUpdatedAt);
+    _refreshChatWindow();
+  }
+
+  void _refreshChatWindow() {
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
+    final closesAt = _chatClosesAt;
+    if (closesAt == null || !mounted) return;
+
+    final remaining = closesAt.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      setState(() => _isChatClosed = true);
+      return;
+    }
+
+    setState(() => _isChatClosed = false);
+    _countdownTicker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+    _chatWindowTimer = Timer(remaining, () {
+      _countdownTicker?.cancel();
+      if (mounted) setState(() => _isChatClosed = true);
+    });
+  }
+
+  String get _headerSubtitle {
+    if (_isChatClosed) return context.tr('chat.closed_title');
+    final timeLeft = ChatWindow.compactTimeLeft(_chatClosesAt);
+    if (timeLeft.isEmpty) return widget.peerSubtitle;
+    return context.trArgs('chat.support_subtitle', {'time': timeLeft});
   }
 
   Future<void> _loadMessages() async {
@@ -176,8 +273,7 @@ class _ChatPageState extends State<ChatPage>
       _hasError = false;
     });
 
-    final result =
-        await ChatService.instance.getMessages(_conversationId);
+    final result = await ChatService.instance.getMessages(_conversationId);
     if (!mounted) return;
 
     setState(() {
@@ -234,7 +330,7 @@ class _ChatPageState extends State<ChatPage>
     if (type == 'CHAT_CONVERSATION_HIDDEN') {
       final orderId = (event['orderId'] as num?)?.toInt();
       if (orderId == widget.orderId) {
-        Navigator.of(context).pop();
+        setState(() => _isChatClosed = true);
       }
       return;
     }
@@ -244,7 +340,8 @@ class _ChatPageState extends State<ChatPage>
       final orderId = (event['orderId'] as num?)?.toInt();
       final conversationId = (event['conversationId'] as num?)?.toInt();
       final matchesOrder = orderId == null || orderId == widget.orderId;
-      final matchesConversation = conversationId == null ||
+      final matchesConversation =
+          conversationId == null ||
           _conversationId <= 0 ||
           conversationId == _conversationId;
       if (!matchesOrder || !matchesConversation) return;
@@ -316,13 +413,15 @@ class _ChatPageState extends State<ChatPage>
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isSending) return;
+    if (text.isEmpty || _isSending || _isChatClosed) return;
 
     _controller.clear();
     setState(() => _isSending = true);
 
-    final sent =
-        await ChatService.instance.sendTextMessage(widget.orderId, text);
+    final sent = await ChatService.instance.sendTextMessage(
+      widget.orderId,
+      text,
+    );
     if (!mounted) return;
 
     setState(() {
@@ -344,14 +443,14 @@ class _ChatPageState extends State<ChatPage>
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } else {
       _controller.text = text;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('chat.send_failed'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
     }
   }
 
   Future<void> _sendVoiceMessage(VoiceRecordingResult result) async {
-    if (_isSending) {
+    if (_isSending || _isChatClosed) {
       await ChatVoiceRecorder.deleteFile(result.path);
       return;
     }
@@ -383,9 +482,9 @@ class _ChatPageState extends State<ChatPage>
     if (sent != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('chat.send_failed'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
     }
   }
 
@@ -395,8 +494,10 @@ class _ChatPageState extends State<ChatPage>
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(context.tr('chat.edit_title'),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(
+          context.tr('chat.edit_title'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         content: TextField(
           controller: editController,
           autofocus: true,
@@ -436,8 +537,10 @@ class _ChatPageState extends State<ChatPage>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(context.tr('chat.delete_title'),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(
+          context.tr('chat.delete_title'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         content: Text(context.tr('chat.delete_body')),
         actions: [
           TextButton(
@@ -446,16 +549,20 @@ class _ChatPageState extends State<ChatPage>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(context.tr('common.delete'),
-                style: const TextStyle(color: Color(0xFFEF4444))),
+            child: Text(
+              context.tr('common.delete'),
+              style: const TextStyle(color: Color(0xFFEF4444)),
+            ),
           ),
         ],
       ),
     );
     if (confirm != true) return;
 
-    final ok =
-        await ChatService.instance.deleteMessage(_conversationId, message.id);
+    final ok = await ChatService.instance.deleteMessage(
+      _conversationId,
+      message.id,
+    );
     if (!mounted || !ok) return;
     setState(() {
       final index = _messages.indexWhere((m) => m.id == message.id);
@@ -469,7 +576,9 @@ class _ChatPageState extends State<ChatPage>
     if (message.isDeleted) return;
 
     // Extract links
-    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
+    final urlRegExp = RegExp(
+      r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+    );
     final matches = urlRegExp.allMatches(message.content ?? '');
     final urls = matches.map((m) => m.group(0)!).toList();
 
@@ -486,22 +595,38 @@ class _ChatPageState extends State<ChatPage>
             if (message.kind == ChatMessageKind.text)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
-                title: Text(context.tr('common.copy') == 'common.copy' ? 'Copy Text' : context.tr('common.copy')),
+                title: Text(
+                  context.tr('common.copy') == 'common.copy'
+                      ? 'Copy Text'
+                      : context.tr('common.copy'),
+                ),
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: message.content ?? ''));
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.tr('chat.copied') == 'chat.copied' ? 'Copied to clipboard' : context.tr('chat.copied'))),
+                    SnackBar(
+                      content: Text(
+                        context.tr('chat.copied') == 'chat.copied'
+                            ? 'Copied to clipboard'
+                            : context.tr('chat.copied'),
+                      ),
+                    ),
                   );
                 },
               ),
             for (var url in urls)
               ListTile(
                 leading: const Icon(Icons.open_in_browser_rounded),
-                title: Text('Open link: $url', maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  'Open link: $url',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+                  final uri = Uri.parse(
+                    url.startsWith('http') ? url : 'https://$url',
+                  );
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
                   }
@@ -518,10 +643,14 @@ class _ChatPageState extends State<ChatPage>
               ),
             if (message.isMe)
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded,
-                    color: Color(0xFFEF4444)),
-                title: Text(context.tr('chat.delete_title'),
-                    style: const TextStyle(color: Color(0xFFEF4444))),
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFEF4444),
+                ),
+                title: Text(
+                  context.tr('chat.delete_title'),
+                  style: const TextStyle(color: Color(0xFFEF4444)),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _deleteMessage(message);
@@ -565,7 +694,7 @@ class _ChatPageState extends State<ChatPage>
                     ),
                   ),
                   Text(
-                    widget.peerSubtitle,
+                    _headerSubtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
@@ -589,32 +718,81 @@ class _ChatPageState extends State<ChatPage>
             child: _isLoading
                 ? const Center(child: CustomLoadingIndicator())
                 : _hasError
-                    ? _buildErrorState()
-                    : _messages.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                            itemCount:
-                                _messages.length + (_isLoadingOlder ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (_isLoadingOlder && index == 0) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Center(
-                                    child: CustomLoadingIndicator(size: 20),
-                                  ),
-                                );
-                              }
-                              final msgIndex =
-                                  _isLoadingOlder ? index - 1 : index;
-                              return _buildBubble(
-                                  context, _messages[msgIndex]);
-                            },
+                ? _buildErrorState()
+                : _messages.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    itemCount: _messages.length + (_isLoadingOlder ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (_isLoadingOlder && index == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Center(
+                            child: CustomLoadingIndicator(size: 20),
                           ),
+                        );
+                      }
+                      final msgIndex = _isLoadingOlder ? index - 1 : index;
+                      return _buildBubble(context, _messages[msgIndex]);
+                    },
+                  ),
           ),
-          _buildInputBar(),
+          if (_isChatClosed) _buildClosedOrderAlert() else _buildInputBar(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildClosedOrderAlert() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        color: Colors.white,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.lock_outline_rounded,
+                color: Color(0xFF64748B),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('chat.closed_title'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      context.tr('chat.closed_body'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -624,8 +802,10 @@ class _ChatPageState extends State<ChatPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(context.tr('chat.load_failed'),
-              style: GoogleFonts.poppins(color: Colors.grey[600])),
+          Text(
+            context.tr('chat.load_failed'),
+            style: GoogleFonts.poppins(color: Colors.grey[600]),
+          ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: _conversationId > 0 ? _loadMessages : _bootstrap,
@@ -647,7 +827,9 @@ class _ChatPageState extends State<ChatPage>
       ),
       clipBehavior: Clip.antiAlias,
       child: (url != null && url.isNotEmpty)
-          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+          ? CachedNetworkImage(
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
               imageUrl: url,
               fit: BoxFit.cover,
               errorWidget: (_, _, _) => _buildAvatarFallback(),
@@ -730,11 +912,16 @@ class _ChatPageState extends State<ChatPage>
     final displayText = message.kind == ChatMessageKind.image
         ? '📷 ${context.tr('chat.photo')}'
         : message.isVoice
-            ? '🎤 ${context.tr('chat.voice')}'
-            : (message.content ?? '');
+        ? '🎤 ${context.tr('chat.voice')}'
+        : (message.content ?? '');
 
-    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
-    final urls = urlRegExp.allMatches(displayText).map((m) => m.group(0)!).toList();
+    final urlRegExp = RegExp(
+      r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+    );
+    final urls = urlRegExp
+        .allMatches(displayText)
+        .map((m) => m.group(0)!)
+        .toList();
     final firstUrl = urls.isNotEmpty ? urls.first : null;
     final voiceUrl = message.voiceUrl;
 
@@ -743,15 +930,15 @@ class _ChatPageState extends State<ChatPage>
       child: GestureDetector(
         onLongPress: () => _showMessageActions(message),
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Container(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.72,
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isMine ? AppColors.primaryGradient : null,
                 color: isMine ? null : Colors.white,
@@ -768,7 +955,9 @@ class _ChatPageState extends State<ChatPage>
                       url: voiceUrl,
                       durationSeconds: message.voiceDurationSeconds,
                       isMine: isMine,
-                      foreground: isMine ? Colors.white : const Color(0xFF1E293B),
+                      foreground: isMine
+                          ? Colors.white
+                          : const Color(0xFF1E293B),
                       background: Colors.transparent,
                     )
                   : Text(
@@ -783,14 +972,18 @@ class _ChatPageState extends State<ChatPage>
             if (firstUrl != null)
               FutureBuilder(
                 future: AnyLinkPreview.getMetadata(
-                  link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
+                  link: firstUrl.startsWith('http')
+                      ? firstUrl
+                      : 'https://$firstUrl',
                 ),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox.shrink();
                   }
                   final metadata = snapshot.data;
-                  if (metadata == null || metadata.image == null || metadata.image!.isEmpty) {
+                  if (metadata == null ||
+                      metadata.image == null ||
+                      metadata.image!.isEmpty) {
                     return const SizedBox.shrink();
                   }
                   return Container(
@@ -799,7 +992,9 @@ class _ChatPageState extends State<ChatPage>
                       maxWidth: MediaQuery.of(context).size.width * 0.72,
                     ),
                     child: AnyLinkPreview(
-                      link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
+                      link: firstUrl.startsWith('http')
+                          ? firstUrl
+                          : 'https://$firstUrl',
                       displayDirection: UIDirection.uiDirectionHorizontal,
                       cache: const Duration(hours: 1),
                       backgroundColor: Colors.white,
@@ -816,7 +1011,9 @@ class _ChatPageState extends State<ChatPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    message.isEdited ? '$timeLabel · ${context.tr('chat.edited')}' : timeLabel,
+                    message.isEdited
+                        ? '$timeLabel · ${context.tr('chat.edited')}'
+                        : timeLabel,
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: Colors.grey[400],
@@ -897,8 +1094,9 @@ class _ChatPageState extends State<ChatPage>
                                 color: Colors.grey[400],
                               ),
                               border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
                             ),
                           ),
                         ),
@@ -911,8 +1109,7 @@ class _ChatPageState extends State<ChatPage>
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        gradient:
-                            _isSending ? null : AppColors.primaryGradient,
+                        gradient: _isSending ? null : AppColors.primaryGradient,
                         color: _isSending ? Colors.grey[300] : null,
                         shape: BoxShape.circle,
                       ),
@@ -934,7 +1131,7 @@ class _ChatPageState extends State<ChatPage>
                 else
                   VoiceRecordButton(
                     recorder: _voiceRecorder,
-                    enabled: !_isSending,
+                    enabled: !_isSending && !_isChatClosed,
                     isBusy: _isSending,
                     onSend: _sendVoiceMessage,
                     onPermissionDenied: () {
@@ -953,4 +1150,3 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 }
-

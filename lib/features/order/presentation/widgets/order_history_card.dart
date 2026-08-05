@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -19,6 +21,8 @@ import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.d
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
+import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -39,11 +43,13 @@ class OrderHistoryCard extends StatefulWidget {
 class _OrderHistoryCardState extends State<OrderHistoryCard> {
   OrderReviewDto? _review;
   bool _isReordering = false;
+  Timer? _chatTicker;
 
   @override
   void initState() {
     super.initState();
     _review = widget.order.orderReview;
+    _startChatTicker();
   }
 
   @override
@@ -52,9 +58,61 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     if (oldWidget.order.orderReview != widget.order.orderReview) {
       _review = widget.order.orderReview;
     }
+    if (oldWidget.order.updatedAt != widget.order.updatedAt ||
+        oldWidget.order.status != widget.order.status) {
+      _startChatTicker();
+    }
+  }
+
+  @override
+  void dispose() {
+    _chatTicker?.cancel();
+    super.dispose();
   }
 
   Color get primaryColor => AppColors.primary;
+
+  bool get _isCompletedOrder {
+    final status = widget.order.status.toUpperCase();
+    return status == 'DELIVERED' ||
+        status == 'PICKED_UP' ||
+        status == 'COMPLETED';
+  }
+
+  DateTime? get _chatClosesAt {
+    final updatedAt = DateTime.tryParse(
+      widget.order.updatedAt ?? '',
+    )?.toLocal();
+    return ChatWindow.closesAt(widget.order.status, updatedAt);
+  }
+
+  bool get _isChatWritable =>
+      ChatWindow.isWritable(widget.order.status, _completedAt);
+
+  DateTime? get _completedAt =>
+      DateTime.tryParse(widget.order.updatedAt ?? '')?.toLocal();
+
+  bool get _showChatAction =>
+      _isCompletedOrder &&
+      (_isChatWritable || widget.order.hasChatConversation);
+
+  String get _chatActionLabel {
+    if (!_isChatWritable) return context.tr('chat.view_messages');
+    final timeLeft = ChatWindow.compactTimeLeft(_chatClosesAt);
+    if (timeLeft.isEmpty) return context.tr('chat.message_shop');
+    return '${context.tr('chat.message_shop')} · '
+        '${context.trArgs('chat.time_left', {'time': timeLeft})}';
+  }
+
+  void _startChatTicker() {
+    _chatTicker?.cancel();
+    if (!_isCompletedOrder || _chatClosesAt == null) return;
+    _chatTicker = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted) return;
+      setState(() {});
+      if (!_isChatWritable) timer.cancel();
+    });
+  }
 
   String _getImageUrl(String? path) {
     return FileUrlUtil.resolve(path);
@@ -92,7 +150,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               ],
             ),
           ),
-          if (widget.order.status == 'DELIVERED') _buildRatingStrip(context),
+          if (_isCompletedOrder) _buildRatingStrip(context),
         ],
       ),
     );
@@ -101,7 +159,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   Widget _buildTopRow(BuildContext context) {
     Color labelColor = Colors.grey;
     if (widget.order.ongoing) labelColor = primaryColor;
-    if (widget.order.status == 'DELIVERED') labelColor = primaryColor;
+    if (_isCompletedOrder) labelColor = primaryColor;
 
     return Row(
       children: [
@@ -114,20 +172,32 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: widget.order.shopImageUrl != null && widget.order.shopImageUrl!.isNotEmpty
-                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+            child:
+                widget.order.shopImageUrl != null &&
+                    widget.order.shopImageUrl!.isNotEmpty
+                ? CachedNetworkImage(
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(widget.order.shopImageUrl),
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Colors.grey[100]),
-                    errorWidget: (context, url, error) =>
-                        Container(
-                    color: Colors.grey[100],
-                    child: Icon(Icons.storefront_rounded, size: 20, color: Colors.grey[400]),
-                  ),
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[100]),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[100],
+                      child: Icon(
+                        Icons.storefront_rounded,
+                        size: 20,
+                        color: Colors.grey[400],
+                      ),
+                    ),
                   )
                 : Container(
                     color: Colors.grey[100],
-                    child: Icon(Icons.storefront_rounded, size: 20, color: Colors.grey[400]),
+                    child: Icon(
+                      Icons.storefront_rounded,
+                      size: 20,
+                      color: Colors.grey[400],
+                    ),
                   ),
           ),
         ),
@@ -160,11 +230,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Row(
-            children: _buildThumbnails(),
-          ),
-        ),
+        Expanded(child: Row(children: _buildThumbnails())),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -179,11 +245,10 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             ),
             const SizedBox(height: 4),
             Text(
-              context.trArgs('orders.items_count', {'count': '${widget.order.items.length}'}),
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              context.trArgs('orders.items_count', {
+                'count': '${widget.order.items.length}',
+              }),
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -196,51 +261,55 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     int maxDisplayCount = 3;
     bool hasOverflow = widget.order.items.length > maxDisplayCount;
 
-    for (int i = 0; i < (hasOverflow ? maxDisplayCount : widget.order.items.length); i++) {
-        bool isLast = i == widget.order.items.length - 1;
-        bool isThird = i == maxDisplayCount - 1;
-        final item = widget.order.items[i];
+    for (
+      int i = 0;
+      i < (hasOverflow ? maxDisplayCount : widget.order.items.length);
+      i++
+    ) {
+      bool isLast = i == widget.order.items.length - 1;
+      bool isThird = i == maxDisplayCount - 1;
+      final item = widget.order.items[i];
 
-        Widget img = Container(
-          width: 60,
-          height: 60,
-          margin: EdgeInsets.only(right: isLast ? 0 : 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: _buildItemThumbnail(item),
-          ),
-        );
+      Widget img = Container(
+        width: 60,
+        height: 60,
+        margin: EdgeInsets.only(right: isLast ? 0 : 8),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: _buildItemThumbnail(item),
+        ),
+      );
 
-        if (hasOverflow && isThird) {
-           thumbs.add(Stack(
-             children: [
-                img,
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.black.withValues(alpha: 0.6),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '+${widget.order.items.length - maxDisplayCount}', // +X overlay
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+      if (hasOverflow && isThird) {
+        thumbs.add(
+          Stack(
+            children: [
+              img,
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.6),
+                ),
+                child: Center(
+                  child: Text(
+                    '+${widget.order.items.length - maxDisplayCount}', // +X overlay
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
                 ),
-             ],
-           ));
-        } else {
-           thumbs.add(img);
-        }
+              ),
+            ],
+          ),
+        );
+      } else {
+        thumbs.add(img);
+      }
     }
 
     return thumbs;
@@ -259,10 +328,8 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       fit: BoxFit.cover,
       width: 60,
       height: 60,
-      placeholder: (context, url) => const ImageSkeletonLoader(
-        width: 60,
-        height: 60,
-      ),
+      placeholder: (context, url) =>
+          const ImageSkeletonLoader(width: 60, height: 60),
       errorWidget: (context, url, error) =>
           MenuImagePlaceholder(title: item.menuItemName),
     );
@@ -270,33 +337,102 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
 
   Widget _buildBottomRow(BuildContext context) {
     if (widget.order.ongoing) {
-       return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Spacer(),
-            Container(
-               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-               decoration: BoxDecoration(
-                 color: primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-               ),
-               child: Text(
-                 context.tr('orders.in_progress'),
-                 style: GoogleFonts.poppins(
-                   fontWeight: FontWeight.w600,
-                   fontSize: 12,
-                   color: primaryColor,
-                 ),
-               ),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-       );
+            child: Text(
+              context.tr('orders.in_progress'),
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: primaryColor,
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     // For completed and cancelled
-    final btnLabel = widget.order.status == 'DELIVERED'
+    final btnLabel = _isCompletedOrder
         ? context.tr('orders.reorder')
         : context.tr('orders.buy_again');
+
+    if (_isCompletedOrder) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.order.dateDisplay,
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (_showChatAction) ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _openChat,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                      foregroundColor: primaryColor,
+                      side: BorderSide(
+                        color: primaryColor.withValues(alpha: 0.45),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    icon: Icon(
+                      _isChatWritable
+                          ? Icons.chat_bubble_outline_rounded
+                          : Icons.forum_outlined,
+                      size: 17,
+                    ),
+                    label: Text(
+                      _chatActionLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: PrimaryGradientButton(
+                  onPressed: _isReordering ? null : _reorder,
+                  isLoading: _isReordering,
+                  height: 42,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Text(
+                    btnLabel,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -304,47 +440,71 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         Flexible(
           child: Text(
             widget.order.dateDisplay,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 8),
         PrimaryGradientButton(
-           onPressed: _isReordering ? null : _reorder,
-           isLoading: _isReordering,
-           height: 42,
-           width: 110,
-           borderRadius: BorderRadius.circular(12),
-           child: Text(
-             btnLabel,
-             style: GoogleFonts.poppins(
-               fontWeight: FontWeight.w600,
-               fontSize: 13,
-               color: Colors.white,
-             ),
-           ),
+          onPressed: _isReordering ? null : _reorder,
+          isLoading: _isReordering,
+          height: 42,
+          width: 110,
+          borderRadius: BorderRadius.circular(12),
+          child: Text(
+            btnLabel,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: Colors.white,
+            ),
+          ),
         ),
       ],
     );
   }
 
+  Future<void> _openChat() async {
+    if (!await GuestAuthGuard.requireAccount(context) || !mounted) return;
+
+    final orderId = int.tryParse(widget.order.id);
+    if (orderId == null) {
+      AppDialog.showToast(
+        context,
+        context.tr('chat.order_unavailable'),
+        isError: true,
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          orderId: orderId,
+          peerName: widget.order.shopName ?? context.tr('common.shop'),
+          peerSubtitle: context.tr('order_confirm.chat'),
+          avatarUrl: widget.order.shopImageUrl,
+        ),
+      ),
+    );
+
+    if (mounted) setState(() {});
+  }
+
   Widget _buildRatingStrip(BuildContext context) {
     return Container(
-       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-       decoration: const BoxDecoration(
-          color: Color(0xFFF8FAFC), // Light grey strip
-          borderRadius: BorderRadius.only(
-             bottomLeft: Radius.circular(16),
-             bottomRight: Radius.circular(16),
-          ),
-       ),
-       child: _review != null
-           ? _buildRatedContent(context, _review!)
-           : _buildPromptContent(context),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC), // Light grey strip
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
+      child: _review != null
+          ? _buildRatedContent(context, _review!)
+          : _buildPromptContent(context),
     );
   }
 
@@ -354,8 +514,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     if (_isReordering) return;
 
     final shopId = widget.order.shopId;
-    final reorderable =
-        widget.order.items.where((i) => i.menuItemId != null).toList();
+    final reorderable = widget.order.items
+        .where((i) => i.menuItemId != null)
+        .toList();
 
     if (reorderable.isEmpty) {
       AppDialog.showToast(
@@ -413,9 +574,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         : context.tr('orders.reorder_added');
     AppDialog.showToast(context, message);
 
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const CartPage()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CartPage()));
   }
 
   Future<void> _openReviewFlow({int initialRating = 0}) async {
@@ -445,8 +606,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
 
     if (submitted == true) {
       try {
-        final fresh = await OrderReviewRepository.instance
-            .getReviewForOrder(orderIdInt);
+        final fresh = await OrderReviewRepository.instance.getReviewForOrder(
+          orderIdInt,
+        );
         if (!mounted) return;
         if (fresh != null) {
           setState(() => _review = fresh);
@@ -462,21 +624,25 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       children: [
         Text(
           context.tr('orders.how_was_order'),
-          style: GoogleFonts.poppins(
-             fontSize: 13,
-             color: Colors.grey[600],
-          ),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(width: 12),
         Row(
-           children: List.generate(5, (index) => GestureDetector(
+          children: List.generate(
+            5,
+            (index) => GestureDetector(
               onTap: () => _openReviewFlow(initialRating: index + 1),
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Icon(Icons.star_border_rounded, size: 24, color: Colors.grey[400]),
+                child: Icon(
+                  Icons.star_border_rounded,
+                  size: 24,
+                  color: Colors.grey[400],
+                ),
               ),
-           )),
+            ),
+          ),
         ),
       ],
     );
@@ -492,10 +658,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       children: [
         Text(
           context.trArgs('orders.my_rating', {'score': scoreLabel}),
-           style: GoogleFonts.poppins(
-             fontSize: 13,
-             color: Colors.grey[600],
-          ),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(width: 8),
         Icon(Icons.star_rounded, size: 20, color: primaryColor),
@@ -503,4 +666,3 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 }
-

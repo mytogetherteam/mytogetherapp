@@ -40,8 +40,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
   @override
   void initState() {
     super.initState();
-    _completedPagination = _createOrderPagination(const ['DELIVERED'])
-      ..addListener(_onPaginationChanged);
+    _completedPagination = _createOrderPagination(const [
+      'DELIVERED',
+      'PICKED_UP',
+    ])..addListener(_onPaginationChanged);
     _cancelledPagination = _createOrderPagination(const ['CANCELED'])
       ..addListener(_onPaginationChanged);
     _completedPagination.attachScrollController(_completedScrollController);
@@ -67,10 +69,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           page: page,
           size: _pageSize,
         );
-        return PaginatedPage(
-          items: batch.items,
-          hasMore: batch.hasMore,
-        );
+        return PaginatedPage(items: batch.items, hasMore: batch.hasMore);
       },
     );
   }
@@ -163,10 +162,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/app_icon_small.png',
-              height: 28,
-            ),
+            Image.asset('assets/images/app_icon_small.png', height: 28),
             const SizedBox(width: 12),
             Transform.translate(
               offset: const Offset(0, 4), // Nudge text down to align visually
@@ -174,7 +170,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 context.tr('orders.history'),
                 style: GoogleFonts.poppins(
                   color: Colors.black,
-                  fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
+                  fontSize: LocaleController.instance.language.code == 'mm'
+                      ? 18
+                      : 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -208,7 +206,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                             : Text(
                                 context.tr('orders.completed'),
                                 style: GoogleFonts.poppins(
-                                    color: Colors.grey, fontWeight: FontWeight.w600),
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               );
                       },
                     ),
@@ -223,7 +223,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                             : Text(
                                 context.tr('orders.cancelled'),
                                 style: GoogleFonts.poppins(
-                                    color: Colors.grey, fontWeight: FontWeight.w600),
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               );
                       },
                     ),
@@ -237,25 +239,25 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             child: isGuest
                 ? _buildGuestState()
                 : _isLoading
-                    ? _buildSkeletonLoading()
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildOrdersList(
-                            _completedPagination,
-                            _completedScrollController,
-                            context.tr('orders.no_completed'),
-                            onReviewSubmitted: () {
-                              _completedPagination.refresh();
-                            },
-                          ),
-                          _buildOrdersList(
-                            _cancelledPagination,
-                            _cancelledScrollController,
-                            context.tr('orders.no_cancelled'),
-                          ),
-                        ],
+                ? _buildSkeletonLoading()
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildOrdersList(
+                        _completedPagination,
+                        _completedScrollController,
+                        context.tr('orders.no_completed'),
+                        onReviewSubmitted: () {
+                          _completedPagination.refresh();
+                        },
                       ),
+                      _buildOrdersList(
+                        _cancelledPagination,
+                        _cancelledScrollController,
+                        context.tr('orders.no_cancelled'),
+                      ),
+                    ],
+                  ),
           ),
           // Active-order tracking card overlay (self-hides when idle), matching
           // the Home and Food tabs.
@@ -293,8 +295,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 color: Colors.grey[200],
                 shape: BoxShape.circle,
               ),
-              child:
-                  Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+              child: Icon(
+                Icons.receipt_long,
+                size: 80,
+                color: Colors.grey[400],
+              ),
             ),
             const SizedBox(height: 24),
             Text(
@@ -369,8 +374,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     return ListenableBuilder(
       listenable: ActiveOrderState.instance,
       builder: (context, _) {
-        final bottomInset =
-            ActiveOrderState.instance.hasActiveOrder ? 128.0 : 8.0;
+        final bottomInset = ActiveOrderState.instance.hasActiveOrder
+            ? 128.0
+            : 8.0;
         return RefreshIndicator(
           onRefresh: pagination.refresh,
           color: AppColors.primary,
@@ -417,8 +423,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 color: Colors.grey[200],
                 shape: BoxShape.circle,
               ),
-              child:
-                  Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+              child: Icon(
+                Icons.receipt_long,
+                size: 80,
+                color: Colors.grey[400],
+              ),
             ),
             const SizedBox(height: 24),
             Text(
@@ -446,7 +455,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.restaurant_menu, color: Colors.white, size: 20),
+                  const Icon(
+                    Icons.restaurant_menu,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     context.tr('orders.start_ordering'),
@@ -551,10 +564,7 @@ class _GradientTabIndicator extends Decoration {
   final double height;
   final Gradient gradient;
 
-  const _GradientTabIndicator({
-    this.height = 3.0,
-    required this.gradient,
-  });
+  const _GradientTabIndicator({this.height = 3.0, required this.gradient});
 
   @override
   BoxPainter createBoxPainter([VoidCallback? onChanged]) {
@@ -570,10 +580,11 @@ class _GradientPainter extends BoxPainter {
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
     if (configuration.size == null) return;
-    final Rect rect = Offset(
-            offset.dx, configuration.size!.height - decoration.height) &
+    final Rect rect =
+        Offset(offset.dx, configuration.size!.height - decoration.height) &
         Size(configuration.size!.width, decoration.height);
-    final Paint paint = Paint()..shader = decoration.gradient.createShader(rect);
+    final Paint paint = Paint()
+      ..shader = decoration.gradient.createShader(rect);
     canvas.drawRect(rect, paint);
   }
 }

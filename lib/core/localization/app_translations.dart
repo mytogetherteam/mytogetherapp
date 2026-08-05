@@ -231,7 +231,8 @@ class AppTranslations {
     'food.leaderboard_sub': 'Most popular dishes today',
     'food.leaderboard_rest_title': 'Other Rankings',
     'food.leaderboard_tap_hint': 'Tap to see full ranking',
-    'food.leaderboard_empty_msg': 'No rankings yet. Start swiping to build the leaderboard!',
+    'food.leaderboard_empty_msg':
+        'No rankings yet. Start swiping to build the leaderboard!',
     'food.swipe_rank_title': 'Swipe to Rank',
     'food.swipe_rank_sub': 'Like or skip food menus',
     'food.swipe_promo_title': 'Rate Food, Build Rankings!',
@@ -751,6 +752,18 @@ class AppTranslations {
     'chat.mic_permission':
         'Microphone permission is required to send voice messages.',
     'chat.order_unavailable': 'Chat is unavailable for this order.',
+    'chat.help_card_title': 'Need help with this order?',
+    'chat.help_card_body': 'Message the shop about missing or incorrect items.',
+    'chat.message_shop': 'Message shop',
+    'chat.time_left': '{time} left',
+    'chat.view_messages': 'View messages',
+    'chat.support_subtitle': 'Order support · {time} left',
+    'chat.closed_title': 'Chat closed',
+    'chat.closed_body':
+        'The 4-hour support period ended. You can still read past messages.',
+    'chat.closing_soon': 'Closing soon',
+    'chat.closed_after_delivery':
+        'Chat closed — more than 4 hours since this order was completed.',
     'chat.preview_notice':
         'Chat is in preview. Messages are saved on this device only.',
     'restaurant.item': 'Item',
@@ -1344,7 +1357,8 @@ class AppTranslations {
     'food.leaderboard_sub': 'ယနေ့ အကြိုက်ဆုံး ဟင်းလျာများ',
     'food.leaderboard_rest_title': 'အခြား အဆင့်သတ်မှတ်ချက်များ',
     'food.leaderboard_tap_hint': 'အဆင့်သတ်မှတ်ချက် အပြည့်အစုံ ကြည့်ရန် နှိပ်ပါ',
-    'food.leaderboard_empty_msg': 'အဆင့်သတ်မှတ်ချက် မရှိသေးပါ။ အဆင့်သတ်မှတ်ရန် စတင်ပွတ်ဆွဲပါ!',
+    'food.leaderboard_empty_msg':
+        'အဆင့်သတ်မှတ်ချက် မရှိသေးပါ။ အဆင့်သတ်မှတ်ရန် စတင်ပွတ်ဆွဲပါ!',
     'food.swipe_rank_title': 'အဆင့်သတ်မှတ်ရန် ပွတ်ဆွဲပါ',
     'food.swipe_rank_sub': 'အစားအစာများကို ကြိုက်သည် (သို့) ကျော်မည်',
     'food.swipe_promo_title': 'ဘာကြိုက်လဲ ရွေးဖို့',
@@ -1720,7 +1734,8 @@ class AppTranslations {
     'order.status.on_the_way': 'လမ်းတွင် ပို့ဆောင်နေတယ်',
     'order.status.delivered': 'ပို့ဆောင်ပြီး',
     'order.status.canceled': 'ပယ်ဖျက်ပြီး',
-    'order_tracking.awaiting_confirmation': 'ဆိုင်ဘက်မှ အတည်ပြုဖို့ စောင့်နေပါတယ်',
+    'order_tracking.awaiting_confirmation':
+        'ဆိုင်ဘက်မှ အတည်ပြုဖို့ စောင့်နေပါတယ်',
     'order_tracking.calculating': 'တွက်ချက်နေတယ်',
     'order_tracking.cancel_confirm': 'ဤအော်ဒါကို ပယ်ဖျက်ရန် သေချာပါသလား?',
     'order_tracking.cancel_order': 'အော်ဒါပယ်ဖျက်မယ်',
@@ -1729,7 +1744,8 @@ class AppTranslations {
     'order_tracking.keep_order': 'အော်ဒါထားမယ်',
     'order_tracking.restaurant_reviewing':
         'ဆိုင်ဖက်ကနေ အော်ဒါကို လက်ခံဖို့ ခဏစောင့်ပေးပါနော်',
-    'order_tracking.usually_takes': 'ခဏလေးစောင့်ပါနော် — ဆိုင်က အတည်ပြုနေပါတယ်။',
+    'order_tracking.usually_takes':
+        'ခဏလေးစောင့်ပါနော် — ဆိုင်က အတည်ပြုနေပါတယ်။',
     'order_tracking.taking_longer':
         'ပုံမှန်ထက် နည်းနည်း ကြာနေပါတယ်။ ဆိုင်မှာ အော်ဒါများရှိနိုင်ပါတယ် — ခဏစောင့်ပေးပါ။',
     'active_order.awaiting_confirmation': 'အတည်ပြုချက် စောင့်နေတယ်',
@@ -1854,6 +1870,19 @@ class AppTranslations {
     'chat.mic_permission':
         'အသံမက်ဆေ့ချ် ပို့ရန် မိုက်ခရိုဖုန်း ခွင့်ပြုချက် လိုအပ်ပါသည်။',
     'chat.order_unavailable': 'ဤအော်ဒါအတွက် chat မရရှိနိုင်ပါ။',
+    'chat.help_card_title': 'ဤအော်ဒါအတွက် အကူအညီလိုပါသလား။',
+    'chat.help_card_body':
+        'ပစ္စည်းပျောက်ခြင်း သို့မဟုတ် မှားယွင်းခြင်းအတွက် ဆိုင်သို့ စာပို့ပါ။',
+    'chat.message_shop': 'ဆိုင်သို့ စာပို့ရန်',
+    'chat.time_left': '{time} ကျန်',
+    'chat.view_messages': 'မက်ဆေ့ချ်များ ကြည့်ရန်',
+    'chat.support_subtitle': 'အော်ဒါအကူအညီ · {time} ကျန်',
+    'chat.closed_title': 'Chat ပိတ်ထားပါသည်',
+    'chat.closed_body':
+        '၄ နာရီ အကူအညီပေးချိန် ပြီးဆုံးပါပြီ။ ယခင်မက်ဆေ့ချ်များကို ဆက်ဖတ်နိုင်ပါသည်။',
+    'chat.closing_soon': 'မကြာမီ ပိတ်ပါမည်',
+    'chat.closed_after_delivery':
+        'Chat ပိတ်ထားပါသည် — အော်ဒါပြီးဆုံးပြီး ၄ နာရီကျော်သွားပါပြီ။',
     'chat.preview_notice':
         'Chatသည် နမူနာအဆင့်ဖြစ်တယ်။ မက်ဆေ့ချ်များကို ဤစက်တွင်သာ သိမ်းဆည်းထားတယ်။',
     'restaurant.item': 'ခု',
@@ -2186,10 +2215,8 @@ class AppTranslations {
         '{shop} မှ ငွေပေးချေမှုအခြေအနေကို စစ်ဆေးနေပါတယ်',
     'order_status.preparing_shop': '{shop}မှ အော်ဒါကို ပြင်ဆင်နေပါတယ်',
     'order_status.cooking_now_shop': '{shop}မှ ယခုချက်ပြုတ်နေပါသည်',
-    'order_status.delivering_shop':
-        '{shop} မှ အော်ဒါကို ပို့ဆောင်နေပါပြီ',
-    'order_status.completing_shop':
-        '{shop} မှ အော်ဒါကို ပြီးမြောက်စေနေပါတယ်',
+    'order_status.delivering_shop': '{shop} မှ အော်ဒါကို ပို့ဆောင်နေပါပြီ',
+    'order_status.completing_shop': '{shop} မှ အော်ဒါကို ပြီးမြောက်စေနေပါတယ်',
     'cart.place_order_failed': 'အော်ဒါတင်၍မရပါ: {error}',
     'cart.unknown_error': 'မသိသော အမှား',
     'order_tracking.est_delivery_fee_label': 'ခန့်မှန်းပို့ဆောင်ခ ',
@@ -2455,7 +2482,8 @@ class AppTranslations {
     'food.leaderboard_sub': 'เมนูที่ได้รับความนิยมมากที่สุดวันนี้',
     'food.leaderboard_rest_title': 'อันดับอื่นๆ',
     'food.leaderboard_tap_hint': 'แตะเพื่อดูการจัดอันดับทั้งหมด',
-    'food.leaderboard_empty_msg': 'ยังไม่มีการจัดอันดับ เริ่มปัดเพื่อสร้างกระดานผู้นำ!',
+    'food.leaderboard_empty_msg':
+        'ยังไม่มีการจัดอันดับ เริ่มปัดเพื่อสร้างกระดานผู้นำ!',
     'food.swipe_rank_title': 'สไลด์เพื่อจัดอันดับ',
     'food.swipe_rank_sub': 'ชอบหรือโปรดหน้าอาหาร',
     'food.swipe_promo_title': '🃏 ให้คะแนน สร้างการจัดอันดับ!',
@@ -2683,8 +2711,7 @@ class AppTranslations {
     'location.forced_setup_required': 'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
     'menu.default_cuisine_tag': 'วัฒนธรรมพม่า',
     'menu.add_on': 'เพิ่มเติม',
-    'menu.max_addon_reached':
-        'เลือกได้สูงสุด {max} รายการจาก "{group}"',
+    'menu.max_addon_reached': 'เลือกได้สูงสุด {max} รายการจาก "{group}"',
     'menu.cart_cleared_added': 'ล้างตะกร้าและเพิ่มรายการแล้ว',
     'menu.clear_and_add': 'ล้างและเพิ่ม',
     'menu.customer_reviews': 'รีวิวจากลูกค้า ({count})',
@@ -2962,9 +2989,21 @@ class AppTranslations {
     'chat.edited': 'แก้ไขแล้ว',
     'chat.photo': 'รูปภาพ',
     'chat.voice': 'ข้อความเสียง',
-    'chat.mic_permission':
-        'ต้องอนุญาตไมโครโฟนเพื่อส่งข้อความเสียง',
+    'chat.mic_permission': 'ต้องอนุญาตไมโครโฟนเพื่อส่งข้อความเสียง',
     'chat.order_unavailable': 'แชทไม่พร้อมใช้งานสำหรับคำสั่งซื้อนี้',
+    'chat.help_card_title': 'ต้องการความช่วยเหลือเกี่ยวกับออเดอร์นี้?',
+    'chat.help_card_body':
+        'ส่งข้อความถึงร้านค้าเกี่ยวกับสินค้าที่ขาดหรือไม่ถูกต้อง',
+    'chat.message_shop': 'ส่งข้อความถึงร้าน',
+    'chat.time_left': 'เหลือ {time}',
+    'chat.view_messages': 'ดูข้อความ',
+    'chat.support_subtitle': 'ช่วยเหลือออเดอร์ · เหลือ {time}',
+    'chat.closed_title': 'ปิดแชทแล้ว',
+    'chat.closed_body':
+        'ระยะเวลาช่วยเหลือ 4 ชั่วโมงสิ้นสุดแล้ว คุณยังอ่านข้อความที่ผ่านมาได้',
+    'chat.closing_soon': 'กำลังจะปิด',
+    'chat.closed_after_delivery':
+        'ปิดแชทแล้ว — เกิน 4 ชั่วโมงหลังออเดอร์เสร็จสิ้น',
     'chat.preview_notice':
         'แชทอยู่ในเวอร์ชันตัวอย่าง ข้อความจะถูกบันทึกไว้บนอุปกรณ์นี้เท่านั้น',
     'restaurant.item': 'รายการ',

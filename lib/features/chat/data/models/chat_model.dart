@@ -2,6 +2,7 @@
 library;
 
 import 'package:mytogetherapp/core/network/media_url.dart';
+import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 
 enum ChatSenderType { user, shop, system }
 
@@ -174,14 +175,15 @@ class ChatMessage {
   DateTime get timestamp => createdAt;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    final sender = (json['senderUser'] ??
-            json['senderAdmin'] ??
-            json['senderShop']) as Map?;
-    final attachments = (json['attachments'] as List? ?? [])
-        .whereType<Map>()
-        .map((e) => ChatAttachment.fromJson(e.cast<String, dynamic>()))
-        .toList()
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final sender =
+        (json['senderUser'] ?? json['senderAdmin'] ?? json['senderShop'])
+            as Map?;
+    final attachments =
+        (json['attachments'] as List? ?? [])
+            .whereType<Map>()
+            .map((e) => ChatAttachment.fromJson(e.cast<String, dynamic>()))
+            .toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     ChatAttachment? firstVoice;
     ChatAttachment? firstImage;
@@ -194,8 +196,8 @@ class ChatMessage {
     final resolvedUrl = firstVoice?.url.isNotEmpty == true
         ? firstVoice!.url
         : (firstImage?.url.isNotEmpty == true
-            ? firstImage!.url
-            : (legacyUrl.isNotEmpty ? legacyUrl : null));
+              ? firstImage!.url
+              : (legacyUrl.isNotEmpty ? legacyUrl : null));
 
     return ChatMessage(
       id: json['id'].toString(),
@@ -205,8 +207,8 @@ class ChatMessage {
       content: json['content'] as String?,
       attachmentUrl: resolvedUrl,
       attachments: attachments,
-      durationSeconds: firstVoice?.durationSeconds ??
-          (json['duration'] as num?)?.toInt(),
+      durationSeconds:
+          firstVoice?.durationSeconds ?? (json['duration'] as num?)?.toInt(),
       isRead: json['isRead'] == true,
       isDeleted: json['isDeleted'] == true,
       editedAt: _parseDate(json['editedAt']),
@@ -250,6 +252,7 @@ class ChatConversation {
   final String? avatarUrl;
   final String? orderNo;
   final String? orderStatus;
+  final DateTime? orderUpdatedAt;
   final String lastMessage;
   final DateTime timestamp;
   final int unreadCount;
@@ -261,10 +264,18 @@ class ChatConversation {
     this.avatarUrl,
     this.orderNo,
     this.orderStatus,
+    this.orderUpdatedAt,
     required this.lastMessage,
     required this.timestamp,
     this.unreadCount = 0,
   });
+
+  static const postDeliveryChatWindow = ChatWindow.duration;
+
+  /// Whether the customer may still send messages for this order.
+  bool get isChatWritable {
+    return ChatWindow.isWritable(orderStatus, orderUpdatedAt);
+  }
 
   static String previewFor(Map<String, dynamic>? message) {
     if (message == null) return '';
@@ -275,9 +286,7 @@ class ChatConversation {
     if (kind == ChatMessageKind.mixed) {
       final attachments = message['attachments'] as List? ?? const [];
       final hasVoice = attachments.any(
-        (a) =>
-            a is Map &&
-            (a['type'] as String?)?.toUpperCase() == 'VOICE',
+        (a) => a is Map && (a['type'] as String?)?.toUpperCase() == 'VOICE',
       );
       if (hasVoice) return '🎤 Voice message';
       return '📷 Photo';
@@ -293,11 +302,11 @@ class ChatConversation {
         ? messages.first as Map<String, dynamic>
         : null;
 
-    final shopName = _shopDisplayName(shop) ??
-        (order?['shopName'] as String?)?.trim();
+    final shopName =
+        _shopDisplayName(shop) ?? (order?['shopName'] as String?)?.trim();
 
     return ChatConversation(
-      id: (json['id'] as num).toInt(),
+      id: (json['id'] as num?)?.toInt() ?? 0,
       orderId: ((order?['id'] ?? json['orderId']) as num).toInt(),
       name: (shopName != null && shopName.isNotEmpty) ? shopName : 'Shop',
       avatarUrl: resolveMediaUrl(
@@ -305,8 +314,10 @@ class ChatConversation {
       ),
       orderNo: order?['lastOrderNo'] as String?,
       orderStatus: order?['status'] as String?,
+      orderUpdatedAt: _parseDate(order?['updatedAt']),
       lastMessage: previewFor(latest),
-      timestamp: _parseDate(json['lastMessageAt']) ??
+      timestamp:
+          _parseDate(json['lastMessageAt']) ??
           _parseDate(latest?['createdAt']) ??
           DateTime.now(),
       unreadCount: (json['userUnreadCount'] as num?)?.toInt() ?? 0,
