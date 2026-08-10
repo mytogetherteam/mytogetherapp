@@ -93,6 +93,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         lat: coords.lat,
         lon: coords.lon,
         radius: _selectedRadius,
+        deliveryOnly: true,
       );
       if (!mounted || epoch != _mapFetchEpoch) return;
       setState(() => _mapRestaurants = restaurants);
@@ -132,6 +133,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       radius: _selectedRadius,
       page: page,
       size: _pageSize,
+      deliveryOnly: true,
     );
     return PaginatedPage(
       items: pageResult.restaurants,

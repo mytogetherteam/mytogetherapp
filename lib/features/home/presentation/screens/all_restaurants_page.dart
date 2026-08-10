@@ -75,6 +75,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         search: _searchQuery.trim().isEmpty ? null : _searchQuery,
         originLat: lat,
         originLon: lon,
+        deliveryOnly: true,
       );
       results = pageResult.restaurants;
       hasMore = pageResult.hasMore;
@@ -85,6 +86,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         page: page,
         size: _pagination.pageSize,
         search: _searchQuery,
+        deliveryOnly: true,
       );
       results = pageResult.restaurants;
       hasMore = pageResult.hasMore;

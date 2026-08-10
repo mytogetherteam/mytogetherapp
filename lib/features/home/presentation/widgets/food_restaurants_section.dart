@@ -46,7 +46,12 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
           await UserLocationRepository.instance.resolveActiveCoordinates();
 
       return await RestaurantRepository.instance
-          .getNearbyShops(lat: coords.lat, lon: coords.lon, radius: 20.0)
+          .getNearbyShops(
+            lat: coords.lat,
+            lon: coords.lon,
+            radius: 20.0,
+            deliveryOnly: true,
+          )
           .timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint('FoodRestaurantsSection: API error: $e');

@@ -99,6 +99,11 @@ class RestaurantRepository {
     }
   }
 
+  /// Keeps shops that currently offer delivery (`deliveryEnabled == true`).
+  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
+    return restaurants.where((r) => r.deliveryEnabled).toList();
+  }
+
   Future<List<Restaurant>> getNearbyShops({
     required double lat,
     required double lon,
@@ -106,6 +111,7 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
     String? search,
+    bool deliveryOnly = false,
   }) async {
     final result = await getNearbyShopsPage(
       lat: lat,
@@ -114,6 +120,7 @@ class RestaurantRepository {
       page: page,
       size: size,
       search: search,
+      deliveryOnly: deliveryOnly,
     );
     return result.restaurants;
   }
@@ -143,9 +150,10 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
     String? search,
+    bool deliveryOnly = false,
   }) async {
     // Generate a unique key for this request
-    final cacheKey = '$lat-$lon-$radius-$page-$size-$search';
+    final cacheKey = '$lat-$lon-$radius-$page-$size-$search-$deliveryOnly';
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
@@ -197,10 +205,16 @@ class RestaurantRepository {
             .toList();
       }
 
+      if (deliveryOnly) {
+        results = filterDeliveryEnabled(results);
+      }
+
       final pageResult = NearbyShopsPageResult(
         restaurants: results,
         page: response.currentPage,
         lastPage: response.lastPage,
+        // Keep server pagination meta so View-all can keep paging after a
+        // delivery-only filter shortens the current page.
         total: response.total,
         pageSize: size,
       );
@@ -236,6 +250,7 @@ class RestaurantRepository {
     required double lat,
     required double lon,
     double radius = 5.0,
+    bool deliveryOnly = false,
   }) async {
     const fetchSize = 100;
     final all = <Restaurant>[];
@@ -258,8 +273,9 @@ class RestaurantRepository {
       page++;
     }
 
-    unawaited(_prefetchOrderStateForRestaurants(all));
-    return all;
+    final results = deliveryOnly ? filterDeliveryEnabled(all) : all;
+    unawaited(_prefetchOrderStateForRestaurants(results));
+    return results;
   }
 
   /// Popular shops from `GET /api/user/shop-profile/popular`.
@@ -310,6 +326,7 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
+      deliveryOnly: true,
     );
   }
 
@@ -386,6 +403,7 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
+      deliveryOnly: true,
     );
   }
 
@@ -434,6 +452,7 @@ class RestaurantRepository {
     int size = 20,
     double? originLat,
     double? originLon,
+    bool deliveryOnly = false,
   }) async {
     final result = await getShopProfilesPage(
       search: search,
@@ -442,6 +461,7 @@ class RestaurantRepository {
       size: size,
       originLat: originLat,
       originLon: originLon,
+      deliveryOnly: deliveryOnly,
     );
     return result.restaurants;
   }
@@ -453,6 +473,7 @@ class RestaurantRepository {
     int size = 20,
     double? originLat,
     double? originLon,
+    bool deliveryOnly = false,
   }) async {
     final response = await SearchRepository.instance.listShopProfiles(
       search: search,
@@ -460,17 +481,22 @@ class RestaurantRepository {
       page: page,
       size: size,
     );
-    final restaurants = response.shops.map((dto) {
+    var restaurants = response.shops.map((dto) {
       final shop = dto.shop;
       if (originLat != null && originLon != null) {
         return _mapShopWithDistance(shop, lat: originLat, lon: originLon);
       }
       return _mapShopDtoToDomain(shop);
     }).toList();
+    if (deliveryOnly) {
+      restaurants = filterDeliveryEnabled(restaurants);
+    }
     return NearbyShopsPageResult(
       restaurants: restaurants,
       page: response.currentPage,
       lastPage: response.lastPage,
+      // Keep server pagination meta so View-all can keep paging after a
+      // delivery-only filter shortens the current page.
       total: response.total,
       pageSize: size,
     );

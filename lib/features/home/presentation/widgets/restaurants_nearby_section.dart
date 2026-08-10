@@ -52,6 +52,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
         lon: coords.lon,
         radius: 5.0,
         size: 10,
+        deliveryOnly: true,
       ).timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint('RestaurantsNearbySection: API error or timeout: $e');
