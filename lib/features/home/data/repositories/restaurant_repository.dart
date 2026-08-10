@@ -104,6 +104,25 @@ class RestaurantRepository {
     return restaurants.where((r) => r.deliveryEnabled).toList();
   }
 
+  /// Keeps shops that are browse/visit only (`deliveryEnabled == false`).
+  static List<Restaurant> filterVisitOnly(List<Restaurant> restaurants) {
+    return restaurants.where((r) => !r.deliveryEnabled).toList();
+  }
+
+  static List<Restaurant> applyOrderingFilter(
+    List<Restaurant> restaurants, {
+    bool deliveryOnly = false,
+    bool visitOnly = false,
+  }) {
+    assert(
+      !(deliveryOnly && visitOnly),
+      'deliveryOnly and visitOnly cannot both be true',
+    );
+    if (deliveryOnly) return filterDeliveryEnabled(restaurants);
+    if (visitOnly) return filterVisitOnly(restaurants);
+    return restaurants;
+  }
+
   Future<List<Restaurant>> getNearbyShops({
     required double lat,
     required double lon,
@@ -112,6 +131,7 @@ class RestaurantRepository {
     int size = 20,
     String? search,
     bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getNearbyShopsPage(
       lat: lat,
@@ -121,6 +141,7 @@ class RestaurantRepository {
       size: size,
       search: search,
       deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -151,9 +172,11 @@ class RestaurantRepository {
     int size = 20,
     String? search,
     bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     // Generate a unique key for this request
-    final cacheKey = '$lat-$lon-$radius-$page-$size-$search-$deliveryOnly';
+    final cacheKey =
+        '$lat-$lon-$radius-$page-$size-$search-$deliveryOnly-$visitOnly';
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
@@ -205,16 +228,18 @@ class RestaurantRepository {
             .toList();
       }
 
-      if (deliveryOnly) {
-        results = filterDeliveryEnabled(results);
-      }
+      results = applyOrderingFilter(
+        results,
+        deliveryOnly: deliveryOnly,
+        visitOnly: visitOnly,
+      );
 
       final pageResult = NearbyShopsPageResult(
         restaurants: results,
         page: response.currentPage,
         lastPage: response.lastPage,
         // Keep server pagination meta so View-all can keep paging after a
-        // delivery-only filter shortens the current page.
+        // client-side ordering filter shortens the current page.
         total: response.total,
         pageSize: size,
       );
@@ -251,6 +276,7 @@ class RestaurantRepository {
     required double lon,
     double radius = 5.0,
     bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     const fetchSize = 100;
     final all = <Restaurant>[];
@@ -273,7 +299,11 @@ class RestaurantRepository {
       page++;
     }
 
-    final results = deliveryOnly ? filterDeliveryEnabled(all) : all;
+    final results = applyOrderingFilter(
+      all,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
+    );
     unawaited(_prefetchOrderStateForRestaurants(results));
     return results;
   }
@@ -285,12 +315,16 @@ class RestaurantRepository {
     required double lon,
     int page = 1,
     int size = 10,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getPopularShopsPage(
       lat: lat,
       lon: lon,
       page: page,
       size: size,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -300,6 +334,8 @@ class RestaurantRepository {
     required double lon,
     int page = 1,
     int size = 10,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getPopularShops(
@@ -307,9 +343,13 @@ class RestaurantRepository {
         size: size,
       );
       final restaurants = await _prefetchAndReturn(
-        response.shops
-            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
-            .toList(),
+        applyOrderingFilter(
+          response.shops
+              .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+              .toList(),
+          deliveryOnly: deliveryOnly,
+          visitOnly: visitOnly,
+        ),
       );
       return NearbyShopsPageResult(
         restaurants: restaurants,
@@ -326,7 +366,8 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
-      deliveryOnly: true,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
   }
 
@@ -360,6 +401,8 @@ class RestaurantRepository {
     int page = 1,
     int size = 10,
     int? days,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getTrendingShopsPage(
       lat: lat,
@@ -367,6 +410,8 @@ class RestaurantRepository {
       page: page,
       size: size,
       days: days,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -377,6 +422,8 @@ class RestaurantRepository {
     int page = 1,
     int size = 10,
     int? days,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getTrendingShops(
@@ -384,9 +431,13 @@ class RestaurantRepository {
         size: size,
         days: days,
       );
-      final restaurants = response.shops
-          .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
-          .toList();
+      final restaurants = applyOrderingFilter(
+        response.shops
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+            .toList(),
+        deliveryOnly: deliveryOnly,
+        visitOnly: visitOnly,
+      );
       unawaited(_prefetchOrderStateForRestaurants(restaurants));
       return NearbyShopsPageResult(
         restaurants: restaurants,
@@ -403,7 +454,8 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
-      deliveryOnly: true,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
   }
 
@@ -453,6 +505,7 @@ class RestaurantRepository {
     double? originLat,
     double? originLon,
     bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getShopProfilesPage(
       search: search,
@@ -462,6 +515,7 @@ class RestaurantRepository {
       originLat: originLat,
       originLon: originLon,
       deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -474,6 +528,7 @@ class RestaurantRepository {
     double? originLat,
     double? originLon,
     bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final response = await SearchRepository.instance.listShopProfiles(
       search: search,
@@ -488,15 +543,17 @@ class RestaurantRepository {
       }
       return _mapShopDtoToDomain(shop);
     }).toList();
-    if (deliveryOnly) {
-      restaurants = filterDeliveryEnabled(restaurants);
-    }
+    restaurants = applyOrderingFilter(
+      restaurants,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
+    );
     return NearbyShopsPageResult(
       restaurants: restaurants,
       page: response.currentPage,
       lastPage: response.lastPage,
       // Keep server pagination meta so View-all can keep paging after a
-      // delivery-only filter shortens the current page.
+      // client-side ordering filter shortens the current page.
       total: response.total,
       pageSize: size,
     );

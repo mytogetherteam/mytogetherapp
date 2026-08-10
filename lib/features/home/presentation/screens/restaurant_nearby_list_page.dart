@@ -10,6 +10,7 @@ import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../widgets/map_skeleton_loader.dart';
+import '../widgets/restaurant_ordering_filter_chips.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import 'restaurant_detail_page.dart';
@@ -25,7 +26,11 @@ import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 
 class RestaurantNearbyListPage extends StatefulWidget {
-  const RestaurantNearbyListPage({super.key});
+  /// When true, show browse/visit-only shops (`deliveryEnabled == false`).
+  /// When false, show shops that accept ordering/delivery.
+  final bool visitOnly;
+
+  const RestaurantNearbyListPage({super.key, this.visitOnly = false});
 
   @override
   State<RestaurantNearbyListPage> createState() =>
@@ -35,6 +40,7 @@ class RestaurantNearbyListPage extends StatefulWidget {
 class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   static const int _pageSize = 20;
 
+  late RestaurantOrderingFilter _orderingFilter;
   late final PaginatedListController<Restaurant> _pagination;
   bool _didInitialCamera = false;
   final Map<String, bool> _localFavorites = {};
@@ -64,6 +70,9 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   @override
   void initState() {
     super.initState();
+    _orderingFilter = widget.visitOnly
+        ? RestaurantOrderingFilter.visitOnly
+        : RestaurantOrderingFilter.delivery;
     _dio = Dio();
     _pagination = PaginatedListController<Restaurant>(
       pageSize: _pageSize,
@@ -76,6 +85,15 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     _loadMapRestaurants();
     _initLocationService();
     UserLocationRepository.instance.addListener(_onActiveLocationChanged);
+  }
+
+  bool get _visitOnly =>
+      _orderingFilter == RestaurantOrderingFilter.visitOnly;
+
+  void _onOrderingFilterChanged(RestaurantOrderingFilter value) {
+    if (value == _orderingFilter) return;
+    setState(() => _orderingFilter = value);
+    _fetchRestaurants();
   }
 
   void _onPaginationChanged() {
@@ -93,7 +111,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         lat: coords.lat,
         lon: coords.lon,
         radius: _selectedRadius,
-        deliveryOnly: true,
+        deliveryOnly: !_visitOnly,
+        visitOnly: _visitOnly,
       );
       if (!mounted || epoch != _mapFetchEpoch) return;
       setState(() => _mapRestaurants = restaurants);
@@ -133,7 +152,8 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       radius: _selectedRadius,
       page: page,
       size: _pageSize,
-      deliveryOnly: true,
+      deliveryOnly: !_visitOnly,
+      visitOnly: _visitOnly,
     );
     return PaginatedPage(
       items: pageResult.restaurants,
@@ -1280,7 +1300,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                       top: 20,
                       left: 24,
                       right: 24,
-                      bottom: 12,
+                      bottom: 8,
                     ),
                     child: Text(
                       context.tr('home.restaurants_nearby'),
@@ -1290,6 +1310,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                         color: Colors.black,
                       ),
                     ),
+                  ),
+                  RestaurantOrderingFilterChips(
+                    selected: _orderingFilter,
+                    onChanged: _onOrderingFilterChanged,
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                   ),
                   // Scrollable restaurant list
                   Expanded(child: _buildRestaurantList()),

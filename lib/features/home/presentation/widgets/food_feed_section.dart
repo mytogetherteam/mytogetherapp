@@ -7,6 +7,7 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'food_list_item_card.dart';
 import 'food_menu_item_card.dart';
+import 'restaurant_ordering_filter_chips.dart';
 
 /// Reusable section widget for any of the 5 food tab feed endpoints.
 /// Matches the style of TodaysOverviewSection (grid, skeleton, retry).
@@ -20,6 +21,8 @@ class FoodFeedSection extends StatefulWidget {
   final double longitude;
   final double radiusKm;
   final int layoutType; // 1: Grid (Default), 2: Horizontal Feed
+  /// When true, shows Delivery / Visit only chips and filters by shop ordering.
+  final bool showOrderingFilter;
 
   const FoodFeedSection({
     super.key,
@@ -31,6 +34,7 @@ class FoodFeedSection extends StatefulWidget {
     required this.longitude,
     this.radiusKm = 10.0,
     this.layoutType = 1,
+    this.showOrderingFilter = false,
   });
 
   @override
@@ -40,6 +44,7 @@ class FoodFeedSection extends StatefulWidget {
 class _FoodFeedSectionState extends State<FoodFeedSection> {
   late Future<ShopFeedSectionDto> _future;
   final Map<int, bool> _localFavorites = {};
+  RestaurantOrderingFilter _filter = RestaurantOrderingFilter.delivery;
 
   @override
   void initState() {
@@ -66,6 +71,17 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
         radiusKm: widget.radiusKm,
       );
 
+  List<ShopFeedItemDto> _filtered(List<ShopFeedItemDto> items) {
+    if (!widget.showOrderingFilter) return items;
+    return items
+        .where(
+          (item) => _filter == RestaurantOrderingFilter.delivery
+              ? item.deliveryEnabled
+              : !item.deliveryEnabled,
+        )
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ShopFeedSectionDto>(
@@ -80,18 +96,74 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
           });
           return const SizedBox.shrink();
         }
-        final items = snapshot.data?.items ?? [];
-        if (items.isEmpty) {
+        final allItems = snapshot.data?.items ?? [];
+        if (allItems.isEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) widget.onEmpty?.call(true);
           });
           return const SizedBox.shrink();
         }
+
+        final items = _filtered(allItems);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) widget.onEmpty?.call(false);
+          if (mounted) {
+            // Keep page visible when filter empties a tab; only mark empty
+            // when the unfiltered feed itself has no items.
+            widget.onEmpty?.call(false);
+          }
         });
+
+        if (widget.showOrderingFilter && items.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTitleRow(),
+              const SizedBox(height: 12),
+              RestaurantOrderingFilterChips(
+                selected: _filter,
+                onChanged: (value) {
+                  if (value == _filter) return;
+                  setState(() => _filter = value);
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Text(
+                  context.tr(
+                    _filter == RestaurantOrderingFilter.delivery
+                        ? 'restaurants.empty_delivery'
+                        : 'restaurants.empty_visit_only',
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
         return _buildContent(items);
       },
+    );
+  }
+
+  Widget _buildTitleRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Text(
+            widget.title,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -100,65 +172,61 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(
-                widget.title,
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
-              ),
-            ],
+        _buildTitleRow(),
+        if (widget.showOrderingFilter) ...[
+          const SizedBox(height: 12),
+          RestaurantOrderingFilterChips(
+            selected: _filter,
+            onChanged: (value) {
+              if (value == _filter) return;
+              setState(() => _filter = value);
+            },
           ),
-        ),
+        ],
         const SizedBox(height: 12),
-        if (widget.layoutType == 2) 
+        if (widget.layoutType == 2)
           _buildLayout2(items)
         else
           GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.85,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 24,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: items.length > 20 ? 20 : items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return FoodMenuItemCard(
+                id: item.id.toString(),
+                restaurantId: item.shopId.toString(),
+                title: item.name,
+                price: item.price,
+                currency: item.currency,
+                imagePath: item.imageUrl ?? '',
+                restaurantName: item.shopName,
+                isFavorite: _localFavorites[item.id] ?? item.isFavorite,
+                rating: item.rating,
+                reviewCount: item.reviewCount,
+                distanceKm: item.distanceKm,
+                estimatedTime: item.estimatedTime,
+                deliveryFee: item.deliveryFee,
+                originalDeliveryFee: item.originalDeliveryFee,
+                originalPrice: item.originalPrice,
+                displayPrice: item.displayPrice,
+                onFavoriteToggle: () => _toggleFavorite(item),
+                forceRestaurantNavigation: true,
+                isAvailable: item.isAvailable,
+                publishStatus: item.publishStatus,
+                deliveryEnabled: item.deliveryEnabled,
+                operatingHours: item.operatingHours,
+                restaurantStatus: item.restaurantStatus,
+              );
+            },
           ),
-          itemCount: items.length > (MediaQuery.of(context).size.width > 600 ? 20 : 20) ? (MediaQuery.of(context).size.width > 600 ? 20 : 20) : items.length,
-          itemBuilder: (context, i) {
-            final item = items[i];
-            return FoodMenuItemCard(
-              id: item.id.toString(),
-              restaurantId: item.shopId.toString(),
-              title: item.name,
-              price: item.price,
-              currency: item.currency,
-              imagePath: item.imageUrl ?? '',
-              restaurantName: item.shopName,
-              isFavorite: _localFavorites[item.id] ?? item.isFavorite,
-              rating: item.rating,
-              reviewCount: item.reviewCount,
-              distanceKm: item.distanceKm,
-              estimatedTime: item.estimatedTime,
-              deliveryFee: item.deliveryFee,
-              originalDeliveryFee: item.originalDeliveryFee,
-              originalPrice: item.originalPrice,
-              displayPrice: item.displayPrice,
-              onFavoriteToggle: () => _toggleFavorite(item),
-              forceRestaurantNavigation: true,
-              isAvailable: item.isAvailable,
-              publishStatus: item.publishStatus,
-              deliveryEnabled: item.deliveryEnabled,
-              operatingHours: item.operatingHours,
-              restaurantStatus: item.restaurantStatus,
-            );
-          },
-        ),
       ],
     );
   }
@@ -166,7 +234,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
   Future<void> _toggleFavorite(ShopFeedItemDto item) async {
     final newStatus = !(_localFavorites[item.id] ?? item.isFavorite);
     final messenger = ScaffoldMessenger.of(context);
-    
+
     // Immediate local feedback
     setState(() {
       _localFavorites[item.id] = newStatus;
@@ -204,6 +272,13 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _shimmerBox(width: 150, height: 20, radius: 8),
         ),
+        if (widget.showOrderingFilter) ...[
+          const SizedBox(height: 12),
+          const RestaurantOrderingFilterChips(
+            selected: RestaurantOrderingFilter.delivery,
+            onChanged: _noopFilter,
+          ),
+        ],
         const SizedBox(height: 12),
         GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -245,7 +320,13 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     );
   }
 
-  Widget _shimmerBox({required double width, required double height, double radius = 8}) {
+  static void _noopFilter(RestaurantOrderingFilter _) {}
+
+  Widget _shimmerBox({
+    required double width,
+    required double height,
+    double radius = 8,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ImageSkeletonLoader(width: width, height: height),
@@ -310,4 +391,3 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
     );
   }
 }
-
