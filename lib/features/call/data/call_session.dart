@@ -11,13 +11,27 @@ import 'package:permission_handler/permission_handler.dart';
 
 /// Manages a single WebRTC voice call from the user side.
 /// Connects to the NestJS signaling server via existing STOMP WebSocket.
+/// Supports both directions:
+///   - user-to-shop: user initiates, shop answers
+///   - shop-to-user: shop initiates, user answers (new)
 class CallSession {
   CallSession._() {
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
       if (event is CallEventActionCallDecline) {
         if (_currentCallId != null && event.callKitParams.id == _currentCallId) {
-          endCall();
+          if (_direction == 'shop-to-user') {
+            rejectIncomingCall();
+          } else {
+            endCall();
+          }
+        }
+      } else if (event is CallEventActionCallAccept) {
+        // User accepted via OS CallKit UI (shop-to-user)
+        if (_currentCallId != null && event.callKitParams.id == _currentCallId) {
+          if (_direction == 'shop-to-user') {
+            acceptIncomingCall();
+          }
         }
       } else if (event is CallEventActionCallEnded) {
         if (_currentCallId != null && event.callKitParams.id == _currentCallId) {
@@ -25,29 +39,46 @@ class CallSession {
         }
       }
     });
+
+    // Listen persistently for shop-to-user incoming call events
+    _listenForIncomingFromShop();
   }
+
   static final CallSession _instance = CallSession._();
   factory CallSession() => _instance;
 
-  // STOMP destination for call events directed at the user
-
-  // TURN / STUN server config — uses Metered.ca free tier (50GB/month)
-  // Replace with your own Coturn server once set up on EC2.
+  // TURN / STUN server config
   static const List<Map<String, dynamic>> _iceServers = [
-    {'urls': 'stun:stun.l.google.com:19302'},
-    {'urls': 'stun:stun1.l.google.com:19302'},
-    // Add your Coturn TURN server here after AWS setup:
-    // {
-    //   'urls': 'turn:api.mytogether.org:3478',
-    //   'username': 'mytogether',
-    //   'credential': 'strongpassword123',
-    // },
+    {
+      'urls': 'stun:stun.relay.metered.ca:80',
+    },
+    {
+      'urls': 'turn:sg.relay.metered.ca:80',
+      'username': '1d85318ad9c95e3aa7c2a929',
+      'credential': 'NSOr459yCOf4CMap',
+    },
+    {
+      'urls': 'turn:sg.relay.metered.ca:80?transport=tcp',
+      'username': '1d85318ad9c95e3aa7c2a929',
+      'credential': 'NSOr459yCOf4CMap',
+    },
+    {
+      'urls': 'turn:sg.relay.metered.ca:443',
+      'username': '1d85318ad9c95e3aa7c2a929',
+      'credential': 'NSOr459yCOf4CMap',
+    },
+    {
+      'urls': 'turns:sg.relay.metered.ca:443?transport=tcp',
+      'username': '1d85318ad9c95e3aa7c2a929',
+      'credential': 'NSOr459yCOf4CMap',
+    },
   ];
 
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   StreamSubscription<Map<String, dynamic>>? _callSub;
+  StreamSubscription<Map<String, dynamic>>? _incomingCallSub;
 
   // State notifiers for UI
   final ValueNotifier<CallState> state = ValueNotifier(CallState.idle);
@@ -55,12 +86,21 @@ class CallSession {
   final ValueNotifier<bool> isSpeakerOn = ValueNotifier(false);
 
   String? _currentCallId;
+  String? _direction; // 'user-to-shop' | 'shop-to-user'
   Timer? _ringTimeout;
-  
+
   String? currentShopName;
   String? currentShopImageUrl;
 
+  /// Callback invoked when a shop initiates a call to this user.
+  /// The UI should show an incoming call screen when this fires.
+  void Function(String callId, String shopName)? onIncomingShopCall;
+
   final Dio _dio = ApiClient().dio;
+
+  // ──────────────────────────────────────────────
+  // USER → SHOP call flow (existing)
+  // ──────────────────────────────────────────────
 
   /// User initiates a call to [shopId]. Returns false if call fails to start.
   Future<bool> initiateCall({required int shopId, required String shopName, String? shopImageUrl}) async {
@@ -76,7 +116,7 @@ class CallSession {
 
     currentShopName = shopName;
     currentShopImageUrl = shopImageUrl;
-
+    _direction = 'user-to-shop';
     state.value = CallState.calling;
 
     try {
@@ -134,7 +174,7 @@ class CallSession {
       );
       await FlutterCallkitIncoming.startCall(callKitParams);
 
-      // Subscribe to incoming call events via STOMP
+      // Subscribe to call events via STOMP
       _listenForCallEvents();
 
       // Timeout UI if no response in 30s
@@ -152,6 +192,128 @@ class CallSession {
       return false;
     }
   }
+
+  // ──────────────────────────────────────────────
+  // SHOP → USER call flow (new)
+  // ──────────────────────────────────────────────
+
+  /// Permanently listen for CALL_INCOMING events directed at this user from a shop.
+  void _listenForIncomingFromShop() {
+    _incomingCallSub?.cancel();
+    _incomingCallSub = WebSocketService().callUpdates.listen((event) {
+      final type = event['type'] as String?;
+      if (type == 'CALL_INCOMING' && state.value == CallState.idle) {
+        final callId = event['callId'] as String?;
+        final shopId = event['shopId'];
+        final callerName = event['callerName'] as String? ?? 'Shop';
+
+        if (callId == null) return;
+
+        // Only handle shop-to-user (shopId present, but userId matches this user)
+        if (shopId != null) {
+          _currentCallId = callId;
+          _direction = 'shop-to-user';
+          currentShopName = callerName;
+          state.value = CallState.ringing;
+
+          // Show OS incoming call UI
+          _showIncomingCallUI(callId: callId, callerName: callerName);
+
+          // Notify app UI callback
+          onIncomingShopCall?.call(callId, callerName);
+
+          // Timeout if user doesn't answer in 31s
+          _ringTimeout = Timer(const Duration(seconds: 31), () {
+            if (state.value == CallState.ringing) {
+              state.value = CallState.idle;
+              _cleanup();
+            }
+          });
+
+          // Listen for further events on this call (CALL_OFFER, CALL_END, etc.)
+          _listenForCallEvents();
+        }
+      }
+    });
+  }
+
+  /// Show OS-level incoming call notification/screen (shop-to-user).
+  Future<void> _showIncomingCallUI({required String callId, required String callerName}) async {
+    final callKitParams = CallKitParams(
+      id: callId,
+      nameCaller: callerName,
+      appName: 'MyTogether',
+      avatar: '',
+      handle: 'Incoming Call',
+      type: 0,
+      duration: 30000,
+      missedCallNotification: const NotificationParams(
+        showNotification: true,
+        isShowCallback: false,
+        subtitle: 'Missed call from shop',
+        callbackText: 'Call back',
+      ),
+      extra: <String, dynamic>{},
+      headers: <String, dynamic>{},
+      android: const AndroidParams(
+        isCustomNotification: true,
+        isShowLogo: false,
+        ringtonePath: 'system_ringtone_default',
+        backgroundColor: '#EF4444',
+        actionColor: '#22C55E',
+        textColor: '#ffffff',
+        incomingCallNotificationChannelName: "Incoming Call",
+        missedCallNotificationChannelName: "Missed Call",
+      ),
+      ios: const IOSParams(
+        iconName: 'AppIcon',
+        handleType: '',
+        supportsVideo: false,
+        maximumCallGroups: 2,
+        maximumCallsPerCallGroup: 1,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        audioSessionPreferredSampleRate: 44100.0,
+        audioSessionPreferredIOBufferDuration: 0.005,
+        supportsDTMF: true,
+        supportsHolding: true,
+        supportsGrouping: false,
+        supportsUngrouping: false,
+        ringtonePath: 'system_ringtone_default',
+      ),
+    );
+    await FlutterCallkitIncoming.showCallkitIncoming(callKitParams);
+  }
+
+  /// User accepts an incoming call from shop. Sends answer to server then starts WebRTC as answerer.
+  Future<void> acceptIncomingCall() async {
+    if (_currentCallId == null || _direction != 'shop-to-user') return;
+    _ringTimeout?.cancel();
+    state.value = CallState.connected;
+
+    try {
+      await _dio.post('/api/call/user-accept/$_currentCallId');
+    } catch (e) {
+      debugPrint('[CallSession] acceptIncomingCall error: $e');
+    }
+
+    // Start WebRTC as Answerer (wait for CALL_OFFER from shop, then answer)
+    await _startWebRTCAsAnswerer();
+  }
+
+  /// User rejects an incoming call from shop.
+  Future<void> rejectIncomingCall() async {
+    if (_currentCallId == null) return;
+    try {
+      await _dio.post('/api/call/user-reject/$_currentCallId');
+    } catch (_) {}
+    state.value = CallState.idle;
+    _cleanup();
+  }
+
+  // ──────────────────────────────────────────────
+  // Shared
+  // ──────────────────────────────────────────────
 
   /// End the current call (user side).
   Future<void> endCall() async {
@@ -183,10 +345,15 @@ class CallSession {
     if (callId != _currentCallId) return;
 
     switch (type) {
+      // ── user-to-shop responses ──
       case 'CALL_ACCEPTED':
-        _ringTimeout?.cancel();
-        state.value = CallState.connected;
-        await _startWebRTC();
+        if (_direction == 'user-to-shop') {
+          _ringTimeout?.cancel();
+          state.value = CallState.connected;
+          await _startWebRTC(); // user is offerer
+        } else if (_direction == 'shop-to-user') {
+          // Shop confirmed our accept — WebRTC already started in acceptIncomingCall()
+        }
         break;
 
       case 'CALL_REJECTED':
@@ -203,7 +370,28 @@ class CallSession {
         _cleanup();
         break;
 
+      // ── SDP / ICE relay ──
+      case 'CALL_OFFER':
+        // Shop sent an SDP offer → user answers (shop-to-user, user is answerer)
+        final sdp = event['sdp'] as String?;
+        if (sdp != null && _peerConnection != null) {
+          await _peerConnection!.setRemoteDescription(
+            RTCSessionDescription(sdp, 'offer'),
+          );
+          final answer = await _peerConnection!.createAnswer();
+          await _peerConnection!.setLocalDescription(answer);
+          try {
+            await _dio.post('/api/call/answer/$_currentCallId', data: {
+              'sdp': answer.sdp,
+            });
+          } catch (e) {
+            debugPrint('[CallSession] answer error: $e');
+          }
+        }
+        break;
+
       case 'CALL_ANSWER':
+        // Shop sent an SDP answer → user is offerer (user-to-shop)
         final sdp = event['sdp'] as String?;
         if (sdp != null && _peerConnection != null) {
           await _peerConnection!.setRemoteDescription(
@@ -231,30 +419,36 @@ class CallSession {
     }
   }
 
+  /// User is Offerer (user-to-shop): creates offer and sends to shop.
   Future<void> _startWebRTC() async {
+    // Brief delay to allow Android to bring the app to foreground before accessing mic
+    await Future.delayed(const Duration(milliseconds: 500));
+
     _peerConnection = await createPeerConnection({
       'iceServers': _iceServers,
       'sdpSemantics': 'unified-plan',
     });
 
-    // Get local audio
-    _localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': false,
-    });
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+        'video': false,
+      });
+    } catch (e) {
+      debugPrint('[CallSession] getUserMedia error: $e');
+      return;
+    }
 
     for (final track in _localStream!.getTracks()) {
       await _peerConnection!.addTrack(track, _localStream!);
     }
 
-    // Handle remote audio stream
     _peerConnection!.onTrack = (RTCTrackEvent event) {
       if (event.track.kind == 'audio' && event.streams.isNotEmpty) {
         _remoteStream = event.streams.first;
       }
     };
 
-    // Send ICE candidates to server as they are discovered
     _peerConnection!.onIceCandidate = (RTCIceCandidate candidate) async {
       if (_currentCallId == null) return;
       try {
@@ -268,7 +462,6 @@ class CallSession {
       } catch (_) {}
     };
 
-    // Create and send SDP offer
     final offer = await _peerConnection!.createOffer({'offerToReceiveAudio': true});
     await _peerConnection!.setLocalDescription(offer);
 
@@ -279,6 +472,51 @@ class CallSession {
     } catch (e) {
       debugPrint('[CallSession] offer error: $e');
     }
+  }
+
+  /// User is Answerer (shop-to-user): sets up connection ready to receive CALL_OFFER.
+  Future<void> _startWebRTCAsAnswerer() async {
+    // Brief delay to allow Android to bring the app to foreground before accessing mic
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    _peerConnection = await createPeerConnection({
+      'iceServers': _iceServers,
+      'sdpSemantics': 'unified-plan',
+    });
+
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+        'video': false,
+      });
+    } catch (e) {
+      debugPrint('[CallSession] getUserMedia error: $e');
+      return;
+    }
+
+    for (final track in _localStream!.getTracks()) {
+      await _peerConnection!.addTrack(track, _localStream!);
+    }
+
+    _peerConnection!.onTrack = (RTCTrackEvent event) {
+      if (event.track.kind == 'audio' && event.streams.isNotEmpty) {
+        _remoteStream = event.streams.first;
+      }
+    };
+
+    _peerConnection!.onIceCandidate = (RTCIceCandidate candidate) async {
+      if (_currentCallId == null) return;
+      try {
+        await _dio.post('/api/call/ice/$_currentCallId', data: {
+          'candidate': json.encode({
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+          }),
+        });
+      } catch (_) {}
+    };
+    // The actual SDP offer will come from shop via CALL_OFFER event, handled in _handleCallEvent.
   }
 
   void _cleanup() {
@@ -293,16 +531,20 @@ class CallSession {
     _localStream?.getTracks().forEach((t) => t.stop());
     _localStream?.dispose();
     _localStream = null;
-    
+
     _remoteStream?.getTracks().forEach((t) => t.stop());
     _remoteStream?.dispose();
     _remoteStream = null;
-    
+
     _currentCallId = null;
+    _direction = null;
     currentShopName = null;
     currentShopImageUrl = null;
     isMuted.value = false;
+
+    // Restart listening for new incoming calls from shops
+    _listenForIncomingFromShop();
   }
 }
 
-enum CallState { idle, calling, connected, rejected, noAnswer, ended }
+enum CallState { idle, calling, ringing, connected, rejected, noAnswer, ended }

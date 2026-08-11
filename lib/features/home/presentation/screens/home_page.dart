@@ -642,6 +642,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_jobs'),
                                     assetPath:
                                         'assets/images/services/jobs_3d.png',
+                                    badgeText: 'NEW',
+                                    isAnimatedBadge: true,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(

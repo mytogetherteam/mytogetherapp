@@ -1079,8 +1079,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   Widget build(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    // Grab-style: ads dominate (~72%), compact order sheet (~28%).
-    final sheetH = screenH * 0.28;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -1091,7 +1089,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             top: 0,
             left: 0,
             right: 0,
-            bottom: sheetH - 24, // tuck slightly under sheet corners
+            bottom: 0,
             child: _buildShopImageBackground(),
           ),
 
@@ -1123,7 +1121,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             bottom: 0,
             left: 0,
             right: 0,
-            height: sheetH,
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -1139,6 +1136,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               child: SafeArea(
                 top: false,
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Drag handle
                     Padding(
@@ -1152,11 +1150,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               context.tr(
@@ -1415,10 +1412,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 ),
                               ),
                             ),
+
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
