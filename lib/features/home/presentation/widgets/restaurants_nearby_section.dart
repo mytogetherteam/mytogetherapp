@@ -50,7 +50,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
       final coords =
           await UserLocationRepository.instance.resolveActiveCoordinates();
 
-      // Fetch unfiltered so we can split Delivery vs Visit only in the UI.
+      // Fetch unfiltered so we can split Delivery vs Go & Eat in the UI.
       return await RestaurantRepository.instance
           .getNearbyShops(
             lat: coords.lat,

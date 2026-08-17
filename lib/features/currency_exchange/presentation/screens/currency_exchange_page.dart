@@ -8,6 +8,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/currency_rate_model.dart';
 import '../../data/repositories/currency_exchange_repository.dart';
+import 'currency_detail_page.dart';
 
 class CurrencyExchangePage extends StatefulWidget {
   const CurrencyExchangePage({super.key});
@@ -543,8 +544,17 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
   }
 
   Widget _buildRateCard(CurrencyRateModel rate) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CurrencyDetailPage(currencyRate: rate),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -692,8 +702,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSkeletonLoading() {
     return SingleChildScrollView(

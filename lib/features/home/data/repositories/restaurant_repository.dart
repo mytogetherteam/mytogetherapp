@@ -104,7 +104,7 @@ class RestaurantRepository {
     return restaurants.where((r) => r.deliveryEnabled).toList();
   }
 
-  /// Keeps shops that are browse/visit only (`deliveryEnabled == false`).
+  /// Keeps shops that are browse/Go & Eat (`deliveryEnabled == false`).
   static List<Restaurant> filterVisitOnly(List<Restaurant> restaurants) {
     return restaurants.where((r) => !r.deliveryEnabled).toList();
   }

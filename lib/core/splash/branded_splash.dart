@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../features/home/data/repositories/restaurant_repository.dart';
+import '../theme/app_colors.dart';
 
 /// Holds the optional remote Splash banner fetched at boot.
 class BrandedSplash {
@@ -80,9 +81,11 @@ class BrandedSplashGate extends StatefulWidget {
   State<BrandedSplashGate> createState() => _BrandedSplashGateState();
 }
 
-class _BrandedSplashGateState extends State<BrandedSplashGate> {
+class _BrandedSplashGateState extends State<BrandedSplashGate> with SingleTickerProviderStateMixin {
   late final bool _hasRemoteSplash;
   bool _visible = false;
+
+  late AnimationController _controller;
 
   @override
   void initState() {
@@ -91,12 +94,31 @@ class _BrandedSplashGateState extends State<BrandedSplashGate> {
     if (!_hasRemoteSplash) return;
 
     _visible = true;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FlutterNativeSplash.remove();
-      Future<void>.delayed(widget.minDisplay, () {
-        if (mounted) setState(() => _visible = false);
+      _controller.forward().then((_) {
+        _dismissSplash();
       });
     });
+  }
+
+  void _dismissSplash() {
+    if (mounted && _visible) {
+      setState(() => _visible = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_hasRemoteSplash) {
+      _controller.dispose();
+    }
+    super.dispose();
   }
 
   Widget _buildSplashImage() {
@@ -118,12 +140,12 @@ class _BrandedSplashGateState extends State<BrandedSplashGate> {
       width: double.infinity,
       height: double.infinity,
       fadeInDuration: Duration.zero,
-      placeholder: (_, _) => const ColoredBox(color: Colors.white),
+      placeholder: (_, _) => const ColoredBox(color: Colors.transparent),
       errorWidget: (_, _, _) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _visible) setState(() => _visible = false);
+          _dismissSplash();
         });
-        return const ColoredBox(color: Colors.white);
+        return const ColoredBox(color: Colors.transparent);
       },
     );
   }
@@ -143,9 +165,99 @@ class _BrandedSplashGateState extends State<BrandedSplashGate> {
           child: AnimatedOpacity(
             opacity: _visible ? 1 : 0,
             duration: const Duration(milliseconds: 350),
-            child: ColoredBox(
-              color: Colors.white,
-              child: _buildSplashImage(),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(
+                  color: Colors.transparent,
+                  child: _buildSplashImage(),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 16,
+                  right: 16,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // AD Label (Left)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Text(
+                          'AD',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      
+                      // Skip Button & Timer (Right)
+                      GestureDetector(
+                        onTap: _dismissSplash,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(left: 4.0),
+                                child: Text(
+                                  'Skip',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: AnimatedBuilder(
+                                  animation: _controller,
+                                  builder: (context, child) {
+                                    final seconds = (10 - (_controller.value * 10)).ceil();
+                                    return Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          value: 1.0 - _controller.value,
+                                          strokeWidth: 2.5,
+                                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                          backgroundColor: Colors.white24,
+                                        ),
+                                        Text(
+                                          '$seconds',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

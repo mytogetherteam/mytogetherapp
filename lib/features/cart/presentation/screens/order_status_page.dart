@@ -36,6 +36,8 @@ import '../widgets/pickup_order_qr_card.dart';
 import '../widgets/looping_gif.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
+import '../../../call/presentation/screens/call_screen.dart';
+import '../../../call/data/call_session.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
@@ -1924,6 +1926,37 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   }
 
   Future<void> _makeCall(String? phone) async {
+    final state = ActiveOrderState.instance;
+    final shopId = int.tryParse(state.shopId ?? '');
+    
+    if (shopId != null && shopId > 0) {
+      final shopName = state.displayShopName.isNotEmpty ? state.displayShopName : context.tr('common.restaurant');
+      final shopImageUrl = state.shopImageUrl ?? state.logoPath;
+      
+      final success = await CallSession().initiateCall(
+        shopId: shopId,
+        shopName: shopName,
+        shopImageUrl: shopImageUrl,
+      );
+      
+      if (success && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CallScreen(
+              shopName: shopName,
+              shopImageUrl: shopImageUrl,
+            ),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        );
+      }
+      return;
+    }
+
     final number = phone?.trim() ?? '';
     if (number.isEmpty || number == '-') {
       if (mounted) {

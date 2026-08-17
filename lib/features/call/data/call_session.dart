@@ -129,51 +129,6 @@ class CallSession {
         return false;
       }
 
-      final callKitParams = CallKitParams(
-        id: _currentCallId!,
-        nameCaller: shopName,
-        appName: 'MyTogether',
-        avatar: shopImageUrl ?? '',
-        handle: 'Shop Call',
-        type: 1, // audio
-        duration: 30000,
-        missedCallNotification: const NotificationParams(
-          showNotification: false,
-          isShowCallback: false,
-          subtitle: 'Missed call',
-          callbackText: 'Call back',
-        ),
-        extra: <String, dynamic>{},
-        headers: <String, dynamic>{},
-        android: const AndroidParams(
-          isCustomNotification: true,
-          isShowLogo: false,
-          ringtonePath: 'system_ringtone_default',
-          backgroundColor: '#22C55E',
-          actionColor: '#4CAF50',
-          textColor: '#ffffff',
-          incomingCallNotificationChannelName: "Incoming Call",
-          missedCallNotificationChannelName: "Missed Call",
-        ),
-        ios: const IOSParams(
-          iconName: 'AppIcon',
-          handleType: '',
-          supportsVideo: false,
-          maximumCallGroups: 2,
-          maximumCallsPerCallGroup: 1,
-          audioSessionMode: 'default',
-          audioSessionActive: true,
-          audioSessionPreferredSampleRate: 44100.0,
-          audioSessionPreferredIOBufferDuration: 0.005,
-          supportsDTMF: true,
-          supportsHolding: true,
-          supportsGrouping: false,
-          supportsUngrouping: false,
-          ringtonePath: 'system_ringtone_default',
-        ),
-      );
-      await FlutterCallkitIncoming.startCall(callKitParams);
-
       // Subscribe to call events via STOMP
       _listenForCallEvents();
 

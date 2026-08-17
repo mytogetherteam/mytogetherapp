@@ -173,6 +173,22 @@ class _JobsListPageState extends State<JobsListPage> {
                             color: Colors.grey.shade400,
                             size: 20,
                           ),
+                          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _searchController,
+                            builder: (context, value, child) {
+                              if (value.text.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              return IconButton(
+                                icon: const Icon(PhosphorIconsRegular.x, size: 20),
+                                color: Colors.grey.shade400,
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              );
+                            },
+                          ),
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(

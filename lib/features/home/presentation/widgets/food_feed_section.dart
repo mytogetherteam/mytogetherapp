@@ -21,7 +21,7 @@ class FoodFeedSection extends StatefulWidget {
   final double longitude;
   final double radiusKm;
   final int layoutType; // 1: Grid (Default), 2: Horizontal Feed
-  /// When true, shows Delivery / Visit only chips and filters by shop ordering.
+  /// When true, shows Delivery / Go & Eat chips and filters by shop ordering.
   final bool showOrderingFilter;
 
   const FoodFeedSection({

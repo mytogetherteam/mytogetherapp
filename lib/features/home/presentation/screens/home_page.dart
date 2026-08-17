@@ -777,20 +777,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
                             ),
-                            const SizedBox(height: 24),
-                            PopularBrandsSection(
-                              key: ValueKey('brands_$_refreshKey'),
+                            TopPlacesNearbySection(
+                              key: ValueKey('places_$_refreshKey'),
                             ),
+                            const SizedBox(height: 40), // Increased spacing
+                            // PopularBrandsSection(
+                            //   key: ValueKey('brands_$_refreshKey'),
+                            // ),
                             TodaysOverviewSection(
                               key: ValueKey('overview_$_refreshKey'),
                             ),
                             const SizedBox(height: 24),
                             LostItemsNearbySection(
                               key: ValueKey('lost_$_refreshKey'),
-                            ),
-                            const SizedBox(height: 24),
-                            TopPlacesNearbySection(
-                              key: ValueKey('places_$_refreshKey'),
                             ),
                             const SizedBox(height: 24),
                             TrendingNewsSection(

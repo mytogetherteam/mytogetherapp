@@ -383,7 +383,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       } else {
         try {
           await _fetchCategories(shopId);
-          await _fetchMenu(isInitial: true);
+          await _fetchMenu(isInitial: true, silent: true);
         } catch (_) {}
       }
 
@@ -447,6 +447,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     for (final item in result.content) {
       if (existingIds.add(item.id)) {
         _menuItems.add(item);
+      } else {
+        final index = _menuItems.indexWhere((e) => e.id == item.id);
+        if (index != -1) {
+          _menuItems[index] = item;
+        }
       }
     }
 
@@ -622,7 +627,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     }
   }
 
-  Future<void> _fetchMenu({bool isInitial = false}) async {
+  Future<void> _fetchMenu({bool isInitial = false, bool silent = false}) async {
     if (_isMenuLoading || (!_hasMoreMenu && !isInitial)) return;
 
     final shopId = int.tryParse(widget.id) ?? 0;
@@ -635,9 +640,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           threshold: PaginationScroll.menuEndThreshold,
         );
     setState(() {
-      _isMenuLoading = true;
+      if (!silent) _isMenuLoading = true;
       if (isInitial) {
-        _menuItems.clear();
+        if (!silent) _menuItems.clear();
         _resetMenuPagination();
       }
     });
@@ -655,7 +660,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         await _fetchShopWideMenuPage(isInitial: isInitial);
       }
       if (mounted) {
-        setState(() => _isMenuLoading = false);
+        setState(() {
+          if (!silent) _isMenuLoading = false;
+        });
         if (!isInitial) {
           PaginationScroll.maintainAfterPageAppend(
             _scrollController,
@@ -667,7 +674,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
       if (mounted) {
         setState(() {
-          _isMenuLoading = false;
+          if (!silent) _isMenuLoading = false;
           _hasMoreMenu = false;
         });
         if (!isInitial) {
@@ -858,9 +865,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                               ),
-                              child: Wrap(
-                                alignment: WrapAlignment.spaceEvenly,
-                                spacing: 12,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   _buildActionButton(
                                     imageAsset:
