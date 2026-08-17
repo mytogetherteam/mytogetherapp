@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/network/media_url.dart';
+import '../../../../core/utils/image_utils.dart';
 
 enum JobType { fullTime, partTime }
 
@@ -32,6 +33,9 @@ class JobShopDto {
   final String? nameTh;
   final String slug;
   final String? logoUrl;
+  final String? coverUrl;
+  final String? primaryPhotoUrl;
+  final List<String> imageUrls;
 
   const JobShopDto({
     required this.id,
@@ -40,6 +44,9 @@ class JobShopDto {
     this.nameTh,
     required this.slug,
     this.logoUrl,
+    this.coverUrl,
+    this.primaryPhotoUrl,
+    this.imageUrls = const [],
   });
 
   String get displayName => LocaleController.instance.localizedOr(
@@ -51,6 +58,16 @@ class JobShopDto {
 
   String get logo => resolveMediaUrl(logoUrl);
 
+  String get coverImage {
+    final resolved = ShopImageResolver.resolveBannerUrl(
+      coverUrl: coverUrl,
+      imageUrls: imageUrls,
+      logoUrl: logoUrl,
+      primaryPhotoUrl: primaryPhotoUrl,
+    );
+    return resolveMediaUrl(resolved);
+  }
+
   factory JobShopDto.fromJson(Map<String, dynamic> json) {
     return JobShopDto(
       id: (json['id'] as num).toInt(),
@@ -59,6 +76,9 @@ class JobShopDto {
       nameTh: json['nameTh']?.toString(),
       slug: json['slug']?.toString() ?? '',
       logoUrl: json['logoUrl']?.toString(),
+      coverUrl: json['coverUrl']?.toString(),
+      primaryPhotoUrl: json['primaryPhotoUrl']?.toString(),
+      imageUrls: ShopImageResolver.parseImageUrls(json),
     );
   }
 }

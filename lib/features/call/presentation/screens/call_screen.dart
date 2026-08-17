@@ -101,9 +101,12 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
               child: ValueListenableBuilder<CallState>(
                 valueListenable: _call.state,
                 builder: (context, state, _) {
-                  return Column(
-                    children: [
-                      const SizedBox(height: 60),
+                  return SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 60),
                       // Avatar / pulse animation
                       ScaleTransition(
                         scale: _pulseAnimation,
@@ -169,8 +172,9 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
                       _buildControls(state),
                       const SizedBox(height: 50),
                     ],
-                  );
-                },
+                  ),
+                );
+              },
               ),
             ),
           ],

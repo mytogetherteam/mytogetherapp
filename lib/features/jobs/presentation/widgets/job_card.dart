@@ -30,16 +30,8 @@ class JobCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary.withValues(alpha: 0.06),
-                AppColors.secondary.withValues(alpha: 0.04),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -78,44 +70,64 @@ class JobCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                Text(
-                  job.title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _chip(jobTypeLabel, AppColors.primary),
-                    _chip(
-                      job.salaryLabel(negotiableLabel),
-                      const Color(0xFF059669),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            job.title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _chip(
+                                jobTypeLabel,
+                                textColor: AppColors.primary,
+                                bgColor: AppColors.primary.withValues(alpha: 0.1),
+                              ),
+                              _chip(
+                                job.salaryLabel(negotiableLabel),
+                                textColor: Colors.white,
+                                gradient: AppColors.primaryGradient,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
                 if (job.closingDate != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
+                  Divider(color: Colors.grey.shade100, height: 1),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Icon(
-                        PhosphorIconsRegular.calendarBlank,
+                        PhosphorIconsRegular.clock,
                         size: 14,
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade500,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '${context.tr('jobs.deadline')}: ${dateFmt.format(job.closingDate!.toLocal())}',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -138,11 +150,12 @@ class JobCard extends StatelessWidget {
     );
   }
 
-  Widget _chip(String label, Color color) {
+  Widget _chip(String label, {Color? textColor, Color? bgColor, LinearGradient? gradient}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: bgColor,
+        gradient: gradient,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -150,7 +163,7 @@ class JobCard extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: color,
+          color: textColor ?? Colors.white,
         ),
       ),
     );
