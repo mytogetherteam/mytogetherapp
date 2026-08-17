@@ -5,6 +5,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
+import '../../../../features/social/presentation/screens/social_page.dart';
 import '../../../../features/order/presentation/screens/order_history_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
@@ -15,7 +16,6 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
-import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
@@ -76,9 +76,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _screens = <Widget>[
       HomePage(key: ValueKey('home_$localeKey')),
       FoodPage(key: ValueKey('food_$localeKey')),
-      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
+      SocialPage(key: ValueKey('social_$localeKey')),
       _newsTab(localeKey),
-      ProfilePage(key: ValueKey('profile_$localeKey')),
+      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
     ];
   }
 
@@ -161,10 +161,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void _onTabChangeRequested() {
     final requested = NavigationController.instance.tabChangeRequest.value;
     if (requested != null && mounted) {
-      setState(() => _currentIndex = requested);
-      // Reset the request after the current notification dispatch completes,
-      // rather than re-entrantly mutating the notifier from inside its own
-      // listener (which can swallow subsequent identical requests).
+      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders.
+      final index = requested.clamp(0, 4);
+      setState(() => _currentIndex = index);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (NavigationController.instance.tabChangeRequest.value == requested) {
           NavigationController.instance.tabChangeRequest.value = null;
@@ -213,7 +212,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!AuthService().isLoggedIn)
+          // Hide guest promo on Social — it fights the full-bleed dark feed.
+          if (!AuthService().isLoggedIn && _currentIndex != 2)
             GuestWelcomeBanner(
               onAuthFlowComplete: () {
                 if (mounted) setState(() {});
@@ -227,133 +227,271 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   /// The cart FAB shown across tabs.
   ///
-  /// Tabs: 0=Home, 1=Food, 2=Orders, 3=News, 4=Profile.
-  /// - Hidden on News and Profile.
-  /// - Lifted above the active-order tracking card on Home, Food and Orders
-  ///   (the tabs that render it).
+  /// Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders.
+  /// Profile opens via header avatar (not a tab).
+  /// - Hidden on Social and News.
   Widget? _buildCartFab() {
-    if (_currentIndex == 3 || _currentIndex == 4) return null;
+    if (_currentIndex == 2 || _currentIndex == 3) return null;
     return const StyledCartFab();
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-        height: 60 + (Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
-        padding: EdgeInsets.only(bottom: Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+    final isSocial = _currentIndex == 2;
+    final barColor = isSocial ? Colors.black : Colors.white;
+    final inactiveColor =
+        isSocial ? Colors.white70 : Colors.grey.shade400;
+    final bottomInset = Theme.of(context).platform == TargetPlatform.iOS
+        ? MediaQuery.of(context).padding.bottom * 0.5
+        : MediaQuery.of(context).padding.bottom;
+
+    // Keep the bar at the original ~60px; raised Social button paints above
+    // via clipBehavior: Clip.none (does not inflate footer height).
+    const barBodyHeight = 60.0;
+
+    return Material(
+      color: barColor,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SizedBox(
+          height: barBodyHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (!isSocial)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Row(
+                children: [
+                  _buildNavItem(
+                    0,
+                    PhosphorIcons.house,
+                    PhosphorIcons.houseFill,
+                    context.tr('nav.home'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    1,
+                    PhosphorIcons.forkKnife,
+                    PhosphorIcons.forkKnifeFill,
+                    context.tr('nav.food'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildRaisedSocialNavItem(
+                    label: context.tr('nav.social'),
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    3,
+                    PhosphorIcons.newspaper,
+                    PhosphorIcons.newspaperFill,
+                    context.tr('nav.news'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    4,
+                    PhosphorIcons.receipt,
+                    PhosphorIcons.receiptFill,
+                    context.tr('nav.orders'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              0,
-              PhosphorIcons.house,
-              PhosphorIcons.houseFill,
-              context.tr('nav.home'),
-            ),
-            _buildNavItem(
-              1,
-              PhosphorIcons.forkKnife,
-              PhosphorIcons.forkKnifeFill,
-              context.tr('nav.food'),
-            ),
-            _buildNavItem(
-              2,
-              PhosphorIcons.receipt,
-              PhosphorIcons.receiptFill,
-              context.tr('nav.orders'),
-            ),
-            _buildNavItem(
-              3,
-              PhosphorIcons.newspaper,
-              PhosphorIcons.newspaperFill,
-              context.tr('nav.news'),
-            ),
-            _buildNavItem(
-              4,
-              GuestAuthGuard.isGuest
-                  ? PhosphorIcons.gearSix
-                  : PhosphorIcons.user,
-              GuestAuthGuard.isGuest
-                  ? PhosphorIcons.gearSixFill
-                  : PhosphorIcons.userFill,
-              GuestAuthGuard.isGuest
-                  ? context.tr('nav.settings')
-                  : context.tr('nav.profile'),
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _buildRaisedSocialNavItem({
+    required String label,
+    required bool socialMode,
+    required double height,
+  }) {
+    final isSelected = _currentIndex == 2;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(2),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          height: height,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                // Sit mostly in the bar; slight lift above without growing footer.
+                bottom: 16,
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppColors.primaryGradient,
+                    border: Border.all(
+                      color: socialMode ? Colors.black : Colors.white,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isSelected
+                        ? PhosphorIcons.playCircleFill
+                        : PhosphorIcons.playFill,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 2,
+                left: 2,
+                right: 2,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    color: isSelected
+                        ? (socialMode ? Colors.white : AppColors.primary)
+                        : (socialMode
+                            ? Colors.white70
+                            : Colors.grey.shade400),
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildNavItem(
     int index,
     IconData icon,
     IconData activeIcon,
-    String label,
-  ) {
+    String label, {
+    required Color inactiveColor,
+    required bool socialMode,
+    required double height,
+  }) {
     final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => _onTabTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: MediaQuery.of(context).size.width / 5,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Column(
-                children: [
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: AppColors.primaryGradient.colors,
-                    ).createShader(bounds),
-                    child: Icon(activeIcon, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(height: 4),
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: AppColors.primaryGradient.colors,
-                    ).createShader(bounds),
-                    child: Text(
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          height: height,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isSelected)
+                socialMode
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(activeIcon, color: Colors.white, size: 26),
+                          const SizedBox(height: 4),
+                          Text(
+                            label,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: AppColors.primaryGradient.colors,
+                            ).createShader(bounds),
+                            child: Icon(
+                              activeIcon,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: AppColors.primaryGradient.colors,
+                            ).createShader(bounds),
+                            child: Text(
+                              label,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+              else
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: inactiveColor, size: 26),
+                    const SizedBox(height: 4),
+                    Text(
                       label,
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: inactiveColor,
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
+                        height: 1.1,
                       ),
                     ),
-                  ),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  Icon(icon, color: Colors.grey.shade400, size: 26),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey.shade400,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-          ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -9,7 +9,14 @@ import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page
 class GuestWelcomeBanner extends StatelessWidget {
   final VoidCallback? onAuthFlowComplete;
 
-  const GuestWelcomeBanner({super.key, this.onAuthFlowComplete});
+  /// When true (Social tab), use a dark surface so it matches the black feed.
+  final bool onDarkSurface;
+
+  const GuestWelcomeBanner({
+    super.key,
+    this.onAuthFlowComplete,
+    this.onDarkSurface = false,
+  });
 
   Future<void> _openAuth(BuildContext context) async {
     await Navigator.of(context).push(
@@ -24,28 +31,38 @@ class GuestWelcomeBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final dark = onDarkSurface;
+
     return Material(
       color: Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF1C1C1E),
-                AppColors.primary.withValues(alpha: 0.92),
-              ],
-            ),
+            color: dark ? const Color(0xFF161616) : null,
+            gradient: dark
+                ? null
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF1C1C1E),
+                      AppColors.primary.withValues(alpha: 0.92),
+                    ],
+                  ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.22),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: dark
+                ? Border.all(color: Colors.white.withValues(alpha: 0.12))
+                : null,
+            boxShadow: dark
+                ? null
+                : [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -84,7 +101,9 @@ class GuestWelcomeBanner extends StatelessWidget {
                           text: context.tr('guest.welcome_banner_highlight'),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.secondary,
+                            color: dark
+                                ? const Color(0xFFFF8A65)
+                                : AppColors.secondary,
                           ),
                         ),
                         TextSpan(text: context.tr('guest.welcome_banner_tail')),
@@ -95,26 +114,25 @@ class GuestWelcomeBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                TextButton(
-                  onPressed: () => _openAuth(context),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _openAuth(context),
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
+                      horizontal: 18,
                       vertical: 11,
                     ),
-                    minimumSize: const Size(0, 40),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
+                    decoration: BoxDecoration(
+                      color: dark ? null : Colors.white,
+                      gradient: dark ? AppColors.primaryGradient : null,
                       borderRadius: BorderRadius.circular(22),
                     ),
-                  ),
-                  child: Text(
-                    context.tr('guest.welcome_banner_cta'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                    child: Text(
+                      context.tr('guest.welcome_banner_cta'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: dark ? Colors.white : AppColors.primary,
+                      ),
                     ),
                   ),
                 ),

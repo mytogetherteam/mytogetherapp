@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
+import '../../../../core/presentation/widgets/profile_avatar_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
@@ -121,6 +122,11 @@ class _NewsPageState extends State<NewsPage> {
               ),
               centerTitle: false,
               actions: const [
+                ProfileAvatarButton(
+                  size: 32,
+                  onLightBackground: true,
+                ),
+                SizedBox(width: 10),
                 Padding(
                   padding: EdgeInsets.only(right: 16.0),
                   child: NotificationBell(),
