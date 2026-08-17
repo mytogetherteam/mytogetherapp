@@ -258,11 +258,26 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Row(
                     children: [
-                      Image.asset(
-                        'assets/images/app_icon_small.png',
-                        height: 28,
-                      ),
-                      const SizedBox(width: 12),
+                      if (Navigator.of(context).canPop()) ...[
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(
+                              PhosphorIcons.caretLeft,
+                              size: 24,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Image.asset(
+                          'assets/images/app_icon_small.png',
+                          height: 28,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                       Transform.translate(
                         offset: const Offset(0, 4),
                         child: Text(

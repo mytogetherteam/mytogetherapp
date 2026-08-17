@@ -40,4 +40,10 @@ class NavigationController {
 
   // Home tab is index 0
   void goToHomeTab() => goToTab(0);
+
+  // Social tab is index 2
+  void goToSocialTab() => goToTab(2);
+
+  // Orders tab is index 4
+  void goToOrdersTab() => goToTab(4);
 }

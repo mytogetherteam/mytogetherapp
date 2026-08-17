@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
+import 'package:mytogetherapp/core/presentation/widgets/profile_avatar_button.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
@@ -49,7 +50,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     _completedPagination.attachScrollController(_completedScrollController);
     _cancelledPagination.attachScrollController(_cancelledScrollController);
     _loadData();
-    // Double-tap same bottom tab → scroll to top + refresh
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
@@ -97,30 +97,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
     if (mounted) _initTabController();
   }
 
-  void _onScrollToTopRequested() {
-    if (NavigationController.instance.tabScrollToTopRequest.value != 2) return;
-    if (!mounted) return;
-    // Scroll the active tab's list to top
-    final activeController = (_tabController?.index ?? 0) == 0
-        ? _completedScrollController
-        : _cancelledScrollController;
-    if (activeController.hasClients) {
-      activeController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
-    }
-    // Refresh both lists
-    _completedPagination.refresh();
-    _cancelledPagination.refresh();
-  }
-
-  bool get _isLoading =>
-      !GuestAuthGuard.isGuest &&
-      (_completedPagination.isInitialLoading ||
-          _cancelledPagination.isInitialLoading);
-
   void _initTabController() {
     if (_tabController != null) {
       _tabController!.dispose();
@@ -131,6 +107,28 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 1),
     );
+  }
+
+  bool get _isLoading =>
+      !GuestAuthGuard.isGuest &&
+      (_completedPagination.isInitialLoading ||
+          _cancelledPagination.isInitialLoading);
+
+  void _onScrollToTopRequested() {
+    if (NavigationController.instance.tabScrollToTopRequest.value != 4) return;
+    if (!mounted) return;
+    final activeController = (_tabController?.index ?? 0) == 0
+        ? _completedScrollController
+        : _cancelledScrollController;
+    if (activeController.hasClients) {
+      activeController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    _completedPagination.refresh();
+    _cancelledPagination.refresh();
   }
 
   @override
@@ -162,8 +160,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset('assets/images/app_icon_small.png', height: 28),
-            const SizedBox(width: 12),
+            if (!Navigator.of(context).canPop()) ...[
+              Image.asset('assets/images/app_icon_small.png', height: 28),
+              const SizedBox(width: 12),
+            ],
             Transform.translate(
               offset: const Offset(0, 4), // Nudge text down to align visually
               child: Text(
@@ -180,6 +180,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           ],
         ),
         actions: const [
+          ProfileAvatarButton(
+            size: 32,
+            onLightBackground: true,
+          ),
+          SizedBox(width: 10),
           Padding(
             padding: EdgeInsets.only(right: 16.0),
             child: NotificationBell(),
