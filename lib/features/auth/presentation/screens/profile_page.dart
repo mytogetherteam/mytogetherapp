@@ -12,6 +12,7 @@ import 'package:mytogetherapp/features/auth/presentation/screens/language_page.d
 import 'package:mytogetherapp/features/settings/presentation/screens/app_permissions_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import 'package:mytogetherapp/features/coupons/presentation/screens/saved_coupons_page.dart';
+import '../../../referral/presentation/screens/referral_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/location_search_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -468,6 +469,12 @@ class _ProfilePageState extends State<ProfilePage> {
           title: context.tr('profile.saved_coupons'),
           subtitle: context.tr('profile.saved_coupons_sub'),
           onTap: () => SavedCouponsPage.open(context),
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.gift,
+          title: context.tr('profile.referral_promote'),
+          subtitle: context.tr('profile.referral_promote_sub'),
+          onTap: () => ReferralPage.open(context),
         ),
         _buildOptionTile(
           icon: PhosphorIcons.mapPin,
