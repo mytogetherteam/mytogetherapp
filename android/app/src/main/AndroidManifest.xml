@@ -41,6 +41,11 @@
             android:foregroundServiceType="phoneCall"
             tools:replace="android:foregroundServiceType,android:exported" />
 
+        <service
+            android:name=".ActiveCallService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|phoneCall" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

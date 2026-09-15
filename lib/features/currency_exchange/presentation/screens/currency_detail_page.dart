@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -89,9 +90,20 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // Android: white icons
+        statusBarBrightness: Brightness.dark, // iOS: white icons
+      ),
+      child: Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light, // Android: white
+          statusBarBrightness: Brightness.dark, // iOS: white
+        ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         ),
@@ -125,6 +137,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
       ),
     );
   }
@@ -161,6 +174,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
   }
 
   Widget _buildCurrentRates() {
+    final code = widget.currencyRate.currency;
     return Container(
       margin: const EdgeInsets.only(top: 16),
       color: Colors.white,
@@ -168,9 +182,9 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildRateColumn('Buy', widget.currencyRate.buy, Colors.green),
+          _buildRateColumn('MMK → $code', widget.currencyRate.buy, Colors.green),
           Container(height: 40, width: 1, color: Colors.grey.shade300),
-          _buildRateColumn('Sell', widget.currencyRate.sell, Colors.red),
+          _buildRateColumn('$code → MMK', widget.currencyRate.sell, Colors.red),
         ],
       ),
     );
@@ -227,7 +241,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          // Toggle Buy/Sell
+          // Toggle MMK→Currency / Currency→MMK
           Container(
             height: 40,
             decoration: BoxDecoration(
@@ -255,11 +269,11 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       ),
                       child: Center(
                         child: Text(
-                          'Buy',
+                          'MMK → ${widget.currencyRate.currency}',
                           style: GoogleFonts.poppins(
                             fontWeight: _isBuy ? FontWeight.w600 : FontWeight.w500,
                             color: _isBuy ? AppColors.primary : Colors.grey.shade600,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -285,11 +299,11 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       ),
                       child: Center(
                         child: Text(
-                          'Sell',
+                          '${widget.currencyRate.currency} → MMK',
                           style: GoogleFonts.poppins(
                             fontWeight: !_isBuy ? FontWeight.w600 : FontWeight.w500,
                             color: !_isBuy ? AppColors.primary : Colors.grey.shade600,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                         ),
                       ),

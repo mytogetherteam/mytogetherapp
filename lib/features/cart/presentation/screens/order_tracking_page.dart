@@ -307,7 +307,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     // the app resumes, and on a short poll while we wait.
     WidgetsBinding.instance.addObserver(this);
     _lastReconciledOrderStatus = ActiveOrderState.instance.orderStatus;
-    _reconcileWithBackend();
+    _reconcileWithBackend(forceNavigation: true);
     _statusPollTimer = Timer.periodic(
       const Duration(seconds: 12),
       (_) => _reconcileWithBackend(),

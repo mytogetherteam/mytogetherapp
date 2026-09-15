@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/network/websocket_service.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
 
 /// Manages a single WebRTC voice call from the user side.
 /// Connects to the NestJS signaling server via existing STOMP WebSocket.
@@ -97,6 +98,8 @@ class CallSession {
   void Function(String callId, String shopName)? onIncomingShopCall;
 
   final Dio _dio = ApiClient().dio;
+  
+  static const MethodChannel _activeCallChannel = MethodChannel('com.mytogether/active_call');
 
   // ──────────────────────────────────────────────
   // USER → SHOP call flow (existing)
@@ -252,6 +255,11 @@ class CallSession {
       debugPrint('[CallSession] acceptIncomingCall error: $e');
     }
 
+    _activeCallChannel.invokeMethod('start', {
+      'callerName': currentShopName ?? 'Shop',
+      'baseTime': DateTime.now().millisecondsSinceEpoch,
+    });
+
     // Start WebRTC as Answerer (wait for CALL_OFFER from shop, then answer)
     await _startWebRTCAsAnswerer();
   }
@@ -289,6 +297,12 @@ class CallSession {
     isMuted.value = !isMuted.value;
   }
 
+  /// Toggle speakerphone
+  void toggleSpeaker() {
+    isSpeakerOn.value = !isSpeakerOn.value;
+    Helper.setSpeakerphoneOn(isSpeakerOn.value);
+  }
+
   void _listenForCallEvents() {
     _callSub?.cancel();
     _callSub = WebSocketService().callUpdates.listen(_handleCallEvent);
@@ -300,11 +314,14 @@ class CallSession {
     if (callId != _currentCallId) return;
 
     switch (type) {
-      // ── user-to-shop responses ──
       case 'CALL_ACCEPTED':
         if (_direction == 'user-to-shop') {
           _ringTimeout?.cancel();
           state.value = CallState.connected;
+          _activeCallChannel.invokeMethod('start', {
+            'callerName': currentShopName ?? 'Shop',
+            'baseTime': DateTime.now().millisecondsSinceEpoch,
+          });
           await _startWebRTC(); // user is offerer
         } else if (_direction == 'shop-to-user') {
           // Shop confirmed our accept — WebRTC already started in acceptIncomingCall()
@@ -475,6 +492,7 @@ class CallSession {
   }
 
   void _cleanup() {
+    _activeCallChannel.invokeMethod('stop');
     if (_currentCallId != null) {
       FlutterCallkitIncoming.endCall(_currentCallId!);
     }
@@ -482,6 +500,7 @@ class CallSession {
     _callSub?.cancel();
     _callSub = null;
     _peerConnection?.close();
+    _peerConnection?.dispose();
     _peerConnection = null;
     _localStream?.getTracks().forEach((t) => t.stop());
     _localStream?.dispose();
@@ -496,6 +515,7 @@ class CallSession {
     currentShopName = null;
     currentShopImageUrl = null;
     isMuted.value = false;
+    isSpeakerOn.value = false;
 
     // Restart listening for new incoming calls from shops
     _listenForIncomingFromShop();
