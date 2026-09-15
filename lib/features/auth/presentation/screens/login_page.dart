@@ -65,7 +65,11 @@ class _LoginPageState extends State<LoginPage>
 
     setState(() => _isLoading = true);
 
-    final phoneStr = '+66${_phoneController.text.trim().replaceAll(' ', '')}';
+    var cleanPhone = _phoneController.text.trim().replaceAll(' ', '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+    final phoneStr = '+66$cleanPhone';
 
     try {
       final exists = await AuthRepository.instance.checkPhoneExists(phoneStr);

@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:mytogetherapp/core/presentation/widgets/profile_avatar_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
@@ -124,9 +124,13 @@ class _SocialPageState extends State<SocialPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        body: Stack(
         fit: StackFit.expand,
         children: [
           _buildForYouBody(),
@@ -158,10 +162,6 @@ class _SocialPageState extends State<SocialPage> {
                           ],
                         ),
                       ),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: ProfileAvatarButton(size: 32),
-                      ),
                     ],
                   ),
                 ),
@@ -182,6 +182,7 @@ class _SocialPageState extends State<SocialPage> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -327,7 +328,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         media.isEmpty ? null : media[_mediaIndex.clamp(0, media.length - 1)];
 
     return Container(
-      color: Colors.black,
+      color: const Color(0xFF121212),
       child: Stack(
         fit: StackFit.expand,
         children: [

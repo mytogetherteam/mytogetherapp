@@ -156,10 +156,17 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // Android: white icons
+        statusBarBrightness: Brightness.dark, // iOS: white icons
       ),
       child: Scaffold(
         backgroundColor: _bgColor,
         appBar: AppBar(
+          systemOverlayStyle: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light, // Android: white
+            statusBarBrightness: Brightness.dark, // iOS: white
+          ),
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               gradient: AppColors.primaryGradient,
@@ -375,6 +382,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
   }
 
   Widget _buildBuySellToggle() {
+    final currencyCode = _selectedCurrency?.currency ?? 'FX';
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -387,7 +395,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           GestureDetector(
             onTap: () => _onToggleBuySell(true),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: _isBuy ? null : Colors.transparent,
                 gradient: _isBuy
@@ -400,11 +408,11 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                context.tr('currency.buy'),
+                context.trArgs('currency.mmk_to', {'currency': currencyCode}),
                 style: GoogleFonts.poppins(
                   color: _isBuy ? Colors.white : Colors.black87,
                   fontWeight: _isBuy ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 13,
+                  fontSize: 11,
                 ),
               ),
             ),
@@ -412,7 +420,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
           GestureDetector(
             onTap: () => _onToggleBuySell(false),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: !_isBuy ? null : Colors.transparent,
                 gradient: !_isBuy
@@ -425,11 +433,11 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                context.tr('currency.sell'),
+                context.trArgs('currency.to_mmk', {'currency': currencyCode}),
                 style: GoogleFonts.poppins(
                   color: !_isBuy ? Colors.white : Colors.black87,
                   fontWeight: !_isBuy ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 13,
+                  fontSize: 11,
                 ),
               ),
             ),
@@ -590,9 +598,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             ),
           ),
 
-          // Buy
+          // MMK → Currency (Buy rate)
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
@@ -603,10 +611,11 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        context.tr('currency.buy'),
+                        'MMK→${rate.currency}',
                         style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
+                          fontSize: 9,
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -643,9 +652,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
 
           const SizedBox(width: 8),
 
-          // Sell
+          // Currency → MMK (Sell rate)
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
@@ -656,10 +665,11 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        context.tr('currency.sell'),
+                        '${rate.currency}→MMK',
                         style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
+                          fontSize: 9,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 4),

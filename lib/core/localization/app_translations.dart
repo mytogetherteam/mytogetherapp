@@ -711,9 +711,11 @@ class AppTranslations {
     'currency.latest_rate': 'Latest Rate',
     'currency.load_failed':
         'Failed to load exchange rates. Please check your connection.',
+    'currency.mmk_to': 'MMK → {currency}',
     'currency.rates_disclaimer':
         'These rates are approximate street prices for informational purposes only.',
     'currency.sell': 'Sell',
+    'currency.to_mmk': '{currency} → MMK',
     'currency.welcome': 'Welcome',
     'order_cancel.message':
         'Your order has been cancelled by the shop. We apologize for the inconvenience.',
@@ -1919,9 +1921,11 @@ class AppTranslations {
     'currency.buy': 'ဝယ်မယ်',
     'currency.latest_rate': 'နောက်ဆုံးနှုန်း',
     'currency.load_failed': 'ငွေလဲနှုန်း မတင်နိုင်ပါ။ ချိတ်ဆက်မှုကို စစ်ဆေးပါ။',
+    'currency.mmk_to': 'MMK → {currency}',
     'currency.rates_disclaimer':
         'ဤနှုန်းများသည် အချက်အလက်အတွက်သာ ခန့်မှန်းဈေးဖြစ်တယ်။',
     'currency.sell': 'ရောင်းမယ်',
+    'currency.to_mmk': '{currency} → MMK',
     'currency.welcome': 'ကြိုဆိုပါတယ်',
     'order_cancel.message':
         'ဘော်ဒါ့အော်ဒါကို ဆိုင်မှ ပယ်ဖျက်လိုက်ပါတယ်။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
@@ -3132,9 +3136,11 @@ class AppTranslations {
     'currency.latest_rate': 'อัตราล่าสุด',
     'currency.load_failed':
         'โหลดอัตราแลกเปลี่ยนไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ',
+    'currency.mmk_to': 'MMK → {currency}',
     'currency.rates_disclaimer':
         'อัตราเหล่านี้เป็นราคาโดยประมาณเพื่อข้อมูลเท่านั้น',
     'currency.sell': 'ขาย',
+    'currency.to_mmk': '{currency} → MMK',
     'currency.welcome': 'ยินดีต้อนรับ',
     'order_cancel.message':
         'คำสั่งซื้อของคุณถูกยกเลิกโดยร้านค้า เราขออภัยในความไม่สะดวก',

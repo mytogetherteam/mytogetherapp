@@ -96,7 +96,11 @@ class _RegisterPageState extends State<RegisterPage>
     });
 
     try {
-      final phoneStr = '+66${_phoneController.text.trim().replaceAll(' ', '')}';
+      var cleanPhone = _phoneController.text.trim().replaceAll(' ', '');
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = cleanPhone.substring(1);
+      }
+      final phoneStr = '+66$cleanPhone';
       
       // Check if phone number already exists
       final bool exists = await AuthRepository.instance.checkPhoneExists(phoneStr);

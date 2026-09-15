@@ -29,5 +29,45 @@ class MainActivity : FlutterActivity() {
             // OrderTrackerService disabled as requested by user
             result.success(true)
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.mytogether/active_call").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    val callerName = call.argument<String>("callerName") ?: "Ongoing Call"
+                    val baseTime   = call.argument<Long>("baseTime") ?: 0L
+                    val intent = android.content.Intent(this, ActiveCallService::class.java).apply {
+                        putExtra("callerName", callerName)
+                        putExtra("baseTime",   baseTime)
+                    }
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
+                    result.success(null)
+                }
+                "update" -> {
+                    // Refresh notification with updated caller name (e.g. after call is answered)
+                    val callerName = call.argument<String>("callerName") ?: "Ongoing Call"
+                    val baseTime   = call.argument<Long>("baseTime") ?: 0L
+                    val intent = android.content.Intent(this, ActiveCallService::class.java).apply {
+                        putExtra("callerName", callerName)
+                        putExtra("baseTime",   baseTime)
+                    }
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
+                    result.success(null)
+                }
+                "stop" -> {
+                    val intent = android.content.Intent(this, ActiveCallService::class.java)
+                    stopService(intent)
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 }

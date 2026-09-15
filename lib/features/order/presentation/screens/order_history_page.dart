@@ -8,7 +8,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/notification_bell.dart';
-import 'package:mytogetherapp/core/presentation/widgets/profile_avatar_button.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
@@ -180,11 +179,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           ],
         ),
         actions: const [
-          ProfileAvatarButton(
-            size: 32,
-            onLightBackground: true,
-          ),
-          SizedBox(width: 10),
           Padding(
             padding: EdgeInsets.only(right: 16.0),
             child: NotificationBell(),

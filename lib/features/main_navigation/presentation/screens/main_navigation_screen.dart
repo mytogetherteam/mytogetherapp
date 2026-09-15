@@ -17,12 +17,16 @@ import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
+import '../../../../features/auth/presentation/screens/profile_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 import '../widgets/guest_welcome_banner.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
+import '../../../../features/call/data/call_session.dart';
+import '../../../../features/call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/app.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -55,6 +59,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       WebSocketService().connect();
     }
 
+    // Wire up shop-to-user incoming call handler.
+    // When a shop calls this user, navigate to CallScreen as the incoming UI.
+    CallSession().onIncomingShopCall = (callId, shopName) {
+      final nav = App.navigatorKey.currentState;
+      if (nav == null) return;
+      nav.push(
+        MaterialPageRoute(
+          builder: (_) => CallScreen(
+            shopName: shopName,
+            shopImageUrl: CallSession().currentShopImageUrl,
+          ),
+        ),
+      );
+    };
+
     // Request permissions after first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissions();
@@ -79,6 +98,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       SocialPage(key: ValueKey('social_$localeKey')),
       _newsTab(localeKey),
       OrderHistoryPage(key: ValueKey('orders_$localeKey')),
+      ProfilePage(key: ValueKey('profile_$localeKey')),
     ];
   }
 
@@ -161,8 +181,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void _onTabChangeRequested() {
     final requested = NavigationController.instance.tabChangeRequest.value;
     if (requested != null && mounted) {
-      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders.
-      final index = requested.clamp(0, 4);
+      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders, 5=Profile.
+      final index = requested.clamp(0, 5);
       setState(() => _currentIndex = index);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (NavigationController.instance.tabChangeRequest.value == requested) {
@@ -231,7 +251,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   /// Profile opens via header avatar (not a tab).
   /// - Hidden on Social and News.
   Widget? _buildCartFab() {
-    if (_currentIndex == 2 || _currentIndex == 3) return null;
+    if (_currentIndex == 2 || _currentIndex == 3 || _currentIndex == 5) return null;
     return const StyledCartFab();
   }
 
@@ -314,6 +334,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     PhosphorIcons.receipt,
                     PhosphorIcons.receiptFill,
                     context.tr('nav.orders'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    5,
+                    PhosphorIcons.user,
+                    PhosphorIcons.userFill,
+                    context.tr('nav.profile'),
                     inactiveColor: inactiveColor,
                     socialMode: isSocial,
                     height: barBodyHeight,

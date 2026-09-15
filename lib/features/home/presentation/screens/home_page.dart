@@ -418,7 +418,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: Column(
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 70,
+                        height: MediaQuery.of(context).padding.top + 90,
                       ), // Push content below fixed header
 
                       // Search Bar
