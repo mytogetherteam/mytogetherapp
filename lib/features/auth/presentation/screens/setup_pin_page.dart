@@ -7,6 +7,7 @@ import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:flutter/services.dart';
+import '../../../referral/presentation/screens/onboarding_referral_page.dart';
 
 enum SetupPinStep {
   create,
@@ -132,8 +133,11 @@ class _SetupPinPageState extends State<SetupPinPage>
       );
 
       if (!mounted) return;
-      // Registration successful, go to home
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      // Registration successful, show welcome referral page with skip
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const OnboardingReferralPage()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       HapticFeedback.heavyImpact();

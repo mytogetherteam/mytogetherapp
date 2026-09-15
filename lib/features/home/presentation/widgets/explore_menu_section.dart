@@ -252,7 +252,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
               childAspectRatio: 0.85,
             ),
             delegate: SliverChildBuilderDelegate(
-              (_, __) => const FoodMenuItemSkeleton(),
+              (_, _) => const FoodMenuItemSkeleton(),
               childCount: crossAxisCount * 2,
             ),
           ),
