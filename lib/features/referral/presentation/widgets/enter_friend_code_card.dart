@@ -10,12 +10,14 @@ import 'referral_reward_celebration_sheet.dart';
 class EnterFriendCodeCard extends StatefulWidget {
   final ClaimedReferralInfo? claimedReferral;
   final bool canClaim;
+  final bool isProgramActive;
   final VoidCallback onClaimSuccess;
 
   const EnterFriendCodeCard({
     super.key,
     required this.claimedReferral,
     required this.canClaim,
+    this.isProgramActive = false,
     required this.onClaimSuccess,
   });
 
@@ -171,7 +173,9 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Enter their code below to receive welcome rewards and coupons.',
+            widget.isProgramActive
+                ? 'Enter their code to link your accounts. A welcome coupon is added if the program is offering one.'
+                : 'Enter their code after you join. Rewards are added only when the referral program is active.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,

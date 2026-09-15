@@ -2,6 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'location_search_service.dart';
 
+enum LocationUnavailableReason {
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+  timedOut,
+  unknown,
+}
+
 /// Singleton that fetches and caches the device's current position and address.
 class LocationService {
   static final LocationService _instance = LocationService._internal();
@@ -15,6 +23,7 @@ class LocationService {
   Position? _cachedPosition;
   String? _currentAddress;
   bool _cachedIsFallback = false;
+  LocationUnavailableReason? lastUnavailableReason;
 
   Position? get cachedPosition =>
       _cachedIsFallback ? null : _cachedPosition;
@@ -27,6 +36,7 @@ class LocationService {
     _cachedPosition = null;
     _cachedIsFallback = false;
     _currentAddress = null;
+    lastUnavailableReason = null;
   }
 
   Future<Position> getCurrentPosition({
@@ -35,13 +45,16 @@ class LocationService {
     bool highAccuracy = false,
   }) async {
     if (!forceRefresh && _cachedPosition != null && !_cachedIsFallback) {
+      lastUnavailableReason = null;
       return _cachedPosition!;
     }
 
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled()
           .timeout(Duration(seconds: kIsWeb ? 5 : 4));
-      if (!serviceEnabled) return _useFallback();
+      if (!serviceEnabled) {
+        return _useFallback(LocationUnavailableReason.serviceDisabled);
+      }
 
       var permission = await Geolocator.checkPermission()
           .timeout(Duration(seconds: kIsWeb ? 5 : 4));
@@ -50,18 +63,21 @@ class LocationService {
           permission = await Geolocator.requestPermission()
               .timeout(Duration(seconds: kIsWeb ? 10 : 8));
         } else {
-          return _useFallback();
+          return _useFallback(LocationUnavailableReason.permissionDenied);
         }
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return _useFallback();
+      if (permission == LocationPermission.denied) {
+        return _useFallback(LocationUnavailableReason.permissionDenied);
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return _useFallback(LocationUnavailableReason.permissionDeniedForever);
       }
 
       if (!forceRefresh && !kIsWeb) {
         final last = await Geolocator.getLastKnownPosition()
             .timeout(const Duration(seconds: 3));
         if (last != null && _isAcceptableAccuracy(last, highAccuracy)) {
+          lastUnavailableReason = null;
           _storePosition(last, isFallback: false);
           await _reverseGeocode(last.latitude, last.longitude)
               .timeout(const Duration(seconds: 8));
@@ -73,12 +89,13 @@ class LocationService {
         locationSettings: _buildLocationSettings(highAccuracy: highAccuracy),
       ).timeout(Duration(seconds: kIsWeb ? 30 : 15));
 
+      lastUnavailableReason = null;
       _storePosition(pos, isFallback: false);
       await _reverseGeocode(pos.latitude, pos.longitude)
           .timeout(const Duration(seconds: 8));
       return pos;
     } catch (_) {
-      return _useFallback();
+      return _useFallback(LocationUnavailableReason.timedOut);
     }
   }
 
@@ -141,7 +158,8 @@ class LocationService {
     } catch (_) {}
   }
 
-  Future<Position> _useFallback() {
+  Future<Position> _useFallback(LocationUnavailableReason reason) {
+    lastUnavailableReason = reason;
     _storePosition(
       Position(
         latitude: defaultLat,

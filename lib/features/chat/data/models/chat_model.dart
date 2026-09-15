@@ -171,6 +171,20 @@ class ChatMessage {
   int get voiceDurationSeconds =>
       voiceAttachment?.durationSeconds ?? durationSeconds ?? 0;
 
+  List<ChatAttachment> get imageAttachments =>
+      attachments.where((a) => a.isImage && a.url.isNotEmpty).toList();
+
+  List<String> get imageUrls {
+    final fromAttachments = imageAttachments.map((a) => a.url).toList();
+    if (fromAttachments.isNotEmpty) return fromAttachments;
+    if (attachmentUrl != null &&
+        attachmentUrl!.isNotEmpty &&
+        (kind == ChatMessageKind.image || kind == ChatMessageKind.mixed)) {
+      return [attachmentUrl!];
+    }
+    return const [];
+  }
+
   String get text => content ?? '';
   DateTime get timestamp => createdAt;
 

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
 import '../models/post_dto.dart';
@@ -34,6 +35,38 @@ class SocialPostsRepository {
       totalElements: ApiResponseUtils.parseTotalElements(body),
       totalPages: ApiResponseUtils.parseLastPage(body),
       page: page,
+    );
+  }
+
+  Future<SocialPostDto?> createPost({
+    String? content,
+    List<PickedImage> media = const [],
+  }) async {
+    final caption = content?.trim() ?? '';
+    if (caption.isEmpty && media.isEmpty) {
+      throw ArgumentError('A social post needs text or at least one photo or video.');
+    }
+    final form = FormData();
+    if (caption.isNotEmpty) {
+      form.fields.add(MapEntry('content', caption));
+    }
+    for (var i = 0; i < media.length; i++) {
+      form.files.add(
+        MapEntry(
+          'media',
+          media[i].toMultipartFile(
+            filenameOverride: 'media_$i.${media[i].extension}',
+          ),
+        ),
+      );
+    }
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/posts',
+      data: form,
+    );
+    return ApiResponseUtils.parseDataObject(
+      response.data,
+      SocialPostDto.fromJson,
     );
   }
 

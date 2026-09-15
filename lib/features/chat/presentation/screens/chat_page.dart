@@ -5,8 +5,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/websocket_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -20,6 +22,7 @@ import 'package:mytogetherapp/features/chat/presentation/widgets/audio_message_b
 import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
+import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -54,6 +57,7 @@ class _ChatPageState extends State<ChatPage>
   final FocusNode _focusNode = FocusNode();
   final List<ChatMessage> _messages = [];
   final ChatVoiceRecorder _voiceRecorder = ChatVoiceRecorder();
+  final ImagePicker _imagePicker = ImagePicker();
 
   late int _conversationId;
   bool _isLoading = true;
@@ -491,6 +495,90 @@ class _ChatPageState extends State<ChatPage>
     }
   }
 
+  Future<void> _pickAndSendImage() async {
+    if (_isSending || _isChatClosed) return;
+
+    final action = await ImageUploadBottomSheet.show(context);
+    if (!mounted || action == null || action == ImageUploadAction.remove) {
+      return;
+    }
+
+    final source = action == ImageUploadAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+    if (!mounted || picked == null) return;
+
+    final image = await PickedImage.fromXFile(picked);
+    if (!mounted) return;
+    if (image.isVideo || !image.mimeType.startsWith('image/')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.video_not_allowed'))),
+      );
+      return;
+    }
+
+    setState(() => _isSending = true);
+    final sent = await ChatService.instance.sendImageMessage(
+      widget.orderId,
+      image,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isSending = false;
+      if (sent != null) {
+        if (_conversationId <= 0 && sent.conversationId != null) {
+          _conversationId = sent.conversationId!;
+        }
+        final index = _messages.indexWhere((m) => m.id == sent.id);
+        if (index == -1) {
+          _messages.add(sent);
+        } else {
+          _messages[index] = sent;
+        }
+      }
+    });
+
+    if (sent != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
+    }
+  }
+
+  void _openImage(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _editMessage(ChatMessage message) async {
     if (_conversationId <= 0) return;
     final editController = TextEditingController(text: message.content ?? '');
@@ -917,8 +1005,10 @@ class _ChatPageState extends State<ChatPage>
 
     final isMine = message.isMe;
     final timeLabel = TimeFormatter.formatClock(message.createdAt);
-    final displayText = message.kind == ChatMessageKind.image
-        ? '📷 ${context.tr('chat.photo')}'
+    final imageUrls = message.imageUrls;
+    final hasImages = imageUrls.isNotEmpty;
+    final displayText = hasImages
+        ? (message.content ?? '')
         : message.isVoice
         ? '🎤 ${context.tr('chat.voice')}'
         : (message.content ?? '');
@@ -946,7 +1036,9 @@ class _ChatPageState extends State<ChatPage>
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.72,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: hasImages
+                  ? const EdgeInsets.all(4)
+                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isMine ? AppColors.primaryGradient : null,
                 color: isMine ? null : Colors.white,
@@ -967,6 +1059,59 @@ class _ChatPageState extends State<ChatPage>
                           ? Colors.white
                           : const Color(0xFF1E293B),
                       background: Colors.transparent,
+                    )
+                  : hasImages
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (final url in imageUrls)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: GestureDetector(
+                              onTap: () => _openImage(url),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: CachedNetworkImage(
+                                  imageUrl: url,
+                                  width: 200,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, _) => Container(
+                                    width: 200,
+                                    height: 200,
+                                    color: Colors.black12,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (_, _, _) => Container(
+                                    width: 200,
+                                    height: 120,
+                                    color: Colors.black12,
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (displayText.trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+                            child: Text(
+                              displayText,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                height: 1.4,
+                                color: isMine
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                      ],
                     )
                   : Text(
                       displayText,
@@ -1073,6 +1218,15 @@ class _ChatPageState extends State<ChatPage>
             return Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                if (!recording && !_isChatClosed)
+                  IconButton(
+                    onPressed: _isSending ? null : _pickAndSendImage,
+                    tooltip: context.tr('chat.add_photo'),
+                    icon: Icon(
+                      Icons.photo_outlined,
+                      color: _isSending ? Colors.grey[400] : AppColors.primary,
+                    ),
+                  ),
                 // Messenger-style: recording replaces the text box entirely.
                 Expanded(
                   child: recording

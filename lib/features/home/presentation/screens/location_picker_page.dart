@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +11,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/config/google_maps_config.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_service.dart';
+import '../../../../core/location/location_enable_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
@@ -208,11 +208,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       );
       if (!LocationService().hasRealPosition) {
         if (!mounted) return;
-        if (!kIsWeb) await LocationService().openAppSettings();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('location.unavailable'))),
-        );
+        await LocationEnableDialog.show(context);
         return;
       }
       final target = LatLng(pos.latitude, pos.longitude);

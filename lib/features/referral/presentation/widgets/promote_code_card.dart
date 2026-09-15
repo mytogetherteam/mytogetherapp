@@ -41,8 +41,8 @@ class PromoteCodeCard extends StatelessWidget {
     HapticFeedback.lightImpact();
     // ignore: deprecated_member_use
     Share.share(
-      'Join me on MyTogether! Use my referral code "$code" when you register to get special rewards and coupons! Download the app: https://mytogether.app',
-      subject: 'Join MyTogether with my referral code!',
+      'Join me on MyTogether! Use my promote code "$code" after you sign up.',
+      subject: 'Join MyTogether with my promote code',
     );
   }
 
@@ -125,7 +125,7 @@ class PromoteCodeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Customize your personal code, share with friends, and earn coupons whenever they order!',
+              'Customize your personal code and share it with friends so they can enter it after they join.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
