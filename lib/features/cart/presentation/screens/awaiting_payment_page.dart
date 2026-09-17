@@ -1612,6 +1612,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         shopCoupon: order?.shopCoupon,
                       ),
                     ],
+                    if ((order?.transactionDiscount ?? 0) > 0) ...[
+                      const SizedBox(height: 10),
+                      _summaryRow(
+                        context.tr('order_status.transaction_discount'),
+                        '- ${(order?.displayTransactionDiscount ?? order!.transactionDiscount!.toFormattedPrice())}',
+                        isValue: false,
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true &&
                         order?.hasDeliveryFeeEstimate == true &&

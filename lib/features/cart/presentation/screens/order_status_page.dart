@@ -666,6 +666,17 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                if (state.hasTransactionDiscount) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${context.tr('order_status.transaction_discount')}: - ${state.displayTransactionDiscount ?? state.transactionDiscount.toFormattedPrice()}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 24),
               // Progress Bar
@@ -1412,6 +1423,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             discountAmount: state.discountAmount,
                             displayDiscountAmount: state.displayDiscountAmount,
                             shopCoupon: state.shopCoupon,
+                          ),
+                        ],
+                        if (state.hasTransactionDiscount) ...[
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(
+                            context.tr('order_status.transaction_discount'),
+                            '- ${state.displayTransactionDiscount ?? state.transactionDiscount.toFormattedPrice()}',
+                            valueColor: AppColors.primary,
                           ),
                         ],
                         if (!state.isPickupFulfillment &&
