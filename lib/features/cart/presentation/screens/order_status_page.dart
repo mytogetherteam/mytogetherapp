@@ -1381,6 +1381,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             shopCoupon: state.shopCoupon,
                           ),
                         ],
+                        if (state.hasTransactionDiscount) ...[
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(
+                            context.tr('order_status.transaction_discount'),
+                            '- ${state.displayTransactionDiscount ?? state.transactionDiscount.toFormattedPrice()}',
+                            valueColor: AppColors.primary,
+                          ),
+                        ],
                         if (!state.isPickupFulfillment &&
                             state.hasDeliveryFeeEstimate &&
                             !state.isAwaitingShopConfirmation &&

@@ -5,6 +5,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import '../../../../core/location/location_enable_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
@@ -196,7 +197,10 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
 
   void _selectCurrentLocation() {
     final place = _currentLocationResult;
-    if (!_hasPreciseGps || place == null) return;
+    if (!_hasPreciseGps || place == null) {
+      _promptEnableLocation();
+      return;
+    }
 
     final sessionLocation = UserLocationModel(
       id: -1,
@@ -219,6 +223,14 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
     setState(() {});
     widget.onLocationSelected?.call(place);
     Navigator.pop(context);
+  }
+
+  Future<void> _promptEnableLocation() async {
+    if (_isLoadingCurrent) return;
+    await LocationEnableDialog.show(context);
+    if (!mounted) return;
+    setState(() => _isLoadingCurrent = true);
+    await _loadCurrentLocation();
   }
 
   Future<void> _handleSelectionChange(
@@ -531,7 +543,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
           ? AppColors.primary.withValues(alpha: 0.06)
           : Colors.transparent,
       child: InkWell(
-        onTap: canSelect ? _selectCurrentLocation : null,
+        onTap: canSelect ? _selectCurrentLocation : _promptEnableLocation,
         child: Container(
           decoration: isSelected
               ? BoxDecoration(

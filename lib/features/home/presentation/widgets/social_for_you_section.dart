@@ -184,10 +184,23 @@ class _SocialTeaserCard extends StatelessWidget {
                 )
               else
                 Container(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  child: const Icon(
-                    PhosphorIcons.playFill,
-                    color: AppColors.primary,
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  padding: const EdgeInsets.all(10),
+                  child: Center(
+                    child: Text(
+                      post.caption.isNotEmpty
+                          ? post.caption
+                          : post.author.displayName,
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
                   ),
                 ),
               const DecoratedBox(

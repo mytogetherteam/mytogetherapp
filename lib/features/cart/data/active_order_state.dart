@@ -71,6 +71,8 @@ class ActiveOrderItem {
   // Applied shop coupon (if any). discountAmount = ฿ taken off the subtotal.
   double? discountAmount;
   String? displayDiscountAmount;
+  double? transactionDiscount;
+  String? displayTransactionDiscount;
   String? couponName;
   String? couponCode;
   OrderShopCouponInfo? shopCoupon;
@@ -186,12 +188,14 @@ class ActiveOrderItem {
         : (deliveryFee ?? fallbackDeliveryFee);
     // Subtract any coupon discount so the fallback matches the backend total.
     final discount = discountAmount ?? 0;
+    final txnDiscount = transactionDiscount ?? 0;
     final total = OrderTax.calculateTotal(
           itemSubtotal: resolvedItemSubtotal,
           deliveryFee: delivery,
           taxEnable: resolvedTaxEnable,
         ) -
-        discount;
+        discount -
+        txnDiscount;
     return total < 0 ? 0 : total;
   }
 
@@ -202,7 +206,8 @@ class ActiveOrderItem {
     }
     // Food + tax, less any coupon discount applied to the subtotal.
     final discount = discountAmount ?? 0;
-    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount;
+    final txnDiscount = transactionDiscount ?? 0;
+    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount - txnDiscount;
     return payNow < 0 ? 0 : payNow;
   }
 
@@ -255,6 +260,8 @@ class ActiveOrderItem {
     this.totalAmount,
     this.discountAmount,
     this.displayDiscountAmount,
+    this.transactionDiscount,
+    this.displayTransactionDiscount,
     this.couponName,
     this.couponCode,
     this.shopCoupon,
@@ -348,6 +355,8 @@ class ActiveOrderItem {
     'totalAmount': totalAmount,
     'discountAmount': discountAmount,
     'displayDiscountAmount': displayDiscountAmount,
+    'transactionDiscount': transactionDiscount,
+    'displayTransactionDiscount': displayTransactionDiscount,
     'couponName': couponName,
     'couponCode': couponCode,
     'shopCoupon': shopCoupon?.toJson(),
@@ -418,6 +427,8 @@ class ActiveOrderItem {
         totalAmount: json['totalAmount'],
         discountAmount: (json['discountAmount'] as num?)?.toDouble(),
         displayDiscountAmount: json['displayDiscountAmount']?.toString(),
+        transactionDiscount: (json['transactionDiscount'] as num?)?.toDouble(),
+        displayTransactionDiscount: json['displayTransactionDiscount']?.toString(),
         couponName: json['couponName']?.toString(),
         couponCode: json['couponCode']?.toString(),
         shopCoupon: json['shopCoupon'] is Map
@@ -674,6 +685,10 @@ class ActiveOrderState extends ChangeNotifier {
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
   double get discountAmount => _primary?.discountAmount ?? 0;
+  double get transactionDiscount => _primary?.transactionDiscount ?? 0;
+  bool get hasTransactionDiscount => transactionDiscount > 0;
+  String? get displayTransactionDiscount =>
+      _primary?.displayTransactionDiscount?.toFormattedPrice();
   bool get hasDiscount => hasAppliedCoupon;
   String? get couponCode => _primary?.couponCode;
   OrderShopCouponInfo? get shopCoupon => _primary?.shopCoupon;
@@ -1076,6 +1091,13 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['displayDiscountAmount'] != null) {
       item.displayDiscountAmount =
           _parseSafeString(data['displayDiscountAmount']);
+    }
+    if (data['transactionDiscount'] != null) {
+      item.transactionDiscount = _parseSafeDouble(data['transactionDiscount']);
+    }
+    if (data['displayTransactionDiscount'] != null) {
+      item.displayTransactionDiscount =
+          _parseSafeString(data['displayTransactionDiscount']);
     }
     if (data['shopCoupon'] is Map) {
       final coupon = Map<String, dynamic>.from(data['shopCoupon'] as Map);
@@ -1801,6 +1823,8 @@ class ActiveOrderState extends ChangeNotifier {
       displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
           ? o.displayDeliveryFee
           : null,
+      transactionDiscount: o.transactionDiscount,
+      displayTransactionDiscount: o.displayTransactionDiscount,
     );
   }
 
@@ -1829,6 +1853,12 @@ class ActiveOrderState extends ChangeNotifier {
       if (o.displayDeliveryFee != null) {
         item.displayDeliveryFee = o.displayDeliveryFee;
       }
+    }
+    if (o.transactionDiscount != null) {
+      item.transactionDiscount = o.transactionDiscount;
+    }
+    if (o.displayTransactionDiscount != null) {
+      item.displayTransactionDiscount = o.displayTransactionDiscount;
     }
     applyStatusString(item, o.status);
   }

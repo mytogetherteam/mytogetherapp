@@ -134,6 +134,7 @@ class _ReferralPageState extends State<ReferralPage> {
                         EnterFriendCodeCard(
                           claimedReferral: _status?.claimedReferral,
                           canClaim: _status?.canClaim ?? false,
+                          isProgramActive: _status?.isProgramActive ?? false,
                           onClaimSuccess: _loadData,
                         ),
                         const SizedBox(height: 24),

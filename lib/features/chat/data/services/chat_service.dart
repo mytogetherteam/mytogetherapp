@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
 import 'package:path/path.dart' as p;
@@ -92,6 +93,43 @@ class ChatService {
       return null;
     } catch (e) {
       debugPrint('[ChatService.sendTextMessage] $e');
+      return null;
+    }
+  }
+
+  /// Uploads a still image as an `IMAGE` message. Videos are rejected.
+  Future<ChatMessage?> sendImageMessage(int orderId, PickedImage image) async {
+    if (image.isVideo || !image.mimeType.startsWith('image/')) {
+      debugPrint(
+        '[ChatService.sendImageMessage] rejected non-image ${image.mimeType}',
+      );
+      return null;
+    }
+
+    try {
+      final formData = FormData();
+      formData.fields.add(const MapEntry('type', 'IMAGE'));
+      formData.files.add(MapEntry('attachments', image.toMultipartFile()));
+
+      final response = await _dio.post(
+        '$_basePath/orders/$orderId/messages',
+        data: formData,
+      );
+      final body = _body(response);
+      if (body != null && body['success'] == true && body['data'] is Map) {
+        return ChatMessage.fromJson(
+          (body['data'] as Map).cast<String, dynamic>(),
+        );
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint(
+        '[ChatService.sendImageMessage] ${e.response?.statusCode} '
+        '${e.response?.data ?? e.message}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('[ChatService.sendImageMessage] $e');
       return null;
     }
   }

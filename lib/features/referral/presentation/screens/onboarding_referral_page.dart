@@ -16,7 +16,24 @@ class OnboardingReferralPage extends StatefulWidget {
 class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
+  bool _isProgramActive = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgramStatus();
+  }
+
+  Future<void> _loadProgramStatus() async {
+    try {
+      final status = await ReferralService.instance.getStatus();
+      if (!mounted) return;
+      setState(() => _isProgramActive = status.isProgramActive);
+    } catch (_) {
+      // Keep the honest fallback copy if status cannot load.
+    }
+  }
 
   @override
   void dispose() {
@@ -128,7 +145,9 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Got a referral or promote code from a friend?\nEnter it below to unlock welcome coupons and perks!',
+                _isProgramActive
+                    ? 'Got a friend\'s promote code? Enter it below. A welcome coupon is added when one is offered.'
+                    : 'Got a friend\'s promote code? Enter it below after you join. You can skip this and add it later in Profile.',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,

@@ -55,6 +55,8 @@ class OrderHistoryDto {
   final String? orderType;
   final String? orderDeliveryType;
   final int? waitingTimeMinutes;
+  final double? transactionDiscount;
+  final String? displayTransactionDiscount;
   final bool? taxEnable;
   final OrderReviewDto? orderReview;
   final bool hasChatConversation;
@@ -84,6 +86,8 @@ class OrderHistoryDto {
     this.orderType,
     this.orderDeliveryType,
     this.waitingTimeMinutes,
+    this.transactionDiscount,
+    this.displayTransactionDiscount,
     this.taxEnable,
     this.orderReview,
     this.hasChatConversation = false,
@@ -193,6 +197,8 @@ class OrderHistoryDto {
       orderType: json['orderType'] as String?,
       orderDeliveryType: json['orderDeliveryType'] as String?,
       waitingTimeMinutes: (json['waitingTimeMinutes'] as num?)?.toInt(),
+      transactionDiscount: (json['transactionDiscount'] as num?)?.toDouble(),
+      displayTransactionDiscount: json['displayTransactionDiscount'] as String?,
       taxEnable: _resolveTaxEnable(json, shop),
       orderReview: json['orderReview'] is Map<String, dynamic>
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)

@@ -15,6 +15,8 @@ class PlaceCard extends StatelessWidget {
   final String category;
   final String distance;
   final String imagePath;
+  final String? primaryActivity;
+  final String? startingPrice;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onTap;
@@ -33,6 +35,8 @@ class PlaceCard extends StatelessWidget {
     required this.category,
     required this.distance,
     required this.imagePath,
+    this.primaryActivity,
+    this.startingPrice,
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.onTap,
@@ -66,6 +70,51 @@ class PlaceCard extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Activity Badge
+            if (primaryActivity != null && primaryActivity!.isNotEmpty)
+              Positioned(
+                top: 16,
+                left: 16,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _activityIcon(primaryActivity!),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatActivity(primaryActivity!),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
             // Favorite Button
             Positioned(
@@ -154,6 +203,27 @@ class PlaceCard extends StatelessWidget {
                             ],
                           ],
                         ),
+                        if (startingPrice != null && startingPrice!.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              const Icon(
+                                PhosphorIcons.tag,
+                                size: 11,
+                                color: Color(0xFFFFE082),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                startingPrice!,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFFFE082),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -226,5 +296,33 @@ class PlaceCard extends StatelessWidget {
       ),
     );
   }
-}
+  static String _activityIcon(String key) {
+    switch (key.toUpperCase()) {
+      case "BADMINTON": return "🏸";
+      case "SWIMMING": return "🏊";
+      case "FOOTBALL": return "⚽";
+      case "FUTSAL": return "🥅";
+      case "GYM": return "🏋️";
+      case "MUAY_THAI": return "🥊";
+      case "TENNIS": return "🎾";
+      case "ICE_SKATING": return "🧊";
+      case "GAMES": return "🎳";
+      case "ROOFTOP_VIEW": return "🏙️";
+      case "SHOPPING": return "🛍️";
+      case "NIGHT_MARKET": return "🏮";
+      case "PARK": return "🌳";
+      case "KARAOKE": return "🎤";
+      case "BOWLING": return "🎳";
+      case "CINEMA": return "🎬";
+      default: return "📍";
+    }
+  }
 
+  static String _formatActivity(String key) {
+    return key
+        .replaceAll("_", " ")
+        .split(" ")
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1).toLowerCase() : "")
+        .join(" ");
+  }
+}

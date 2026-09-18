@@ -1510,6 +1510,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                       .instance.shopCoupon,
                                                 ),
                                               ],
+                                              if (ActiveOrderState
+                                                  .instance.hasTransactionDiscount) ...[
+                                                const SizedBox(height: 12),
+                                                _buildInfoRow(
+                                                  label: context.tr('order_status.transaction_discount'),
+                                                  value: '- ${ActiveOrderState.instance.displayTransactionDiscount ?? ActiveOrderState.instance.transactionDiscount.toFormattedPrice()}',
+                                                  valueColor: const Color(0xFFED3973),
+                                                ),
+                                              ],
 
                                               if (!ActiveOrderState
                                                   .instance.isPickupFulfillment) ...[

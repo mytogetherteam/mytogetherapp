@@ -15,10 +15,9 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import '../widgets/social_comments_sheet.dart';
 import '../widgets/social_feed_status_view.dart';
 import '../widgets/social_media_view.dart';
+import 'create_social_post_page.dart';
 
 /// Full-screen vertical social feed (For You from API).
-///
-/// v1: consume only — no create, no follow.
 class SocialPage extends StatefulWidget {
   const SocialPage({super.key});
 
@@ -161,6 +160,18 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
+  Future<void> _openCreate() async {
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+    AppHaptics.buttonTap();
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CreateSocialPostPage()),
+    );
+    if (created == true && mounted) {
+      await _loadInitial();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -207,6 +218,18 @@ class _SocialPageState extends State<SocialPage> {
               ),
             ),
           ),
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: SafeArea(
+              child: FloatingActionButton(
+                heroTag: 'social_create_fab',
+                backgroundColor: AppColors.primary,
+                onPressed: _openCreate,
+                child: const Icon(PhosphorIcons.plusBold, color: Colors.white),
+              ),
+            ),
+          ),
         ],
       ),
     ),
@@ -232,10 +255,10 @@ class _SocialPageState extends State<SocialPage> {
         icon: PhosphorIcons.playFill,
         title: context.tr('social.empty_feed_title'),
         subtitle: context.tr('social.empty_feed_sub'),
-        actionLabel: context.tr('social.retry'),
-        onAction: _loadInitial,
-        secondaryActionLabel: context.tr('social.browse_food'),
-        onSecondaryAction: () => NavigationController.instance.goToFoodTab(),
+        actionLabel: context.tr('social.create_post'),
+        onAction: _openCreate,
+        secondaryActionLabel: context.tr('social.retry'),
+        onSecondaryAction: _loadInitial,
       );
     }
 
@@ -377,7 +400,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               preloadedController: _mediaIndex == 0 ? widget.preloadedController : null,
             )
           else
-            const ColoredBox(color: Color(0xFF1A1020)),
+            _TextOnlyBackdrop(caption: widget.post.caption),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -474,6 +497,45 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TextOnlyBackdrop extends StatelessWidget {
+  final String caption;
+
+  const _TextOnlyBackdrop({required this.caption});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(const Color(0xFF2B1B2E), AppColors.primary, 0.45)!,
+            const Color(0xFF12080F),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            caption.isEmpty ? 'MyTogether' : caption,
+            textAlign: TextAlign.center,
+            maxLines: 8,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+        ),
       ),
     );
   }

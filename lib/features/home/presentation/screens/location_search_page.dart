@@ -9,6 +9,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_display_util.dart';
+import '../../../../core/location/location_enable_dialog.dart';
 import '../../../auth/data/models/user_location_model.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
@@ -121,6 +122,14 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     } catch (_) {
       if (mounted) setState(() => _isLoadingCurrent = false);
     }
+  }
+
+  Future<void> _promptEnableLocation() async {
+    if (_isLoadingCurrent) return;
+    await LocationEnableDialog.show(context);
+    if (!mounted) return;
+    setState(() => _isLoadingCurrent = true);
+    await _loadCurrentLocation();
   }
 
   Future<void> _loadApiLocations() async {
@@ -670,9 +679,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
   Widget _buildCurrentLocationTile() {
     return InkWell(
-      onTap: _currentLocationResult != null 
-          ? () => Navigator.pop(context, _currentLocationResult) 
-          : null,
+      onTap: _currentLocationResult != null
+          ? () => Navigator.pop(context, _currentLocationResult)
+          : _promptEnableLocation,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(

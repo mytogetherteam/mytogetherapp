@@ -6,6 +6,8 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'news_image_viewer.dart'; // Added import
+import 'news_comments_sheet.dart';
+import '../../../../core/utils/haptic_splash_factory.dart';
 import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
 import '../../../lost_and_found/data/repositories/item_post_repository.dart';
@@ -112,7 +114,18 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
   Future<void> _openComments() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
-    _openDetail(autoFocusComment: true);
+    if (!mounted) return;
+    AppHaptics.buttonTap();
+    final updatedCount = await showNewsCommentsSheet(
+      context: context,
+      item: widget.item,
+    );
+    if (!mounted) return;
+    if (updatedCount != null) {
+      setState(() {
+        widget.item.commentsCount = updatedCount;
+      });
+    }
   }
 
   Future<void> _makeCall(String phoneNumber) async {
