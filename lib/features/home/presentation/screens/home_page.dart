@@ -32,7 +32,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
-import '../widgets/social_for_you_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -655,10 +654,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 ],
                               ),
                             ),
-                            // Social discovery — under service buttons, not in the grid
-                            const SocialForYouSection(),
-                            const SizedBox(height: 12),
                             // Second Promo Banner Section (Below Categories)
+
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,

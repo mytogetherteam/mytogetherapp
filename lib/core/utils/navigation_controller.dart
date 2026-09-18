@@ -5,6 +5,9 @@ class NavigationController {
   NavigationController._();
   static final NavigationController instance = NavigationController._();
 
+  /// Current active tab index.
+  final ValueNotifier<int> currentIndex = ValueNotifier(0);
+
   /// Listen to this from MainNavigationScreen to switch tabs.
   final ValueNotifier<int?> tabChangeRequest = ValueNotifier(null);
 

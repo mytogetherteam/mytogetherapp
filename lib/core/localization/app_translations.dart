@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+﻿import 'package:flutter/widgets.dart';
 
 import 'app_language.dart';
 import 'locale_controller.dart';
@@ -148,8 +148,7 @@ class AppTranslations {
     'profile.order_history': 'Order History',
     'profile.order_history_sub': 'Completed and cancelled orders',
     'profile.saved_items': 'Saved Items',
-    'profile.saved_items_sub': 'Your wishlist of foods, restaurants and places',
-    'profile.saved_coupons': 'Saved Coupons',
+    'profile.saved_items_sub': 'Your wishlist of foods, restaurants and places',    'profile.saved_coupons': 'Saved Coupons',
     'profile.saved_coupons_sub': 'Coupons you saved from promotions',
     'profile.referral_promote': 'Referral & Promote Code',
     'profile.referral_promote_sub': 'Invite friends, earn coupons and customize promote code',
@@ -1324,8 +1323,7 @@ class AppTranslations {
     'profile.order_history': 'အော်ဒါမှတ်တမ်း',
     'profile.order_history_sub': 'ပြီးဆုံးပြီး ပယ်ဖျက်ထားသော အော်ဒါများ',
     'profile.saved_items': 'သိမ်းဆည်းထားသည်များ',
-    'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာ၊ ဆိုင်နှင့် နေရာများ',
-    'profile.saved_coupons': 'သိမ်းထားသော ကူပွန်များ',
+    'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာ၊ ဆိုင်နှင့် နေရာများ',    'profile.saved_coupons': 'သိမ်းထားသော ကူပွန်များ',
     'profile.saved_coupons_sub': 'ပရိုမိုးရှင်းမှ သိမ်းထားသော ကူပွန်များ',
     'profile.referral_promote': 'မိတ်ဆက်ကုဒ် နှင့် ပရိုမိုးရှင်းကုဒ်',
     'profile.referral_promote_sub': 'သူငယ်ချင်းများကို ဖိတ်ခေါ်ပြီး ကူပွန်များ ရယူပါ',
@@ -2494,8 +2492,7 @@ class AppTranslations {
     'profile.order_history': 'ประวัติคำสั่งซื้อ',
     'profile.order_history_sub': 'คำสั่งซื้อที่เสร็จสิ้นและยกเลิก',
     'profile.saved_items': 'รายการที่บันทึก',
-    'profile.saved_items_sub': 'รายการโปรดอาหาร ร้านค้า และสถานที่ของคุณ',
-    'profile.saved_coupons': 'คูปองที่บันทึก',
+    'profile.saved_items_sub': 'รายการโปรดอาหาร ร้านค้า และสถานที่ของคุณ',    'profile.saved_coupons': 'คูปองที่บันทึก',
     'profile.saved_coupons_sub': 'คูปองที่คุณบันทึกจากโปรโมชัน',
     'profile.referral_promote': 'รหัสแนะนำเพื่อนและโปรโมต',
     'profile.referral_promote_sub': 'ชวนเพื่อน รับคูปอง และสร้างรหัสโปรโมตของคุณเอง',
@@ -3549,3 +3546,4 @@ extension LocalizationX on BuildContext {
   String localizedStatus(String status) =>
       LocaleController.instance.localizedStatus(status);
 }
+

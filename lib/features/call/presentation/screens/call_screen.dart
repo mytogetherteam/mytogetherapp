@@ -1,12 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui' as ui;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/animated_dots_text.dart';
+import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/call_session.dart';
 
+// App brand colour tokens (primary gradient: pink -> orange)
+const _kBgTop       = Color(0xFFED3973); // app primary pink
+const _kBgBottom    = Color(0xFF0D060A); // near-black at bottom
+const _kAcceptGreen = Color(0xFF00C875);
+const _kDeclineRed  = Color(0xFFE41E3F);
 /// Active voice call screen shown while a call is in progress.
 class CallScreen extends StatefulWidget {
   static final ValueNotifier<bool> isVisibleNotifier = ValueNotifier(false);
@@ -25,35 +29,43 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
+  static int _visibleCount = 0;
+
   final _call = CallSession();
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation1;
-  late Animation<double> _pulseAnimation2;
-  late Animation<double> _pulseAnimation3;
+
+  // Pulse rings controller (ringing / calling states)
+  late AnimationController _pulseCtrl;
+  late Animation<double> _ring1;
+  late Animation<double> _ring2;
+  late Animation<double> _ring3;
 
   Duration _elapsed = Duration.zero;
   late DateTime _connectedAt;
   bool _dismissing = false;
+  double _dragOffset = 0;
 
   @override
   void initState() {
     super.initState();
-    CallScreen.isVisibleNotifier.value = true;
+    _visibleCount++;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      CallScreen.isVisibleNotifier.value = _visibleCount > 0;
+    });
     _connectedAt = DateTime.now();
 
-    _pulseController = AnimationController(
+    _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2200),
     )..repeat();
 
-    _pulseAnimation1 = Tween<double>(begin: 1.0, end: 1.5).animate(
-      CurvedAnimation(parent: _pulseController, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
+    _ring1 = Tween<double>(begin: 1.0, end: 1.55).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
     );
-    _pulseAnimation2 = Tween<double>(begin: 1.0, end: 1.8).animate(
-      CurvedAnimation(parent: _pulseController, curve: const Interval(0.2, 0.8, curve: Curves.easeOut)),
+    _ring2 = Tween<double>(begin: 1.0, end: 1.9).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: const Interval(0.2, 0.8, curve: Curves.easeOut)),
     );
-    _pulseAnimation3 = Tween<double>(begin: 1.0, end: 2.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: const Interval(0.4, 1.0, curve: Curves.easeOut)),
+    _ring3 = Tween<double>(begin: 1.0, end: 2.25).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: const Interval(0.4, 1.0, curve: Curves.easeOut)),
     );
 
     // Update elapsed time every second
@@ -66,23 +78,19 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
       return true;
     });
 
-    // Handle state changes
     _call.state.addListener(_onCallStateChanged);
   }
 
   void _onCallStateChanged() {
     if (!mounted || _dismissing) return;
     final state = _call.state.value;
-
     if (state == CallState.connected) {
-      // Reset timer when actually connected
       _connectedAt = DateTime.now();
       setState(() {});
     } else if (state == CallState.idle || state == CallState.ended) {
       _scheduleDismiss();
     } else if (state == CallState.rejected || state == CallState.noAnswer) {
-      // Show feedback before dismissing
-      setState(() {}); // Trigger rebuild to show feedback text
+      setState(() {});
       _scheduleDismiss(delay: const Duration(seconds: 2));
     }
   }
@@ -100,9 +108,13 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    CallScreen.isVisibleNotifier.value = false;
+    _visibleCount--;
+    if (_visibleCount < 0) _visibleCount = 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      CallScreen.isVisibleNotifier.value = _visibleCount > 0;
+    });
     _call.state.removeListener(_onCallStateChanged);
-    _pulseController.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -115,31 +127,41 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      // â”€â”€ Solid Messenger-blue status bar (visible when app is in foreground) â”€â”€
+      value: const SystemUiOverlayStyle(
+        statusBarColor: _kBgTop,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: _kBgBottom,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
       child: Scaffold(
-        backgroundColor: const Color(0xFF1A1A2E),
-        body: Stack(
-          children: [
-            // Background Image
-            if (widget.shopImageUrl != null)
-              Positioned.fill(
-                child: Image.network(
-                  widget.shopImageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            // Blur effect
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(
-                  color: Colors.black.withOpacity(0.7),
-                ),
+        backgroundColor: _kBgBottom,
+        body: GestureDetector(
+          onVerticalDragStart: (_) => _dragOffset = 0,
+          onVerticalDragUpdate: (details) {
+            _dragOffset += details.primaryDelta ?? 0;
+            if (_dragOffset > 100) {
+              if (!_dismissing) _scheduleDismiss();
+            }
+          },
+          onVerticalDragEnd: (details) {
+            _dragOffset = 0;
+            if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
+              if (!_dismissing) _scheduleDismiss();
+            }
+          },
+          child: Container(
+            // Blue â†’ deep-dark gradient â€“ same as Messenger voice call
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.secondary, _kBgBottom],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.0, 0.38, 1.0],
               ),
             ),
-            // Foreground Content
-            SafeArea(
+            child: SafeArea(
               child: ValueListenableBuilder<CallState>(
                 valueListenable: _call.state,
                 builder: (context, state, _) {
@@ -148,111 +170,136 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 30),
-                        // Top Header
-                        Text(
-                          widget.shopName,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Voice Call',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        
+                        _buildTopBar(),
                         const Spacer(flex: 1),
-                        
-                        // Avatar / pulse animation
-                        SizedBox(
-                          width: 250,
-                          height: 250,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Rings
-                              if (state == CallState.calling || state == CallState.ringing) ...[
-                                _buildPulseRing(_pulseAnimation3, 0.1),
-                                _buildPulseRing(_pulseAnimation2, 0.2),
-                                _buildPulseRing(_pulseAnimation1, 0.3),
-                              ],
-                              // Avatar
-                              Container(
-                                width: 130,
-                                height: 130,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primary.withOpacity(0.5)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.4),
-                                      blurRadius: 30,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: widget.shopImageUrl != null
-                                    ? ClipOval(
-                                        child: Image.network(
-                                          widget.shopImageUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => _shopInitial(),
-                                        ),
-                                      )
-                                    : _shopInitial(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const Spacer(flex: 1),
-                        
-                        // Status / timer
+                        _buildAvatar(state),
+                        const SizedBox(height: 20),
                         _buildStatusLabel(state),
-                        
-                        const SizedBox(height: 40),
-                        // Controls
+                        const Spacer(flex: 2),
                         _buildControls(state),
-                        const SizedBox(height: 50),
+                        const SizedBox(height: 44),
                       ],
                     ),
                   );
                 },
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPulseRing(Animation<double> animation, double opacity) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: animation.value,
-          child: Container(
-            width: 130,
-            height: 130,
+  // â”€â”€â”€ Top bar: chevron + name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              if (Navigator.canPop(context)) Navigator.of(context).pop();
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+              child: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 22),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  widget.shopName,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  'Voice Call',
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 36), // balance
+        ],
+      ),
+    );
+  }
+
+  // â”€â”€â”€ Avatar + pulse rings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildAvatar(CallState state) {
+    final ringing = state == CallState.calling || state == CallState.ringing;
+    return SizedBox(
+      width: 270,
+      height: 270,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (ringing) ...[
+            _buildRing(_ring3, 0.07),
+            _buildRing(_ring2, 0.13),
+            _buildRing(_ring1, 0.22),
+          ],
+          // Avatar circle
+          Container(
+            width: 148,
+            height: 148,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withOpacity(opacity * (1.0 - (animation.value - 1.0) / 1.1).clamp(0.0, 1.0)),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.5 * (1.0 - (animation.value - 1.0) / 1.1).clamp(0.0, 1.0)),
-                width: 1,
-              ),
+              color: Colors.white.withValues(alpha: 0.15),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.38), width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.55),
+                  blurRadius: 44,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+            child: widget.shopImageUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      widget.shopImageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _shopInitial(),
+                    ),
+                  )
+                : _shopInitial(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRing(Animation<double> anim, double maxOpacity) {
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (_, _) {
+        final t = ((anim.value - 1.0) / 1.25).clamp(0.0, 1.0);
+        return Transform.scale(
+          scale: anim.value,
+          child: Container(
+            width: 148,
+            height: 148,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: maxOpacity * (1.0 - t)),
             ),
           ),
         );
@@ -264,182 +311,235 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
     return Center(
       child: Text(
         widget.shopName.isNotEmpty ? widget.shopName[0].toUpperCase() : '?',
-        style: GoogleFonts.poppins(
+        style: GoogleFonts.inter(
           color: Colors.white,
-          fontSize: 50,
-          fontWeight: FontWeight.bold,
+          fontSize: 56,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 
+  // â”€â”€â”€ Status label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   Widget _buildStatusLabel(CallState state) {
     if (state == CallState.calling) {
       return AnimatedDotsText(
         baseText: 'Calling',
-        style: GoogleFonts.poppins(color: Colors.white60, fontSize: 16),
+        style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.78), fontSize: 16),
       );
     } else if (state == CallState.ringing) {
       return AnimatedDotsText(
-        baseText: 'Incoming Call',
-        style: GoogleFonts.poppins(color: Colors.white60, fontSize: 16),
+        baseText: 'Incoming call',
+        style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.78), fontSize: 16),
       );
     } else if (state == CallState.connected) {
       if (_elapsed.inSeconds == 0) {
         return AnimatedDotsText(
           baseText: 'Connecting',
-          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 16),
+          style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.78), fontSize: 16),
         );
       }
       return Text(
         _formatElapsed(),
-        style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500, letterSpacing: 1.5),
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 2.5,
+        ),
       );
     } else if (state == CallState.rejected) {
-      return Text('Call Rejected', style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 16));
+      return Text(
+        'Call Declined',
+        style: GoogleFonts.inter(color: Colors.red.shade300, fontSize: 16, fontWeight: FontWeight.w500),
+      );
     } else if (state == CallState.noAnswer) {
-      return Text('No Answer', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 16));
+      return Text('No Answer', style: GoogleFonts.inter(color: Colors.white60, fontSize: 16));
     } else if (state == CallState.ended) {
-      return Text('Call Ended', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 16));
+      return Text('Call Ended', style: GoogleFonts.inter(color: Colors.white60, fontSize: 16));
     }
-    return const SizedBox(height: 24);
+    return const SizedBox(height: 22);
   }
+
+  // â”€â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildControls(CallState state) {
     if (state == CallState.ringing) {
-      // Incoming call (Shop -> User)
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _actionButton(
-            icon: PhosphorIcons.phoneX,
-            label: 'Decline',
-            color: Colors.red,
-            onTap: () async {
-              await _call.rejectIncomingCall();
-              // Screen auto-dismisses via state listener
-            },
-          ),
-          _actionButton(
-            icon: PhosphorIcons.phoneCall,
-            label: 'Accept',
-            color: const Color(0xFF22C55E),
-            onTap: () async {
-              await _call.acceptIncomingCall();
-            },
-          ),
-        ],
-      );
-    } else if (state == CallState.calling || state == CallState.rejected || state == CallState.noAnswer) {
-      // Outgoing call (User -> Shop) or terminal state
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _actionButton(
-            icon: PhosphorIcons.phoneX,
-            label: 'Cancel',
-            color: Colors.red,
-            onTap: () async {
-              await _call.endCall();
-              // Screen auto-dismisses via state listener
-            },
-          ),
-        ],
-      );
+      return _incomingControls();
+    } else if (state == CallState.calling ||
+        state == CallState.rejected ||
+        state == CallState.noAnswer) {
+      return _outgoingControls();
     } else {
-      // Connected
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Mute
-          ValueListenableBuilder<bool>(
-            valueListenable: _call.isMuted,
-            builder: (_, muted, __) => _circleButton(
-              icon: muted ? PhosphorIcons.microphoneSlash : PhosphorIcons.microphone,
-              label: muted ? 'Unmute' : 'Mute',
-              onTap: _call.toggleMute,
-              bgColor: muted ? Colors.white : Colors.white.withOpacity(0.15),
-              iconColor: muted ? Colors.black : Colors.white,
-            ),
-          ),
-          // End call
-          _actionButton(
-            icon: PhosphorIcons.phoneSlash,
-            label: 'End',
-            color: Colors.red,
-            size: 72,
-            iconSize: 32,
-            onTap: () async {
-              await _call.endCall();
-              // Screen auto-dismisses via state listener
-            },
-          ),
-          // Speaker
-          ValueListenableBuilder<bool>(
-            valueListenable: _call.isSpeakerOn,
-            builder: (_, speaker, __) => _circleButton(
-              icon: speaker ? PhosphorIcons.speakerHigh : PhosphorIcons.speakerLow,
-              label: speaker ? 'Speaker On' : 'Speaker Off',
-              onTap: _call.toggleSpeaker,
-              bgColor: speaker ? Colors.white : Colors.white.withOpacity(0.15),
-              iconColor: speaker ? Colors.black : Colors.white,
-            ),
-          ),
-        ],
-      );
+      return _activeControls();
     }
   }
 
-  Widget _actionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-    double size = 70,
-    double iconSize = 30,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  /// Incoming â€“ large Decline (red) left, Accept (green) right like Messenger
+  Widget _incomingControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 52),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _bigBtn(
+            icon: PhosphorIcons.phoneX,
+            label: 'Decline',
+            bg: _kDeclineRed,
+            onTap: () async => _call.rejectIncomingCall(),
+          ),
+          _bigBtn(
+            icon: PhosphorIcons.phoneCall,
+            label: 'Accept',
+            bg: _kAcceptGreen,
+            onTap: () async => _call.acceptIncomingCall(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Outgoing / terminal â€“ centred Cancel
+  Widget _outgoingControls() {
+    return _bigBtn(
+      icon: PhosphorIcons.phoneX,
+      label: 'Cancel',
+      bg: _kDeclineRed,
+      onTap: () async => _call.endCall(),
+    );
+  }
+
+  /// Active call â€“ Messenger row: Mute | End | Speaker
+  Widget _activeControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-            child: Icon(icon, color: Colors.white, size: iconSize),
+        // Mute
+        ValueListenableBuilder<bool>(
+          valueListenable: _call.isMuted,
+          builder: (_, muted, _) => _circleBtn(
+            icon: muted ? PhosphorIcons.microphoneSlash : PhosphorIcons.microphone,
+            label: muted ? 'Unmute' : 'Mute',
+            active: muted,
+            onTap: _call.toggleMute,
           ),
         ),
-        const SizedBox(height: 10),
-        Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
+        // End call â€“ larger + red glow
+        _bigBtn(
+          icon: PhosphorIcons.phoneSlash,
+          label: 'End Call',
+          bg: _kDeclineRed,
+          size: 74,
+          iconSize: 30,
+          onTap: () async => _call.endCall(),
+        ),
+        // Speaker
+        ValueListenableBuilder<bool>(
+          valueListenable: _call.isSpeakerOn,
+          builder: (_, speaker, _) => _circleBtn(
+            icon: speaker ? PhosphorIcons.speakerHigh : PhosphorIcons.speakerNone,
+            label: 'Speaker',
+            active: speaker,
+            onTap: _call.toggleSpeaker,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _circleButton({
+  // â”€â”€â”€ Button helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _bigBtn({
+    required IconData icon,
+    required String label,
+    required Color bg,
+    required VoidCallback onTap,
+    double size = 72,
+    double iconSize = 28,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: bg,
+              boxShadow: [
+                BoxShadow(
+                  color: bg.withValues(alpha: 0.45),
+                  blurRadius: 22,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: iconSize),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _circleBtn({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    required Color bgColor,
-    required Color iconColor,
-    double size = 60,
-    double iconSize = 26,
+    bool active = false,
+    double size = 62,
+    double iconSize = 25,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
             width: size,
             height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
-            child: Icon(icon, color: iconColor, size: iconSize),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: active ? Colors.white : Colors.white.withValues(alpha: 0.16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: active ? 0 : 0.28),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: active ? AppColors.primary : Colors.white,
+              size: iconSize,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+
+
+

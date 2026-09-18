@@ -27,6 +27,7 @@ import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../cart/data/active_order_state.dart';
+import '../../../order/presentation/screens/order_history_page.dart';
 import 'auth_entry_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -462,6 +463,15 @@ class _ProfilePageState extends State<ProfilePage> {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const WishlistPage()),
+          ),
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.receipt,
+          title: context.tr('nav.orders'),
+          subtitle: context.tr('profile.order_history_sub'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
           ),
         ),
         _buildOptionTile(

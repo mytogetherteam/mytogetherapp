@@ -34,7 +34,7 @@ import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
-import '../../../call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import '../../../call/data/call_session.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 
@@ -1289,50 +1289,19 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    context.tr(
-                                      'order_tracking.awaiting_confirmation',
-                                    ),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF1E293B),
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                ),
-                                AnimatedBuilder(
-                                  animation: Listenable.merge([
-                                    _timePulsingController,
-                                    _idleSolidController,
-                                  ]),
-                                  builder: (context, child) {
-                                    final remainingSeconds = (600 * (1.0 - _idleSolidController.value)).toInt();
-                                    final minutes = (remainingSeconds / 60).floor();
-                                    final seconds = remainingSeconds % 60;
-                                    final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} mins';
-
-                                    return Opacity(
-                                      opacity: _timePulsingController.value,
-                                      child: GradientText(
-                                        timeStr,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                        children: [
+                          Text(
+                            context.tr(
+                              'order_tracking.awaiting_confirmation',
                             ),
-                            const SizedBox(height: 4),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1E293B),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                             AnimatedDotsText(
                               baseText: context.tr(
                                 'order_tracking.restaurant_reviewing',
@@ -1860,16 +1829,24 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               return Opacity(
                                 opacity: (1.0 - progress).clamp(0.0, 1.0),
                                 child: Transform.scale(
-                                  scale: 1.0 + (progress * 0.8),
+                                  scale: 1.0 + (progress * 1.5),
                                   child: Container(
                                     width: 180,
                                     height: 180,
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(32),
+                                      shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: AppColors.primary,
-                                        width: 4,
+                                        color: AppColors.primary.withValues(alpha: (1.0 - progress) * 0.5),
+                                        width: 2 + (1.0 - progress) * 2,
                                       ),
+                                      color: AppColors.primary.withValues(alpha: (1.0 - progress) * 0.15),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(alpha: (1.0 - progress) * 0.4),
+                                          blurRadius: 40 * progress,
+                                          spreadRadius: 10 * progress,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -1924,6 +1901,30 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _timePulsingController,
+                      _idleSolidController,
+                    ]),
+                    builder: (context, child) {
+                      final remainingSeconds = (600 * (1.0 - _idleSolidController.value)).toInt();
+                      final minutes = (remainingSeconds / 60).floor();
+                      final seconds = remainingSeconds % 60;
+                      final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} mins';
+
+                      return Opacity(
+                        opacity: _timePulsingController.value,
+                        child: GradientText(
+                          timeStr,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

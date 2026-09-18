@@ -96,7 +96,7 @@ class _FloatingCallBannerState extends State<FloatingCallBanner> with SingleTick
                                 else if (state == CallState.calling || state == CallState.ringing)
                                   Text(
                                     'Ringing...',
-                                    style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 11),
+                                    style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
                                   ),
                               ],
                             ),
@@ -147,7 +147,7 @@ class _TimerTextState extends State<_TimerText> {
     final secs = (_elapsed.inSeconds % 60).toString().padLeft(2, '0');
     return Text(
       'Tap to return • $mins:$secs',
-      style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 11),
+      style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
     );
   }
 }

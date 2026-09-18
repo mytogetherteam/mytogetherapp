@@ -6,7 +6,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
 import '../../../../features/social/presentation/screens/social_page.dart';
-import '../../../../features/order/presentation/screens/order_history_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
@@ -25,7 +24,7 @@ import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 import '../widgets/guest_welcome_banner.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
 import '../../../../features/call/data/call_session.dart';
-import '../../../../features/call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import 'package:mytogetherapp/app.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -97,7 +96,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       FoodPage(key: ValueKey('food_$localeKey')),
       SocialPage(key: ValueKey('social_$localeKey')),
       _newsTab(localeKey),
-      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
       ProfilePage(key: ValueKey('profile_$localeKey')),
     ];
   }
@@ -181,9 +179,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void _onTabChangeRequested() {
     final requested = NavigationController.instance.tabChangeRequest.value;
     if (requested != null && mounted) {
-      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders, 5=Profile.
-      final index = requested.clamp(0, 5);
-      setState(() => _currentIndex = index);
+      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Profile.
+      final index = requested.clamp(0, 4);
+      setState(() {
+        _currentIndex = index;
+        NavigationController.instance.currentIndex.value = index;
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (NavigationController.instance.tabChangeRequest.value == requested) {
           NavigationController.instance.tabChangeRequest.value = null;
@@ -207,11 +208,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     AppHaptics.buttonTap();
 
     if (index == _currentIndex) {
-      // Same tab tapped again → scroll to top + refresh that tab's content
+      // Same tab tapped again â†’ scroll to top + refresh that tab's content
       NavigationController.instance.triggerScrollToTop(index);
     } else {
       setState(() {
         _currentIndex = index;
+        NavigationController.instance.currentIndex.value = index;
       });
     }
   }
@@ -232,7 +234,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Hide guest promo on Social — it fights the full-bleed dark feed.
+          // Hide guest promo on Social â€” it fights the full-bleed dark feed.
           if (!AuthService().isLoggedIn && _currentIndex != 2)
             GuestWelcomeBanner(
               onAuthFlowComplete: () {
@@ -247,11 +249,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   /// The cart FAB shown across tabs.
   ///
-  /// Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Orders.
-  /// Profile opens via header avatar (not a tab).
+  /// Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Profile.
   /// - Hidden on Social and News.
   Widget? _buildCartFab() {
-    if (_currentIndex == 2 || _currentIndex == 3 || _currentIndex == 5) return null;
+    if (_currentIndex == 2 || _currentIndex == 3 || _currentIndex == 4) return null;
     return const StyledCartFab();
   }
 
@@ -315,8 +316,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     socialMode: isSocial,
                     height: barBodyHeight,
                   ),
-                  _buildRaisedSocialNavItem(
-                    label: context.tr('nav.social'),
+                  _buildNavItem(
+                    2,
+                    PhosphorIcons.playCircle,
+                    PhosphorIcons.playCircleFill,
+                    context.tr('nav.social'),
+                    inactiveColor: inactiveColor,
                     socialMode: isSocial,
                     height: barBodyHeight,
                   ),
@@ -331,15 +336,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   _buildNavItem(
                     4,
-                    PhosphorIcons.receipt,
-                    PhosphorIcons.receiptFill,
-                    context.tr('nav.orders'),
-                    inactiveColor: inactiveColor,
-                    socialMode: isSocial,
-                    height: barBodyHeight,
-                  ),
-                  _buildNavItem(
-                    5,
                     PhosphorIcons.user,
                     PhosphorIcons.userFill,
                     context.tr('nav.profile'),
@@ -356,80 +352,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildRaisedSocialNavItem({
-    required String label,
-    required bool socialMode,
-    required double height,
-  }) {
-    final isSelected = _currentIndex == 2;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _onTabTapped(2),
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: height,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
-            children: [
-              Positioned(
-                // Sit mostly in the bar; slight lift above without growing footer.
-                bottom: 16,
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.primaryGradient,
-                    border: Border.all(
-                      color: socialMode ? Colors.black : Colors.white,
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    isSelected
-                        ? PhosphorIcons.playCircleFill
-                        : PhosphorIcons.playFill,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 2,
-                left: 2,
-                right: 2,
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: isSelected
-                        ? (socialMode ? Colors.white : AppColors.primary)
-                        : (socialMode
-                            ? Colors.white70
-                            : Colors.grey.shade400),
-                    fontSize: 11,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                    height: 1.0,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildNavItem(
     int index,
@@ -526,3 +448,4 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
+

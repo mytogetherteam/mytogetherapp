@@ -10,6 +10,8 @@ import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import '../../data/models/post_dto.dart';
 import '../../data/repositories/social_posts_repository.dart';
+import 'package:video_player/video_player.dart';
+import 'package:mytogetherapp/core/network/api_client.dart';
 import '../widgets/social_comments_sheet.dart';
 import '../widgets/social_feed_status_view.dart';
 import '../widgets/social_media_view.dart';
@@ -35,6 +37,7 @@ class _SocialPageState extends State<SocialPage> {
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  final Map<int, VideoPlayerController> _videoControllers = {};
 
   @override
   void initState() {
@@ -62,7 +65,52 @@ class _SocialPageState extends State<SocialPage> {
       _onScrollToTopRequested,
     );
     _pageController.dispose();
+    for (var controller in _videoControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  void _managePreload(int currentIndex) {
+    final toKeep = {
+      currentIndex - 1,
+      currentIndex,
+      currentIndex + 1,
+      currentIndex + 2
+    };
+
+    _videoControllers.removeWhere((index, controller) {
+      if (!toKeep.contains(index)) {
+        controller.dispose();
+        return true;
+      }
+      return false;
+    });
+
+    for (var i in toKeep) {
+      if (i >= 0 && i < _posts.length && !_videoControllers.containsKey(i)) {
+        final post = _posts[i];
+        if (post.media.isNotEmpty) {
+          final firstMedia = post.media.first;
+          if (firstMedia.isVideo) {
+            final url = firstMedia.url.trim();
+            if (url.isNotEmpty) {
+              final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+              _videoControllers[i] = controller;
+              controller.initialize().then((_) {
+                controller.setLooping(true);
+              }).catchError((_) {});
+            }
+          } else {
+            final url = firstMedia.url.trim();
+            if (url.isNotEmpty) {
+              String imageUrl = url.startsWith('http') ? url : '${ApiClient.baseUrl}/$url';
+              precacheImage(CachedNetworkImageProvider(imageUrl), context);
+            }
+          }
+        }
+      }
+    }
   }
 
   Future<void> _loadInitial() async {
@@ -82,6 +130,7 @@ class _SocialPageState extends State<SocialPage> {
         _loading = false;
         _currentPage = 0;
       });
+      _managePreload(0);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -105,6 +154,7 @@ class _SocialPageState extends State<SocialPage> {
         _totalPages = page.totalPages;
         _loadingMore = false;
       });
+      _managePreload(_currentPage);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingMore = false);
@@ -189,19 +239,27 @@ class _SocialPageState extends State<SocialPage> {
       );
     }
 
-    return PageView.builder(
-      controller: _pageController,
-      scrollDirection: Axis.vertical,
-      allowImplicitScrolling: true,
-      itemCount: _posts.length,
-      onPageChanged: (index) {
-        setState(() => _currentPage = index);
-        _loadMoreIfNeeded(index);
+    return ValueListenableBuilder<int>(
+      valueListenable: NavigationController.instance.currentIndex,
+      builder: (context, currentIndex, child) {
+        final isTabActive = currentIndex == 2; // Social tab index is 2
+        return PageView.builder(
+          controller: _pageController,
+          scrollDirection: Axis.vertical,
+          allowImplicitScrolling: true,
+          itemCount: _posts.length,
+          onPageChanged: (index) {
+            setState(() => _currentPage = index);
+            _managePreload(index);
+            _loadMoreIfNeeded(index);
+          },
+          itemBuilder: (context, index) => _SocialFeedItem(
+            post: _posts[index],
+            isActive: isTabActive && index == _currentPage,
+            preloadedController: _videoControllers[index],
+          ),
+        );
       },
-      itemBuilder: (context, index) => _SocialFeedItem(
-        post: _posts[index],
-        isActive: index == _currentPage,
-      ),
     );
   }
 }
@@ -209,10 +267,12 @@ class _SocialPageState extends State<SocialPage> {
 class _SocialFeedItem extends StatefulWidget {
   final SocialPostDto post;
   final bool isActive;
+  final VideoPlayerController? preloadedController;
 
   const _SocialFeedItem({
     required this.post,
     required this.isActive,
+    this.preloadedController,
   });
 
   @override
@@ -314,6 +374,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               key: ValueKey('${widget.post.id}-${activeMedia.id}'),
               media: activeMedia,
               isActive: widget.isActive,
+              preloadedController: _mediaIndex == 0 ? widget.preloadedController : null,
             )
           else
             const ColoredBox(color: Color(0xFF1A1020)),

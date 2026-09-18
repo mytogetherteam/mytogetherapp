@@ -9,11 +9,13 @@ import '../../data/models/post_dto.dart';
 class SocialMediaView extends StatefulWidget {
   final SocialPostMediaDto media;
   final bool isActive;
+  final VideoPlayerController? preloadedController;
 
   const SocialMediaView({
     super.key,
     required this.media,
     required this.isActive,
+    this.preloadedController,
   });
 
   @override
@@ -21,24 +23,39 @@ class SocialMediaView extends StatefulWidget {
 }
 
 class _SocialMediaViewState extends State<SocialMediaView> {
-  VideoPlayerController? _controller;
+  VideoPlayerController? _localController;
+  VideoPlayerController? get _controller => widget.preloadedController ?? _localController;
   bool _initFailed = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.media.isVideo) {
-      _initVideo();
+      if (widget.preloadedController != null) {
+        widget.preloadedController!.addListener(_onControllerUpdate);
+        _syncPlayback();
+      } else {
+        _initVideo();
+      }
     }
+  }
+
+  void _onControllerUpdate() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant SocialMediaView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.preloadedController != widget.preloadedController) {
+      oldWidget.preloadedController?.removeListener(_onControllerUpdate);
+      widget.preloadedController?.addListener(_onControllerUpdate);
+    }
+
     if (oldWidget.media.url != widget.media.url) {
-      _disposeVideo();
+      _disposeLocalVideo();
       _initFailed = false;
-      if (widget.media.isVideo) {
+      if (widget.media.isVideo && widget.preloadedController == null) {
         _initVideo();
       }
       return;
@@ -53,7 +70,7 @@ class _SocialMediaViewState extends State<SocialMediaView> {
       return;
     }
     final controller = VideoPlayerController.networkUrl(Uri.parse(url));
-    _controller = controller;
+    _localController = controller;
     try {
       await controller.initialize();
       await controller.setLooping(true);
@@ -76,14 +93,15 @@ class _SocialMediaViewState extends State<SocialMediaView> {
     }
   }
 
-  void _disposeVideo() {
-    _controller?.dispose();
-    _controller = null;
+  void _disposeLocalVideo() {
+    _localController?.dispose();
+    _localController = null;
   }
 
   @override
   void dispose() {
-    _disposeVideo();
+    widget.preloadedController?.removeListener(_onControllerUpdate);
+    _disposeLocalVideo();
     super.dispose();
   }
 

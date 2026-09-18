@@ -45,7 +45,7 @@ import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
 import '../widgets/shop_myday_viewer.dart';
 import '../widgets/shop_myday_list_section.dart';
 import '../../../call/data/call_session.dart';
-import '../../../call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;

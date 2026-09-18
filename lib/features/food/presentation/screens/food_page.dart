@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -38,7 +38,7 @@ class FoodPage extends StatefulWidget {
 
 class _FoodPageState extends State<FoodPage> {
   /// Toggle to show discount + collection rails between banner and restaurants.
-  static const _showDiscountAndCollectionRails = false;
+  static const _showDiscountAndCollectionRails = true;
 
   Key _refreshKey = UniqueKey();
   final ScrollController _scrollController = ScrollController();
@@ -53,7 +53,7 @@ class _FoodPageState extends State<FoodPage> {
     UserLocationRepository.instance.getPrimaryLocation().then((_) {
       _loadCoordinates();
     });
-    // Double-tap same bottom tab → scroll to top + refresh
+    // Double-tap same bottom tab â†’ scroll to top + refresh
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
@@ -364,4 +364,5 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 }
+
 
