@@ -160,6 +160,7 @@ class WishlistShopRef {
   final int? ratingCount;
   final bool isOpen;
   final bool isVerified;
+  final bool freeDeliveryActive;
 
   WishlistShopRef({
     required this.id,
@@ -175,6 +176,7 @@ class WishlistShopRef {
     this.ratingCount,
     this.isOpen = true,
     this.isVerified = false,
+    this.freeDeliveryActive = false,
   });
 
   String get displayName {
@@ -210,6 +212,7 @@ class WishlistShopRef {
       ratingCount: (json['ratingCount'] as num?)?.toInt(),
       isOpen: json['isOpen'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
+      freeDeliveryActive: json['freeDeliveryActive'] == true,
     );
   }
 }

@@ -102,6 +102,7 @@ class ActiveOrderItem {
   double? routeDistanceKm;
   int? routeDurationMins;
   double? deliveryFee;
+  bool isFreeDelivery;
   String? riderName;
   String? riderPhone;
   String? riderProfileUrl;
@@ -212,6 +213,9 @@ class ActiveOrderItem {
   }
 
   bool get hasDeliveryFeeEstimate {
+    if (isFreeDelivery) return true;
+    final display = displayDeliveryFee?.trim().toLowerCase() ?? '';
+    if (display == 'free' || display == 'FREE'.toLowerCase()) return true;
     final fee = deliveryFee;
     return fee != null && fee > 0;
   }
@@ -278,6 +282,7 @@ class ActiveOrderItem {
     this.routeDistanceKm,
     this.routeDurationMins,
     this.deliveryFee,
+    this.isFreeDelivery = false,
     this.riderName,
     this.riderPhone,
     this.riderProfileUrl,
@@ -689,6 +694,11 @@ class ActiveOrderState extends ChangeNotifier {
   bool get hasTransactionDiscount => transactionDiscount > 0;
   String? get displayTransactionDiscount =>
       _primary?.displayTransactionDiscount?.toFormattedPrice();
+
+  bool get isFreeDelivery =>
+      _primary?.isFreeDelivery == true ||
+      (displayDeliveryFee?.toUpperCase() == 'FREE') ||
+      (displayDeliveryFee?.toLowerCase() == 'free');
   bool get hasDiscount => hasAppliedCoupon;
   String? get couponCode => _primary?.couponCode;
   OrderShopCouponInfo? get shopCoupon => _primary?.shopCoupon;
@@ -780,8 +790,14 @@ class ActiveOrderState extends ChangeNotifier {
     if (_primary != null) _primary!.displayTaxAmount = val;
   }
 
-  String? get displayDeliveryFee =>
-      _primary?.displayDeliveryFee?.toFormattedPrice();
+  String? get displayDeliveryFee {
+    final raw = _primary?.displayDeliveryFee;
+    if (raw == null) return null;
+    if (raw.toUpperCase() == 'FREE' || raw.toLowerCase() == 'free') {
+      return raw;
+    }
+    return raw.toFormattedPrice();
+  }
   set displayDeliveryFee(String? val) {
     if (_primary != null) _primary!.displayDeliveryFee = val;
   }
@@ -1261,10 +1277,20 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['displayTaxAmount'] != null)
       item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
     if (data['displayDeliveryFee'] != null) {
+      final display = _parseSafeString(data['displayDeliveryFee']);
       final fee = item.deliveryFee ?? _parseSafeDouble(data['deliveryFee']);
-      if (fee != null && fee > 0) {
-        item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+      final isFree = data['isFreeDelivery'] == true ||
+          (display?.toUpperCase() == 'FREE') ||
+          (display?.toLowerCase() == 'free');
+      if (isFree || (fee != null && fee > 0)) {
+        item.displayDeliveryFee = display;
       }
+    }
+    if (data['isFreeDelivery'] != null) {
+      item.isFreeDelivery = data['isFreeDelivery'] == true;
+    } else if ((item.displayDeliveryFee ?? '').toUpperCase() == 'FREE' ||
+        (item.displayDeliveryFee ?? '').toLowerCase() == 'free') {
+      item.isFreeDelivery = true;
     }
     if (data['displayTotalAmount'] != null)
       item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
@@ -1819,10 +1845,14 @@ class ActiveOrderState extends ChangeNotifier {
       taxEnable: o.resolvedTaxEnable,
       displayTotalAmount: o.displayTotalAmount,
       deliveryFee:
-          (o.deliveryFee != null && o.deliveryFee! > 0) ? o.deliveryFee : null,
-      displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+          (o.isFreeDelivery || (o.deliveryFee != null && o.deliveryFee! > 0))
+              ? (o.deliveryFee ?? 0)
+              : null,
+      displayDeliveryFee: (o.isFreeDelivery ||
+              (o.deliveryFee != null && o.deliveryFee! > 0))
           ? o.displayDeliveryFee
           : null,
+      isFreeDelivery: o.isFreeDelivery,
       transactionDiscount: o.transactionDiscount,
       displayTransactionDiscount: o.displayTransactionDiscount,
     );
@@ -1848,11 +1878,12 @@ class ActiveOrderState extends ChangeNotifier {
     if (o.displayTotalAmount != null) {
       item.displayTotalAmount = o.displayTotalAmount;
     }
-    if (o.deliveryFee != null && o.deliveryFee! > 0) {
-      item.deliveryFee = o.deliveryFee;
+    if (o.isFreeDelivery || (o.deliveryFee != null && o.deliveryFee! > 0)) {
+      item.deliveryFee = o.deliveryFee ?? 0;
       if (o.displayDeliveryFee != null) {
         item.displayDeliveryFee = o.displayDeliveryFee;
       }
+      item.isFreeDelivery = o.isFreeDelivery;
     }
     if (o.transactionDiscount != null) {
       item.transactionDiscount = o.transactionDiscount;

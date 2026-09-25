@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
+import 'package:mytogetherapp/features/chat/presentation/chat_ui_tokens.dart';
 
 /// States the post-delivery support window ("message the shop for 4 hours")
 /// together with the time left.
@@ -33,17 +33,12 @@ class ChatWindowHint extends StatelessWidget {
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.schedule_rounded, size: 14, color: AppColors.primary),
+        Icon(Icons.schedule_rounded, size: 15, color: AppColors.primary),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              height: 1.35,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
-            ),
+            style: ChatUiTokens.hint(),
           ),
         ),
       ],
@@ -56,7 +51,7 @@ class ChatWindowHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: row,
     );

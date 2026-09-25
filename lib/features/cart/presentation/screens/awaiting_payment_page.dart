@@ -1635,22 +1635,37 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       _summaryRow(
                         context.tr('order_status.delivery_fee'),
                         '',
-                        customValue: order!.isFlexibleDelivery
-                            ? GradientText(
-                                order.deliveryFee!.toFormattedPrice(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              )
-                            : Text(
-                                order.deliveryFee!.toFormattedPrice(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
+                        customValue: Text(
+                          () {
+                            final o = order!;
+                            if (o.isFreeDelivery ||
+                                (o.displayDeliveryFee ?? '')
+                                    .toUpperCase()
+                                    .contains('FREE') ||
+                                (o.displayDeliveryFee ?? '').toLowerCase() ==
+                                    'free') {
+                              return context.tr('common.free');
+                            }
+                            if (o.displayDeliveryFee != null &&
+                                o.displayDeliveryFee!.trim().isNotEmpty) {
+                              return o.displayDeliveryFee!.toFormattedPrice();
+                            }
+                            return o.deliveryFee!.toFormattedPrice();
+                          }(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: (order!.isFreeDelivery ||
+                                    (order.displayDeliveryFee ?? '')
+                                        .toUpperCase()
+                                        .contains('FREE') ||
+                                    (order.displayDeliveryFee ?? '')
+                                        .toLowerCase() ==
+                                        'free')
+                                ? const Color(0xFF10B981)
+                                : Colors.black,
+                          ),
+                        ),
                         isValue: false,
                       ),
                     ],

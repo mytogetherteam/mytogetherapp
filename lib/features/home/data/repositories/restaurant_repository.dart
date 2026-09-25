@@ -14,6 +14,7 @@ import '../models/collection_dto.dart';
 import '../models/home_discount_section_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/location/geo_distance.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
@@ -680,12 +681,17 @@ class RestaurantRepository {
         dto: dto,
         distanceKmOverride: distanceKmOverride,
       ),
-      deliveryFee: dto.displayDeliveryFee,
+      deliveryFee: dto.displayDeliveryFee ??
+          (dto.freeDeliveryActive
+              ? LocaleController.instance.tr('common.free')
+              : null),
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
+      freeDeliveryActive: dto.freeDeliveryActive ||
+          (dto.displayDeliveryFee ?? '').toLowerCase() == 'free',
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
@@ -733,6 +739,12 @@ class RestaurantRepository {
       deliveryEnabled: dto.deliveryEnabled,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
+      freeDeliveryActive: dto.freeDeliveryActive ||
+          (dto.displayDeliveryFee ?? '').toLowerCase() == 'free',
+      deliveryFee: dto.displayDeliveryFee ??
+          (dto.freeDeliveryActive
+              ? LocaleController.instance.tr('common.free')
+              : null),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),

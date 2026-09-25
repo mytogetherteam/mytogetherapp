@@ -1345,6 +1345,43 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
+                                          if (_currentRestaurant
+                                                  ?.freeDeliveryActive ==
+                                              true) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            Text(
+                                              context.tr('common.free') +
+                                                  ' delivery',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF10B981),
+                                              ),
+                                            ),
+                                          ] else if ((_currentRestaurant
+                                                      ?.deliveryFee ??
+                                                  '')
+                                              .isNotEmpty) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            Text(
+                                              _currentRestaurant!.deliveryFee!,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: const Color(0xFF10B981),
+                                              ),
+                                            ),
+                                          ],
                                           if (!(_orderAvailability?.isBlocked ??
                                               false)) ...[
                                             Text(

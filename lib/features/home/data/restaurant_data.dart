@@ -31,6 +31,7 @@ class Restaurant {
   final String? paymentQrUrl;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  final bool freeDeliveryActive;
 
   // New fields for Overview Page
   final String? address;
@@ -122,6 +123,7 @@ class Restaurant {
     this.paymentQrUrl,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.freeDeliveryActive = false,
     this.myDays = const [],
   }) : _name = name;
 
@@ -153,6 +155,7 @@ class Restaurant {
     String? paymentQrUrl,
     String? deliveryFee,
     String? originalDeliveryFee,
+    bool? freeDeliveryActive,
     String? address,
     String? addressMm,
     String? addressTh,
@@ -198,6 +201,7 @@ class Restaurant {
       paymentQrUrl: paymentQrUrl ?? this.paymentQrUrl,
       deliveryFee: deliveryFee ?? this.deliveryFee,
       originalDeliveryFee: originalDeliveryFee ?? this.originalDeliveryFee,
+      freeDeliveryActive: freeDeliveryActive ?? this.freeDeliveryActive,
       address: address ?? this.address,
       addressMm: addressMm ?? this.addressMm,
       addressTh: addressTh ?? this.addressTh,

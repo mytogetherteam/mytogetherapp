@@ -168,12 +168,23 @@ class ShopFeedItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
-    if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'].toString();
-    if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'].toString();
-    // Discount carousel (`GET /api/user/menu-items/discount`) returns a numeric
-    // `deliveryFee` rather than a pre-formatted display string.
-    if (json['deliveryFee'] != null) return json['deliveryFee'].toString();
-    return null;
+    final shopMap = json['shop'] is Map
+        ? Map<String, dynamic>.from(json['shop'] as Map)
+        : null;
+    if (json['freeDeliveryActive'] == true ||
+        shopMap?['freeDeliveryActive'] == true) {
+      return 'Free';
+    }
+    final raw = json['displayBaseDeliveryFee'] ??
+        json['displayDeliveryFee'] ??
+        json['deliveryFee'] ??
+        shopMap?['displayDeliveryFee'];
+    if (raw == null) return null;
+    final text = raw.toString().trim();
+    if (text.toUpperCase() == 'FREE' || text.toLowerCase() == 'free') {
+      return 'Free';
+    }
+    return text;
   }
 
   static String? _parseOriginalDeliveryFee(Map<String, dynamic> json) {

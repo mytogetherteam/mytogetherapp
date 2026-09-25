@@ -314,6 +314,9 @@ class _WishlistPageState extends State<WishlistPage>
             imagePath: shop?.bannerImageUrl ?? '',
             logoPath: shop?.logoUrl,
             isVerified: shop?.isVerified ?? false,
+            deliveryFee: shop?.freeDeliveryActive == true
+                ? context.tr('common.free')
+                : null,
             isFavorite: true,
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),

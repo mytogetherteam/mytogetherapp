@@ -108,7 +108,8 @@ class _AudioMessageBubbleState extends State<AudioMessageBubble> {
                         Text(
                           '${formatVoiceDuration(_controller.position.value)} / ${formatVoiceDuration(total)}',
                           style: GoogleFonts.poppins(
-                            fontSize: 10,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
                             color: widget.foreground.withValues(alpha: 0.85),
                           ),
                         ),
