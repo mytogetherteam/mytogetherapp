@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
@@ -60,6 +61,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DateTime? _lastResumeRefreshAt;
   Timer? _titleTimer;
   bool _showThemeNameInAppBar = false;
+  int _jobVisitCount = 0;
 
   @override
   void initState() {
@@ -68,6 +70,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _scrollController = ScrollController()..addListener(_onScroll);
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
+    _loadJobVisitCount();
 
     // Forcefully remove splash screen after 3 seconds to prevent getting stuck
     Future.delayed(const Duration(seconds: 3), () {
@@ -108,6 +111,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+  }
+
+  Future<void> _loadJobVisitCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _jobVisitCount = prefs.getInt('job_tab_visit_count') ?? 0;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onScrollToTopRequested() {
@@ -641,15 +655,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_jobs'),
                                     assetPath:
                                         'assets/images/services/jobs_3d.png',
-                                    badgeText: 'NEW',
+                                    badgeText: _jobVisitCount < 3 ? 'NEW' : null,
                                     isAnimatedBadge: true,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const JobsListPage(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (_jobVisitCount < 3) {
+                                        _jobVisitCount++;
+                                        SharedPreferences.getInstance().then((prefs) {
+                                          prefs.setInt('job_tab_visit_count', _jobVisitCount);
+                                        });
+                                        setState(() {});
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const JobsListPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),

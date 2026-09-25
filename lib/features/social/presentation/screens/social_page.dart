@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -184,6 +185,7 @@ class _SocialPageState extends State<SocialPage> {
         fit: StackFit.expand,
         children: [
           _buildForYouBody(),
+          // ── Top header bar ─────────────────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
@@ -195,38 +197,86 @@ class _SocialPageState extends State<SocialPage> {
                 child: SizedBox(
                   height: 44,
                   child: Stack(
-                    alignment: Alignment.center,
                     children: [
-                      Text(
-                        context.tr('social.for_you'),
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black54,
-                              blurRadius: 8,
-                              offset: Offset(0, 1),
+                      // ── Top Left Logo ────────────────────────────────────────
+                      Positioned(
+                        left: 4,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/images/app_icon_small.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
                             ),
-                          ],
+                          ),
+                        ),
+                      ),
+                      // Centre title
+                      Center(
+                        child: Text(
+                          context.tr('social.for_you'),
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 8,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // ── "+ Post" button top-right ──────────────────────
+                      Positioned(
+                        right: 0,
+                        top: 5,
+                        bottom: 5,
+                        child: GestureDetector(
+                          onTap: _openCreate,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Icon(PhosphorIcons.plusBold,
+                                        size: 14, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      context.tr('social.create_post'),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 16,
-            bottom: 24,
-            child: SafeArea(
-              child: FloatingActionButton(
-                heroTag: 'social_create_fab',
-                backgroundColor: AppColors.primary,
-                onPressed: _openCreate,
-                child: const Icon(PhosphorIcons.plusBold, color: Colors.white),
               ),
             ),
           ),
@@ -307,10 +357,12 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   late int _likeCount;
   late int _commentCount;
   int _mediaIndex = 0;
+  late PageController _horizontalController;
 
   @override
   void initState() {
     super.initState();
+    _horizontalController = PageController();
     _liked = widget.post.likedByMe;
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
@@ -324,7 +376,16 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
       _likeCount = widget.post.likeCount;
       _commentCount = widget.post.commentCount;
       _mediaIndex = 0;
+      if (_horizontalController.hasClients) {
+        _horizontalController.jumpToPage(0);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _horizontalController.dispose();
+    super.dispose();
   }
 
   String _formatCount(int value) {
@@ -367,6 +428,12 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     }
   }
 
+  void _handleDoubleTapLike() {
+    if (!_liked) {
+      _toggleLike();
+    }
+  }
+
   Future<void> _openComments() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
     if (!mounted) return;
@@ -384,54 +451,93 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   @override
   Widget build(BuildContext context) {
     final media = widget.post.media;
-    final activeMedia =
-        media.isEmpty ? null : media[_mediaIndex.clamp(0, media.length - 1)];
 
     return Container(
       color: const Color(0xFF121212),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (activeMedia != null)
-            SocialMediaView(
-              key: ValueKey('${widget.post.id}-${activeMedia.id}'),
-              media: activeMedia,
-              isActive: widget.isActive,
-              preloadedController: _mediaIndex == 0 ? widget.preloadedController : null,
+          if (media.isNotEmpty)
+            PageView.builder(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              itemCount: media.length,
+              onPageChanged: (index) {
+                setState(() => _mediaIndex = index);
+              },
+              itemBuilder: (context, index) {
+                return SocialMediaView(
+                  key: ValueKey('${widget.post.id}-${media[index].id}'),
+                  media: media[index],
+                  isActive: widget.isActive && _mediaIndex == index,
+                  preloadedController: index == 0 ? widget.preloadedController : null,
+                  onDoubleTapScreen: _handleDoubleTapLike,
+                );
+              },
             )
           else
             _TextOnlyBackdrop(caption: widget.post.caption),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x66000000),
-                  Colors.transparent,
-                  Colors.transparent,
-                  Color(0xCC000000),
-                ],
-                stops: [0.0, 0.18, 0.55, 1.0],
+          // IgnorePointer is REQUIRED — BoxDecoration.hitTest() returns true
+          // for every point inside the rect, so without IgnorePointer this
+          // gradient swallows all taps before they reach SocialMediaView.
+          const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x66000000),
+                    Colors.transparent,
+                    Colors.transparent,
+                    Color(0xCC000000),
+                  ],
+                  stops: [0.0, 0.18, 0.55, 1.0],
+                ),
               ),
             ),
           ),
-          if (media.length > 1)
+          if (media.length > 1) ...[
             Positioned(
-              top: MediaQuery.paddingOf(context).top + 56,
+              top: MediaQuery.paddingOf(context).top + 54,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_mediaIndex + 1}/${media.length}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 58,
               left: 0,
               right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(media.length, (i) {
                   return GestureDetector(
-                    onTap: () => setState(() => _mediaIndex = i),
+                    onTap: () {
+                      _horizontalController.animateToPage(
+                        i,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
                     child: Container(
-                      width: 6,
+                      width: i == _mediaIndex ? 16 : 6,
                       height: 6,
                       margin: const EdgeInsets.symmetric(horizontal: 3),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(3),
                         color: i == _mediaIndex ? Colors.white : Colors.white38,
                       ),
                     ),
@@ -439,61 +545,71 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                 }),
               ),
             ),
+          ],
           Positioned(
             right: 10,
             bottom: 24,
-            child: Column(
-              children: [
-                _CreatorAvatar(avatarUrl: widget.post.author.avatarUrl),
-                const SizedBox(height: 20),
-                _RailAction(
-                  icon: PhosphorIcons.heartFill,
-                  label: _formatCount(_likeCount),
-                  iconColor: _liked
-                      ? const Color(0xFFFF2D55)
-                      : Colors.white,
-                  onTap: _toggleLike,
-                ),
-                const SizedBox(height: 18),
-                _RailAction(
-                  icon: PhosphorIcons.chatCircleDotsFill,
-                  label: _formatCount(_commentCount),
-                  onTap: _openComments,
-                ),
-              ],
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  _CreatorAvatar(
+                    avatarUrl: widget.post.author.avatarUrl,
+                    authorName: widget.post.author.displayName,
+                  ),
+                  const SizedBox(height: 20),
+                  _RailAction(
+                    icon: PhosphorIcons.heartFill,
+                    label: _formatCount(_likeCount),
+                    iconColor: _liked
+                        ? const Color(0xFFFF2D55)
+                        : Colors.white,
+                    onTap: _toggleLike,
+                  ),
+                  const SizedBox(height: 18),
+                  _RailAction(
+                    icon: PhosphorIcons.chatCircleDotsFill,
+                    label: _formatCount(_commentCount),
+                    onTap: _openComments,
+                  ),
+                ],
+              ),
             ),
           ),
           Positioned(
             left: 14,
             right: 88,
             bottom: 28,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.post.author.handle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (widget.post.caption.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    widget.post.caption,
-                    maxLines: 3,
+                    widget.post.author.handle,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      fontSize: 14,
-                      height: 1.35,
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (widget.post.caption.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.post.caption,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -543,8 +659,45 @@ class _TextOnlyBackdrop extends StatelessWidget {
 
 class _CreatorAvatar extends StatelessWidget {
   final String? avatarUrl;
+  final String authorName;
 
-  const _CreatorAvatar({this.avatarUrl});
+  const _CreatorAvatar({
+    this.avatarUrl,
+    required this.authorName,
+  });
+
+  Widget _buildDefaultAvatar() {
+    if (authorName.toLowerCase().contains('super admin')) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+        ),
+        child: Image.asset(
+          'assets/images/super_admin.png',
+          cacheWidth: 100,
+          cacheHeight: 100,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Image.asset(
+            'assets/images/logo_3d.png',
+            cacheWidth: 100,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/logo_3d.png',
+          cacheWidth: 100,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -560,23 +713,9 @@ class _CreatorAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: avatarUrl!,
                 fit: BoxFit.cover,
-                errorWidget: (context, url, error) => ColoredBox(
-                  color: AppColors.primary.withValues(alpha: 0.5),
-                  child: const Icon(
-                    PhosphorIcons.user,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
+                errorWidget: (context, url, error) => _buildDefaultAvatar(),
               )
-            : ColoredBox(
-                color: AppColors.primary.withValues(alpha: 0.5),
-                child: const Icon(
-                  PhosphorIcons.user,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
+            : _buildDefaultAvatar(),
       ),
     );
   }
@@ -628,3 +767,4 @@ class _RailAction extends StatelessWidget {
     );
   }
 }
+

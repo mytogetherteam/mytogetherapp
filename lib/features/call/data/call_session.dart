@@ -434,6 +434,14 @@ class CallSession {
       } catch (_) {}
     };
 
+    _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+          state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+          state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+        endCall();
+      }
+    };
+
     final offer = await _peerConnection!.createOffer({'offerToReceiveAudio': true});
     await _peerConnection!.setLocalDescription(offer);
 
@@ -487,6 +495,14 @@ class CallSession {
           }),
         });
       } catch (_) {}
+    };
+
+    _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+          state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+          state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+        endCall();
+      }
     };
     // The actual SDP offer will come from shop via CALL_OFFER event, handled in _handleCallEvent.
   }

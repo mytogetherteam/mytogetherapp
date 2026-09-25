@@ -119,6 +119,7 @@ class ChatMessage {
   final int? durationSeconds;
   final bool isRead;
   final bool isDeleted;
+  final bool isSending;
   final DateTime? editedAt;
   final DateTime createdAt;
   final String? senderName;
@@ -135,6 +136,7 @@ class ChatMessage {
     this.durationSeconds,
     this.isRead = false,
     this.isDeleted = false,
+    this.isSending = false,
     this.editedAt,
     required this.createdAt,
     this.senderName,
@@ -225,6 +227,7 @@ class ChatMessage {
           firstVoice?.durationSeconds ?? (json['duration'] as num?)?.toInt(),
       isRead: json['isRead'] == true,
       isDeleted: json['isDeleted'] == true,
+      isSending: false,
       editedAt: _parseDate(json['editedAt']),
       createdAt: _parseDate(json['createdAt']) ?? DateTime.now(),
       senderName: sender?['name'] as String?,
@@ -238,6 +241,7 @@ class ChatMessage {
     String? content,
     bool? isRead,
     bool? isDeleted,
+    bool? isSending,
     DateTime? editedAt,
   }) {
     return ChatMessage(
@@ -251,6 +255,7 @@ class ChatMessage {
       durationSeconds: durationSeconds,
       isRead: isRead ?? this.isRead,
       isDeleted: isDeleted ?? this.isDeleted,
+      isSending: isSending ?? this.isSending,
       editedAt: editedAt ?? this.editedAt,
       createdAt: createdAt,
       senderName: senderName,
@@ -262,6 +267,7 @@ class ChatMessage {
 class ChatConversation {
   final int id;
   final int orderId;
+  final int? shopId;
   final String name;
   final String? avatarUrl;
   final String? orderNo;
@@ -274,6 +280,7 @@ class ChatConversation {
   const ChatConversation({
     required this.id,
     required this.orderId,
+    this.shopId,
     required this.name,
     this.avatarUrl,
     this.orderNo,
@@ -322,6 +329,7 @@ class ChatConversation {
     return ChatConversation(
       id: (json['id'] as num?)?.toInt() ?? 0,
       orderId: ((order?['id'] ?? json['orderId']) as num).toInt(),
+      shopId: (shop?['id'] as num?)?.toInt(),
       name: (shopName != null && shopName.isNotEmpty) ? shopName : 'Shop',
       avatarUrl: resolveMediaUrl(
         (shop?['logoUrl'] ?? shop?['profileUrl'])?.toString(),

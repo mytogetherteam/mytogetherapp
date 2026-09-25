@@ -84,6 +84,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   Timer? _slideshowTimer;
   List<String> _slideImages = [];
 
+  int _currentMenuItemImageIndex = 0;
+  Timer? _menuItemSlideshowTimer;
+  List<String> _menuItemImages = [];
+
   late final Dio _dio;
 
   static const LatLng _defaultLocation = LatLng(13.7563, 100.5018);
@@ -229,6 +233,24 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   void initState() {
     super.initState();
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
+
+    final itemUrls = <String>{};
+    if (widget.store.items.isNotEmpty) {
+      for (final item in widget.store.items) {
+        if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
+          itemUrls.add(item.imageUrl!);
+        } else if (item.imagePath.isNotEmpty) {
+          itemUrls.add(item.imagePath);
+        }
+      }
+    }
+    _menuItemImages = itemUrls.toList();
+    if (_menuItemImages.length > 1) {
+      _menuItemSlideshowTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+        if (mounted) setState(() => _currentMenuItemImageIndex++);
+      });
+    }
+
     _initSlideImages();
     if (ActiveOrderState.instance.shopPhone == null || ActiveOrderState.instance.shopPhone!.isEmpty) {
       if (widget.restaurant?.phone != null && widget.restaurant!.phone!.isNotEmpty) {
@@ -503,6 +525,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   @override
   void dispose() {
+    _menuItemSlideshowTimer?.cancel();
     _adTimer?.cancel();
     _radarAnimController.dispose();
     App.routeObserver.unsubscribe(this);
@@ -1797,7 +1820,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   Widget _buildPostAdBackground() {
     final bgUrl = _restaurantLogoUrl;
-    final centerUrl = _foodImageUrl ?? _restaurantLogoUrl;
+    final centerUrl = _menuItemImages.isNotEmpty 
+        ? _menuItemImages[_currentMenuItemImageIndex % _menuItemImages.length]
+        : _restaurantLogoUrl;
 
     return Container(
       color: Colors.black,
@@ -1865,7 +1890,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         },
                       ),
                       
-                      // Center image
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(32),
@@ -1879,11 +1903,15 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(32),
-                          child: CachedNetworkImage(
-                            imageUrl: centerUrl,
-                            width: 180,
-                            height: 180,
-                            fit: BoxFit.cover,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 600),
+                            child: CachedNetworkImage(
+                              key: ValueKey(centerUrl),
+                              imageUrl: centerUrl ?? '',
+                              width: 180,
+                              height: 180,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),

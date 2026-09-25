@@ -1,4 +1,6 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -39,10 +41,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int? _lastStatus;
   late List<Widget> _screens;
   String _screenLocaleKey = '';
+  int _socialVisitCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadSocialVisitCount();
     _rebuildScreens();
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
@@ -77,6 +81,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissions();
     });
+  }
+
+  Future<void> _loadSocialVisitCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _socialVisitCount = prefs.getInt('social_tab_visit_count') ?? 0;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onLanguageChanged() {
@@ -207,6 +222,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Fire iOS 3D-touch-style haptic on every bottom nav icon tap
     AppHaptics.buttonTap();
 
+    if (index == 2 && _socialVisitCount < 3) {
+      _socialVisitCount++;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt('social_tab_visit_count', _socialVisitCount);
+      });
+    }
+
     if (index == _currentIndex) {
       // Same tab tapped again â†’ scroll to top + refresh that tab's content
       NavigationController.instance.triggerScrollToTop(index);
@@ -226,7 +248,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _rebuildScreens();
     }
 
+    final isSocial = _currentIndex == 2;
     return Scaffold(
+      extendBody: isSocial,
       body: Stack(
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
@@ -258,7 +282,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     final isSocial = _currentIndex == 2;
-    final barColor = isSocial ? Colors.black : Colors.white;
+    final barColor = isSocial ? Colors.black.withValues(alpha: 0.6) : Colors.white;
     final inactiveColor =
         isSocial ? Colors.white70 : Colors.grey.shade400;
     final bottomInset = Theme.of(context).platform == TargetPlatform.iOS
@@ -269,9 +293,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // via clipBehavior: Clip.none (does not inflate footer height).
     const barBodyHeight = 60.0;
 
-    return Material(
-      color: barColor,
-      child: Padding(
+    Widget barContent = Material(
+      color: Colors.transparent,
+      child: Container(
+        color: barColor,
         padding: EdgeInsets.only(bottom: bottomInset),
         child: SizedBox(
           height: barBodyHeight,
@@ -318,12 +343,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   _buildNavItem(
                     2,
-                    PhosphorIcons.playCircle,
-                    PhosphorIcons.playCircleFill,
+                    PhosphorIcons.planet,
+                    PhosphorIcons.planetFill,
                     context.tr('nav.social'),
                     inactiveColor: inactiveColor,
                     socialMode: isSocial,
                     height: barBodyHeight,
+                    badgeText: _socialVisitCount < 3 ? 'NEW' : null,
                   ),
                   _buildNavItem(
                     3,
@@ -350,6 +376,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ),
     );
+
+    if (isSocial) {
+      barContent = ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: barContent,
+        ),
+      );
+    }
+
+    return barContent;
   }
 
 
@@ -361,6 +398,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     required Color inactiveColor,
     required bool socialMode,
     required double height,
+    String? badgeText,
   }) {
     final isSelected = _currentIndex == index;
     return Expanded(
@@ -377,7 +415,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(activeIcon, color: Colors.white, size: 26),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topRight,
+                            children: [
+                              Icon(activeIcon, color: Colors.white, size: 26),
+                              if (badgeText != null)
+                                Positioned(
+                                  top: -6,
+                                  right: -12,
+                                  child: _NavPulsingBadge(text: badgeText),
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             label,
@@ -393,17 +443,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          ShaderMask(
-                            shaderCallback: (bounds) => LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: AppColors.primaryGradient.colors,
-                            ).createShader(bounds),
-                            child: Icon(
-                              activeIcon,
-                              color: Colors.white,
-                              size: 26,
-                            ),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topRight,
+                            children: [
+                              ShaderMask(
+                                shaderCallback: (bounds) => LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: AppColors.primaryGradient.colors,
+                                ).createShader(bounds),
+                                child: Icon(
+                                  activeIcon,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
+                              if (badgeText != null)
+                                Positioned(
+                                  top: -6,
+                                  right: -12,
+                                  child: _NavPulsingBadge(text: badgeText),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           ShaderMask(
@@ -428,20 +490,96 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, color: inactiveColor, size: 26),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topRight,
+                      children: [
+                        Icon(icon, color: inactiveColor, size: 26),
+                        if (badgeText != null)
+                          Positioned(
+                            top: -6,
+                            right: -12,
+                            child: _NavPulsingBadge(text: badgeText),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       label,
                       style: GoogleFonts.poppins(
                         color: inactiveColor,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         height: 1.1,
                       ),
                     ),
                   ],
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavPulsingBadge extends StatefulWidget {
+  final String text;
+  const _NavPulsingBadge({required this.text});
+
+  @override
+  State<_NavPulsingBadge> createState() => _NavPulsingBadgeState();
+}
+
+class _NavPulsingBadgeState extends State<_NavPulsingBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF2D55), // Bright vibrant red/pink for Social
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF2D55).withValues(alpha: 0.4),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Text(
+          widget.text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 8.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
           ),
         ),
       ),

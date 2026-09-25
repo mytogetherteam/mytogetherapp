@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -23,6 +24,8 @@ import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hin
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
 import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/features/call/data/call_session.dart';
 import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -60,6 +63,7 @@ class _ChatPageState extends State<ChatPage>
   final ImagePicker _imagePicker = ImagePicker();
 
   late int _conversationId;
+  int? _shopId;
   bool _isLoading = true;
   bool _hasError = false;
   bool _isSending = false;
@@ -170,6 +174,7 @@ class _ChatPageState extends State<ChatPage>
 
     if (conversation != null) {
       _conversationId = conversation.id;
+      _shopId = conversation.shopId;
       _isChatClosed = !conversation.isChatWritable;
       _setChatWindow(
         status: conversation.orderStatus,
@@ -420,10 +425,26 @@ class _ChatPageState extends State<ChatPage>
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isSending || _isChatClosed) return;
+    if (text.isEmpty || _isChatClosed) return;
 
     _controller.clear();
-    setState(() => _isSending = true);
+    
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+    final tempMsg = ChatMessage(
+      id: tempId,
+      senderType: ChatSenderType.user,
+      kind: ChatMessageKind.text,
+      createdAt: DateTime.now(),
+      isSending: true,
+      content: text,
+    );
+
+    setState(() {
+      _messages.add(tempMsg);
+      _isSending = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     final sent = await ChatService.instance.sendTextMessage(
       widget.orderId,
@@ -433,16 +454,18 @@ class _ChatPageState extends State<ChatPage>
 
     setState(() {
       _isSending = false;
+      final index = _messages.indexWhere((m) => m.id == tempId);
       if (sent != null) {
         if (_conversationId <= 0 && sent.conversationId != null) {
           _conversationId = sent.conversationId!;
         }
-        final index = _messages.indexWhere((m) => m.id == sent.id);
-        if (index == -1) {
-          _messages.add(sent);
-        } else {
+        if (index != -1) {
           _messages[index] = sent;
+        } else {
+          _messages.add(sent);
         }
+      } else {
+        if (index != -1) _messages.removeAt(index);
       }
     });
 
@@ -496,7 +519,7 @@ class _ChatPageState extends State<ChatPage>
   }
 
   Future<void> _pickAndSendImage() async {
-    if (_isSending || _isChatClosed) return;
+    if (_isChatClosed) return;
 
     final action = await ImageUploadBottomSheet.show(context);
     if (!mounted || action == null || action == ImageUploadAction.remove) {
@@ -523,7 +546,22 @@ class _ChatPageState extends State<ChatPage>
       return;
     }
 
-    setState(() => _isSending = true);
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMsg = ChatMessage(
+      id: tempId,
+      senderType: ChatSenderType.user,
+      kind: ChatMessageKind.image,
+      createdAt: DateTime.now(),
+      isSending: true,
+      attachmentUrl: picked.path,
+    );
+
+    setState(() {
+      _messages.add(tempMsg);
+      _isSending = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
     final sent = await ChatService.instance.sendImageMessage(
       widget.orderId,
       image,
@@ -532,16 +570,18 @@ class _ChatPageState extends State<ChatPage>
 
     setState(() {
       _isSending = false;
+      final index = _messages.indexWhere((m) => m.id == tempId);
       if (sent != null) {
         if (_conversationId <= 0 && sent.conversationId != null) {
           _conversationId = sent.conversationId!;
         }
-        final index = _messages.indexWhere((m) => m.id == sent.id);
-        if (index == -1) {
-          _messages.add(sent);
-        } else {
+        if (index != -1) {
           _messages[index] = sent;
+        } else {
+          _messages.add(sent);
         }
+      } else {
+        if (index != -1) _messages.removeAt(index);
       }
     });
 
@@ -663,6 +703,8 @@ class _ChatPageState extends State<ChatPage>
     });
   }
 
+
+
   void _showMessageActions(ChatMessage message) {
     if (message.isDeleted) return;
 
@@ -683,6 +725,7 @@ class _ChatPageState extends State<ChatPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+
             if (message.kind == ChatMessageKind.text)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
@@ -798,6 +841,40 @@ class _ChatPageState extends State<ChatPage>
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+              child: const Icon(PhosphorIcons.phoneCallFill, color: Colors.white),
+            ),
+            onPressed: () async {
+              if (_shopId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Connecting... Please try again in a moment.')),
+                );
+                return;
+              }
+              final success = await CallSession().initiateCall(
+                shopId: _shopId!,
+                shopName: widget.peerName,
+                shopImageUrl: widget.avatarUrl,
+              );
+              if (success && context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CallScreen(
+                      shopName: widget.peerName,
+                      shopImageUrl: widget.avatarUrl,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: Colors.grey[100], height: 1),
@@ -936,7 +1013,11 @@ class _ChatPageState extends State<ChatPage>
 
   Widget _buildAvatarFallback() {
     return Center(
-      child: Icon(widget.fallbackIcon, size: 20, color: AppColors.primary),
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+        child: Icon(widget.fallbackIcon, size: 20, color: Colors.white),
+      ),
     );
   }
 
@@ -954,10 +1035,14 @@ class _ChatPageState extends State<ChatPage>
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                PhosphorIcons.chatCircleTextFill,
-                size: 44,
-                color: AppColors.primary,
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                child: const Icon(
+                  PhosphorIcons.chatCircleTextFill,
+                  size: 44,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -1071,28 +1156,56 @@ class _ChatPageState extends State<ChatPage>
                               onTap: () => _openImage(url),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(14),
-                                child: CachedNetworkImage(
-                                  imageUrl: url,
-                                  width: 200,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, _) => Container(
-                                    width: 200,
-                                    height: 200,
-                                    color: Colors.black12,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    url.startsWith('http')
+                                      ? CachedNetworkImage(
+                                          imageUrl: url,
+                                          width: 200,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, _) => Container(
+                                            width: 200,
+                                            height: 200,
+                                            color: Colors.black12,
+                                            child: const Center(
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                          errorWidget: (_, _, _) => Container(
+                                            width: 200,
+                                            height: 120,
+                                            color: Colors.black12,
+                                            child: const Icon(
+                                              Icons.broken_image_outlined,
+                                            ),
+                                          ),
+                                        )
+                                      : Image.file(
+                                          File(url),
+                                          width: 200,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            width: 200,
+                                            height: 120,
+                                            color: Colors.black12,
+                                            child: const Icon(
+                                              Icons.broken_image_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                    if (message.isSending)
+                                      Container(
+                                        width: 200,
+                                        height: 200,
+                                        color: Colors.black45,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  errorWidget: (_, _, _) => Container(
-                                    width: 200,
-                                    height: 120,
-                                    color: Colors.black12,
-                                    child: const Icon(
-                                      Icons.broken_image_outlined,
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -1122,6 +1235,7 @@ class _ChatPageState extends State<ChatPage>
                       ),
                     ),
             ),
+
             if (firstUrl != null)
               FutureBuilder(
                 future: AnyLinkPreview.getMetadata(
@@ -1177,9 +1291,11 @@ class _ChatPageState extends State<ChatPage>
                   if (isMine) ...[
                     const SizedBox(width: 4),
                     Icon(
-                      message.isRead
-                          ? Icons.done_all_rounded
-                          : Icons.done_rounded,
+                      message.isSending
+                          ? Icons.access_time_rounded
+                          : (message.isRead
+                              ? Icons.done_all_rounded
+                              : Icons.done_rounded),
                       size: 13,
                       color: message.isRead
                           ? AppColors.primary
@@ -1199,19 +1315,23 @@ class _ChatPageState extends State<ChatPage>
     final hasText = _controller.text.trim().isNotEmpty;
     return SafeArea(
       top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              offset: const Offset(0, -2),
-              blurRadius: 8,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  offset: const Offset(0, -2),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ValueListenableBuilder<VoiceRecordPhase>(
+            child: ValueListenableBuilder<VoiceRecordPhase>(
           valueListenable: _voiceRecorder.phaseNotifier,
           builder: (context, phase, _) {
             final recording = phase != VoiceRecordPhase.idle;
@@ -1220,11 +1340,15 @@ class _ChatPageState extends State<ChatPage>
               children: [
                 if (!recording && !_isChatClosed)
                   IconButton(
-                    onPressed: _isSending ? null : _pickAndSendImage,
+                    onPressed: _pickAndSendImage,
                     tooltip: context.tr('chat.add_photo'),
-                    icon: Icon(
-                      Icons.photo_outlined,
-                      color: _isSending ? Colors.grey[400] : AppColors.primary,
+                    icon: ShaderMask(
+                      blendMode: BlendMode.srcIn,
+                      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                      child: const Icon(
+                        Icons.photo_outlined,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 // Messenger-style: recording replaces the text box entirely.
@@ -1308,6 +1432,8 @@ class _ChatPageState extends State<ChatPage>
             );
           },
         ),
+      ),
+      ],
       ),
     );
   }

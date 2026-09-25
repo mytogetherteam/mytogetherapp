@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -230,6 +230,10 @@ class _FoodPageState extends State<FoodPage> {
                           ),
                         ),
                         const SizedBox(height: 28),
+                        if (_showDiscountAndCollectionRails) ...[
+                          const CollectionsSection(),
+                          const SizedBox(height: 28),
+                        ],
                         const AllShopMyDaysSection(),
                         const SizedBox(height: 28),
                         const FoodLeaderboardSection(),
@@ -251,8 +255,6 @@ class _FoodPageState extends State<FoodPage> {
                           FoodDiscountSelectionSection(
                             key: ValueKey('discount_$_refreshKey'),
                           ),
-                          const SizedBox(height: 32),
-                          const CollectionsSection(),
                           const SizedBox(height: 32),
                         ] else
                           const SizedBox(height: 32),
