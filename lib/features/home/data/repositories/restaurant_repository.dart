@@ -16,6 +16,7 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/location/geo_distance.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/delivery_fee_estimate.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
@@ -691,7 +692,7 @@ class RestaurantRepository {
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
       freeDeliveryActive: dto.freeDeliveryActive ||
-          (dto.displayDeliveryFee ?? '').toLowerCase() == 'free',
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
@@ -740,7 +741,7 @@ class RestaurantRepository {
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
       freeDeliveryActive: dto.freeDeliveryActive ||
-          (dto.displayDeliveryFee ?? '').toLowerCase() == 'free',
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       deliveryFee: dto.displayDeliveryFee ??
           (dto.freeDeliveryActive
               ? LocaleController.instance.tr('common.free')

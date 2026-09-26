@@ -11,6 +11,19 @@ class DeliveryFeeEstimate {
   static const double unrealKmCap = 100.0;
   static const double unrealKmFallback = 5.0;
 
+  /// True for API/UI free-delivery labels (FREE / Free / localized "free").
+  static bool isFreeLabel(String? raw) {
+    final t = (raw ?? '').trim();
+    if (t.isEmpty) return false;
+    final upper = t.toUpperCase();
+    if (upper == 'FREE' || upper.contains('FREE')) return true;
+    final lower = t.toLowerCase();
+    if (lower == 'free') return true;
+    // Localized common.free values (EN/MM/TH).
+    if (lower == 'အခမဲ့' || lower == 'ฟรี') return true;
+    return false;
+  }
+
   /// Caps absurd OSRM/route distances (same rule as tracking).
   static double normalizeKm(double km) {
     if (km <= 0) return 0;
@@ -37,6 +50,7 @@ class DeliveryFeeEstimate {
     return ((min + max) / 2).roundToDouble();
   }
 
+  /// Grab-style label: always the English promo word when free.
   static String rangeLabel(double km, {bool freeDelivery = false}) {
     if (freeDelivery) return 'FREE';
     final min = minFee(km);

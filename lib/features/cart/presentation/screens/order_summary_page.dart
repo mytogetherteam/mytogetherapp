@@ -79,6 +79,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _forcedAddressFlowOpen = false;
   double _draftDistanceKm = 0.0;
   double _draftDeliveryFee = 0.0;
+  /// Grab-style free delivery — set from cache ASAP, then confirmed by shop API.
+  bool _freeDeliveryActive = false;
 
   @override
   void initState() {
@@ -113,13 +115,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           }
         });
 
-        // 2. Fetch shop details (restaurant info + route pre-fetch).
-        RestaurantRepository.instance.getShopById(restaurantId).then((shop) {
-          if (mounted) {
-            setState(() => _restaurant = shop);
-            _preFetchRoute(); // Start pre-fetching route
-          }
-        });
+        // 2. Shop details — cache first so FREE shows immediately (Grab-style),
+        //    then refresh from API.
+        _loadShopForCheckout(restaurantId);
 
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
@@ -129,6 +127,35 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         //    immediately on this page.
         _loadShopCoupons(restaurantId);
       }
+    }
+  }
+
+  Future<void> _loadShopForCheckout(int restaurantId) async {
+    // Cache first — FREE must show before the network round-trip (Grab-style).
+    final cached = await ShopStorage.getShop(restaurantId);
+    if (cached != null && mounted) {
+      final cachedFree = cached['freeDeliveryActive'] == true ||
+          DeliveryFeeEstimate.isFreeLabel(
+            cached['displayDeliveryFee']?.toString(),
+          );
+      if (cachedFree) {
+        setState(() => _freeDeliveryActive = true);
+      }
+    }
+
+    try {
+      final shop =
+          await RestaurantRepository.instance.getShopById(restaurantId);
+      if (!mounted) return;
+      setState(() {
+        _restaurant = shop;
+        _freeDeliveryActive = shop.freeDeliveryActive ||
+            DeliveryFeeEstimate.isFreeLabel(shop.deliveryFee) ||
+            _freeDeliveryActive;
+      });
+      _preFetchRoute();
+    } catch (_) {
+      // Keep any cache-derived FREE flag; route estimate can still run later.
     }
   }
 
@@ -463,17 +490,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   bool get _isFreeDelivery {
+    if (_freeDeliveryActive) return true;
     final r = _restaurant;
     if (r == null) return false;
     if (r.freeDeliveryActive) return true;
-    final fee = (r.deliveryFee ?? '').trim();
-    return fee.toUpperCase() == 'FREE' || fee.toLowerCase() == 'free';
+    return DeliveryFeeEstimate.isFreeLabel(r.deliveryFee);
   }
 
   String _getEstimatedDeliveryFeeText() {
-    if (_isFreeDelivery) {
-      return DeliveryFeeEstimate.rangeLabel(0, freeDelivery: true);
-    }
+    if (_isFreeDelivery) return 'FREE';
     final km = _draftDistanceKm;
     if (km == 0.0) {
       return '฿ 0.00';
@@ -482,6 +507,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   String _getTotalWithDeliveryRange(double payableTotal) {
+    // Grab-style: FREE promo → pay food + tax only (no fee range).
     if (_isFreeDelivery || _draftDistanceKm == 0.0) {
       return payableTotal.toFormattedPrice();
     }
@@ -1148,14 +1174,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ),
-                              if (_draftDeliveryFee > 0 || _isFreeDelivery) ...[
+                              // Always show the fee row for delivery — FREE or range.
+                              if (_isDelivery) ...[
                                 const SizedBox(height: 16),
                                 Row(
                                   children: [
                                     Icon(
                                       PhosphorIconsRegular.money,
                                       color: _isFreeDelivery
-                                          ? const Color(0xFF10B981)
+                                          ? const Color(0xFF00B14F)
                                           : const Color(0xFF94A3B8),
                                       size: 18,
                                     ),
@@ -1164,21 +1191,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       context.tr('cart.est_delivery_fee'),
                                       style: GoogleFonts.poppins(
                                         color: _isFreeDelivery
-                                            ? const Color(0xFF10B981)
+                                            ? const Color(0xFF00B14F)
                                             : const Color(0xFF94A3B8),
                                         fontSize: 13,
                                       ),
                                     ),
                                     if (_isFreeDelivery)
                                       Text(
-                                        _getEstimatedDeliveryFeeText(),
+                                        'FREE',
                                         style: GoogleFonts.poppins(
-                                          fontSize: 13,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF10B981),
+                                          color: const Color(0xFF00B14F),
                                         ),
                                       )
-                                    else
+                                    else if (_draftDeliveryFee > 0)
                                       GradientText(
                                         _getEstimatedDeliveryFeeText(),
                                         style: GoogleFonts.poppins(
@@ -1503,8 +1530,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ],
                               ),
                             ],
-                            if (_isDelivery &&
-                                (_draftDeliveryFee > 0 || _isFreeDelivery)) ...[
+                            if (_isDelivery) ...[
                               const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1515,7 +1541,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         PhosphorIconsRegular.motorcycle,
                                         size: 16,
                                         color: _isFreeDelivery
-                                            ? const Color(0xFF10B981)
+                                            ? const Color(0xFF00B14F)
                                             : const Color(0xFF64748B),
                                       ),
                                       const SizedBox(width: 6),
@@ -1523,7 +1549,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         context.tr('cart.est_delivery_fee'),
                                         style: GoogleFonts.poppins(
                                           color: _isFreeDelivery
-                                              ? const Color(0xFF10B981)
+                                              ? const Color(0xFF00B14F)
                                               : const Color(0xFF64748B),
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
@@ -1532,14 +1558,18 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ],
                                   ),
                                   Text(
-                                    _getEstimatedDeliveryFeeText(),
+                                    _isFreeDelivery
+                                        ? 'FREE'
+                                        : (_draftDeliveryFee > 0
+                                            ? _getEstimatedDeliveryFeeText()
+                                            : '—'),
                                     style: GoogleFonts.poppins(
                                       color: _isFreeDelivery
-                                          ? const Color(0xFF10B981)
+                                          ? const Color(0xFF00B14F)
                                           : const Color(0xFF64748B),
-                                      fontSize: 13,
+                                      fontSize: _isFreeDelivery ? 15 : 13,
                                       fontWeight: _isFreeDelivery
-                                          ? FontWeight.w700
+                                          ? FontWeight.w800
                                           : FontWeight.w500,
                                     ),
                                   ),
