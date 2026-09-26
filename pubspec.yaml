@@ -69,6 +69,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   url_launcher: ^6.3.2
   firebase_auth: ^5.7.0
+  google_sign_in: ^6.3.0
   flutter_dotenv: ^6.0.1
   package_info_plus: ^9.0.1
   upgrader: ^13.5.0

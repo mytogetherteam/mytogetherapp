@@ -15,6 +15,9 @@ import 'setup_pin_page.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/utils/firebase_error_handler.dart';
+import '../../data/google_auth_helper.dart';
+import '../widgets/google_sign_in_button.dart';
+import '../../../main_navigation/presentation/screens/main_navigation_screen.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -33,6 +36,7 @@ class _RegisterPageState extends State<RegisterPage>
   final _otpController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _showOtpView = false;
   bool _agreedToTerms = false;
   String? _verificationId;
@@ -214,6 +218,57 @@ class _RegisterPageState extends State<RegisterPage>
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    if (_isGoogleLoading || _isLoading) return;
+    if (!_agreedToTerms) {
+      AppDialog.showToast(
+        context,
+        context.tr('auth.agree_terms_first'),
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isGoogleLoading = true);
+    try {
+      final google = await GoogleAuthHelper.signIn();
+      if (google == null) return;
+      if (!mounted) return;
+
+      final result = await AuthRepository.instance.loginWithGoogle(
+        idToken: google.idToken,
+      );
+      if (!mounted) return;
+
+      if (result.isNewUser) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SetupPinPage(
+              idToken: google.idToken,
+              name: result.name ?? google.name ?? _fullNameController.text.trim(),
+              email: result.email ?? google.email ?? _emailController.text.trim(),
+            ),
+          ),
+        );
+        return;
+      }
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (_) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -364,6 +419,16 @@ class _RegisterPageState extends State<RegisterPage>
                             color: Colors.white,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      AuthOrDivider(label: context.tr('auth.or')),
+                      const SizedBox(height: 20),
+                      GoogleSignInButton(
+                        isLoading: _isGoogleLoading,
+                        label: context.tr('auth.continue_google'),
+                        onPressed: (_agreedToTerms && !_isLoading)
+                            ? _handleGoogleSignIn
+                            : null,
                       ),
                     ] else ...[
                       const SizedBox(height: 24),

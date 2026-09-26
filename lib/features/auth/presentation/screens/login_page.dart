@@ -15,6 +15,9 @@ import 'auth_entry_page.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import '../../../../core/utils/firebase_error_handler.dart';
+import '../../data/google_auth_helper.dart';
+import '../widgets/google_sign_in_button.dart';
+import 'setup_pin_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,6 +31,7 @@ class _LoginPageState extends State<LoginPage>
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeAnim;
@@ -95,6 +99,48 @@ class _LoginPageState extends State<LoginPage>
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isGoogleLoading || _isLoading) return;
+    setState(() => _isGoogleLoading = true);
+    try {
+      final google = await GoogleAuthHelper.signIn();
+      if (google == null) return; // cancelled
+      if (!mounted) return;
+
+      final result = await AuthRepository.instance.loginWithGoogle(
+        idToken: google.idToken,
+      );
+      if (!mounted) return;
+
+      if (result.isNewUser) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SetupPinPage(
+              idToken: google.idToken,
+              name: result.name ?? google.name ?? '',
+              email: result.email ?? google.email ?? '',
+            ),
+          ),
+        );
+        return;
+      }
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (_) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -233,6 +279,14 @@ class _LoginPageState extends State<LoginPage>
                               const SizedBox(height: 32),
                               // Login Button
                               _buildContinueButton(),
+                              const SizedBox(height: 20),
+                              AuthOrDivider(label: context.tr('auth.or')),
+                              const SizedBox(height: 20),
+                              GoogleSignInButton(
+                                isLoading: _isGoogleLoading,
+                                label: context.tr('auth.continue_google'),
+                                onPressed: _handleGoogleSignIn,
+                              ),
                               const SizedBox(height: 24),
                               // Register link
                               Center(

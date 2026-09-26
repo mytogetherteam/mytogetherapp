@@ -41,6 +41,34 @@ class AuthRepository {
     }
   }
 
+  /// Google Sign-In. Returns [GoogleAuthResponse]; if [isNewUser], caller should
+  /// open SetupPinPage. Otherwise the session is already saved.
+  Future<GoogleAuthResponse> loginWithGoogle({required String idToken}) async {
+    try {
+      final result = await _dataSource.googleAuth(
+        GoogleAuthRequest(idToken: idToken),
+      );
+      if (result.isNewUser) return result;
+
+      final session = result.session;
+      if (session == null) {
+        throw Exception('Google login failed.');
+      }
+      if (session.role != 'CUSTOMER') {
+        throw Exception('Access Denied: Only users can login to this app.');
+      }
+
+      AuthService().updateAccessToken(session.token);
+      final profile = await _dataSource.getUserProfile();
+      final locations = await _dataSource.getUserLocations();
+      await _saveSession(session, profile: profile, locations: locations);
+      await SessionRealtime.bootstrap();
+      return result;
+    } on DioException catch (e) {
+      throw _parseError(e);
+    }
+  }
+
   Future<void> register({
     required String idToken,
     required String pin,
