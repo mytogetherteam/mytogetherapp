@@ -160,7 +160,7 @@ class ActiveOrderItem {
 
   /// Food subtotal before tax and delivery — prefers backend `itemPrice`.
   double get resolvedItemSubtotal {
-    if (itemPrice != null && itemPrice! > 0) return itemPrice!;
+    if (itemPrice != null) return itemPrice!;
     if (orderItems.isNotEmpty) {
       return orderItems.fold<double>(0, (sum, item) => sum + item.total);
     }
@@ -184,7 +184,7 @@ class ActiveOrderItem {
 
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) {
     if (totalAmount != null && totalAmount! > 0) return totalAmount!;
-    final delivery = isPickupFulfillment
+    final delivery = isPickupFulfillment || isFreeDelivery
         ? 0.0
         : (deliveryFee ?? fallbackDeliveryFee);
     // Subtract any coupon discount so the fallback matches the backend total.
@@ -376,6 +376,7 @@ class ActiveOrderItem {
     'routeDistanceKm': routeDistanceKm,
     'routeDurationMins': routeDurationMins,
     'deliveryFee': deliveryFee,
+    'isFreeDelivery': isFreeDelivery,
     'riderName': riderName,
     'riderPhone': riderPhone,
     'riderProfileUrl': riderProfileUrl,
@@ -456,6 +457,8 @@ class ActiveOrderItem {
         routeDistanceKm: json['routeDistanceKm'],
         routeDurationMins: json['routeDurationMins'],
         deliveryFee: json['deliveryFee'],
+        isFreeDelivery: json['isFreeDelivery'] == true ||
+            (json['displayDeliveryFee']?.toString().toUpperCase() == 'FREE'),
         riderName: json['riderName'] ?? json['deliveryRiderName'] ?? (json['driver'] != null ? json['driver']['name'] : null),
         riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
         riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
@@ -827,6 +830,7 @@ class ActiveOrderState extends ChangeNotifier {
     LatLng? userLocation,
     String? orderType,
     String? lastOrderNo,
+    bool isFreeDelivery = false,
   }) {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
@@ -854,6 +858,7 @@ class ActiveOrderState extends ChangeNotifier {
       userLocation: userLocation,
       orderType: orderType,
       lastOrderNo: lastOrderNo,
+      isFreeDelivery: isFreeDelivery,
     );
     saveToPrefs();
     notifyListeners();
@@ -1541,6 +1546,18 @@ class ActiveOrderState extends ChangeNotifier {
           optionIds: optionIds.isEmpty ? null : optionIds,
           specialInstructions: _parseSafeString(map['specialInstructions']),
           variantId: _parseSafeInt(map['variantId']),
+          additionalVariantIds: (map['additionalVariantIds'] is List)
+              ? (map['additionalVariantIds'] as List)
+                  .map((e) => _parseSafeInt(e))
+                  .whereType<int>()
+                  .where((id) => id > 0)
+                  .toList()
+              : const [],
+          variantNameKey: _parseSafeString(map['variantNameEn']) ??
+              _parseSafeString(map['variantName']),
+          variantNameEn: _parseSafeString(map['variantNameEn']),
+          variantNameMm: _parseSafeString(map['variantNameMm']),
+          variantNameTh: _parseSafeString(map['variantNameTh']),
         ),
       );
     }

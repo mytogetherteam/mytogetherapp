@@ -9,6 +9,7 @@ class AddToCartRequest {
   final int? shopId;
   final List<int>? optionIds;
   final int? variantId;
+  final List<int>? additionalVariantIds;
   final String? specialInstructions;
 
   const AddToCartRequest({
@@ -17,6 +18,7 @@ class AddToCartRequest {
     this.shopId,
     this.optionIds,
     this.variantId,
+    this.additionalVariantIds,
     this.specialInstructions,
   });
 
@@ -34,6 +36,10 @@ class AddToCartRequest {
     if (variantId != null && variantId! > 0) {
       map['variantId'] = variantId;
     }
+
+    if (additionalVariantIds != null && additionalVariantIds!.isNotEmpty) {
+      map['additionalVariantIds'] = additionalVariantIds;
+    }
     
     if (specialInstructions != null && specialInstructions!.trim().isNotEmpty) {
       map['specialInstructions'] = specialInstructions;
@@ -48,12 +54,14 @@ class UpdateCartItemRequest {
   final int quantity;
   final String? specialInstructions;
   final int? variantId;
+  final List<int>? additionalVariantIds;
   final List<int>? optionIds;
 
   const UpdateCartItemRequest({
     required this.quantity,
     this.specialInstructions,
     this.variantId,
+    this.additionalVariantIds,
     this.optionIds,
   });
 
@@ -64,6 +72,9 @@ class UpdateCartItemRequest {
     }
     if (variantId != null) {
       map['variantId'] = variantId;
+    }
+    if (additionalVariantIds != null) {
+      map['additionalVariantIds'] = additionalVariantIds;
     }
     if (optionIds != null) {
       map['optionIds'] = optionIds;
@@ -93,6 +104,7 @@ class CartItemDto {
   final List<String>? optionNames;
   final List<int>? optionIds;
   final int? variantId;
+  final List<int> additionalVariantIds;
   final String? specialInstructions;
   final String? currency;
   final List<SelectedOptionDto>? selectedOptions;
@@ -144,6 +156,7 @@ class CartItemDto {
     this.optionNames,
     this.optionIds,
     this.variantId,
+    this.additionalVariantIds = const [],
     this.specialInstructions,
     this.currency,
     this.selectedOptions,
@@ -211,6 +224,11 @@ class CartItemDto {
           ?.map((e) => int.tryParse(e.toString()) ?? 0)
           .toList() ?? groupOptionIds ?? selectedOptions?.map((o) => o.id).toList(),
       variantId: int.tryParse(json['variantId']?.toString() ?? ''),
+      additionalVariantIds: (json['additionalVariantIds'] as List<dynamic>?)
+              ?.map((e) => int.tryParse(e.toString()) ?? 0)
+              .where((id) => id > 0)
+              .toList() ??
+          const [],
       specialInstructions: json['specialInstructions'] as String?,
       currency: json['currency'] as String?,
       selectedOptions: selectedOptions,
@@ -237,6 +255,7 @@ class CartItemDto {
     'optionNames': optionNames,
     'optionIds': optionIds,
     'variantId': variantId,
+    'additionalVariantIds': additionalVariantIds,
     'specialInstructions': specialInstructions,
     'currency': currency,
     'selectedOptions': selectedOptions?.map((e) => e.toJson()).toList(),

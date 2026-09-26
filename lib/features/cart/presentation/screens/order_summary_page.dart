@@ -18,6 +18,7 @@ import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/delivery_fee_estimate.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
@@ -421,17 +422,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           response.data['routes'] != null &&
           (response.data['routes'] as List).isNotEmpty) {
         final route = response.data['routes'][0];
-        final List coords = route['geometry']['coordinates'];
         final double distanceM = (route['distance'] as num).toDouble();
-        final double durationS = (route['duration'] as num).toDouble();
-
-        final List<LatLng> points = coords
-            .map<LatLng>((c) => LatLng(c[1], c[0]))
-            .toList();
         final km = distanceM / 1000;
-        final mins = (durationS / 60).ceil();
 
-        final baseFee = (15.0 + (km * 8.5)).floorToDouble();
+        final baseFee = DeliveryFeeEstimate.minFee(km);
         if (mounted) {
           setState(() {
             _draftDistanceKm = km;
@@ -459,7 +453,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
     final km = distanceM / 1000;
 
-    final baseFee = (15.0 + (km * 8.5)).floorToDouble();
+    final baseFee = DeliveryFeeEstimate.minFee(km);
     if (mounted) {
       setState(() {
         _draftDistanceKm = km;
@@ -468,27 +462,31 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  bool get _isFreeDelivery {
+    final r = _restaurant;
+    if (r == null) return false;
+    if (r.freeDeliveryActive) return true;
+    final fee = (r.deliveryFee ?? '').trim();
+    return fee.toUpperCase() == 'FREE' || fee.toLowerCase() == 'free';
+  }
+
   String _getEstimatedDeliveryFeeText() {
+    if (_isFreeDelivery) {
+      return DeliveryFeeEstimate.rangeLabel(0, freeDelivery: true);
+    }
     final km = _draftDistanceKm;
     if (km == 0.0) {
       return '฿ 0.00';
     }
-    // Bolt style (minimum): Base 15 + 8.5/km
-    final double baseFee = (15.0 + (km * 8.5)).floorToDouble();
-    // Grab style (maximum): Base 35 + 7.2/km
-    final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
-    
-    final minVal = baseFee < maxFee ? baseFee : maxFee;
-    final maxVal = baseFee > maxFee ? baseFee : maxFee;
-    
-    if (minVal == maxVal) return minVal.toFormattedPrice();
-    return '฿ ${minVal.toStringAsFixed(0)} - ฿ ${maxVal.toStringAsFixed(0)}';
+    return DeliveryFeeEstimate.rangeLabel(km);
   }
 
   String _getTotalWithDeliveryRange(double payableTotal) {
-    if (_draftDistanceKm == 0.0) return payableTotal.toFormattedPrice();
-    final double baseFee = (15.0 + (_draftDistanceKm * 8.5)).floorToDouble();
-    final double maxFee = (35.0 + (_draftDistanceKm * 7.2)).ceilToDouble();
+    if (_isFreeDelivery || _draftDistanceKm == 0.0) {
+      return payableTotal.toFormattedPrice();
+    }
+    final double baseFee = DeliveryFeeEstimate.minFee(_draftDistanceKm);
+    final double maxFee = DeliveryFeeEstimate.maxFee(_draftDistanceKm);
     
     final minTotal = payableTotal + (baseFee < maxFee ? baseFee : maxFee);
     final maxTotal = payableTotal + (baseFee > maxFee ? baseFee : maxFee);
@@ -698,6 +696,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   "quantity": item.quantity,
                   if (item.variantId != null && item.variantId! > 0)
                     "variantId": item.variantId,
+                  if (item.additionalVariantIds.isNotEmpty)
+                    "additionalVariantIds": item.additionalVariantIds,
                   if ((item.specialInstructions ?? "").isNotEmpty)
                     "specialInstructions": item.specialInstructions,
                   if ((item.optionIds ?? []).isNotEmpty)
@@ -741,6 +741,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             _restaurant?.id ?? widget.store.items.first.restaurantId,
         orderType: _isDelivery ? 'DELIVERY' : 'PICK_UP',
         lastOrderNo: lastOrderNo,
+        isFreeDelivery: _isDelivery && _isFreeDelivery,
       );
       ActiveOrderState.instance.restaurantAddress =
           _restaurant?.address ??
@@ -1147,30 +1148,44 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ),
-                              if (_draftDeliveryFee > 0) ...[
+                              if (_draftDeliveryFee > 0 || _isFreeDelivery) ...[
                                 const SizedBox(height: 16),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       PhosphorIconsRegular.money,
-                                      color: Color(0xFF94A3B8),
+                                      color: _isFreeDelivery
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF94A3B8),
                                       size: 18,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       context.tr('cart.est_delivery_fee'),
                                       style: GoogleFonts.poppins(
-                                        color: const Color(0xFF94A3B8),
+                                        color: _isFreeDelivery
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFF94A3B8),
                                         fontSize: 13,
                                       ),
                                     ),
-                                    GradientText(
-                                      _getEstimatedDeliveryFeeText(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                    if (_isFreeDelivery)
+                                      Text(
+                                        _getEstimatedDeliveryFeeText(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF10B981),
+                                        ),
+                                      )
+                                    else
+                                      GradientText(
+                                        _getEstimatedDeliveryFeeText(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ],
@@ -1488,19 +1503,28 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ],
                               ),
                             ],
-                            if (_isDelivery && _draftDeliveryFee > 0) ...[
+                            if (_isDelivery &&
+                                (_draftDeliveryFee > 0 || _isFreeDelivery)) ...[
                               const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(PhosphorIconsRegular.motorcycle, size: 16, color: Color(0xFF64748B)),
+                                      Icon(
+                                        PhosphorIconsRegular.motorcycle,
+                                        size: 16,
+                                        color: _isFreeDelivery
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFF64748B),
+                                      ),
                                       const SizedBox(width: 6),
                                       Text(
                                         context.tr('cart.est_delivery_fee'),
                                         style: GoogleFonts.poppins(
-                                          color: const Color(0xFF64748B),
+                                          color: _isFreeDelivery
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFF64748B),
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -1510,9 +1534,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   Text(
                                     _getEstimatedDeliveryFeeText(),
                                     style: GoogleFonts.poppins(
-                                      color: const Color(0xFF64748B),
+                                      color: _isFreeDelivery
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF64748B),
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: _isFreeDelivery
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -2492,6 +2520,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     imagePath: item.imagePath,
                                     restaurantName: storeName,
                                     initialVariantId: item.variantId,
+                                    initialAdditionalVariantIds:
+                                        item.additionalVariantIds.isEmpty
+                                            ? null
+                                            : item.additionalVariantIds,
                                     initialOptionIds: item.optionIds,
                                     initialInstructions:
                                         item.specialInstructions,

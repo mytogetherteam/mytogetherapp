@@ -79,6 +79,8 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                   e.source.specialInstructions!.trim().isNotEmpty)
                 'specialInstructions': e.source.specialInstructions,
               if (e.source.variantId != null) 'variantId': e.source.variantId,
+              if (e.source.additionalVariantIds.isNotEmpty)
+                'additionalVariantIds': e.source.additionalVariantIds,
             })
         .toList();
 

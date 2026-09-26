@@ -27,6 +27,7 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/delivery_fee_estimate.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
@@ -1033,14 +1034,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
 
-        // Demo Safety: Cap fee if distance is unrealistic for food delivery
-        final actualKm = km > 100 ? 5.0 : km;
-
         // Prefer backend delivery fee from WebSocket if available; otherwise estimate
         final backendFee = ActiveOrderState.instance.deliveryFee;
         final fee = (backendFee != null && backendFee > 0 && backendFee < 1000)
             ? backendFee
-            : (30.0 + (actualKm * 15.0)).roundToDouble();
+            : DeliveryFeeEstimate.midFee(km);
 
         if (mounted) {
           final polyPoints = [start, ...points, dest];
@@ -1087,7 +1085,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         final backendFee = ActiveOrderState.instance.deliveryFee;
         final fee = (backendFee != null && backendFee > 0)
             ? backendFee
-            : (30.0 + (km * 15.0)).roundToDouble();
+            : DeliveryFeeEstimate.midFee(km);
 
         setState(() {
           _routePoints = fallbackPoints;
@@ -1752,6 +1750,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   String _getEstimatedDeliveryFeeText() {
     final state = ActiveOrderState.instance;
+    if (state.isFreeDelivery ||
+        (state.displayDeliveryFee?.toUpperCase() == 'FREE')) {
+      return DeliveryFeeEstimate.rangeLabel(0, freeDelivery: true);
+    }
     final km = state.routeDistanceKm ?? 0.0;
     
     if (km == 0.0) {
@@ -1759,14 +1761,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           (_deliveryFee ?? state.deliveryFee ?? 0.0).toFormattedPrice();
     }
     
-    final double baseFee = (15.0 + (km * 8.5)).floorToDouble();
-    final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
-    
-    final minVal = baseFee < maxFee ? baseFee : maxFee;
-    final maxVal = baseFee > maxFee ? baseFee : maxFee;
-    
-    if (minVal == maxVal) return minVal.toFormattedPrice();
-    return '฿ ${minVal.toStringAsFixed(0)} - ฿ ${maxVal.toStringAsFixed(0)}';
+    return DeliveryFeeEstimate.rangeLabel(km);
   }
 
   Widget _buildDeliveryFeeRow() {

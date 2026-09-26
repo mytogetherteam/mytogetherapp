@@ -24,6 +24,7 @@ class CartItem {
   final List<int>? optionIds;
   final String? specialInstructions;
   final int? variantId;
+  final List<int> additionalVariantIds;
   final String? variantNameKey;
   final String? variantNameEn;
   final String? variantNameMm;
@@ -69,6 +70,7 @@ class CartItem {
     this.optionIds,
     this.specialInstructions,
     this.variantId,
+    this.additionalVariantIds = const [],
     this.variantNameKey,
     this.variantNameEn,
     this.variantNameMm,
@@ -233,6 +235,7 @@ class CartManager extends ChangeNotifier {
         optionIds: item.optionIds,
         specialInstructions: item.specialInstructions,
         variantId: item.variantId,
+        additionalVariantIds: item.additionalVariantIds,
         variantNameKey: item.variantNameKey,
         variantNameEn: item.variantNameEn,
         variantNameMm: item.variantNameMm,
@@ -276,9 +279,11 @@ class CartManager extends ChangeNotifier {
     }
 
     final optionIds = request.optionIds ?? const <int>[];
+    final additionalVariantIds = request.additionalVariantIds ?? const <int>[];
     final existing = findItemInCarts(
       request.menuItemId,
       variantId: request.variantId,
+      additionalVariantIds: additionalVariantIds,
       optionIds: optionIds.isEmpty ? null : optionIds,
     );
 
@@ -330,6 +335,7 @@ class CartManager extends ChangeNotifier {
           optionNames: old.optionNames,
           optionIds: old.optionIds,
           variantId: old.variantId,
+          additionalVariantIds: old.additionalVariantIds,
           specialInstructions:
               request.specialInstructions ?? old.specialInstructions,
           currency: old.currency,
@@ -357,6 +363,7 @@ class CartManager extends ChangeNotifier {
           optionNames: optionNames,
           optionIds: optionIds.isEmpty ? null : optionIds,
           variantId: request.variantId,
+          additionalVariantIds: additionalVariantIds,
           specialInstructions: request.specialInstructions,
           currency: currency,
         ),
@@ -419,6 +426,7 @@ class CartManager extends ChangeNotifier {
               optionNames: item.options?.split(', '),
               optionIds: item.optionIds,
               variantId: item.variantId,
+              additionalVariantIds: item.additionalVariantIds,
               specialInstructions: item.specialInstructions,
             ),
           )
@@ -474,6 +482,9 @@ class CartManager extends ChangeNotifier {
     int newQuantity, {
     String? specialInstructions,
     int? variantId,
+    List<int>? additionalVariantIds,
+    String? variantName,
+    String? variantNameMm,
     List<int>? optionIds,
   }) async {
     await _loadGuestCart();
@@ -503,13 +514,15 @@ class CartManager extends ChangeNotifier {
           price: unit,
           total: unit * newQuantity,
           imageUrl: old.imageUrl,
-          variantName: old.variantNameKey,
-          variantNameEn: old.variantNameEn,
-          variantNameMm: old.variantNameMm,
+          variantName: variantName ?? old.variantNameKey,
+          variantNameEn: variantName ?? old.variantNameEn,
+          variantNameMm: variantNameMm ?? old.variantNameMm,
           variantNameTh: old.variantNameTh,
           optionNames: old.optionNames,
           optionIds: optionIds ?? old.optionIds,
           variantId: variantId ?? old.variantId,
+          additionalVariantIds:
+              additionalVariantIds ?? old.additionalVariantIds,
           specialInstructions: specialInstructions ?? old.specialInstructions,
           currency: old.currency,
         );
@@ -606,6 +619,7 @@ class CartManager extends ChangeNotifier {
     String? options, 
     String? specialInstructions, 
     int? variantId,
+    List<int>? additionalVariantIds,
     String? variantName,
     String? variantNameMm,
     List<int>? optionIds,
@@ -656,7 +670,9 @@ class CartManager extends ChangeNotifier {
             options: options ?? oldItem.options, 
             optionIds: optionIds ?? oldItem.optionIds, 
             specialInstructions: specialInstructions ?? oldItem.specialInstructions, 
-            variantId: variantId ?? oldItem.variantId, 
+            variantId: variantId ?? oldItem.variantId,
+            additionalVariantIds:
+                additionalVariantIds ?? oldItem.additionalVariantIds,
             variantNameKey: variantName ?? oldItem.variantNameKey,
             variantNameEn: variantName ?? oldItem.variantNameEn,
             variantNameMm: variantNameMm ?? oldItem.variantNameMm,
@@ -687,6 +703,9 @@ class CartManager extends ChangeNotifier {
         newQuantity,
         specialInstructions: specialInstructions,
         variantId: variantId,
+        additionalVariantIds: additionalVariantIds,
+        variantName: variantName,
+        variantNameMm: variantNameMm,
         optionIds: optionIds,
       );
       return result;
@@ -703,6 +722,7 @@ class CartManager extends ChangeNotifier {
           quantity: newQuantity,
           specialInstructions: specialInstructions,
           variantId: variantId,
+          additionalVariantIds: additionalVariantIds,
           optionIds: optionIds,
         ));
       }
@@ -803,12 +823,29 @@ class CartManager extends ChangeNotifier {
   }
 
   /// Finds a cart item matching the given criteria across all stores.
-  CartItem? findItemInCarts(int menuItemId, {int? variantId, List<int>? optionIds}) {
+  CartItem? findItemInCarts(
+    int menuItemId, {
+    int? variantId,
+    List<int>? additionalVariantIds,
+    List<int>? optionIds,
+  }) {
+    final extras = List<int>.from(additionalVariantIds ?? const [])..sort();
     for (var store in _stores) {
       for (var item in store.items) {
         if (item.menuItemId == menuItemId) {
           // If variantId is provided, it must match
           if (variantId != null && item.variantId != variantId) continue;
+
+          final itemExtras = List<int>.from(item.additionalVariantIds)..sort();
+          if (extras.length != itemExtras.length) continue;
+          var extrasMatch = true;
+          for (var i = 0; i < extras.length; i++) {
+            if (extras[i] != itemExtras[i]) {
+              extrasMatch = false;
+              break;
+            }
+          }
+          if (!extrasMatch) continue;
           
           // If optionIds are provided, they must match exactly
           if (optionIds != null) {

@@ -36,6 +36,8 @@ class FoodDetailDto {
   final String? description;
   final double price;
   final double? originalPrice;
+  final double? discountAmount;
+  final double? discountPercentage;
   final String currency;
   final String imageUrl;
   final List<String> photoUrls;
@@ -72,6 +74,8 @@ class FoodDetailDto {
     this.description,
     required this.price,
     this.originalPrice,
+    this.discountAmount,
+    this.discountPercentage,
     this.currency = '฿',
     required this.imageUrl,
     this.photoUrls = const [],
@@ -109,6 +113,12 @@ class FoodDetailDto {
       description: json['description'],
       price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
       originalPrice: double.tryParse(json['originalPrice']?.toString() ?? '') ?? 0.0,
+      discountAmount: json['discountAmount'] != null
+          ? double.tryParse(json['discountAmount'].toString())
+          : null,
+      discountPercentage: json['discountPercentage'] != null
+          ? double.tryParse(json['discountPercentage'].toString())
+          : null,
       currency: json['currency'] as String? ?? '฿',
       imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']) ?? '',
       cuisineType: json['cuisineType'] != null ? CuisineTypeDto.fromJson(json['cuisineType']) : null,
