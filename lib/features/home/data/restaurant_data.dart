@@ -33,6 +33,9 @@ class Restaurant {
   final String? originalDeliveryFee;
   final bool freeDeliveryActive;
 
+  /// Shop does not take platform free delivery, including a new user's first order.
+  final bool freeDeliveryOptOutOfGlobal;
+
   // New fields for Overview Page
   final String? address;
   final String? addressMm;
@@ -124,6 +127,7 @@ class Restaurant {
     this.deliveryFee,
     this.originalDeliveryFee,
     this.freeDeliveryActive = false,
+    this.freeDeliveryOptOutOfGlobal = false,
     this.myDays = const [],
   }) : _name = name;
 
@@ -156,6 +160,7 @@ class Restaurant {
     String? deliveryFee,
     String? originalDeliveryFee,
     bool? freeDeliveryActive,
+    bool? freeDeliveryOptOutOfGlobal,
     String? address,
     String? addressMm,
     String? addressTh,
@@ -202,6 +207,8 @@ class Restaurant {
       deliveryFee: deliveryFee ?? this.deliveryFee,
       originalDeliveryFee: originalDeliveryFee ?? this.originalDeliveryFee,
       freeDeliveryActive: freeDeliveryActive ?? this.freeDeliveryActive,
+      freeDeliveryOptOutOfGlobal:
+          freeDeliveryOptOutOfGlobal ?? this.freeDeliveryOptOutOfGlobal,
       address: address ?? this.address,
       addressMm: addressMm ?? this.addressMm,
       addressTh: addressTh ?? this.addressTh,

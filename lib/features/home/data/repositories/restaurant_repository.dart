@@ -17,6 +17,7 @@ import 'package:mytogetherapp/core/location/geo_distance.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/utils/delivery_fee_estimate.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
@@ -652,6 +653,10 @@ class RestaurantRepository {
     return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
   }
 
+  bool _newUserFreeForShop(bool optedOut) {
+    return NewUserFreeDeliveryOffer.instance.applies && !optedOut;
+  }
+
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {
     double? distanceKmOverride,
@@ -682,16 +687,20 @@ class RestaurantRepository {
         dto: dto,
         distanceKmOverride: distanceKmOverride,
       ),
-      deliveryFee: dto.displayDeliveryFee ??
-          (dto.freeDeliveryActive
-              ? LocaleController.instance.tr('common.free')
-              : null),
+      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
+          ? LocaleController.instance.tr('common.free')
+          : dto.displayDeliveryFee ??
+              (dto.freeDeliveryActive
+                  ? LocaleController.instance.tr('common.free')
+                  : null),
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
-      freeDeliveryActive: dto.freeDeliveryActive ||
+      freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
+          dto.freeDeliveryActive ||
           DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       latitude: dto.latitude,
       longitude: dto.longitude,
@@ -740,12 +749,16 @@ class RestaurantRepository {
       deliveryEnabled: dto.deliveryEnabled,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
-      freeDeliveryActive: dto.freeDeliveryActive ||
+      freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
+          dto.freeDeliveryActive ||
           DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      deliveryFee: dto.displayDeliveryFee ??
-          (dto.freeDeliveryActive
-              ? LocaleController.instance.tr('common.free')
-              : null),
+      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
+          ? LocaleController.instance.tr('common.free')
+          : dto.displayDeliveryFee ??
+              (dto.freeDeliveryActive
+                  ? LocaleController.instance.tr('common.free')
+                  : null),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),

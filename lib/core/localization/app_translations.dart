@@ -78,6 +78,7 @@ class AppTranslations {
     'guest.welcome_banner_highlight': 'first order',
     'guest.welcome_banner_tail': ' today.',
     'guest.welcome_banner_cta': 'Sign up',
+    'delivery.first_order_free': 'Get free delivery on your first order',
 
     // Common
     'common.cancel': 'Cancel',
@@ -613,6 +614,8 @@ class AppTranslations {
     'coupon.offer_free': 'Buy & get free item(s)',
     'coupon.eligibility': 'Eligibility',
     'coupon.for_early_bird': 'Early bird users',
+    'coupon.for_referral': 'Referral users',
+    'coupon.referral': 'REFERRAL',
     'coupon.for_everyone': 'Everyone',
     'coupon.valid_from': 'Valid from',
     'coupon.required_items': 'Items you must buy',
@@ -992,6 +995,8 @@ class AppTranslations {
     'place.activity_games': 'Games & Arcade',
     'place.activity_rooftop': 'Rooftop & Views',
     'place.activity_night_market': 'Night Market',
+    'place.activity_shopping': 'Shopping',
+    'place.activity_sightseeing': 'Sightseeing',
     'place.section_activities': 'Activities & Sports',
     'place.section_pricing': 'Pricing & Plans',
     'place.section_amenities': 'Amenities & Facilities',
@@ -1301,6 +1306,7 @@ class AppTranslations {
     'guest.welcome_banner_highlight': 'အော်ဒါ',
     'guest.welcome_banner_tail': ' ကို ချက်ချင်းမှာယူလိုက်ပါ။',
     'guest.welcome_banner_cta': 'အကောင့်ဖွင့်မယ်',
+    'delivery.first_order_free': 'ပထမအော်ဒါ ပို့ခ အခမဲ့ ရယူပါ',
 
     // Common
     'common.cancel': 'မလုပ်တော့ပါ',
@@ -1828,6 +1834,8 @@ class AppTranslations {
     'coupon.offer_free': 'ဝယ်ယူပြီး အခမဲ့ပစ္စည်း ရယူပါ',
     'coupon.eligibility': 'အရည်အချင်း',
     'coupon.for_early_bird': 'အစောဆုံး အသုံးပြုသူများ',
+    'coupon.for_referral': 'ရည်ညွှန်းသူများ',
+    'coupon.referral': 'ရည်ညွှန်း',
     'coupon.for_everyone': 'အားလုံးအတွက်',
     'coupon.valid_from': 'စတင်အကျုံးဝင်ရက်',
     'coupon.required_items': 'ဝယ်ယူရမည့် ပစ္စည်းများ',
@@ -2204,6 +2212,8 @@ class AppTranslations {
     'place.activity_games': 'ဂိမ်းစင်တာ',
     'place.activity_rooftop': 'အမိုးဖွင့်ရှုခင်း',
     'place.activity_night_market': 'ညစျေးတန်း',
+    'place.activity_shopping': 'ဈေးဝယ်ထွက်',
+    'place.activity_sightseeing': 'အပျော်ခရီး',
     'place.section_activities': 'လှုပ်ရှားမှုနှင့် အားကစားများ',
     'place.section_pricing': 'ဈေးနှုန်း အစီအစဉ်များ',
     'place.section_amenities': 'ဝန်ဆောင်မှုနှင့် အဆင်ပြေမှုများ',
@@ -2519,6 +2529,7 @@ class AppTranslations {
     'guest.welcome_banner_highlight': 'ออเดอร์แรก',
     'guest.welcome_banner_tail': ' ของคุณวันนี้',
     'guest.welcome_banner_cta': 'สมัครสมาชิก',
+    'delivery.first_order_free': 'รับส่งฟรีสำหรับออเดอร์แรก',
 
     // Common
     'common.cancel': 'ยกเลิก',
@@ -3047,6 +3058,8 @@ class AppTranslations {
     'coupon.offer_free': 'ซื้อแล้วรับฟรี',
     'coupon.eligibility': 'เงื่อนไขผู้ใช้',
     'coupon.for_early_bird': 'ผู้ใช้มาก่อนได้ก่อน',
+    'coupon.for_referral': 'ผู้ใช้ที่แนะนำ',
+    'coupon.referral': 'แนะนำ',
     'coupon.for_everyone': 'ทุกคน',
     'coupon.valid_from': 'เริ่มใช้ได้',
     'coupon.required_items': 'รายการที่ต้องซื้อ',
@@ -3415,6 +3428,8 @@ class AppTranslations {
     'place.activity_games': 'เกมและอาร์เคด',
     'place.activity_rooftop': 'รูฟท็อปชมวิว',
     'place.activity_night_market': 'ตลาดนัดกลางคืน',
+    'place.activity_shopping': 'ช้อปปิ้ง',
+    'place.activity_sightseeing': 'ท่องเที่ยว',
     'place.section_activities': 'กิจกรรมและกีฬา',
     'place.section_pricing': 'ราคาและแพ็กเกจ',
     'place.section_amenities': 'สิ่งอำนวยความสะดวก',

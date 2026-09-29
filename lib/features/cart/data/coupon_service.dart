@@ -67,7 +67,7 @@ class CouponModel {
   final String promotionType; // BUY_X_GET_DISCOUNT | BUY_X_GET_FREE
   final String? discountType; // PERCENTAGE | FIXED_AMOUNT
   final double discountValue;
-  final String target; // ALL | EARLY_BIRD
+  final String target; // ALL | EARLY_BIRD | REFERRAL
   final String limitType; // ONE_TIME | PERMANENT
   /// Server-computed ฿-off (0 for BUY_X_GET_FREE — free lines, not food wipe).
   final double discountPreview;
@@ -186,6 +186,7 @@ class CouponModel {
   bool get isPercentage => (discountType ?? '').toUpperCase() == 'PERCENTAGE';
   bool get isFixed => (discountType ?? '').toUpperCase() == 'FIXED_AMOUNT';
   bool get isEarlyBird => target.toUpperCase() == 'EARLY_BIRD';
+  bool get isReferral => target.toUpperCase() == 'REFERRAL';
 
   /// Shop-wide buy-one-get-one (no configured BUY/GET lines in the API payload).
   bool get isBogoAllItems => bogoAllItems || (isFreeItem && items.isEmpty);
@@ -359,8 +360,9 @@ class CouponService {
   }
 
   /// Active coupons across all shops the user can still use, paginated.
-  /// [target] filters by `all` or `earlybird`; omit for default backend rules
-  /// (early-bird users see ALL + EARLY_BIRD).
+  /// [target] filters by `ALL`, `EARLY_BIRD`, or `REFERRAL`. Omit it for the
+  /// default rules: everyone sees ALL, early-bird users also see EARLY_BIRD,
+  /// and referral users also see REFERRAL.
   ///
   /// Throws on a request/parse failure so callers can tell a genuine empty
   /// result (hide the rail) apart from a transient error (retry). This matters

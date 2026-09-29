@@ -126,6 +126,7 @@ class ShopListItemDto {
   final double? longitude;
   final List<String> imageUrls;
   final bool freeDeliveryActive;
+  final bool freeDeliveryOptOutOfGlobal;
   final String? displayDeliveryFee;
   final String? originalDeliveryFee;
   final List<ShopMyDayDto> myDays;
@@ -197,6 +198,7 @@ class ShopListItemDto {
     this.longitude,
     this.imageUrls = const <String>[],
     this.freeDeliveryActive = false,
+    this.freeDeliveryOptOutOfGlobal = false,
     this.displayDeliveryFee,
     this.originalDeliveryFee,
     this.myDays = const [],
@@ -265,6 +267,7 @@ class ShopListItemDto {
           : null,
       imageUrls: imageUrls,
       freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       myDays: (json['myDays'] as List? ?? [])
@@ -420,6 +423,7 @@ class ShopDetailDto {
   final bool taxEnable;
   final bool isVerified;
   final bool freeDeliveryActive;
+  final bool freeDeliveryOptOutOfGlobal;
   final String? address;
   final String? addressMm;
   final String? addressTh;
@@ -523,6 +527,7 @@ class ShopDetailDto {
     this.deliveryTiers = const [],
     this.myDays = const [],
     this.freeDeliveryActive = false,
+    this.freeDeliveryOptOutOfGlobal = false,
     this.displayDeliveryFee,
   }) : _name = name,
        _estimatedTime = estimatedTime;
@@ -598,6 +603,7 @@ class ShopDetailDto {
           .where((d) => d.imageUrl.isNotEmpty && d.isActive)
           .toList(),
       freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
       displayDeliveryFee: ShopListItemDto._parseDeliveryFee(json),
     );
   }

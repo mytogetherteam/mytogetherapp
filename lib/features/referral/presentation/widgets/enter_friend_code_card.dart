@@ -122,7 +122,19 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
     }
 
     if (!widget.canClaim) {
-      return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Text(
+          'Referral codes can only be entered within 7 days of joining, and before your first order.',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+        ),
+      );
     }
 
     // Input state
@@ -174,8 +186,8 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
           const SizedBox(height: 8),
           Text(
             widget.isProgramActive
-                ? 'Enter their code to link your accounts. A welcome coupon is added if the program is offering one.'
-                : 'Enter their code after you join. Rewards are added only when the referral program is active.',
+                ? 'Enter their code within 7 days of joining, and before your first order. The welcome coupon can be used only by people it was granted to.'
+                : 'The referral program is paused. A code entered now is not saved. You can apply one within 7 days of joining, before your first order, once rewards are on.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,

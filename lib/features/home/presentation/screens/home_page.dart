@@ -34,6 +34,7 @@ import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
+import '../../data/new_user_free_delivery.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -62,6 +63,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Timer? _titleTimer;
   bool _showThemeNameInAppBar = false;
   int _jobVisitCount = 0;
+  bool _newUserFreeApplied = false;
 
   @override
   void initState() {
@@ -111,6 +113,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
+  }
+
+  void _onNewUserOfferChanged() {
+    final next = NewUserFreeDeliveryOffer.instance.applies;
+    if (!mounted || next == _newUserFreeApplied) return;
+    _newUserFreeApplied = next;
+    RestaurantRepository.instance.clearCache();
+    setState(() => _refreshKey++);
   }
 
   Future<void> _loadJobVisitCount() async {
@@ -264,6 +275,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 

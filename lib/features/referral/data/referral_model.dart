@@ -4,11 +4,16 @@ class UserReferralStatus {
   final bool canClaim;
   final bool isProgramActive;
 
+  /// Friends required before the referrer coupon is granted once.
+  /// Null means the referrer is rewarded on every claim, or is not rewarded.
+  final int? referrerTargetCount;
+
   const UserReferralStatus({
     this.myCode,
     this.claimedReferral,
     required this.canClaim,
     required this.isProgramActive,
+    this.referrerTargetCount,
   });
 
   factory UserReferralStatus.fromJson(Map<String, dynamic> json) =>
@@ -22,6 +27,7 @@ class UserReferralStatus {
             : null,
         canClaim: json['canClaim'] == true,
         isProgramActive: json['isProgramActive'] == true,
+        referrerTargetCount: (json['referrerTargetCount'] as num?)?.toInt(),
       );
 }
 

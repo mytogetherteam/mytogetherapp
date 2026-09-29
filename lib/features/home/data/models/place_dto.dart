@@ -42,6 +42,7 @@ class PricingPlanDto {
   });
 
   String get formattedPrice {
+    if (price <= 0) return 'Free';
     final priceStr = price % 1 == 0 ? price.toInt().toString() : price.toStringAsFixed(2);
     return '฿$priceStr${unit.isNotEmpty ? '/$unit' : ''}';
   }

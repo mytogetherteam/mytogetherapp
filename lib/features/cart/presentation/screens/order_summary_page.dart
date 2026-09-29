@@ -19,6 +19,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/delivery_fee_estimate.dart';
+import '../../../home/data/new_user_free_delivery.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
@@ -118,6 +119,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // 2. Shop details — cache first so FREE shows immediately (Grab-style),
         //    then refresh from API.
         _loadShopForCheckout(restaurantId);
+        NewUserFreeDeliveryOffer.instance.refresh().then((_) {
+          if (mounted) setState(() {});
+        });
 
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
@@ -489,12 +493,37 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  bool get _newUserFreeForLoadedShop {
+    if (!_isDelivery || !NewUserFreeDeliveryOffer.instance.applies) return false;
+    final shop = _restaurant;
+    if (shop == null) return false;
+    return !shop.freeDeliveryOptOutOfGlobal;
+  }
+
   bool get _isFreeDelivery {
+    if (_newUserFreeForLoadedShop) return true;
     if (_freeDeliveryActive) return true;
     final r = _restaurant;
     if (r == null) return false;
     if (r.freeDeliveryActive) return true;
     return DeliveryFeeEstimate.isFreeLabel(r.deliveryFee);
+  }
+
+  Widget _newUserFreeDeliveryNote() {
+    if (!_newUserFreeForLoadedShop) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        context.tr('delivery.first_order_free'),
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF067647),
+        ),
+      ),
+    );
   }
 
   String _getEstimatedDeliveryFeeText() {
@@ -769,6 +798,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         lastOrderNo: lastOrderNo,
         isFreeDelivery: _isDelivery && _isFreeDelivery,
       );
+      if (_isDelivery) {
+        NewUserFreeDeliveryOffer.instance.refresh();
+      }
       ActiveOrderState.instance.restaurantAddress =
           _restaurant?.address ??
           _restaurant?.addressEn ??
@@ -1215,6 +1247,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       ),
                                   ],
                                 ),
+                                _newUserFreeDeliveryNote(),
                               ],
 
                               // Delivery fee estimate appears after shop confirms.
@@ -1575,6 +1608,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                 ],
                               ),
+                              _newUserFreeDeliveryNote(),
                             ],
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),

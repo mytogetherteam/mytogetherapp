@@ -9,11 +9,13 @@ import 'edit_promote_code_dialog.dart';
 
 class PromoteCodeCard extends StatelessWidget {
   final MyReferralCode? myCode;
+  final int? referrerTargetCount;
   final VoidCallback onCodeUpdated;
 
   const PromoteCodeCard({
     super.key,
     required this.myCode,
+    this.referrerTargetCount,
     required this.onCodeUpdated,
   });
 
@@ -83,7 +85,35 @@ class PromoteCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (myCode == null || !myCode!.isActive) {
+    if (myCode != null && !myCode!.isActive) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            const Icon(PhosphorIcons.warningCircleFill, color: Colors.redAccent, size: 32),
+            const SizedBox(height: 12),
+            const Text(
+              'Promote code disabled',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'An admin turned off "${myCode!.code}". Saving a new code will not turn it back on.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (myCode == null) {
       // Empty state: Prompt user to create code
       return Container(
         width: double.infinity,
@@ -125,7 +155,7 @@ class PromoteCodeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Customize your personal code and share it with friends so they can enter it after they join.',
+              'Customize your personal code and share it with friends. They can enter it within 7 days of joining, before their first order.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -179,6 +209,12 @@ class PromoteCodeCard extends StatelessWidget {
     // Active Code State
     final code = myCode!.code;
     final usedCount = myCode!.usedCount;
+    final goal = referrerTargetCount;
+    final joinedLabel = goal == null
+        ? '$usedCount ${usedCount == 1 ? "friend joined" : "friends joined"}'
+        : usedCount >= goal
+            ? '$usedCount of $goal friends · reward earned'
+            : '$usedCount of $goal friends';
 
     return Container(
       width: double.infinity,
@@ -310,7 +346,7 @@ class PromoteCodeCard extends StatelessWidget {
                             color: Colors.white, size: 16),
                         const SizedBox(width: 6),
                         Text(
-                          '$usedCount ${usedCount == 1 ? "friend joined" : "friends joined"}',
+                          joinedLabel,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,

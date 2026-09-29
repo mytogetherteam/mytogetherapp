@@ -7,6 +7,7 @@ import 'package:mytogetherapp/features/auth/data/repositories/user_location_repo
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
@@ -44,6 +45,7 @@ class _FoodPageState extends State<FoodPage> {
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
   bool _isScrolled = false;
+  bool _newUserFreeApplied = false;
 
   @override
   void initState() {
@@ -57,6 +59,15 @@ class _FoodPageState extends State<FoodPage> {
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
+  }
+
+  void _onNewUserOfferChanged() {
+    final next = NewUserFreeDeliveryOffer.instance.applies;
+    if (!mounted || next == _newUserFreeApplied) return;
+    _newUserFreeApplied = next;
+    RestaurantRepository.instance.clearCache();
+    setState(() => _refreshKey = UniqueKey());
   }
 
   @override
@@ -67,6 +78,7 @@ class _FoodPageState extends State<FoodPage> {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 

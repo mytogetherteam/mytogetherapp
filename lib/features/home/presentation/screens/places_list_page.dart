@@ -40,6 +40,8 @@ const List<_ActivityFilterItem> _activityFilters = [
   _ActivityFilterItem(key: "GAMES", labelKey: "place.activity_games", defaultLabel: "Games", icon: "🎳"),
   _ActivityFilterItem(key: "ROOFTOP_VIEW", labelKey: "place.activity_rooftop", defaultLabel: "Rooftop", icon: "🏙️"),
   _ActivityFilterItem(key: "NIGHT_MARKET", labelKey: "place.activity_night_market", defaultLabel: "Night Market", icon: "🏮"),
+  _ActivityFilterItem(key: "SHOPPING", labelKey: "place.activity_shopping", defaultLabel: "Shopping", icon: "🛍️"),
+  _ActivityFilterItem(key: "SIGHTSEEING", labelKey: "place.activity_sightseeing", defaultLabel: "Sightseeing", icon: "🗺️"),
 ];
 
 class PlacesListPage extends StatefulWidget {

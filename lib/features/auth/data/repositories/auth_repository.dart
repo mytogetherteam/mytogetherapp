@@ -10,6 +10,7 @@ import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
 import '../../../../core/auth/session_realtime.dart';
 import 'user_location_repository.dart';
+import '../../../home/data/new_user_free_delivery.dart';
 
 class AuthRepository {
   static final AuthRepository instance = AuthRepository._internal();
@@ -36,6 +37,7 @@ class AuthRepository {
 
       await _saveSession(response, profile: profile, locations: locations);
       await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -63,6 +65,7 @@ class AuthRepository {
       final locations = await _dataSource.getUserLocations();
       await _saveSession(session, profile: profile, locations: locations);
       await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
       return result;
     } on DioException catch (e) {
       throw _parseError(e);
@@ -87,6 +90,7 @@ class AuthRepository {
 
       await _saveSession(response, profile: profile, locations: locations);
       await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -124,6 +128,7 @@ class AuthRepository {
       await UserLocationRepository.instance.ensureSessionCurrentLocationFromDevice(
         requestPermissionIfDenied: false,
       );
+      await NewUserFreeDeliveryOffer.instance.refresh();
     }
   }
 
@@ -175,6 +180,7 @@ class AuthRepository {
     } finally {
       NotificationRepository().setUnreadCount(0);
       await AuthService().clearSession(navigate: false);
+      await NewUserFreeDeliveryOffer.instance.refresh();
     }
   }
 
