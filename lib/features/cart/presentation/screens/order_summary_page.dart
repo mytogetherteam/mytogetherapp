@@ -101,6 +101,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     // Stay in sync with primary-location changes made from any selection path
     // (the modal, or the full search page that may close without a callback).
     UserLocationRepository.instance.addListener(_onLocationRepositoryChanged);
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
     if (widget.store.items.isNotEmpty) {
       final restaurantIdString = widget.store.items.first.restaurantId;
       final restaurantId = int.tryParse(restaurantIdString);
@@ -119,9 +120,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         // 2. Shop details — cache first so FREE shows immediately (Grab-style),
         //    then refresh from API.
         _loadShopForCheckout(restaurantId);
-        NewUserFreeDeliveryOffer.instance.refresh().then((_) {
-          if (mounted) setState(() {});
-        });
+        NewUserFreeDeliveryOffer.instance.refresh();
 
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
@@ -153,13 +152,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (!mounted) return;
       setState(() {
         _restaurant = shop;
-        _freeDeliveryActive = shop.freeDeliveryActive ||
-            DeliveryFeeEstimate.isFreeLabel(shop.deliveryFee) ||
-            _freeDeliveryActive;
+        // Replace the cached flag. A newer shop response must be able to turn Free off.
+        _freeDeliveryActive = shop.shopPromoFreeDelivery;
       });
       _preFetchRoute();
     } catch (_) {
-      // Keep any cache-derived FREE flag; route estimate can still run later.
+      // A saved Free flag is not safe once the shop response failed.
+      if (!mounted) return;
+      setState(() => _freeDeliveryActive = false);
     }
   }
 
@@ -338,9 +338,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  void _onNewUserOfferChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     UserLocationRepository.instance.removeListener(_onLocationRepositoryChanged);
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 
@@ -502,11 +507,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   bool get _isFreeDelivery {
     if (_newUserFreeForLoadedShop) return true;
-    if (_freeDeliveryActive) return true;
-    final r = _restaurant;
-    if (r == null) return false;
-    if (r.freeDeliveryActive) return true;
-    return DeliveryFeeEstimate.isFreeLabel(r.deliveryFee);
+    final shop = _restaurant;
+    if (shop != null) return shop.shopPromoFreeDelivery;
+    return _freeDeliveryActive;
   }
 
   Widget _newUserFreeDeliveryNote() {

@@ -45,7 +45,7 @@ class _FoodPageState extends State<FoodPage> {
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
   bool _isScrolled = false;
-  bool _newUserFreeApplied = false;
+  bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
   @override
   void initState() {

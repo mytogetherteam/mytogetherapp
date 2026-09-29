@@ -699,6 +699,8 @@ class RestaurantRepository {
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      shopPromoFreeDelivery: dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
           dto.freeDeliveryActive ||
           DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
@@ -750,6 +752,8 @@ class RestaurantRepository {
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      shopPromoFreeDelivery: dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
           dto.freeDeliveryActive ||
           DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),

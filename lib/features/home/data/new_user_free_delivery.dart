@@ -18,9 +18,12 @@ class NewUserFreeDeliveryOffer extends ChangeNotifier {
   bool get showBanner =>
       enabled && (!AuthService().isLoggedIn || eligible);
 
-  Future<void> refresh() async {
-    final previousApplies = applies;
-    final previousBanner = showBanner;
+  Future<void> refresh({
+    bool? baselineApplies,
+    bool? baselineBanner,
+  }) async {
+    final previousApplies = baselineApplies ?? applies;
+    final previousBanner = baselineBanner ?? showBanner;
     try {
       final response = await ApiClient().dio.get(
         '${ApiClient.apiPrefix}/free-delivery/new-user',
@@ -37,5 +40,17 @@ class NewUserFreeDeliveryOffer extends ChangeNotifier {
     if (applies != previousApplies || showBanner != previousBanner) {
       notifyListeners();
     }
+  }
+
+  /// Call after the session is cleared. [signedInApplies] and [signedInBanner]
+  /// are the values from before sign-out, while the account was still active.
+  Future<void> refreshAfterSignOut({
+    required bool signedInApplies,
+    required bool signedInBanner,
+  }) async {
+    if (applies != signedInApplies || showBanner != signedInBanner) {
+      notifyListeners();
+    }
+    await refresh();
   }
 }

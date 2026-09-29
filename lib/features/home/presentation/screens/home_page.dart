@@ -63,7 +63,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Timer? _titleTimer;
   bool _showThemeNameInAppBar = false;
   int _jobVisitCount = 0;
-  bool _newUserFreeApplied = false;
+  bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
   @override
   void initState() {

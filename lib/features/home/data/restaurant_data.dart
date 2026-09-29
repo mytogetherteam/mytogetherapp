@@ -33,6 +33,9 @@ class Restaurant {
   final String? originalDeliveryFee;
   final bool freeDeliveryActive;
 
+  /// Shop window or all-shops campaign from the server. The first-order offer is separate.
+  final bool shopPromoFreeDelivery;
+
   /// Shop does not take platform free delivery, including a new user's first order.
   final bool freeDeliveryOptOutOfGlobal;
 
@@ -127,6 +130,7 @@ class Restaurant {
     this.deliveryFee,
     this.originalDeliveryFee,
     this.freeDeliveryActive = false,
+    this.shopPromoFreeDelivery = false,
     this.freeDeliveryOptOutOfGlobal = false,
     this.myDays = const [],
   }) : _name = name;
@@ -160,6 +164,7 @@ class Restaurant {
     String? deliveryFee,
     String? originalDeliveryFee,
     bool? freeDeliveryActive,
+    bool? shopPromoFreeDelivery,
     bool? freeDeliveryOptOutOfGlobal,
     String? address,
     String? addressMm,
@@ -207,6 +212,8 @@ class Restaurant {
       deliveryFee: deliveryFee ?? this.deliveryFee,
       originalDeliveryFee: originalDeliveryFee ?? this.originalDeliveryFee,
       freeDeliveryActive: freeDeliveryActive ?? this.freeDeliveryActive,
+      shopPromoFreeDelivery:
+          shopPromoFreeDelivery ?? this.shopPromoFreeDelivery,
       freeDeliveryOptOutOfGlobal:
           freeDeliveryOptOutOfGlobal ?? this.freeDeliveryOptOutOfGlobal,
       address: address ?? this.address,

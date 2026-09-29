@@ -123,12 +123,18 @@ class AuthRepository {
       // Main goal is ensuring the user is locally logged out.
     } finally {
       NotificationRepository().setUnreadCount(0);
+      final offer = NewUserFreeDeliveryOffer.instance;
+      final signedInApplies = offer.applies;
+      final signedInBanner = offer.showBanner;
       await AuthService().clearSession(navigate: false);
+      await offer.refreshAfterSignOut(
+        signedInApplies: signedInApplies,
+        signedInBanner: signedInBanner,
+      );
       UserLocationRepository.instance.clearCachedLocationsForSignOut();
       await UserLocationRepository.instance.ensureSessionCurrentLocationFromDevice(
         requestPermissionIfDenied: false,
       );
-      await NewUserFreeDeliveryOffer.instance.refresh();
     }
   }
 
@@ -179,8 +185,14 @@ class AuthRepository {
       throw _parseError(e);
     } finally {
       NotificationRepository().setUnreadCount(0);
+      final offer = NewUserFreeDeliveryOffer.instance;
+      final signedInApplies = offer.applies;
+      final signedInBanner = offer.showBanner;
       await AuthService().clearSession(navigate: false);
-      await NewUserFreeDeliveryOffer.instance.refresh();
+      await offer.refreshAfterSignOut(
+        signedInApplies: signedInApplies,
+        signedInBanner: signedInBanner,
+      );
     }
   }
 
