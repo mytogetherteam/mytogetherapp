@@ -4,17 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
+import 'package:mytogetherapp/core/config/env_config.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
+import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../../data/models/post_dto.dart';
 import '../../data/repositories/social_posts_repository.dart';
 import 'package:video_player/video_player.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import '../widgets/social_comments_sheet.dart';
 import '../widgets/social_feed_status_view.dart';
+import '../widgets/social_media_pager.dart';
 import '../widgets/social_media_view.dart';
 import 'create_social_post_page.dart';
 
@@ -337,6 +342,39 @@ class _SocialPageState extends State<SocialPage> {
   }
 }
 
+/// One saved post, opened from Saved Items.
+class SocialPostViewerPage extends StatelessWidget {
+  final SocialPostDto post;
+
+  const SocialPostViewerPage({super.key, required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          _SocialFeedItem(post: post, isActive: true),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SocialFeedItem extends StatefulWidget {
   final SocialPostDto post;
   final bool isActive;
@@ -356,8 +394,16 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   late bool _liked;
   late int _likeCount;
   late int _commentCount;
+  late bool _saved;
+  bool _saving = false;
+  bool _liking = false;
+  bool _reporting = false;
+  bool _captionExpanded = false;
+  bool _sheetOpen = false;
   int _mediaIndex = 0;
   late PageController _horizontalController;
+  final GlobalKey _likeKey = GlobalKey();
+  final List<_HeartBurst> _bursts = [];
 
   @override
   void initState() {
@@ -366,6 +412,20 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     _liked = widget.post.likedByMe;
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
+    _saved = widget.post.savedByMe;
+    WishlistRepository.instance.addListener(_onWishlistChanged);
+  }
+
+  void _onWishlistChanged() {
+    if (!mounted || _saving) return;
+    final repo = WishlistRepository.instance;
+    if (!repo.knowsPost(widget.post.id)) return;
+    final saved = repo.isPostSaved(widget.post.id);
+    if (saved == _saved) return;
+    setState(() {
+      _saved = saved;
+      widget.post.savedByMe = saved;
+    });
   }
 
   @override
@@ -375,6 +435,8 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
       _liked = widget.post.likedByMe;
       _likeCount = widget.post.likeCount;
       _commentCount = widget.post.commentCount;
+      _saved = widget.post.savedByMe;
+      _captionExpanded = false;
       _mediaIndex = 0;
       if (_horizontalController.hasClients) {
         _horizontalController.jumpToPage(0);
@@ -384,6 +446,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
 
   @override
   void dispose() {
+    WishlistRepository.instance.removeListener(_onWishlistChanged);
     _horizontalController.dispose();
     super.dispose();
   }
@@ -398,16 +461,31 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     return '$value';
   }
 
-  Future<void> _toggleLike() async {
+  Future<void> _toggleLike({bool burstAtButton = false}) async {
+    if (_liking) return;
+    _liking = true;
+    try {
+      await _toggleLikeBody(burstAtButton: burstAtButton);
+    } finally {
+      _liking = false;
+    }
+  }
+
+  Future<void> _toggleLikeBody({required bool burstAtButton}) async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
     AppHaptics.buttonTap();
 
     final previousLiked = _liked;
     final previousCount = _likeCount;
     setState(() {
       _liked = !_liked;
-      _likeCount += _liked ? 1 : -1;
+      final next = _likeCount + (_liked ? 1 : -1);
+      _likeCount = next < 0 ? 0 : next;
     });
+    if (_liked && burstAtButton) {
+      _showHeart(_buttonCenter() ?? _feedCenter());
+    }
 
     try {
       final result =
@@ -428,69 +506,173 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     }
   }
 
-  void _handleDoubleTapLike() {
+  void _handleDoubleTapLike({bool showHeart = false}) {
+    if (showHeart) _showHeart(_feedCenter());
     if (!_liked) {
       _toggleLike();
     }
+  }
+
+  Offset _feedCenter() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      final size = MediaQuery.sizeOf(context);
+      return Offset(size.width / 2, size.height / 2);
+    }
+    return box.size.center(Offset.zero);
+  }
+
+  Offset? _buttonCenter() {
+    final button = _likeKey.currentContext?.findRenderObject() as RenderBox?;
+    final stack = context.findRenderObject() as RenderBox?;
+    if (button == null ||
+        stack == null ||
+        !button.attached ||
+        !button.hasSize) {
+      return null;
+    }
+    return button.localToGlobal(
+      button.size.center(Offset.zero),
+      ancestor: stack,
+    );
+  }
+
+  void _showHeart(Offset position) {
+    final id = UniqueKey();
+    setState(() => _bursts.add(_HeartBurst(id, position)));
+  }
+
+  void _removeHeart(Key id) {
+    if (!mounted) return;
+    setState(() => _bursts.removeWhere((burst) => burst.id == id));
+  }
+
+  Future<void> _toggleSave() async {
+    if (_saving) return;
+    _saving = true;
+    var changed = false;
+    var previousSaved = _saved;
+    try {
+      if (!await GuestAuthGuard.requireAccount(context)) return;
+      if (!mounted) return;
+      AppHaptics.buttonTap();
+
+      previousSaved = _saved;
+      changed = true;
+      setState(() => _saved = !previousSaved);
+
+      final saved =
+          await WishlistRepository.instance.togglePost(widget.post.id);
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        widget.post.savedByMe = saved;
+      });
+      AppDialog.showToast(
+        context,
+        context.tr(saved ? 'wishlist.saved' : 'wishlist.removed'),
+      );
+    } catch (_) {
+      if (!mounted || !changed) return;
+      setState(() => _saved = previousSaved);
+      AppDialog.showToast(
+        context,
+        context.tr('common.favorite_failed'),
+        isError: true,
+      );
+    } finally {
+      _saving = false;
+    }
+  }
+
+  String _postShareUrl() {
+    final origin = EnvConfig.isStaging
+        ? 'http://localhost:3001'
+        : 'https://api.mytogether.org';
+    return '$origin/p/${widget.post.id}';
+  }
+
+  Future<void> _sharePost() async {
+    AppHaptics.buttonTap();
+    final author = widget.post.author.displayName.trim();
+    final caption = widget.post.caption.trim();
+    final text = [
+      if (author.isNotEmpty) author,
+      if (caption.isNotEmpty) caption,
+      _postShareUrl(),
+    ].join('\n');
+    try {
+      await SharePlus.instance.share(ShareParams(text: text));
+    } catch (_) {}
   }
 
   Future<void> _openComments() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
     if (!mounted) return;
     AppHaptics.buttonTap();
+    setState(() => _sheetOpen = true);
     final updatedCount = await showSocialCommentsSheet(
       context: context,
       post: widget.post,
     );
     if (!mounted) return;
     setState(() {
+      _sheetOpen = false;
       _commentCount = updatedCount ?? widget.post.commentCount;
     });
   }
 
-  void _showMoreOptions(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _showMoreOptions() async {
+    setState(() => _sheetOpen = true);
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: 40,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: 24),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(PhosphorIcons.warningCircle, color: Colors.red),
-                  ),
-                  title: Text(
-                    context.tr('social.report_post'),
-                    style: GoogleFonts.poppins(
-                      color: Colors.red,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                _MoreTile(
+                  icon: _saved
+                      ? PhosphorIcons.bookmarkFill
+                      : PhosphorIcons.bookmark,
+                  iconColor: _saved ? const Color(0xFFFFC107) : Colors.white,
+                  label: context.tr(_saved ? 'social.saved' : 'social.save'),
                   onTap: () {
-                    Navigator.pop(context);
-                    _showReportConfirmation(context);
+                    Navigator.pop(sheetContext);
+                    _toggleSave();
+                  },
+                ),
+                _MoreTile(
+                  icon: PhosphorIcons.paperPlaneTilt,
+                  label: context.tr('social.share'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _sharePost();
+                  },
+                ),
+                _MoreTile(
+                  icon: PhosphorIcons.warningCircle,
+                  iconColor: Colors.red,
+                  label: context.tr('social.report_post'),
+                  labelColor: Colors.red,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showReportConfirmation();
                   },
                 ),
               ],
@@ -499,9 +681,39 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         );
       },
     );
+    if (mounted) setState(() => _sheetOpen = false);
   }
 
-  void _showReportConfirmation(BuildContext context) {
+  Future<void> _submitReport() async {
+    if (_reporting) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+    _reporting = true;
+    try {
+      await SocialPostsRepository.instance.reportPost(widget.post.id);
+      if (!mounted) return;
+      AppDialog.showToast(context, context.tr('social.report_submitted'));
+    } on ReportOwnPostException {
+      if (!mounted) return;
+      AppDialog.showToast(
+        context,
+        context.tr('social.report_own'),
+        isError: true,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppDialog.showToast(
+        context,
+        context.tr('social.report_failed'),
+        isError: true,
+      );
+    } finally {
+      _reporting = false;
+    }
+  }
+
+  void _showReportConfirmation() {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -537,15 +749,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    context.tr('social.report_submitted'),
-                    style: GoogleFonts.poppins(),
-                  ),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              _submitReport();
             },
             child: Text(
               context.tr('social.report'),
@@ -570,9 +774,8 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         fit: StackFit.expand,
         children: [
           if (media.isNotEmpty)
-            PageView.builder(
+            SocialMediaPager(
               controller: _horizontalController,
-              scrollDirection: Axis.horizontal,
               itemCount: media.length,
               onPageChanged: (index) {
                 setState(() => _mediaIndex = index);
@@ -581,14 +784,19 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                 return SocialMediaView(
                   key: ValueKey('${widget.post.id}-${media[index].id}'),
                   media: media[index],
-                  isActive: widget.isActive && _mediaIndex == index,
+                  isActive: widget.isActive &&
+                      !_sheetOpen &&
+                      _mediaIndex == index,
                   preloadedController: index == 0 ? widget.preloadedController : null,
                   onDoubleTapScreen: _handleDoubleTapLike,
                 );
               },
             )
           else
-            _TextOnlyBackdrop(caption: widget.post.caption),
+            GestureDetector(
+              onDoubleTap: () => _handleDoubleTapLike(showHeart: true),
+              child: _TextOnlyBackdrop(caption: widget.post.caption),
+            ),
           // IgnorePointer is REQUIRED — BoxDecoration.hitTest() returns true
           // for every point inside the rect, so without IgnorePointer this
           // gradient swallows all taps before they reach SocialMediaView.
@@ -670,25 +878,40 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                     authorName: widget.post.author.displayName,
                   ),
                   const SizedBox(height: 20),
-                  _RailAction(
-                    icon: PhosphorIcons.heartFill,
+                  _LikeRailButton(
+                    key: _likeKey,
+                    postId: widget.post.id,
+                    liked: _liked,
                     label: _formatCount(_likeCount),
-                    iconColor: _liked
-                        ? const Color(0xFFFF2D55)
-                        : Colors.white,
-                    onTap: _toggleLike,
+                    onTap: () => _toggleLike(burstAtButton: true),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
                   _RailAction(
                     icon: PhosphorIcons.chatCircleDotsFill,
                     label: _formatCount(_commentCount),
                     onTap: _openComments,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
+                  _RailAction(
+                    icon: PhosphorIcons.paperPlaneTiltFill,
+                    label: context.tr('social.share'),
+                    onTap: _sharePost,
+                  ),
+                  const SizedBox(height: 14),
+                  _RailAction(
+                    icon: _saved
+                        ? PhosphorIcons.bookmarkFill
+                        : PhosphorIcons.bookmark,
+                    label: context.tr(_saved ? 'social.saved' : 'social.save'),
+                    iconColor:
+                        _saved ? const Color(0xFFFFC107) : Colors.white,
+                    onTap: _toggleSave,
+                  ),
+                  const SizedBox(height: 14),
                   _RailAction(
                     icon: PhosphorIcons.dotsThreeCircle,
                     label: context.tr('common.more'),
-                    onTap: () => _showMoreOptions(context),
+                    onTap: _showMoreOptions,
                   ),
                 ],
               ),
@@ -714,24 +937,396 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                     ),
                   ),
                   if (widget.post.caption.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.post.caption,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
-                    ),
+                    const SizedBox(height: 6),
+                    _buildCaption(),
                   ],
+                  const SizedBox(height: 6),
+                  Text(
+                    context.relativeTime(widget.post.createdAt),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white60,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
+          for (final burst in _bursts)
+            _BurstHeart(
+              key: burst.id,
+              position: burst.position,
+              onComplete: () => _removeHeart(burst.id),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCaption() {
+    final caption = widget.post.caption;
+    final body = GoogleFonts.poppins(
+      color: Colors.white.withValues(alpha: 0.95),
+      fontSize: 14,
+      height: 1.35,
+    );
+    final action = GoogleFonts.poppins(
+      color: Colors.white70,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      height: 1.35,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final more = context.tr('social.see_more');
+        final less = context.tr('social.see_less');
+        final prefix = _captionPrefix(
+          caption: caption,
+          body: body,
+          action: action,
+          maxWidth: constraints.maxWidth,
+          direction: Directionality.of(context),
+          scaler: MediaQuery.textScalerOf(context),
+          more: more,
+        );
+        final overflow = prefix != null;
+        if (!overflow) {
+          return Text(caption, style: body);
+        }
+        final shown = _captionExpanded ? caption : prefix;
+        final text = Text.rich(
+          TextSpan(
+            style: body,
+            children: [
+              TextSpan(text: shown),
+              if (!_captionExpanded) ...[
+                const TextSpan(text: '… '),
+                TextSpan(text: more, style: action),
+              ],
+            ],
+          ),
+          maxLines: _captionExpanded ? 8 : 2,
+          overflow: TextOverflow.ellipsis,
+        );
+        return GestureDetector(
+          onTap: () => setState(() => _captionExpanded = !_captionExpanded),
+          child: _captionExpanded
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    text,
+                    const SizedBox(height: 4),
+                    Text(less, style: action),
+                  ],
+                )
+              : text,
+        );
+      },
+    );
+  }
+}
+
+/// The collapsed caption, cut on a word when the script uses spaces.
+/// Null when the full caption already fits in two lines.
+String? _captionPrefix({
+  required String caption,
+  required TextStyle body,
+  required TextStyle action,
+  required double maxWidth,
+  required TextDirection direction,
+  required TextScaler scaler,
+  required String more,
+}) {
+  bool fits(String text, {required bool withMore}) {
+    final painter = TextPainter(
+      text: TextSpan(
+        children: [
+          TextSpan(text: text, style: body),
+          if (withMore) ...[
+            TextSpan(text: '… ', style: body),
+            TextSpan(text: more, style: action),
+          ],
+        ],
+      ),
+      maxLines: 2,
+      textDirection: direction,
+      textScaler: scaler,
+    )..layout(maxWidth: maxWidth);
+    final overflow = painter.didExceedMaxLines;
+    painter.dispose();
+    return !overflow;
+  }
+
+  if (fits(caption, withMore: false)) return null;
+
+  var low = 0;
+  var high = caption.length;
+  var best = 0;
+  while (low <= high) {
+    final mid = (low + high) >> 1;
+    final slice = caption.substring(0, mid).trimRight();
+    if (slice.isEmpty) {
+      low = mid + 1;
+      continue;
+    }
+    if (fits(slice, withMore: true)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  if (best <= 0) return '';
+  var end = best;
+  if (end < caption.length) {
+    final raw = caption.substring(0, end);
+    final atBoundary = RegExp(r'\s').hasMatch(raw[raw.length - 1]) ||
+        RegExp(r'\s').hasMatch(caption[end]);
+    if (!atBoundary) {
+      final space = raw.lastIndexOf(RegExp(r'\s'));
+      if (space > 0) end = space;
+    }
+  }
+  final trimmed = caption.substring(0, end).trimRight();
+  if (trimmed.isEmpty || !fits(trimmed, withMore: true)) {
+    return caption.substring(0, best).trimRight();
+  }
+  return trimmed;
+}
+
+class _HeartBurst {
+  final UniqueKey id;
+  final Offset position;
+  _HeartBurst(this.id, this.position);
+}
+
+class _BurstHeart extends StatefulWidget {
+  final Offset position;
+  final VoidCallback onComplete;
+
+  const _BurstHeart({
+    required Key key,
+    required this.position,
+    required this.onComplete,
+  }) : super(key: key);
+
+  @override
+  State<_BurstHeart> createState() => _BurstHeartState();
+}
+
+class _BurstHeartState extends State<_BurstHeart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _opacity;
+  late final Animation<double> _rise;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.2, end: 1.15)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 45,
+      ),
+      TweenSequenceItem(tween: ConstantTween(1.15), weight: 25),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.15, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 30,
+      ),
+    ]).animate(_controller);
+    _opacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 70),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 0.0),
+        weight: 30,
+      ),
+    ]).animate(_controller);
+    _rise = Tween<double>(begin: 0, end: -72).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _controller.forward().then((_) {
+      if (mounted) widget.onComplete();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: widget.position.dx - 42,
+      top: widget.position.dy - 42,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _rise.value),
+              child: Opacity(
+                opacity: _opacity.value,
+                child: Transform.scale(scale: _scale.value, child: child),
+              ),
+            );
+          },
+          child: const Icon(
+            PhosphorIcons.heartFill,
+            color: Color(0xFFFF2D55),
+            size: 84,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LikeRailButton extends StatefulWidget {
+  final int postId;
+  final bool liked;
+  final String label;
+  final VoidCallback onTap;
+
+  const _LikeRailButton({
+    super.key,
+    required this.postId,
+    required this.liked,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_LikeRailButton> createState() => _LikeRailButtonState();
+}
+
+class _LikeRailButtonState extends State<_LikeRailButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.35)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 42,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.35, end: 0.92)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 28,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 0.92, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LikeRailButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.postId == widget.postId && oldWidget.liked != widget.liked) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.liked ? const Color(0xFFFF2D55) : Colors.white;
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          ScaleTransition(
+            scale: _scale,
+            child: Icon(
+              PhosphorIcons.heartFill,
+              color: color,
+              size: 34,
+              shadows: const [
+                Shadow(
+                  color: Colors.black54,
+                  blurRadius: 6,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.label,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              shadows: const [
+                Shadow(
+                  color: Colors.black54,
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoreTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color iconColor;
+  final Color labelColor;
+
+  const _MoreTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.iconColor = Colors.white,
+    this.labelColor = Colors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(
+        label,
+        style: GoogleFonts.poppins(
+          color: labelColor,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }

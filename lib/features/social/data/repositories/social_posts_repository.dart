@@ -18,6 +18,8 @@ class SocialPostsFeedPage {
   });
 }
 
+class ReportOwnPostException implements Exception {}
+
 class SocialPostsRepository {
   static final SocialPostsRepository instance = SocialPostsRepository._();
   SocialPostsRepository._();
@@ -76,6 +78,17 @@ class SocialPostsRepository {
       response.data,
       SocialPostDto.fromJson,
     );
+  }
+
+  Future<void> reportPost(int id) async {
+    try {
+      await _dio.post('${ApiClient.apiPrefix}/user/posts/$id/report');
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 403) {
+        throw ReportOwnPostException();
+      }
+      rethrow;
+    }
   }
 
   Future<({bool liked, int likeCount})> toggleLike(int id) async {

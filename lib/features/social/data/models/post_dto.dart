@@ -136,6 +136,7 @@ class SocialPostDto {
   int likeCount;
   int commentCount;
   bool likedByMe;
+  bool savedByMe;
 
   SocialPostDto({
     required this.id,
@@ -147,6 +148,7 @@ class SocialPostDto {
     required this.likeCount,
     required this.commentCount,
     required this.likedByMe,
+    this.savedByMe = false,
   });
 
   SocialPostMediaDto? get primaryMedia =>
@@ -179,6 +181,7 @@ class SocialPostDto {
       likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
       likedByMe: json['likedByMe'] == true,
+      savedByMe: json['savedByMe'] == true,
     );
   }
 }

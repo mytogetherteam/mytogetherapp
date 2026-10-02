@@ -42,7 +42,12 @@ class _SocialMediaViewState extends State<SocialMediaView>
   bool _muted = false;
 
   Timer? _tapTimer;
-  DateTime? _lastTapTime;
+  DateTime? _lastTapUp;
+  Offset? _pointerDown;
+  bool _pointerMoved = false;
+  bool _ignoreUp = false;
+  /// The first tap already changed playback. A second tap puts it back.
+  bool _singleTapPending = false;
   final List<_HeartAnim> _hearts = [];
 
   // ── Center icon animation ────────────────────────────────────────────
@@ -154,27 +159,61 @@ class _SocialMediaViewState extends State<SocialMediaView>
     _localController = null;
   }
 
-  void _handleTapDown(TapDownDetails details) {
+  void _onPointerDown(PointerDownEvent event) {
     final now = DateTime.now();
-    if (_lastTapTime != null && now.difference(_lastTapTime!) < const Duration(milliseconds: 300)) {
-      // Double tap detected
+    if (_lastTapUp != null &&
+        now.difference(_lastTapUp!) < const Duration(milliseconds: 280)) {
       _tapTimer?.cancel();
-      _tapTimer = null;
-      _lastTapTime = null; // Reset to allow subsequent independent taps
-      
-      _showHeart(details.localPosition);
-      if (widget.onDoubleTapScreen != null) {
-        widget.onDoubleTapScreen!();
+      _lastTapUp = null;
+      _ignoreUp = true;
+      _pointerMoved = true;
+      if (_singleTapPending) {
+        _togglePlayback(showIcon: false);
+        _singleTapPending = false;
       }
-    } else {
-      _lastTapTime = now;
-      _tapTimer?.cancel();
-      _tapTimer = Timer(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          _onTapVideo();
-        }
-      });
+      _showHeart(event.localPosition);
+      widget.onDoubleTapScreen?.call();
+      return;
     }
+    _ignoreUp = false;
+    _pointerMoved = false;
+    _pointerDown = event.position;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final origin = _pointerDown;
+    if (origin != null && (event.position - origin).distance > 12) {
+      _pointerMoved = true;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (_ignoreUp) {
+      _ignoreUp = false;
+      _pointerDown = null;
+      return;
+    }
+    _pointerDown = null;
+    if (_pointerMoved) {
+      _pointerMoved = false;
+      return;
+    }
+    _lastTapUp = DateTime.now();
+    _singleTapPending = _togglePlayback(showIcon: false);
+    _tapTimer?.cancel();
+    _tapTimer = Timer(const Duration(milliseconds: 280), () {
+      if (!mounted) return;
+      _lastTapUp = null;
+      if (!_singleTapPending) return;
+      _singleTapPending = false;
+      _iconAnimController.forward(from: 0);
+    });
+  }
+
+  void _onPointerCancel(PointerCancelEvent _) {
+    _pointerMoved = true;
+    _pointerDown = null;
+    _ignoreUp = false;
   }
 
   void _showHeart(Offset position) {
@@ -194,23 +233,27 @@ class _SocialMediaViewState extends State<SocialMediaView>
     }
   }
 
-  /// Toggle play/pause on user tap — TikTok style.
-  void _onTapVideo() {
+  /// Pause or play immediately. Returns false when this page is not a video.
+  /// The center icon waits, so a double-tap can undo the change quietly.
+  bool _togglePlayback({required bool showIcon}) {
     final c = _controller;
-    if (c == null || !c.value.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return false;
 
     if (c.value.isPlaying) {
       c.pause();
       _userPaused = true;
-      _showPlayIcon = false; // show pause icon (video was playing → now paused)
+      _showPlayIcon = false;
     } else {
       c.play();
       _userPaused = false;
-      _showPlayIcon = true; // show play icon (video was paused → now playing)
+      _showPlayIcon = true;
     }
 
-    _iconAnimController.forward(from: 0.0);
+    if (showIcon) {
+      _iconAnimController.forward(from: 0.0);
+    }
     setState(() {});
+    return true;
   }
 
   /// Toggle mute/unmute.
@@ -235,9 +278,12 @@ class _SocialMediaViewState extends State<SocialMediaView>
       fit: StackFit.expand,
       children: [
         // BASE LAYER: Media and Tap Detector
-        GestureDetector(
-          onTapDown: _handleTapDown,
+        Listener(
           behavior: HitTestBehavior.opaque,
+          onPointerDown: _onPointerDown,
+          onPointerMove: _onPointerMove,
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
           child: _buildMediaBackground(),
         ),
 
@@ -285,8 +331,8 @@ class _SocialMediaViewState extends State<SocialMediaView>
 
           // Mute/Unmute button
           Positioned(
-            right: 18,
-            bottom: 250,
+            left: 16,
+            top: MediaQuery.paddingOf(context).top + 108,
             child: SafeArea(
               top: false,
               child: GestureDetector(
@@ -468,24 +514,26 @@ class _FloatingHeartState extends State<_FloatingHeart> with SingleTickerProvide
     return Positioned(
       left: widget.position.dx - 50, // center the 100x100 icon
       top: widget.position.dy - 50,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _moveAnim.value),
-            child: Transform.scale(
-              scale: _scaleAnim.value,
-              child: Opacity(
-                opacity: _opacityAnim.value,
-                child: child,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _moveAnim.value),
+              child: Transform.scale(
+                scale: _scaleAnim.value,
+                child: Opacity(
+                  opacity: _opacityAnim.value,
+                  child: child,
+                ),
               ),
-            ),
-          );
-        },
-        child: const Icon(
-          PhosphorIcons.heartFill,
-          color: Color(0xFFFF2D55),
-          size: 100,
+            );
+          },
+          child: const Icon(
+            PhosphorIcons.heartFill,
+            color: Color(0xFFFF2D55),
+            size: 100,
+          ),
         ),
       ),
     );

@@ -50,12 +50,11 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
       final picked = <XFile>[];
       switch (action) {
         case _PickAction.gallery:
-          final file = await _picker.pickImage(
-              source: ImageSource.gallery, imageQuality: 85);
-          if (file != null) {
-            final cropped = await ImageCropHelper.crop(file);
-            if (cropped != null) picked.add(cropped);
-          }
+          final files = await _picker.pickMultiImage(
+            imageQuality: 85,
+            limit: remaining,
+          );
+          picked.addAll(files.take(remaining));
           break;
         case _PickAction.cameraPhoto:
           final file = await _picker.pickImage(

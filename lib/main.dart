@@ -17,6 +17,8 @@ import 'features/onboarding/data/onboarding_prefs.dart';
 import 'core/utils/lock_screen_widget_manager.dart';
 import 'core/security/security_check.dart';
 import 'app.dart';
+import 'features/social/post_link_listener.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'core/auth/order_ownership.dart';
 
@@ -226,5 +228,8 @@ void main() async {
 
   debugPrint('[BOOT] Calling runApp()...');
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
+  if (!kIsWeb) {
+    unawaited(PostLinkListener.instance.start());
+  }
   debugPrint('[BOOT] runApp() called.');
 }
