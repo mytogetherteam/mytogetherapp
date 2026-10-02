@@ -126,6 +126,7 @@ class _ReferralPageState extends State<ReferralPage> {
                         // Card 1: Your Personal Promote Code
                         PromoteCodeCard(
                           myCode: _status?.myCode,
+                          referrerTargetCount: _status?.referrerTargetCount,
                           onCodeUpdated: _loadData,
                         ),
                         const SizedBox(height: 20),

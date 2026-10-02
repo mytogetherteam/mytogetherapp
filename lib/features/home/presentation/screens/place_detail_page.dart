@@ -245,6 +245,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       case "ROOFTOP_VIEW": return "🏙️";
       case "SHOPPING": return "🛍️";
       case "NIGHT_MARKET": return "🏮";
+      case "SIGHTSEEING": return "🗺️";
       case "PARK": return "🌳";
       case "KARAOKE": return "🎤";
       case "BOWLING": return "🎳";

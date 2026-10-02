@@ -24,6 +24,8 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 import '../widgets/guest_welcome_banner.dart';
+import '../widgets/first_order_free_delivery_banner.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
 import '../../../../features/call/data/call_session.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
@@ -52,6 +54,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _onTabChangeRequested,
     );
     LocaleController.instance.addListener(_onLanguageChanged);
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOffer);
+    NewUserFreeDeliveryOffer.instance.refresh();
 
     // Global listener for order completion
     _lastStatus = ActiveOrderState.instance.orderStatus;
@@ -189,6 +193,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Shop-cancel navigation is handled globally by [OrderActionPresenter].
 
     _lastStatus = newStatus;
+    NewUserFreeDeliveryOffer.instance.refresh();
+  }
+
+  void _onNewUserOffer() {
+    if (mounted) setState(() {});
   }
 
   void _onTabChangeRequested() {
@@ -215,6 +224,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
     ActiveOrderState.instance.removeListener(_onOrderStateChanged);
     LocaleController.instance.removeListener(_onLanguageChanged);
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOffer);
     super.dispose();
   }
 
@@ -259,9 +269,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Hide guest promo on Social â€” it fights the full-bleed dark feed.
-          if (!AuthService().isLoggedIn && _currentIndex != 2)
+          if (NewUserFreeDeliveryOffer.instance.showBanner && _currentIndex != 2)
+            FirstOrderFreeDeliveryBanner(
+              showFoodButton: _currentIndex != 1,
+              onOpenFood: () => _onTabTapped(1),
+            )
+          else if (!AuthService().isLoggedIn && _currentIndex != 2)
             GuestWelcomeBanner(
               onAuthFlowComplete: () {
+                NewUserFreeDeliveryOffer.instance.refresh();
                 if (mounted) setState(() {});
               },
             ),

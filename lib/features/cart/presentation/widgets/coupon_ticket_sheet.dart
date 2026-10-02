@@ -478,6 +478,10 @@ class CouponTicket extends StatelessWidget {
                 const SizedBox(width: 6),
                 _miniBadge(context.tr('coupon.early_bird')),
               ],
+              if (coupon.isReferral) ...[
+                const SizedBox(width: 6),
+                _miniBadge(context.tr('coupon.referral')),
+              ],
               if (coupon.isFreeItem && coupon.isBogoAllItems) ...[
                 const SizedBox(width: 6),
                 _miniBadge(context.tr('coupon.bogo_all')),

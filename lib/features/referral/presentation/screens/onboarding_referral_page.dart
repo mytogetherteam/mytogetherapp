@@ -147,8 +147,8 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
               const SizedBox(height: 10),
               Text(
                 _isProgramActive
-                    ? context.tr('referral.subtitle_active')
-                    : context.tr('referral.subtitle_inactive'),
+                    ? 'Got a friend\'s promote code? Enter it within 7 days of joining, before your first order. The welcome coupon is only for people it was granted to.'
+                    : 'The referral program is paused, so a code entered now is not saved. You can add one later from Profile within 7 days of joining, before your first order.',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -305,7 +305,7 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr('referral.info_later'),
+                        'You can enter a referral code later from Profile, within 7 days of joining and before your first order.',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,
