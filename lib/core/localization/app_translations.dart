@@ -157,6 +157,10 @@ class AppTranslations {
     'social.create_help': 'Share a thought, or add photos and videos. Empty posts are not allowed.',
 
     // Profile page
+    'social.report_post': 'Report Post',
+    'social.report_post_confirm_desc': 'Are you sure you want to report this post? Our team will review it.',
+    'social.report_submitted': 'Report submitted successfully.',
+    'social.report': 'Report',
     'profile.edit_profile': 'Edit Profile',
     'profile.order_history': 'Order History',
     'profile.order_history_sub': 'Completed and cancelled orders',
