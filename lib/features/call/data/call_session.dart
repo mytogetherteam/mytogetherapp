@@ -89,6 +89,7 @@ class CallSession {
   String? _currentCallId;
   String? _direction; // 'user-to-shop' | 'shop-to-user'
   Timer? _ringTimeout;
+  Timer? _reconnectTimer;
 
   String? currentShopName;
   String? currentShopImageUrl;
@@ -435,9 +436,21 @@ class CallSession {
     };
 
     _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {
-      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
-          state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
-          state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        this.state.value = CallState.reconnecting;
+        _reconnectTimer?.cancel();
+        _reconnectTimer = Timer(const Duration(seconds: 30), () {
+          if (this.state.value == CallState.reconnecting) {
+            endCall();
+          }
+        });
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+                 state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        _reconnectTimer?.cancel();
+        this.state.value = CallState.connected;
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+                 state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+        _reconnectTimer?.cancel();
         endCall();
       }
     };
@@ -498,9 +511,21 @@ class CallSession {
     };
 
     _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {
-      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
-          state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
-          state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        this.state.value = CallState.reconnecting;
+        _reconnectTimer?.cancel();
+        _reconnectTimer = Timer(const Duration(seconds: 30), () {
+          if (this.state.value == CallState.reconnecting) {
+            endCall();
+          }
+        });
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+                 state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        _reconnectTimer?.cancel();
+        this.state.value = CallState.connected;
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+                 state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+        _reconnectTimer?.cancel();
         endCall();
       }
     };
@@ -513,6 +538,7 @@ class CallSession {
       FlutterCallkitIncoming.endCall(_currentCallId!);
     }
     _ringTimeout?.cancel();
+    _reconnectTimer?.cancel();
     _callSub?.cancel();
     _callSub = null;
     _peerConnection?.close();
@@ -538,4 +564,4 @@ class CallSession {
   }
 }
 
-enum CallState { idle, calling, ringing, connected, rejected, noAnswer, ended }
+enum CallState { idle, calling, ringing, connected, reconnecting, rejected, noAnswer, ended }

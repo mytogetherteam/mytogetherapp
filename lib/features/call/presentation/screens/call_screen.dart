@@ -349,6 +349,11 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
           letterSpacing: 2.5,
         ),
       );
+    } else if (state == CallState.reconnecting) {
+      return AnimatedDotsText(
+        baseText: 'Reconnecting',
+        style: GoogleFonts.inter(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.w500),
+      );
     } else if (state == CallState.rejected) {
       return Text(
         'Call Declined',
