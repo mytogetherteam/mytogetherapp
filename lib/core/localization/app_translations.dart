@@ -1,4 +1,4 @@
-﻿import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart';
 
 import 'app_language.dart';
 import 'locale_controller.dart';
@@ -429,6 +429,7 @@ class AppTranslations {
     'auth.login': 'Log In Now',
     'auth.or': 'or',
     'auth.continue_google': 'Continue with Google',
+    'auth.register_google': 'Sign up with Google',
     'auth.agree_terms_first': 'Please agree to the Terms and Privacy Policy first.',
     'auth.name_required': 'Please tell us your name! 😉',
     'auth.no_account': "Don't have an account? ",
@@ -1244,6 +1245,16 @@ class AppTranslations {
     'permission.desc_location':
         'To show nearby restaurants and calculate accurate delivery fees, MyTogether needs access to your **location** while you use the app.',
     'permission.continue': 'Continue',
+    // Referral
+    'referral.skip': 'Skip',
+    'referral.welcome': 'Welcome to MyTogether!',
+    'referral.subtitle_active': 'Got a friend\'s promote code? Enter it below. A welcome coupon is added when one is offered.',
+    'referral.subtitle_inactive': 'Got a friend\'s promote code? Enter it below after you join. You can skip this and add it later in Profile.',
+    'referral.enter_code': 'ENTER CODE (OPTIONAL)',
+    'referral.claim_continue': 'Claim & Continue',
+    'referral.skip_for_now': 'Skip for now',
+    'referral.info_later': 'You can also enter a referral code later anytime in Profile → Referral & Promote Code.',
+    'referral.error_length': 'Code must be at least 3 characters',
   };
 
   // ---------------------------------------------------------------------------
@@ -1639,12 +1650,13 @@ class AppTranslations {
     'auth.enter_password': 'စကားဝှက် ထည့်ပါ',
     'auth.enter_username': 'အသုံးပြုသူအမည် သို့မဟုတ် အီးမေးလ် ထည့်ပါ',
     'auth.full_name': 'နာမည်',
-    'auth.join_subtitle': 'MyTogether မိသားစုဝင်ဖြစ်ဖို့ အခုပဲအကောင့်ဖွင့်ပါ!',
+    'auth.join_subtitle': 'ထိုင်းမှာအထာကျကျ နေနိုင်ဖို့အတွက် အခုပဲ အကောင့်ဖွင့်လိုက်တော့နော်',
     'auth.login_subtitle': 'MyTogether မှာ အတူတူ ဆုံကြမယ်',
     'auth.login': 'အကောင့်ဝင်ပါမယ်',
     'auth.or': 'သို့မဟုတ်',
-    'auth.continue_google': 'Google ဖြင့် ဆက်လုပ်မယ်',
-    'auth.agree_terms_first': 'Terms နှင့် Privacy Policy ကို အရင်သဘောတူပါ။',
+    'auth.continue_google': 'Google ဖြင့် အကောင့်ဝင်မယ်',
+    'auth.register_google': 'Google ဖြင့် အကောင့်ဖွင့်မယ်',
+    'auth.agree_terms_first': 'ဒါလေးအမှန်ခြစ်ပေးဖို့ လိုပါတယ်နော်',
     'auth.name_required': 'နာမည်ထည့်ဖို့လိုပါတယ်နော် 😉',
     'auth.no_account': 'အကောင့်မရှိသေးဘူးလား? ',
     'auth.password_hint': 'စကားဝှက် ထည့်ပါ',
@@ -2464,6 +2476,16 @@ class AppTranslations {
     'permission.desc_location':
         'အနီးအနားရှိ စားသောက်ဆိုင်များကို ပြသရန်နှင့် ပို့ဆောင်ခ တွက်ချက်ရန် MyTogether သည် သင့်အက်ပ်အသုံးပြုနေစဉ် **တည်နေရာ** ခွင့်ပြုချက် လိုအပ်ပါသည်။',
     'permission.continue': 'ဆက်လုပ်မယ်',
+    // Referral
+    'referral.skip': 'ကျော်သွားမည်',
+    'referral.welcome': 'MyTogether မှ ကြိုဆိုပါတယ်!',
+    'referral.subtitle_active': 'သူငယ်ချင်းရဲ့ Promote Code ရှိလား? အောက်မှာထည့်ပေးပါ။ Welcome Coupon ရရှိမှာဖြစ်ပါတယ်။',
+    'referral.subtitle_inactive': 'သူငယ်ချင်းရဲ့ Promote Code ရှိလား? အောက်မှာထည့်ပေးပါ။ ဒါကိုကျော်သွားပြီး နောက်မှ Profile ထဲမှာ ပြန်ထည့်လို့လည်း ရပါတယ်။',
+    'referral.enter_code': 'ကုဒ်ထည့်ပါ (မထည့်လည်းရသည်)',
+    'referral.claim_continue': 'ရယူပြီး ရှေ့ဆက်သွားမည်',
+    'referral.skip_for_now': 'အခုတော့ ကျော်သွားမည်',
+    'referral.info_later': 'Profile → Referral & Promote Code မှာ အချိန်မရွေး ကုဒ်ပြန်ထည့်လို့ရပါတယ်။',
+    'referral.error_length': 'ကုဒ်သည် အနည်းဆုံး ၃ လုံး ရှိရပါမည်',
   };
   // ---------------------------------------------------------------------------
   // Thai (ไทย)
@@ -2868,6 +2890,7 @@ class AppTranslations {
     'auth.login_subtitle': 'มาพบกันที่ MyTogether',
     'auth.or': 'หรือ',
     'auth.continue_google': 'ดำเนินการต่อด้วย Google',
+    'auth.register_google': 'สมัครด้วย Google',
     'auth.agree_terms_first': 'กรุณายอมรับข้อกำหนดและนโยบายความเป็นส่วนตัวก่อน',
     'auth.name_required': 'ใส่ชื่อให้หน่อยน้า 😉',
     'auth.no_account': 'ยังไม่มีบัญชี? ',
@@ -3664,6 +3687,16 @@ class AppTranslations {
     'permission.desc_location':
         'เพื่อแสดงร้านอาหารใกล้เคียงและคำนวณค่าจัดส่ง MyTogether ต้องการเข้าถึง **ตำแหน่ง** ของคุณขณะใช้งานแอป',
     'permission.continue': 'ดำเนินการต่อ',
+    // Referral
+    'referral.skip': 'ข้าม',
+    'referral.welcome': 'ยินดีต้อนรับสู่ MyTogether!',
+    'referral.subtitle_active': 'มีรหัสโปรโมทของเพื่อนไหม? ใส่ด้านล่างได้เลย คูปองต้อนรับจะถูกเพิ่มให้เมื่อมีการเสนอ',
+    'referral.subtitle_inactive': 'มีรหัสโปรโมทของเพื่อนไหม? ใส่ด้านล่างนี้หลังจากเข้าร่วม คุณสามารถข้ามและเพิ่มในภายหลังได้ที่โปรไฟล์',
+    'referral.enter_code': 'ใส่รหัส (ไม่บังคับ)',
+    'referral.claim_continue': 'รับสิทธิ์และดำเนินการต่อ',
+    'referral.skip_for_now': 'ข้ามไปก่อน',
+    'referral.info_later': 'คุณสามารถใส่รหัสอ้างอิงภายหลังได้ทุกเมื่อใน โปรไฟล์ → รหัสอ้างอิงและรหัสโปรโมท',
+    'referral.error_length': 'รหัสต้องมีความยาวอย่างน้อย 3 ตัวอักษร',
   };
 }
 

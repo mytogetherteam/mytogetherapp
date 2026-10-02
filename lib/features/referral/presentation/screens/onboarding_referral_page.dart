@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/referral_service.dart';
 import '../widgets/edit_promote_code_dialog.dart';
@@ -53,7 +54,7 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
     }
 
     if (code.length < 3) {
-      setState(() => _errorMessage = 'Code must be at least 3 characters');
+      setState(() => _errorMessage = context.tr('referral.error_length'));
       return;
     }
 
@@ -92,9 +93,9 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _navigateToHome,
-            child: const Text(
-              'Skip',
-              style: TextStyle(
+            child: Text(
+              context.tr('referral.skip'),
+              style: const TextStyle(
                 color: Colors.grey,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
@@ -134,9 +135,9 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Welcome to MyTogether!',
-                style: TextStyle(
+              Text(
+                context.tr('referral.welcome'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: Colors.black87,
@@ -146,8 +147,8 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
               const SizedBox(height: 10),
               Text(
                 _isProgramActive
-                    ? 'Got a friend\'s promote code? Enter it below. A welcome coupon is added when one is offered.'
-                    : 'Got a friend\'s promote code? Enter it below after you join. You can skip this and add it later in Profile.',
+                    ? context.tr('referral.subtitle_active')
+                    : context.tr('referral.subtitle_inactive'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -182,10 +183,10 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                           FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
                           UpperCaseTextFormatter(),
                         ],
-                        decoration: const InputDecoration(
-                          hintText: 'ENTER CODE (OPTIONAL)',
+                        decoration: InputDecoration(
+                          hintText: context.tr('referral.enter_code'),
                           border: InputBorder.none,
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                             fontSize: 14,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w600,
@@ -266,9 +267,9 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Claim & Continue',
-                          style: TextStyle(
+                      : Text(
+                          context.tr('referral.claim_continue'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -285,9 +286,9 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                   foregroundColor: Colors.grey.shade600,
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                 ),
-                child: const Text(
-                  'Skip for now',
-                  style: TextStyle(fontSize: 14),
+                child: Text(
+                  context.tr('referral.skip_for_now'),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
 
@@ -304,7 +305,7 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'You can also enter a referral code later anytime in Profile → Referral & Promote Code.',
+                        context.tr('referral.info_later'),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,

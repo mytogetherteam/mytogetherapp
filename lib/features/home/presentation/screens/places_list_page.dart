@@ -251,7 +251,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
       ),
       body: Column(
         children: [
-          _buildActivityChips(context),
+          // _buildActivityChips(context),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,

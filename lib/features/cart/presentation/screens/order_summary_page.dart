@@ -1019,7 +1019,68 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-// Deliver Information Section
+         // Deliver Information Section
+                      if (_isDelivery && _isFreeDelivery)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  PhosphorIconsFill.star,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'FREE DELIVERY',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      context.tr('cart.free_delivery_saved').contains('cart.free_delivery_saved') 
+                                          ? 'You saved delivery fee on this order!' 
+                                          : context.tr('cart.free_delivery_saved'),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1182,7 +1243,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     Icon(
                                       PhosphorIconsRegular.money,
                                       color: _isFreeDelivery
-                                          ? const Color(0xFF00B14F)
+                                          ? AppColors.primary
                                           : const Color(0xFF94A3B8),
                                       size: 18,
                                     ),
@@ -1191,7 +1252,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       context.tr('cart.est_delivery_fee'),
                                       style: GoogleFonts.poppins(
                                         color: _isFreeDelivery
-                                            ? const Color(0xFF00B14F)
+                                            ? AppColors.primary
                                             : const Color(0xFF94A3B8),
                                         fontSize: 13,
                                       ),
@@ -1202,7 +1263,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF00B14F),
+                                          color: AppColors.primary,
                                         ),
                                       )
                                     else if (_draftDeliveryFee > 0)
@@ -1541,7 +1602,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         PhosphorIconsRegular.motorcycle,
                                         size: 16,
                                         color: _isFreeDelivery
-                                            ? const Color(0xFF00B14F)
+                                            ? AppColors.primary
                                             : const Color(0xFF64748B),
                                       ),
                                       const SizedBox(width: 6),
@@ -1549,7 +1610,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         context.tr('cart.est_delivery_fee'),
                                         style: GoogleFonts.poppins(
                                           color: _isFreeDelivery
-                                              ? const Color(0xFF00B14F)
+                                              ? AppColors.primary
                                               : const Color(0xFF64748B),
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
@@ -1565,7 +1626,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                             : '—'),
                                     style: GoogleFonts.poppins(
                                       color: _isFreeDelivery
-                                          ? const Color(0xFF00B14F)
+                                          ? AppColors.primary
                                           : const Color(0xFF64748B),
                                       fontSize: _isFreeDelivery ? 15 : 13,
                                       fontWeight: _isFreeDelivery
@@ -1696,7 +1757,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             Expanded(
                               child: Text(
                                 _isDelivery
-                                    ? '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}'
+                                    ? (_isFreeDelivery
+                                        ? '${context.tr('cart.check_order_notice')} ဒီအော်ဒါအတွက် ပို့ဆောင်ခ အခမဲ့ ရရှိထားပါသည်။'
+                                        : '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}')
                                     : context.tr('cart.check_order_notice'),
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF334155),

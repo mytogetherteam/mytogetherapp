@@ -27,7 +27,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _pinController = TextEditingController();
@@ -39,6 +39,7 @@ class _RegisterPageState extends State<RegisterPage>
   bool _isGoogleLoading = false;
   bool _showOtpView = false;
   bool _agreedToTerms = false;
+  bool _termsError = false;
   String? _verificationId;
 
   Timer? _resendTimer;
@@ -47,10 +48,24 @@ class _RegisterPageState extends State<RegisterPage>
   late final AnimationController _animController;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
+    ]).animate(CurvedAnimation(parent: _shakeController, curve: Curves.linear));
+
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -83,6 +98,7 @@ class _RegisterPageState extends State<RegisterPage>
 
   @override
   void dispose() {
+    _shakeController.dispose();
     _resendTimer?.cancel();
     _animController.dispose();
     _phoneController.dispose();
@@ -95,6 +111,13 @@ class _RegisterPageState extends State<RegisterPage>
 
   Future<void> _handleSendOtp() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_agreedToTerms) {
+      HapticFeedback.heavyImpact();
+      setState(() => _termsError = true);
+      _shakeController.forward(from: 0);
+      AppDialog.showToast(context, context.tr('auth.agree_terms_first'), isError: true);
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -221,6 +244,9 @@ class _RegisterPageState extends State<RegisterPage>
   Future<void> _handleGoogleSignIn() async {
     if (_isGoogleLoading || _isLoading) return;
     if (!_agreedToTerms) {
+      HapticFeedback.heavyImpact();
+      setState(() => _termsError = true);
+      _shakeController.forward(from: 0);
       AppDialog.showToast(
         context,
         context.tr('auth.agree_terms_first'),
@@ -344,22 +370,38 @@ class _RegisterPageState extends State<RegisterPage>
 
                     if (!_showOtpView) ...[
                       const SizedBox(height: 20),
-                      Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _agreedToTerms,
-                            activeColor: AppColors.primary,
-                            onChanged: (value) {
-                              setState(() {
-                                _agreedToTerms = value ?? false;
-                              });
-                            },
-                          ),
-                        ),
+                      AnimatedBuilder(
+                        animation: _shakeAnimation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(_shakeAnimation.value, 0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _termsError ? Colors.red.withOpacity(0.05) : Colors.transparent,
+                                border: Border.all(
+                                  color: _termsError ? Colors.red.withOpacity(0.5) : Colors.transparent,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _agreedToTerms,
+                                      activeColor: AppColors.primary,
+                                      isError: _termsError,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _agreedToTerms = value ?? false;
+                                          if (_agreedToTerms) _termsError = false;
+                                        });
+                                      },
+                                    ),
+                                  ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Padding(
@@ -404,12 +446,16 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                      ),
                     const SizedBox(height: 24),
 
                       PrimaryGradientButton(
-                        onPressed: (_isLoading || !_agreedToTerms) ? null : _handleSendOtp,
+                        onPressed: _isLoading ? null : _handleSendOtp,
                         isLoading: _isLoading,
                         child: Text(
                           context.tr('auth.register_account'),
@@ -425,10 +471,8 @@ class _RegisterPageState extends State<RegisterPage>
                       const SizedBox(height: 20),
                       GoogleSignInButton(
                         isLoading: _isGoogleLoading,
-                        label: context.tr('auth.continue_google'),
-                        onPressed: (_agreedToTerms && !_isLoading)
-                            ? _handleGoogleSignIn
-                            : null,
+                        label: context.tr('auth.register_google'),
+                        onPressed: !_isLoading ? _handleGoogleSignIn : null,
                       ),
                     ] else ...[
                       const SizedBox(height: 24),
