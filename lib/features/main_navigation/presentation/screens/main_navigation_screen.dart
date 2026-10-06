@@ -67,8 +67,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
 
     // Wire up shop-to-user incoming call handler.
-    // When a shop calls this user, navigate to CallScreen as the incoming UI.
-    CallSession().onIncomingShopCall = (callId, shopName) {
+    // When a shop calls this user AND user taps notification/accepts, navigate to CallScreen.
+    CallSession().onCallAcceptedFromOS = (callId, shopName) {
       final nav = App.navigatorKey.currentState;
       if (nav == null) return;
       nav.push(

@@ -156,6 +156,8 @@ class NotificationService {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = _resolveNotificationType(message.data);
 
+      if (type == 'CALL_INCOMING') return; // Handled by WebSocket in foreground
+
       // 0. Admin broadcast/announcement: pop the modal globally (any screen)
       // and bump the badge. Handled here so we don't also show a banner.
       if (type == 'BROADCAST') {

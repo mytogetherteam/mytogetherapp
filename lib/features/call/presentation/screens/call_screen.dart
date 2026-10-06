@@ -5,6 +5,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/presentation/widgets/animated_dots_text.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/call_session.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // App brand colour tokens (primary gradient: pink -> orange)
 const _kBgTop       = Color(0xFFED3973); // app primary pink
@@ -32,6 +33,7 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
   static int _visibleCount = 0;
 
   final _call = CallSession();
+  final AudioPlayer _ringPlayer = AudioPlayer();
 
   // Pulse rings controller (ringing / calling states)
   late AnimationController _pulseCtrl;
@@ -79,11 +81,28 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
     });
 
     _call.state.addListener(_onCallStateChanged);
+    if (_call.state.value == CallState.calling) {
+      _playRingingTone();
+    }
+  }
+
+  Future<void> _playRingingTone() async {
+    try {
+      await _ringPlayer.setReleaseMode(ReleaseMode.loop);
+      await _ringPlayer.play(AssetSource('alert/ringing.mp3'));
+    } catch (_) {}
+  }
+
+  void _stopRingingTone() {
+    _ringPlayer.stop();
   }
 
   void _onCallStateChanged() {
     if (!mounted || _dismissing) return;
     final state = _call.state.value;
+    if (state != CallState.calling) {
+      _stopRingingTone();
+    }
     if (state == CallState.connected) {
       _connectedAt = DateTime.now();
       setState(() {});
@@ -152,6 +171,7 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
             }
           },
           child: Container(
+            width: double.infinity,
             // Blue â†’ deep-dark gradient â€“ same as Messenger voice call
             decoration: const BoxDecoration(
               gradient: LinearGradient(

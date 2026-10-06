@@ -32,11 +32,17 @@ class CallSession {
         if (_currentCallId != null && event.callKitParams.id == _currentCallId) {
           if (_direction == 'shop-to-user') {
             acceptIncomingCall();
+            onCallAcceptedFromOS?.call(_currentCallId!, currentShopName ?? 'Unknown');
           }
         }
       } else if (event is CallEventActionCallEnded) {
         if (_currentCallId != null && event.callKitParams.id == _currentCallId) {
           endCall();
+        }
+      } else if (event is CallEventActionCallCallback) {
+        // User tapped the incoming call notification body to open the app
+        if (_currentCallId != null && event.id == _currentCallId) {
+          onCallAcceptedFromOS?.call(_currentCallId!, currentShopName ?? 'Unknown');
         }
       }
     });
@@ -94,9 +100,9 @@ class CallSession {
   String? currentShopName;
   String? currentShopImageUrl;
 
-  /// Callback invoked when a shop initiates a call to this user.
-  /// The UI should show an incoming call screen when this fires.
-  void Function(String callId, String shopName)? onIncomingShopCall;
+  /// Callback invoked when a shop initiates a call AND the user accepts or taps the notification.
+  /// The UI should show the CallScreen when this fires.
+  void Function(String callId, String shopName)? onCallAcceptedFromOS;
 
   final Dio _dio = ApiClient().dio;
   
@@ -178,8 +184,8 @@ class CallSession {
           // Show OS incoming call UI
           _showIncomingCallUI(callId: callId, callerName: callerName);
 
-          // Notify app UI callback
-          onIncomingShopCall?.call(callId, callerName);
+          // Notify app UI callback is removed here to prevent double incoming call UI.
+          // onCallAcceptedFromOS will be called when user accepts via CallKit.
 
           // Timeout if user doesn't answer in 31s
           _ringTimeout = Timer(const Duration(seconds: 31), () {
@@ -205,7 +211,7 @@ class CallSession {
       avatar: '',
       handle: 'Incoming Call',
       type: 0,
-      duration: 30000,
+      duration: 60000,
       missedCallNotification: const NotificationParams(
         showNotification: true,
         isShowCallback: false,
@@ -565,3 +571,4 @@ class CallSession {
 }
 
 enum CallState { idle, calling, ringing, connected, reconnecting, rejected, noAnswer, ended }
+

@@ -19,6 +19,8 @@ import 'core/security/security_check.dart';
 import 'app.dart';
 import 'dart:convert';
 import 'core/auth/order_ownership.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -73,6 +75,65 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       (mainType == 'ORDER' ? 'ORDER_STATUS' : null);
   if (type == 'SILENT_SYNC') {
     await NotificationService().cancelAllNotifications();
+    return;
+  } else if (type == 'CALL_INCOMING') {
+    final callId = data['callId']?.toString() ?? '';
+    final callerName = data['callerName']?.toString() ?? 'Shop';
+    
+    if (callId.isNotEmpty) {
+      final callKitParams = CallKitParams(
+        id: callId,
+        nameCaller: callerName,
+        appName: 'MyTogether',
+        avatar: '',
+        handle: 'Incoming Call',
+        type: 0,
+        duration: 60000,
+        missedCallNotification: const NotificationParams(
+          showNotification: true,
+          isShowCallback: false,
+          subtitle: 'Missed call from shop',
+          callbackText: 'Call back',
+        ),
+        extra: <String, dynamic>{},
+        headers: <String, dynamic>{},
+        android: const AndroidParams(
+          isCustomNotification: true,
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#EF4444',
+          actionColor: '#22C55E',
+          textColor: '#ffffff',
+          incomingCallNotificationChannelName: "Incoming Call",
+          missedCallNotificationChannelName: "Missed Call",
+        ),
+        ios: const IOSParams(
+          iconName: 'AppIcon',
+          handleType: '',
+          supportsVideo: false,
+          maximumCallGroups: 2,
+          maximumCallsPerCallGroup: 1,
+          audioSessionMode: 'default',
+          audioSessionActive: true,
+          audioSessionPreferredSampleRate: 44100.0,
+          audioSessionPreferredIOBufferDuration: 0.005,
+          supportsDTMF: true,
+          supportsHolding: true,
+          supportsGrouping: false,
+          supportsUngrouping: false,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      );
+      await FlutterCallkitIncoming.showCallkitIncoming(callKitParams);
+    }
+    return;
+  } else if (type == 'CALL_END' || type == 'CALL_TIMEOUT') {
+    final callId = data['callId']?.toString() ?? '';
+    if (callId.isNotEmpty) {
+      await FlutterCallkitIncoming.endCall(callId);
+    } else {
+      await FlutterCallkitIncoming.endAllCalls();
+    }
     return;
   }
   
@@ -228,3 +289,5 @@ void main() async {
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   debugPrint('[BOOT] runApp() called.');
 }
+
+
