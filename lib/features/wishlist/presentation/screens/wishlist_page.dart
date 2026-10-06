@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/features/social/presentation/screens/social_page.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -21,9 +23,10 @@ import '../../data/models/wishlist_item_dto.dart';
 import '../../data/repositories/wishlist_repository.dart';
 
 /// "Saved Items" — shows the current user's wishlist for menu items,
-/// shops and places. Backed by /api/user/wishlist/*.
+/// shops, places and social posts. Backed by /api/user/wishlist/*.
 class WishlistPage extends StatefulWidget {
-  /// Which tab to open initially (0 = menu items, 1 = restaurants, 2 = places).
+  /// Which tab to open initially
+  /// (0 = menu items, 1 = restaurants, 2 = places, 3 = posts).
   final int initialTab;
 
   const WishlistPage({super.key, this.initialTab = 0});
@@ -32,6 +35,7 @@ class WishlistPage extends StatefulWidget {
   static const int tabMenuItems = 0;
   static const int tabRestaurants = 1;
   static const int tabPlaces = 2;
+  static const int tabPosts = 3;
 
   /// Convenience navigator that opens the wishlist on a specific tab.
   static Future<void> open(BuildContext context, {int initialTab = 0}) {
@@ -55,18 +59,20 @@ class _WishlistPageState extends State<WishlistPage>
   late final PaginatedListController<WishlistItemDto> _menuPagination;
   late final PaginatedListController<WishlistItemDto> _shopPagination;
   late final PaginatedListController<WishlistItemDto> _placePagination;
+  late final PaginatedListController<WishlistItemDto> _postPagination;
 
   final ScrollController _menuScrollController = ScrollController();
   final ScrollController _shopScrollController = ScrollController();
   final ScrollController _placeScrollController = ScrollController();
+  final ScrollController _postScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
-      initialIndex: widget.initialTab.clamp(0, 2),
+      initialIndex: widget.initialTab.clamp(0, 3),
     );
 
     _menuPagination = _createWishlistController(_repo.listMenuItemsPage)
@@ -75,14 +81,18 @@ class _WishlistPageState extends State<WishlistPage>
       ..addListener(_onPaginationChanged);
     _placePagination = _createWishlistController(_repo.listPlacesPage)
       ..addListener(_onPaginationChanged);
+    _postPagination = _createWishlistController(_repo.listPostsPage)
+      ..addListener(_onPaginationChanged);
 
     _menuPagination.attachScrollController(_menuScrollController);
     _shopPagination.attachScrollController(_shopScrollController);
     _placePagination.attachScrollController(_placeScrollController);
+    _postPagination.attachScrollController(_postScrollController);
 
     _menuPagination.loadInitial();
     _shopPagination.loadInitial();
     _placePagination.loadInitial();
+    _postPagination.loadInitial();
   }
 
   PaginatedListController<WishlistItemDto> _createWishlistController(
@@ -117,9 +127,13 @@ class _WishlistPageState extends State<WishlistPage>
     _placePagination
       ..removeListener(_onPaginationChanged)
       ..dispose();
+    _postPagination
+      ..removeListener(_onPaginationChanged)
+      ..dispose();
     _menuScrollController.dispose();
     _shopScrollController.dispose();
     _placeScrollController.dispose();
+    _postScrollController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -127,13 +141,15 @@ class _WishlistPageState extends State<WishlistPage>
   bool get _loading =>
       _menuPagination.isInitialLoading &&
       _shopPagination.isInitialLoading &&
-      _placePagination.isInitialLoading;
+      _placePagination.isInitialLoading &&
+      _postPagination.isInitialLoading;
 
   Future<void> _refreshAll() async {
     await Future.wait([
       _menuPagination.refresh(),
       _shopPagination.refresh(),
       _placePagination.refresh(),
+      _postPagination.refresh(),
     ]);
   }
 
@@ -144,6 +160,7 @@ class _WishlistPageState extends State<WishlistPage>
       _menuPagination.items.removeWhere((it) => it.id == item.id);
       _shopPagination.items.removeWhere((it) => it.id == item.id);
       _placePagination.items.removeWhere((it) => it.id == item.id);
+      _postPagination.items.removeWhere((it) => it.id == item.id);
       setState(() {});
       AppDialog.showToast(context, context.tr('wishlist.removed'));
     } catch (_) {
@@ -201,6 +218,12 @@ class _WishlistPageState extends State<WishlistPage>
                 {'count': '${_placePagination.items.length}'},
               ),
             ),
+            Tab(
+              text: context.trArgs(
+                'wishlist.tab_posts',
+                {'count': '${_postPagination.items.length}'},
+              ),
+            ),
           ],
         ),
       ),
@@ -212,6 +235,7 @@ class _WishlistPageState extends State<WishlistPage>
                 _buildMenuItemList(),
                 _buildShopList(),
                 _buildPlaceList(),
+                _buildPostList(),
               ],
             ),
     );
@@ -401,6 +425,65 @@ class _WishlistPageState extends State<WishlistPage>
     );
   }
 
+  Widget _buildPostList() {
+    final pagination = _postPagination;
+    if (!pagination.isInitialLoading && pagination.items.isEmpty) {
+      return _buildEmpty(
+        title: context.tr('wishlist.empty_posts_title'),
+        subtitle: context.tr('wishlist.empty_posts_sub'),
+        actionLabel: context.tr('wishlist.start_exploring'),
+        icon: Icons.bookmark_border_rounded,
+        onAction: _goToSocialTab,
+        onRefresh: pagination.refresh,
+      );
+    }
+    final crossAxisCount = MediaQuery.of(context).size.width > 600 ? 3 : 2;
+    final items = pagination.items;
+    return RefreshIndicator(
+      onRefresh: pagination.refresh,
+      color: AppColors.primary,
+      child: GridView.builder(
+        controller: _postScrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: items.length + (pagination.showFooter ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= items.length) {
+            return PaginationListFooter(
+              isLoading: pagination.isLoadingMore,
+              showEndMessage: !pagination.hasMore,
+            );
+          }
+          pagination.onItemVisible(index);
+          return _SavedPostCard(
+            item: items[index],
+            onTap: () => _openPost(items[index]),
+            onRemove: () => _removeItem(items[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _openPost(WishlistItemDto item) async {
+    final post = item.post;
+    if (post == null) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SocialPostViewerPage(post: post)),
+    );
+    if (!mounted) return;
+    if (!post.savedByMe) {
+      _postPagination.items.removeWhere((it) => it.id == item.id);
+      setState(() {});
+    }
+  }
+
   Future<void> _openPlace(WishlistItemDto item) async {
     final ref = item.place;
     final placeId = ref?.id ?? item.placeId;
@@ -440,6 +523,7 @@ class _WishlistPageState extends State<WishlistPage>
     required String title,
     required String subtitle,
     String? actionLabel,
+    IconData icon = Icons.favorite_border_rounded,
     VoidCallback? onAction,
     Future<void> Function()? onRefresh,
   }) {
@@ -464,7 +548,7 @@ class _WishlistPageState extends State<WishlistPage>
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.favorite_border_rounded,
+                      icon,
                       size: 60,
                       color: Colors.grey[400],
                     ),
@@ -515,5 +599,133 @@ class _WishlistPageState extends State<WishlistPage>
   void _goToFoodTab() {
     NavigationController.instance.goToFoodTab();
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _goToSocialTab() {
+    NavigationController.instance.goToSocialTab();
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+}
+
+class _SavedPostCard extends StatelessWidget {
+  final WishlistItemDto item;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  const _SavedPostCard({
+    required this.item,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final post = item.post;
+    final preview = post?.primaryMedia?.previewUrl ?? '';
+    final caption = post?.caption ?? '';
+    final author = post?.author.displayName ?? context.tr('wishlist.post');
+
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (preview.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: preview,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Container(color: Colors.grey.shade200),
+                errorWidget: (context, url, error) => _captionBackdrop(caption),
+              )
+            else
+              _captionBackdrop(caption.isNotEmpty ? caption : author),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0xCC000000)],
+                  stops: [0.45, 1],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black45,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onRemove,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.bookmark_rounded,
+                      color: Color(0xFFFFC107),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (caption.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      caption,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _captionBackdrop(String text) {
+    return Container(
+      color: AppColors.primary.withValues(alpha: 0.18),
+      padding: const EdgeInsets.all(12),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        maxLines: 6,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.poppins(
+          color: AppColors.primary,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

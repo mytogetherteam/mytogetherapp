@@ -91,7 +91,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
       if (created != null) {
         setState(() {
           _comments = [created, ..._comments];
-          widget.post.commentCount = _comments.length;
+          widget.post.commentCount += 1;
           _controller.clear();
         });
       }
@@ -114,7 +114,9 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
       if (!mounted) return;
       setState(() {
         _comments = _comments.where((c) => c.id != comment.id).toList();
-        widget.post.commentCount = _comments.length;
+        if (widget.post.commentCount > 0) {
+          widget.post.commentCount -= 1;
+        }
       });
     } catch (_) {
       if (!mounted) return;
@@ -152,7 +154,9 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      context.tr('social.comments_title'),
+                      widget.post.commentCount <= 0
+                          ? context.tr('social.comments_title')
+                          : '${context.tr('social.comments_title')} · ${widget.post.commentCount}',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 16,
