@@ -10,6 +10,7 @@ import '../../../../core/auth/user_model.dart';
 import '../../../notifications/data/repositories/notification_repository.dart';
 import '../../../../core/auth/session_realtime.dart';
 import 'user_location_repository.dart';
+import '../../../home/data/new_user_free_delivery.dart';
 
 class AuthRepository {
   static final AuthRepository instance = AuthRepository._internal();
@@ -36,6 +37,36 @@ class AuthRepository {
 
       await _saveSession(response, profile: profile, locations: locations);
       await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
+    } on DioException catch (e) {
+      throw _parseError(e);
+    }
+  }
+
+  /// Google Sign-In. Returns [GoogleAuthResponse]; if [isNewUser], caller should
+  /// open SetupPinPage. Otherwise the session is already saved.
+  Future<GoogleAuthResponse> loginWithGoogle({required String idToken}) async {
+    try {
+      final result = await _dataSource.googleAuth(
+        GoogleAuthRequest(idToken: idToken),
+      );
+      if (result.isNewUser) return result;
+
+      final session = result.session;
+      if (session == null) {
+        throw Exception('Google login failed.');
+      }
+      if (session.role != 'CUSTOMER') {
+        throw Exception('Access Denied: Only users can login to this app.');
+      }
+
+      AuthService().updateAccessToken(session.token);
+      final profile = await _dataSource.getUserProfile();
+      final locations = await _dataSource.getUserLocations();
+      await _saveSession(session, profile: profile, locations: locations);
+      await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
+      return result;
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -59,6 +90,7 @@ class AuthRepository {
 
       await _saveSession(response, profile: profile, locations: locations);
       await SessionRealtime.bootstrap();
+      await NewUserFreeDeliveryOffer.instance.refresh();
     } on DioException catch (e) {
       throw _parseError(e);
     }
@@ -91,7 +123,14 @@ class AuthRepository {
       // Main goal is ensuring the user is locally logged out.
     } finally {
       NotificationRepository().setUnreadCount(0);
+      final offer = NewUserFreeDeliveryOffer.instance;
+      final signedInApplies = offer.applies;
+      final signedInBanner = offer.showBanner;
       await AuthService().clearSession(navigate: false);
+      await offer.refreshAfterSignOut(
+        signedInApplies: signedInApplies,
+        signedInBanner: signedInBanner,
+      );
       UserLocationRepository.instance.clearCachedLocationsForSignOut();
       await UserLocationRepository.instance.ensureSessionCurrentLocationFromDevice(
         requestPermissionIfDenied: false,
@@ -146,7 +185,14 @@ class AuthRepository {
       throw _parseError(e);
     } finally {
       NotificationRepository().setUnreadCount(0);
+      final offer = NewUserFreeDeliveryOffer.instance;
+      final signedInApplies = offer.applies;
+      final signedInBanner = offer.showBanner;
       await AuthService().clearSession(navigate: false);
+      await offer.refreshAfterSignOut(
+        signedInApplies: signedInApplies,
+        signedInBanner: signedInBanner,
+      );
     }
   }
 

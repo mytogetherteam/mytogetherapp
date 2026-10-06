@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
@@ -26,13 +27,14 @@ import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
 import 'package:mytogetherapp/features/visa/presentation/screens/visa_page.dart';
 import 'places_list_page.dart';
+import 'package:mytogetherapp/features/jobs/presentation/screens/jobs_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
-
+import '../../data/new_user_free_delivery.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -60,6 +62,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DateTime? _lastResumeRefreshAt;
   Timer? _titleTimer;
   bool _showThemeNameInAppBar = false;
+  int _jobVisitCount = 0;
+  bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
   @override
   void initState() {
@@ -68,6 +72,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _scrollController = ScrollController()..addListener(_onScroll);
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
+    _loadJobVisitCount();
 
     // Forcefully remove splash screen after 3 seconds to prevent getting stuck
     Future.delayed(const Duration(seconds: 3), () {
@@ -108,6 +113,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
+  }
+
+  void _onNewUserOfferChanged() {
+    final next = NewUserFreeDeliveryOffer.instance.applies;
+    if (!mounted || next == _newUserFreeApplied) return;
+    _newUserFreeApplied = next;
+    RestaurantRepository.instance.clearCache();
+    setState(() => _refreshKey++);
+  }
+
+  Future<void> _loadJobVisitCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _jobVisitCount = prefs.getInt('job_tab_visit_count') ?? 0;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onScrollToTopRequested() {
@@ -250,6 +275,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 
@@ -417,7 +443,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: Column(
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 70,
+                        height: MediaQuery.of(context).padding.top + 90,
                       ), // Push content below fixed header
 
                       // Search Bar
@@ -638,17 +664,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ),
                                   ),
                                   CategoryCard(
-                                    title: context.tr('home.category_store'),
+                                    title: context.tr('home.category_jobs'),
                                     assetPath:
-                                        'assets/images/services/store_3d.png',
-                                    isComingSoon: true,
+                                        'assets/images/services/jobs_3d.png',
+                                    badgeText: _jobVisitCount < 3 ? 'NEW' : null,
+                                    isAnimatedBadge: true,
+                                    onTap: () {
+                                      if (_jobVisitCount < 3) {
+                                        _jobVisitCount++;
+                                        SharedPreferences.getInstance().then((prefs) {
+                                          prefs.setInt('job_tab_visit_count', _jobVisitCount);
+                                        });
+                                        setState(() {});
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const JobsListPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
-
                             // Second Promo Banner Section (Below Categories)
+
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
@@ -769,20 +811,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             RestaurantsNearbySection(
                               key: ValueKey('nearby_$_refreshKey'),
                             ),
-                            const SizedBox(height: 24),
-                            PopularBrandsSection(
-                              key: ValueKey('brands_$_refreshKey'),
+                            TopPlacesNearbySection(
+                              key: ValueKey('places_$_refreshKey'),
                             ),
+                            const SizedBox(height: 40), // Increased spacing
+                            // PopularBrandsSection(
+                            //   key: ValueKey('brands_$_refreshKey'),
+                            // ),
                             TodaysOverviewSection(
                               key: ValueKey('overview_$_refreshKey'),
                             ),
                             const SizedBox(height: 24),
                             LostItemsNearbySection(
                               key: ValueKey('lost_$_refreshKey'),
-                            ),
-                            const SizedBox(height: 24),
-                            TopPlacesNearbySection(
-                              key: ValueKey('places_$_refreshKey'),
                             ),
                             const SizedBox(height: 24),
                             TrendingNewsSection(

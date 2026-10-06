@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import '../analytics/app_stay_reporter.dart';
 import '../../features/cart/presentation/order_action_presenter.dart';
 import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
@@ -23,6 +26,7 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AppStayReporter.markForeground();
     OrderActionPresenter.start();
   }
 
@@ -34,6 +38,13 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppStayReporter.markForeground();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(AppStayReporter.reportAndReset());
+    }
+
     // On web, switching browser tabs/windows fires inactive/paused even though
     // the app is still "running". Disconnecting here drops the STOMP subscription
     // and menu/order broadcasts are missed while the shop-admin tab is focused.

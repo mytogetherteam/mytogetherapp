@@ -12,6 +12,10 @@ import 'package:mytogetherapp/features/auth/presentation/screens/language_page.d
 import 'package:mytogetherapp/features/settings/presentation/screens/app_permissions_page.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
 import 'package:mytogetherapp/features/coupons/presentation/screens/saved_coupons_page.dart';
+import '../../../referral/data/referral_model.dart';
+import '../../../referral/data/referral_service.dart';
+import '../../../referral/presentation/screens/referral_page.dart';
+import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/location_search_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -26,6 +30,7 @@ import '../../../../core/presentation/widgets/notification_bell.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../cart/data/active_order_state.dart';
+import '../../../order/presentation/screens/order_history_page.dart';
 import 'auth_entry_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -41,13 +46,33 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late ScrollController _scrollController;
   double _headerOpacity = 0.0;
+  UserReferralStatus? _referralStatus;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
+    NavigationController.instance.currentIndex.addListener(_onTabChanged);
     _initAppVersion();
     _fetchBackgroundTheme();
+    _loadReferralProgress();
+  }
+
+  void _onTabChanged() {
+    if (NavigationController.instance.currentIndex.value == 4) {
+      _loadReferralProgress();
+    }
+  }
+
+  Future<void> _loadReferralProgress() async {
+    if (GuestAuthGuard.isGuest) return;
+    try {
+      final status = await ReferralService.instance.getStatus();
+      if (!mounted) return;
+      setState(() => _referralStatus = status);
+    } catch (_) {
+      // Keep the create-code line when the count cannot be loaded.
+    }
   }
 
   void _onScroll() {
@@ -88,6 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void dispose() {
+    NavigationController.instance.currentIndex.removeListener(_onTabChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -258,11 +284,26 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Row(
                     children: [
-                      Image.asset(
-                        'assets/images/app_icon_small.png',
-                        height: 28,
-                      ),
-                      const SizedBox(width: 12),
+                      if (Navigator.of(context).canPop()) ...[
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(
+                              PhosphorIcons.caretLeft,
+                              size: 24,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Image.asset(
+                          'assets/images/app_icon_small.png',
+                          height: 28,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                       Transform.translate(
                         offset: const Offset(0, 4),
                         child: Text(
@@ -449,11 +490,21 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         _buildOptionTile(
+          icon: PhosphorIcons.receipt,
+          title: context.tr('nav.orders'),
+          subtitle: context.tr('profile.order_history_sub'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
+          ),
+        ),
+        _buildOptionTile(
           icon: PhosphorIcons.ticket,
           title: context.tr('profile.saved_coupons'),
           subtitle: context.tr('profile.saved_coupons_sub'),
           onTap: () => SavedCouponsPage.open(context),
         ),
+        _buildReferralTile(),
         _buildOptionTile(
           icon: PhosphorIcons.mapPin,
           title: context.tr('profile.my_addresses'),
@@ -462,6 +513,94 @@ class _ProfilePageState extends State<ProfilePage> {
             MaterialPageRoute(builder: (_) => const LocationSearchPage()),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildReferralTile() {
+    final code = _referralStatus?.myCode;
+    final goal = _referralStatus?.referrerTargetCount;
+    final hasProgress = code != null;
+    final earned = hasProgress && goal != null && code.usedCount >= goal;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          onTap: () async {
+            await ReferralPage.open(context);
+            if (mounted) _loadReferralProgress();
+          },
+          isThreeLine: hasProgress && goal != null,
+          leading: GradientIcon(icon: PhosphorIcons.gift),
+          title: Text(
+            context.tr('profile.referral_promote'),
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          subtitle: hasProgress
+              ? _referralProgress(code.usedCount, goal, earned)
+              : Text(
+                  context.tr('profile.referral_promote_sub'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                  ),
+                ),
+          trailing: Icon(PhosphorIcons.caretRight, size: 18, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  Widget _referralProgress(int usedCount, int? goal, bool earned) {
+    final label = goal == null
+        ? context.trArgs(
+            usedCount == 1
+                ? 'profile.referral_friend_joined'
+                : 'profile.referral_friends_joined',
+            {'count': '$usedCount'},
+          )
+        : context.trArgs(
+            earned
+                ? 'profile.referral_of_goal_earned'
+                : 'profile.referral_of_goal',
+            {'count': '$usedCount', 'goal': '$goal'},
+          );
+    final fraction = goal == null || goal <= 0
+        ? 0.0
+        : (usedCount / goal).clamp(0.0, 1.0);
+    final accent = earned ? const Color(0xFF067647) : AppColors.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: earned ? accent : Colors.black87,
+          ),
+        ),
+        if (goal != null) ...[
+          const SizedBox(height: 6),
+          _ReferralGlowBar(fraction: fraction),
+        ],
       ],
     );
   }
@@ -576,5 +715,122 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       }
     }
+  }
+}
+
+/// Progress track in the same gradient as [PrimaryGradientButton].
+/// The fill grows to the current count, and a light grows across it.
+class _ReferralGlowBar extends StatefulWidget {
+  const _ReferralGlowBar({required this.fraction});
+
+  final double fraction;
+
+  @override
+  State<_ReferralGlowBar> createState() => _ReferralGlowBarState();
+}
+
+class _ReferralGlowBarState extends State<_ReferralGlowBar>
+    with TickerProviderStateMixin {
+  late final AnimationController _grow;
+  late final AnimationController _light;
+
+  @override
+  void initState() {
+    super.initState();
+    _grow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+    _light = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (widget.fraction > 0) _light.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_ReferralGlowBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fraction != widget.fraction) {
+      _grow.forward(from: 0);
+    }
+    if (widget.fraction > 0 && !_light.isAnimating) {
+      _light.repeat();
+    } else if (widget.fraction <= 0 && _light.isAnimating) {
+      _light.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _grow.dispose();
+    _light.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedBuilder(
+          animation: Listenable.merge([_grow, _light]),
+          builder: (context, _) {
+            final filled =
+                constraints.maxWidth * widget.fraction * _grow.value;
+            final lightT = Curves.easeOut.transform(_light.value);
+            final lightWidth = filled * lightT;
+            final lightOpacity = filled <= 0 ? 0.0 : (1 - _light.value) * 0.9;
+            return SizedBox(
+              height: 10,
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F1F4),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  if (filled > 0)
+                    Container(
+                      width: filled,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(99),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondary.withValues(
+                              alpha: 0.25 + 0.3 * lightT,
+                            ),
+                            blurRadius: 4 + 10 * lightT,
+                            spreadRadius: 0.6 * lightT,
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (lightWidth > 0)
+                    Container(
+                      width: lightWidth,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(99),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0),
+                            Colors.white.withValues(alpha: lightOpacity),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

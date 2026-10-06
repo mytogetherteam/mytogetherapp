@@ -48,8 +48,19 @@ class LocationDisplayUtil {
     final segments = readable
         .split(',')
         .map((part) => part.trim())
-        .where((part) => part.isNotEmpty);
-    var short = segments.isNotEmpty ? segments.first : readable;
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    var short = readable;
+    if (segments.isNotEmpty) {
+      short = segments.first;
+      // If the first segment is very short or just a number (e.g. "945"), 
+      // include the street name (second segment) for better context
+      final isNumeric = int.tryParse(short) != null;
+      if ((isNumeric || short.length <= 4) && segments.length > 1) {
+        short = '$short ${segments[1]}';
+      }
+    }
 
     if (short.length <= maxLength) return short;
     return '${short.substring(0, maxLength - 1).trim()}…';

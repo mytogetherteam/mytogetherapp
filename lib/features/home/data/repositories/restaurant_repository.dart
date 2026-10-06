@@ -14,7 +14,10 @@ import '../models/collection_dto.dart';
 import '../models/home_discount_section_dto.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/location/geo_distance.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/utils/delivery_fee_estimate.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import 'package:mytogetherapp/features/search/data/search_repository.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
@@ -68,6 +71,9 @@ class RestaurantRepository {
     return '${ApiClient.baseUrl}/$path';
   }
 
+  /// Active banners for [position]: Ads, Promotions, Order, or Splash.
+  /// Results are cached briefly and ordered by [BannerImageDto.displayOrder].
+  /// Network failures are not written to cache (important for Order / Splash).
   Future<List<BannerImageDto>> getBanners({String? position}) async {
     final cacheKey = position ?? 'all';
     final now = DateTime.now();
@@ -80,8 +86,13 @@ class RestaurantRepository {
 
     try {
       final banners = await _remoteDataSource.getBanners(position: position);
-      _cachedBanners[cacheKey] = banners;
-      _bannersLastFetch = now;
+      // Don't cache empty Order/Splash — a failed/empty fetch must not block a
+      // newly published banner for the full 10-minute window.
+      final isOrderOrSplash = position == 'Order' || position == 'Splash';
+      if (!isOrderOrSplash || banners.isNotEmpty) {
+        _cachedBanners[cacheKey] = banners;
+        _bannersLastFetch = now;
+      }
       return banners;
     } catch (e) {
       if (_cachedBanners.containsKey(cacheKey)) {
@@ -91,6 +102,30 @@ class RestaurantRepository {
     }
   }
 
+  /// Keeps shops that currently offer delivery (`deliveryEnabled == true`).
+  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
+    return restaurants.where((r) => r.deliveryEnabled).toList();
+  }
+
+  /// Keeps shops that are browse/Go & Eat (`deliveryEnabled == false`).
+  static List<Restaurant> filterVisitOnly(List<Restaurant> restaurants) {
+    return restaurants.where((r) => !r.deliveryEnabled).toList();
+  }
+
+  static List<Restaurant> applyOrderingFilter(
+    List<Restaurant> restaurants, {
+    bool deliveryOnly = false,
+    bool visitOnly = false,
+  }) {
+    assert(
+      !(deliveryOnly && visitOnly),
+      'deliveryOnly and visitOnly cannot both be true',
+    );
+    if (deliveryOnly) return filterDeliveryEnabled(restaurants);
+    if (visitOnly) return filterVisitOnly(restaurants);
+    return restaurants;
+  }
+
   Future<List<Restaurant>> getNearbyShops({
     required double lat,
     required double lon,
@@ -98,6 +133,8 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
     String? search,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getNearbyShopsPage(
       lat: lat,
@@ -106,9 +143,29 @@ class RestaurantRepository {
       page: page,
       size: size,
       search: search,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
+
+  Future<List<Restaurant>> getShopsWithActiveMyDays({
+    int size = 20,
+  }) async {
+    try {
+      final response = await SearchRepository.instance.searchNearbyActiveMyDays(
+        page: 1,
+        size: size,
+      );
+      return response.shops
+          .map((dto) => _mapShopWithDistance(dto.shop, lat: 0, lon: 0))
+          .toList();
+    } catch (e) {
+      print('Error fetching shops with active mydays: $e');
+      return [];
+    }
+  }
+
 
   Future<NearbyShopsPageResult> getNearbyShopsPage({
     required double lat,
@@ -117,9 +174,12 @@ class RestaurantRepository {
     int page = 0,
     int size = 20,
     String? search,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     // Generate a unique key for this request
-    final cacheKey = '$lat-$lon-$radius-$page-$size-$search';
+    final cacheKey =
+        '$lat-$lon-$radius-$page-$size-$search-$deliveryOnly-$visitOnly';
     final now = DateTime.now();
 
     // If we have cached data for the SAME request and it's less than 30 seconds old, return it
@@ -171,10 +231,18 @@ class RestaurantRepository {
             .toList();
       }
 
+      results = applyOrderingFilter(
+        results,
+        deliveryOnly: deliveryOnly,
+        visitOnly: visitOnly,
+      );
+
       final pageResult = NearbyShopsPageResult(
         restaurants: results,
         page: response.currentPage,
         lastPage: response.lastPage,
+        // Keep server pagination meta so View-all can keep paging after a
+        // client-side ordering filter shortens the current page.
         total: response.total,
         pageSize: size,
       );
@@ -210,6 +278,8 @@ class RestaurantRepository {
     required double lat,
     required double lon,
     double radius = 5.0,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     const fetchSize = 100;
     final all = <Restaurant>[];
@@ -232,8 +302,13 @@ class RestaurantRepository {
       page++;
     }
 
-    unawaited(_prefetchOrderStateForRestaurants(all));
-    return all;
+    final results = applyOrderingFilter(
+      all,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
+    );
+    unawaited(_prefetchOrderStateForRestaurants(results));
+    return results;
   }
 
   /// Popular shops from `GET /api/user/shop-profile/popular`.
@@ -243,12 +318,16 @@ class RestaurantRepository {
     required double lon,
     int page = 1,
     int size = 10,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getPopularShopsPage(
       lat: lat,
       lon: lon,
       page: page,
       size: size,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -258,6 +337,8 @@ class RestaurantRepository {
     required double lon,
     int page = 1,
     int size = 10,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getPopularShops(
@@ -265,9 +346,13 @@ class RestaurantRepository {
         size: size,
       );
       final restaurants = await _prefetchAndReturn(
-        response.shops
-            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
-            .toList(),
+        applyOrderingFilter(
+          response.shops
+              .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+              .toList(),
+          deliveryOnly: deliveryOnly,
+          visitOnly: visitOnly,
+        ),
       );
       return NearbyShopsPageResult(
         restaurants: restaurants,
@@ -284,6 +369,8 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
   }
 
@@ -317,6 +404,8 @@ class RestaurantRepository {
     int page = 1,
     int size = 10,
     int? days,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getTrendingShopsPage(
       lat: lat,
@@ -324,6 +413,8 @@ class RestaurantRepository {
       page: page,
       size: size,
       days: days,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -334,6 +425,8 @@ class RestaurantRepository {
     int page = 1,
     int size = 10,
     int? days,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     if (AuthService().isLoggedIn) {
       final response = await SearchRepository.instance.getTrendingShops(
@@ -341,9 +434,13 @@ class RestaurantRepository {
         size: size,
         days: days,
       );
-      final restaurants = response.shops
-          .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
-          .toList();
+      final restaurants = applyOrderingFilter(
+        response.shops
+            .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))
+            .toList(),
+        deliveryOnly: deliveryOnly,
+        visitOnly: visitOnly,
+      );
       unawaited(_prefetchOrderStateForRestaurants(restaurants));
       return NearbyShopsPageResult(
         restaurants: restaurants,
@@ -360,6 +457,8 @@ class RestaurantRepository {
       radius: 10.0,
       page: page - 1,
       size: size,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
   }
 
@@ -408,6 +507,8 @@ class RestaurantRepository {
     int size = 20,
     double? originLat,
     double? originLon,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final result = await getShopProfilesPage(
       search: search,
@@ -416,6 +517,8 @@ class RestaurantRepository {
       size: size,
       originLat: originLat,
       originLon: originLon,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
     );
     return result.restaurants;
   }
@@ -427,6 +530,8 @@ class RestaurantRepository {
     int size = 20,
     double? originLat,
     double? originLon,
+    bool deliveryOnly = false,
+    bool visitOnly = false,
   }) async {
     final response = await SearchRepository.instance.listShopProfiles(
       search: search,
@@ -434,17 +539,24 @@ class RestaurantRepository {
       page: page,
       size: size,
     );
-    final restaurants = response.shops.map((dto) {
+    var restaurants = response.shops.map((dto) {
       final shop = dto.shop;
       if (originLat != null && originLon != null) {
         return _mapShopWithDistance(shop, lat: originLat, lon: originLon);
       }
       return _mapShopDtoToDomain(shop);
     }).toList();
+    restaurants = applyOrderingFilter(
+      restaurants,
+      deliveryOnly: deliveryOnly,
+      visitOnly: visitOnly,
+    );
     return NearbyShopsPageResult(
       restaurants: restaurants,
       page: response.currentPage,
       lastPage: response.lastPage,
+      // Keep server pagination meta so View-all can keep paging after a
+      // client-side ordering filter shortens the current page.
       total: response.total,
       pageSize: size,
     );
@@ -541,6 +653,10 @@ class RestaurantRepository {
     return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
   }
 
+  bool _newUserFreeForShop(bool optedOut) {
+    return NewUserFreeDeliveryOffer.instance.applies && !optedOut;
+  }
+
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {
     double? distanceKmOverride,
@@ -571,16 +687,28 @@ class RestaurantRepository {
         dto: dto,
         distanceKmOverride: distanceKmOverride,
       ),
-      deliveryFee: dto.displayDeliveryFee,
+      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
+          ? LocaleController.instance.tr('common.free')
+          : dto.displayDeliveryFee ??
+              (dto.freeDeliveryActive
+                  ? LocaleController.instance.tr('common.free')
+                  : null),
       originalDeliveryFee: dto.originalDeliveryFee,
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
+      freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      shopPromoFreeDelivery: dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
+      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
+          dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
       isFavorite: dto.isFavorite,
+      myDays: dto.myDays,
     );
     return _published(restaurant);
   }
@@ -623,6 +751,18 @@ class RestaurantRepository {
       deliveryEnabled: dto.deliveryEnabled,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
+      freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
+      shopPromoFreeDelivery: dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
+      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
+          dto.freeDeliveryActive ||
+          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
+      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
+          ? LocaleController.instance.tr('common.free')
+          : dto.displayDeliveryFee ??
+              (dto.freeDeliveryActive
+                  ? LocaleController.instance.tr('common.free')
+                  : null),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),
@@ -644,6 +784,7 @@ class RestaurantRepository {
       isFavorite: dto.isFavorite,
       paymentTypes: dto.paymentTypes,
       paymentQrUrl: dto.paymentQrUrl,
+      myDays: dto.myDays,
     );
     return _published(restaurant);
   }

@@ -24,28 +24,39 @@ import 'shop_storage.dart';
 class RemoteRestaurantDataSource {
   final ApiClient _apiClient = ApiClient();
 
-  /// Backend (auth): GET /api/user/banners?position=Ads|Promotions
+  /// Backend: GET /api/user/banners?position=Ads|Promotions|Order|Splash
   Future<List<BannerImageDto>> getBanners({String? position}) async {
-    try {
-      final response = await _apiClient.dio.get(
-        '${ApiClient.apiPrefix}/user/banners',
-        queryParameters: position != null ? {'position': position} : null,
-      );
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/banners',
+      queryParameters: position != null ? {'position': position} : null,
+      // Always hit network — empty Order/Splash responses must not stick in
+      // Dio's 7-day memory cache after an expired date window.
+      options: Options(
+        extra: {
+          '@dio_cache_interceptor@': CacheOptions(
+            store: MemCacheStore(),
+            policy: CachePolicy.refresh,
+          ),
+        },
+      ),
+    );
 
-      if (response.statusCode == 200) {
-        final raw = response.data;
-        final List<dynamic> data = raw is Map
-            ? (raw['data'] as List<dynamic>? ?? const [])
-            : (raw is List ? raw : const []);
-        return data
-            .whereType<Map<String, dynamic>>()
-            .map(BannerImageDto.fromJson)
-            .toList();
-      }
-      return [];
-    } catch (_) {
-      return [];
+    if (response.statusCode == 200) {
+      final raw = response.data;
+      final List<dynamic> data = raw is Map
+          ? (raw['data'] as List<dynamic>? ?? const [])
+          : (raw is List ? raw : const []);
+      final banners = data
+          .whereType<Map<String, dynamic>>()
+          .map(BannerImageDto.fromJson)
+          .toList();
+      banners.sort((a, b) {
+        final byOrder = a.displayOrder.compareTo(b.displayOrder);
+        return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
+      });
+      return banners;
     }
+    return [];
   }
 
   Future<Map<String, dynamic>?> getBackgroundTheme() async {
@@ -230,6 +241,7 @@ class RemoteRestaurantDataSource {
       return getExploreMenuItems(
         lat: lat,
         lon: lon,
+        radiusKm: radiusKm,
         page: page + 1,
         size: size,
       );
@@ -363,20 +375,23 @@ class RemoteRestaurantDataSource {
     );
   }
 
-  /// "Explore menu" — paginated catalog of published menu items visible to the
-  /// user. Backend (auth): GET /api/user/menu-items (UserMenuItemsController.findAll).
+  /// "Explore menu" — nearby published menu items sorted image-first then
+  /// nearest-first. Backend (optional auth): GET /api/user/menu-items/explore
+  /// (UserMenuItemsController.explore). Requires latitude/longitude.
   /// Returns `{ data: { content: [...menu items...] } }`.
-  /// The catalog endpoint is not geo-aware; [lat]/[lon] are used client-side to
-  /// compute distance from each item's nested shop coordinates.
   Future<ShopFeedSectionDto> getExploreMenuItems({
     required double lat,
     required double lon,
+    double? radiusKm,
     int page = 1,
     int size = 20,
   }) async {
     final response = await _apiClient.dio.get(
-      '${ApiClient.apiPrefix}/user/menu-items',
+      '${ApiClient.apiPrefix}/user/menu-items/explore',
       queryParameters: {
+        'latitude': lat,
+        'longitude': lon,
+        'radiusKm': ?radiusKm,
         'page': page,
         'size': size,
       },

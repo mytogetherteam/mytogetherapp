@@ -131,9 +131,32 @@ class _FoodHeaderState extends State<FoodHeader> {
     if (_displayLocation == null) {
       return context.tr('food.set_location');
     }
-    if (UserLocationRepository.instance.isSessionCurrentLocation) {
-      return context.tr('location.current');
+
+    // 1. Prefer user-provided explicit location name (unless it's just 'Current Location')
+    if (_displayLocation!.locationName != null && _displayLocation!.locationName!.trim().isNotEmpty) {
+      final name = _displayLocation!.locationName!.trim();
+      if (name != context.tr('location.current')) {
+        return name;
+      }
     }
+    
+    // 2. Prefer building name if available
+    if (_displayLocation!.buildingName != null && _displayLocation!.buildingName!.trim().isNotEmpty) {
+      return _displayLocation!.buildingName!.trim();
+    }
+    
+    // 3. Fallback to locationName if it WAS 'Current Location' and buildingName was absent
+    if (_displayLocation!.locationName != null && _displayLocation!.locationName!.trim().isNotEmpty) {
+      return _displayLocation!.locationName!.trim();
+    }
+
+    // 3. Fallback to location type (Home, Work, etc) if it's set
+    if (_displayLocation!.locationType != null && _displayLocation!.locationType != 'OTHER' && _displayLocation!.locationType!.trim().isNotEmpty) {
+      final type = _displayLocation!.locationType!.trim();
+      return type[0].toUpperCase() + type.substring(1).toLowerCase();
+    }
+
+    // 4. Otherwise, use the smart compact address
     final compact = LocationDisplayUtil.compactAddress(
       _displayLocation!.streetAddress ?? _displayLocation!.address,
     );

@@ -478,6 +478,10 @@ class CouponTicket extends StatelessWidget {
                 const SizedBox(width: 6),
                 _miniBadge(context.tr('coupon.early_bird')),
               ],
+              if (coupon.isReferral) ...[
+                const SizedBox(width: 6),
+                _miniBadge(context.tr('coupon.referral')),
+              ],
               if (coupon.isFreeItem && coupon.isBogoAllItems) ...[
                 const SizedBox(width: 6),
                 _miniBadge(context.tr('coupon.bogo_all')),
@@ -548,8 +552,11 @@ class CouponTicket extends StatelessWidget {
         'amount': coupon.discountPreview.toFormattedPrice(),
       });
     }
+    // Free-item / BOGO: no invented ฿-off; show the gift summary instead of
+    // "add items" (that hint is only for coupons that do not yet qualify).
     if (coupon.isFreeItem) {
-      return context.tr('coupon.bogo_add_items');
+      final gift = couponBogoGiftSummary(context, coupon);
+      return gift.isNotEmpty ? gift : context.tr('coupon.free');
     }
     return coupon.code;
   }

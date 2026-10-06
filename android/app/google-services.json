@@ -12,7 +12,20 @@
           "package_name": "com.mytogether.myshop"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "972280179999-ba49edvpdh128o4de2re0d7vinjc1eqo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mytogether.myshop",
+            "certificate_hash": "9e59184afd428868b4ff1f7f0e0578cfc97f4c39"
+          }
+        },
+        {
+          "client_id": "972280179999-5s97ioi6d15jfr4oe1ka3iai546revnh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBhxWsaCQlGoiUNQF6oZXx7uMltxF6Dg-s"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "972280179999-5s97ioi6d15jfr4oe1ka3iai546revnh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "972280179999-qlbirl8qfrv09dupiho0qrnislpm087p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mytogether.myshop"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +56,36 @@
           "package_name": "com.mytogetherorg.mytogether"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "972280179999-bnkbmqthobed9oigjri4270j8umq4qj2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mytogetherorg.mytogether",
+            "certificate_hash": "dde5f8b3b739a5e335f1052e172117447557b400"
+          }
+        },
+        {
+          "client_id": "972280179999-g3f4h4po5iencmh96vo35l0mmdv0nq89.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mytogetherorg.mytogether",
+            "certificate_hash": "8a15d038b115bfb0fa9af6dd95d0b46d9b533f8d"
+          }
+        },
+        {
+          "client_id": "972280179999-sfqa4e4j4e0s76u9hjc1n2n9islh78j9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mytogetherorg.mytogether",
+            "certificate_hash": "9e59184afd428868b4ff1f7f0e0578cfc97f4c39"
+          }
+        },
+        {
+          "client_id": "972280179999-5s97ioi6d15jfr4oe1ka3iai546revnh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBhxWsaCQlGoiUNQF6oZXx7uMltxF6Dg-s"
@@ -39,7 +93,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "972280179999-5s97ioi6d15jfr4oe1ka3iai546revnh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "972280179999-qlbirl8qfrv09dupiho0qrnislpm087p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mytogether.myshop"
+              }
+            }
+          ]
         }
       }
     }

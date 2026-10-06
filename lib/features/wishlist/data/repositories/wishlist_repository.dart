@@ -16,6 +16,7 @@ class WishlistPageResult {
 ///   GET    /api/user/wishlist/menu-items       paginated
 ///   GET    /api/user/wishlist/shop             paginated
 ///   GET    /api/user/wishlist/places           paginated
+///   GET    /api/user/wishlist/posts            paginated
 ///   DELETE /api/user/wishlist/:id              by wishlist row id
 ///
 /// Since DELETE expects the wishlist row id (not the menuItemId/shopId), we
@@ -36,6 +37,9 @@ class WishlistRepository extends ChangeNotifier {
   /// placeId -> wishlist row id
   final Map<int, int> _placeIndex = {};
 
+  /// postId -> wishlist row id
+  final Map<int, int> _postIndex = {};
+
   /// Optimistic overrides applied on top of the indexes. They hold the latest
   /// user-intended saved state for an item (true = saved, false = removed) so
   /// every screen that listens to this notifier reflects a toggle instantly and
@@ -45,6 +49,7 @@ class WishlistRepository extends ChangeNotifier {
   final Map<int, bool> _menuItemOverride = {};
   final Map<int, bool> _shopOverride = {};
   final Map<int, bool> _placeOverride = {};
+  final Map<int, bool> _postOverride = {};
 
   /// Whether `loadAll()` has primed the indexes at least once during this
   /// session. We use this to know if a missing key means "really missing"
@@ -61,6 +66,8 @@ class WishlistRepository extends ChangeNotifier {
 
   int? wishlistIdForPlace(int placeId) => _placeIndex[placeId];
 
+  int? wishlistIdForPost(int postId) => _postIndex[postId];
+
   bool isMenuItemSaved(int menuItemId) =>
       _menuItemOverride[menuItemId] ?? _menuItemIndex.containsKey(menuItemId);
 
@@ -69,6 +76,9 @@ class WishlistRepository extends ChangeNotifier {
 
   bool isPlaceSaved(int placeId) =>
       _placeOverride[placeId] ?? _placeIndex.containsKey(placeId);
+
+  bool isPostSaved(int postId) =>
+      _postOverride[postId] ?? _postIndex.containsKey(postId);
 
   /// Whether the repository has any authoritative knowledge about an item's
   /// saved state (either a confirmed row or an optimistic override). Callers
@@ -85,6 +95,9 @@ class WishlistRepository extends ChangeNotifier {
   bool knowsPlace(int placeId) =>
       _placeOverride.containsKey(placeId) || _placeIndex.containsKey(placeId);
 
+  bool knowsPost(int postId) =>
+      _postOverride.containsKey(postId) || _postIndex.containsKey(postId);
+
   /// Pre-loads the entire wishlist into memory. Cheap to call repeatedly
   /// since the backend paginates and the lists are user-scoped.
   Future<void> loadAll({int size = 100}) async {
@@ -93,6 +106,7 @@ class WishlistRepository extends ChangeNotifier {
         listMenuItems(size: size),
         listShops(size: size),
         listPlaces(size: size),
+        listPosts(size: size).catchError((_) => <WishlistItemDto>[]),
       ]);
       _primed = true;
       notifyListeners();
@@ -222,6 +236,54 @@ class WishlistRepository extends ChangeNotifier {
     return paged;
   }
 
+  Future<List<WishlistItemDto>> listPosts({
+    int page = 1,
+    int size = 50,
+  }) async {
+    final result = await listPostsPage(page: page, size: size);
+    return result.items;
+  }
+
+  Future<WishlistPageResult> listPostsPage({
+    int page = 1,
+    int size = 50,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/wishlist/posts',
+      queryParameters: {'page': page, 'size': size},
+    );
+
+    final paged = _parsePagedResponse(response.data, page: page, size: size);
+    for (final item in paged.items) {
+      final postId = item.postId ?? item.post?.id;
+      if (postId != null) {
+        _postIndex[postId] = item.id;
+      }
+    }
+    notifyListeners();
+    return paged;
+  }
+
+  /// Toggles a social post in the wishlist. Returns whether it is saved after
+  /// the request. The backend treats a second save of the same post as remove.
+  Future<bool> togglePost(int postId) async {
+    final response = await _apiClient.dio.post(
+      '${ApiClient.apiPrefix}/user/wishlist',
+      data: {'postId': postId},
+    );
+    final created = _parseSingle(response.data);
+    if (created != null) {
+      _postIndex[postId] = created.id;
+      _postOverride[postId] = true;
+      notifyListeners();
+      return true;
+    }
+    _postIndex.remove(postId);
+    _postOverride[postId] = false;
+    notifyListeners();
+    return false;
+  }
+
   Future<WishlistItemDto?> addShop(int shopId) async {
     _shopOverride[shopId] = true;
     notifyListeners();
@@ -306,6 +368,13 @@ class WishlistRepository extends ChangeNotifier {
     _placeIndex.removeWhere((key, value) {
       if (value == wishlistId) {
         _placeOverride[key] = false;
+        return true;
+      }
+      return false;
+    });
+    _postIndex.removeWhere((key, value) {
+      if (value == wishlistId) {
+        _postOverride[key] = false;
         return true;
       }
       return false;

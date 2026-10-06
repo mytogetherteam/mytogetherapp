@@ -10,9 +10,9 @@ class ChatHeadRouteObserver extends NavigatorObserver {
   bool _isChatPageActive = false;
 
   void _updateVisibility(Route<dynamic>? route) {
-    final isChatPage = route?.settings.name == '/chat' ||
-        (route is MaterialPageRoute &&
-            _isRouteChatPage(route));
+    final isChatPage =
+        route?.settings.name == '/chat' ||
+        (route is MaterialPageRoute && _isRouteChatPage(route));
     if (isChatPage != _isChatPageActive) {
       _isChatPageActive = isChatPage;
       FloatingChatHead.isHiddenNotifier.value = isChatPage;

@@ -51,6 +51,26 @@ class AuthRemoteDataSource {
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<GoogleAuthResponse> googleAuth(GoogleAuthRequest request) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/auth/google',
+      data: request.toJson(),
+    );
+    final responseData = response.data;
+    if (responseData['success'] == false) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 400,
+          data: responseData,
+        ),
+      );
+    }
+    final data = responseData['data'] as Map<String, dynamic>;
+    return GoogleAuthResponse.fromJson(data);
+  }
+
   Future<String> refreshToken(String refreshToken) async {
     final response = await _dio.post(
       '${ApiClient.apiPrefix}/user/auth/refresh',

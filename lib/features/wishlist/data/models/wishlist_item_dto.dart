@@ -9,6 +9,7 @@ library;
 
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/utils/image_utils.dart';
+import '../../../social/data/models/post_dto.dart';
 
 class WishlistItemDto {
   /// The wishlist row's primary key. Required when calling DELETE.
@@ -17,10 +18,12 @@ class WishlistItemDto {
   final int? menuItemId;
   final int? shopId;
   final int? placeId;
+  final int? postId;
   final String? createdAt;
   final WishlistMenuItemRef? menuItem;
   final WishlistShopRef? shop;
   final WishlistPlaceRef? place;
+  final SocialPostDto? post;
 
   WishlistItemDto({
     required this.id,
@@ -28,26 +31,31 @@ class WishlistItemDto {
     this.menuItemId,
     this.shopId,
     this.placeId,
+    this.postId,
     this.createdAt,
     this.menuItem,
     this.shop,
     this.place,
+    this.post,
   });
 
   bool get isMenuItem => menuItemId != null || menuItem != null;
   bool get isShop => shopId != null || shop != null;
   bool get isPlace => placeId != null || place != null;
+  bool get isPost => postId != null || post != null;
 
   factory WishlistItemDto.fromJson(Map<String, dynamic> json) {
     final menuMap = json['menuItem'];
     final shopMap = json['shop'];
     final placeMap = json['place'];
+    final postMap = json['post'];
     return WishlistItemDto(
       id: (json['id'] as num).toInt(),
       userId: (json['userId'] as num?)?.toInt(),
       menuItemId: (json['menuItemId'] as num?)?.toInt(),
       shopId: (json['shopId'] as num?)?.toInt(),
       placeId: (json['placeId'] as num?)?.toInt(),
+      postId: (json['postId'] as num?)?.toInt(),
       createdAt: json['createdAt']?.toString(),
       menuItem: menuMap is Map<String, dynamic>
           ? WishlistMenuItemRef.fromJson(menuMap)
@@ -57,6 +65,9 @@ class WishlistItemDto {
           : null,
       place: placeMap is Map<String, dynamic>
           ? WishlistPlaceRef.fromJson(placeMap)
+          : null,
+      post: postMap is Map<String, dynamic>
+          ? SocialPostDto.fromJson(postMap)
           : null,
     );
   }
@@ -160,6 +171,7 @@ class WishlistShopRef {
   final int? ratingCount;
   final bool isOpen;
   final bool isVerified;
+  final bool freeDeliveryActive;
 
   WishlistShopRef({
     required this.id,
@@ -175,6 +187,7 @@ class WishlistShopRef {
     this.ratingCount,
     this.isOpen = true,
     this.isVerified = false,
+    this.freeDeliveryActive = false,
   });
 
   String get displayName {
@@ -210,6 +223,7 @@ class WishlistShopRef {
       ratingCount: (json['ratingCount'] as num?)?.toInt(),
       isOpen: json['isOpen'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
+      freeDeliveryActive: json['freeDeliveryActive'] == true,
     );
   }
 }

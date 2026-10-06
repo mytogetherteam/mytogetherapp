@@ -14,6 +14,7 @@ import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
+import '../widgets/restaurant_ordering_filter_chips.dart';
 import 'restaurant_detail_page.dart';
 
 /// Which "see all" feed this page renders.
@@ -24,14 +25,20 @@ enum FoodCollectionKind { trending, popular }
 /// page); the data source is chosen from [kind].
 class FoodCollectionListPage extends StatefulWidget {
   final FoodCollectionKind kind;
+  final bool visitOnly;
 
-  const FoodCollectionListPage({super.key, required this.kind});
+  const FoodCollectionListPage({
+    super.key,
+    required this.kind,
+    this.visitOnly = false,
+  });
 
   @override
   State<FoodCollectionListPage> createState() => _FoodCollectionListPageState();
 }
 
 class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
+  late RestaurantOrderingFilter _orderingFilter;
   late final PaginatedListController<Restaurant> _pagination;
   final Map<String, bool> _localFavorites = {};
   final ScrollController _scrollController = ScrollController();
@@ -39,6 +46,9 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
   @override
   void initState() {
     super.initState();
+    _orderingFilter = widget.visitOnly
+        ? RestaurantOrderingFilter.visitOnly
+        : RestaurantOrderingFilter.delivery;
     _pagination = PaginatedListController<Restaurant>(
       pageSize: 20,
       initialPage: 1,
@@ -48,6 +58,15 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_scrollController);
     _pagination.loadInitial();
+  }
+
+  bool get _visitOnly =>
+      _orderingFilter == RestaurantOrderingFilter.visitOnly;
+
+  void _onOrderingFilterChanged(RestaurantOrderingFilter value) {
+    if (value == _orderingFilter) return;
+    setState(() => _orderingFilter = value);
+    _pagination.refresh();
   }
 
   void _onPaginationChanged() {
@@ -76,6 +95,8 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
           lon: loc.lon,
           page: page,
           size: _pagination.pageSize,
+          deliveryOnly: !_visitOnly,
+          visitOnly: _visitOnly,
         );
       case FoodCollectionKind.popular:
         pageResult = await RestaurantRepository.instance.getPopularShopsPage(
@@ -83,6 +104,8 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
           lon: loc.lon,
           page: page,
           size: _pagination.pageSize,
+          deliveryOnly: !_visitOnly,
+          visitOnly: _visitOnly,
         );
     }
     return PaginatedPage(
@@ -203,22 +226,32 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
   }
 
   Widget _buildHeading() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        children: [
-          Text(_emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 8),
-          Text(
-            _title,
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Row(
+            children: [
+              Text(_emoji, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Text(
+                _title,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        RestaurantOrderingFilterChips(
+          selected: _orderingFilter,
+          onChanged: _onOrderingFilterChanged,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        ),
+      ],
     );
   }
 
@@ -306,7 +339,11 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
               Icon(PhosphorIcons.bag, size: 64, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                context.tr('restaurant.no_restaurants'),
+                context.tr(
+                  _visitOnly
+                      ? 'restaurants.empty_visit_only'
+                      : 'restaurants.empty_delivery',
+                ),
                 style: GoogleFonts.poppins(
                   color: Colors.grey[500],
                   fontSize: 16,

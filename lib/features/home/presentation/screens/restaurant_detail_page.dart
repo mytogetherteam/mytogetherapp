@@ -42,6 +42,10 @@ import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
+import '../widgets/shop_myday_viewer.dart';
+import '../widgets/shop_myday_list_section.dart';
+import '../../../call/data/call_session.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -379,7 +383,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       } else {
         try {
           await _fetchCategories(shopId);
-          await _fetchMenu(isInitial: true);
+          await _fetchMenu(isInitial: true, silent: true);
         } catch (_) {}
       }
 
@@ -443,6 +447,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     for (final item in result.content) {
       if (existingIds.add(item.id)) {
         _menuItems.add(item);
+      } else {
+        final index = _menuItems.indexWhere((e) => e.id == item.id);
+        if (index != -1) {
+          _menuItems[index] = item;
+        }
       }
     }
 
@@ -540,10 +549,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     final targetId = widget.targetMenuItemId;
     if (targetId == null || targetId.isEmpty) return;
 
+    int retries = 0;
     while (mounted &&
         _hasMoreMenu &&
-        !_menuItems.any((it) => it.id.toString() == targetId)) {
+        !_menuItems.any((it) => it.id.toString() == targetId) &&
+        retries < 5) {
+      final prevCount = _menuItems.length;
       await _fetchMenu();
+      if (_menuItems.length == prevCount) {
+        retries++;
+      } else {
+        retries = 0;
+      }
     }
 
     if (mounted) _scheduleScrollToTarget();
@@ -610,7 +627,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     }
   }
 
-  Future<void> _fetchMenu({bool isInitial = false}) async {
+  Future<void> _fetchMenu({bool isInitial = false, bool silent = false}) async {
     if (_isMenuLoading || (!_hasMoreMenu && !isInitial)) return;
 
     final shopId = int.tryParse(widget.id) ?? 0;
@@ -623,9 +640,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           threshold: PaginationScroll.menuEndThreshold,
         );
     setState(() {
-      _isMenuLoading = true;
+      if (!silent) _isMenuLoading = true;
       if (isInitial) {
-        _menuItems.clear();
+        if (!silent) _menuItems.clear();
         _resetMenuPagination();
       }
     });
@@ -643,7 +660,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         await _fetchShopWideMenuPage(isInitial: isInitial);
       }
       if (mounted) {
-        setState(() => _isMenuLoading = false);
+        setState(() {
+          if (!silent) _isMenuLoading = false;
+        });
         if (!isInitial) {
           PaginationScroll.maintainAfterPageAppend(
             _scrollController,
@@ -654,7 +673,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     } catch (e) {
       debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
       if (mounted) {
-        setState(() => _isMenuLoading = false);
+        setState(() {
+          if (!silent) _isMenuLoading = false;
+          _hasMoreMenu = false;
+        });
         if (!isInitial) {
           PaginationScroll.maintainAfterPageAppend(
             _scrollController,
@@ -844,8 +866,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 horizontal: 20,
                               ),
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   _buildActionButton(
                                     imageAsset:
@@ -963,6 +984,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         ),
                       ),
                     ),
+                    if (_currentRestaurant != null && _currentRestaurant!.hasActiveMyDays)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: ShopMyDayListSection(
+                            shopName: _currentRestaurant!.name,
+                            shopLogoUrl: _currentRestaurant!.logoPath,
+                            stories: _currentRestaurant!.myDays,
+                          ),
+                        ),
+                      ),
                     ..._buildMenuSlivers(context),
                     if (_isMenuLoading)
                       const SliverToBoxAdapter(
@@ -1098,8 +1130,22 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 Colors.white.withValues(alpha: 0.7),
                                 BlendMode.srcOver,
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_currentRestaurant != null) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            RestaurantOverviewPage(
+                                          restaurant: _currentRestaurant!,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(28),
@@ -1110,69 +1156,101 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 ),
                                 child: Row(
                                   children: [
-                                // Logo Container
-                                Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child:
-                                        resolveMediaUrl(
-                                          _currentRestaurant?.logoPath,
-                                        ).isNotEmpty
-                                        ? GestureDetector(
-                                            onTap: () {
-                                              final img = resolveMediaUrl(_currentRestaurant!.logoPath);
-                                              if (img.isNotEmpty) {
-                                                Navigator.push(
-                                                  context,
-                                                  PageRouteBuilder(
-                                                    opaque: false,
-                                                    barrierDismissible: true,
-                                                    pageBuilder: (context, _, _) => FullScreenImageViewer(
-                                                      imageUrls: [img],
-                                                      initialIndex: 0,
-                                                      heroTagPrefix: 'restaurant_logo_${widget.id}_',
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
-                                              imageUrl: resolveMediaUrl(
-                                                _currentRestaurant!.logoPath,
+                                // Logo Container (MyDay story ring when active)
+                                Builder(
+                                  builder: (context) {
+                                    final hasStories =
+                                        _currentRestaurant?.hasActiveMyDays ==
+                                            true;
+                                    final logo = Padding(
+                                      padding: EdgeInsets.all(hasStories ? 3 : 0),
+                                      child: Container(
+                                        width: hasStories ? 64 : 70,
+                                        height: hasStories ? 64 : 70,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.1,
                                               ),
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) =>
-                                                  const ImageSkeletonLoader(),
-                                              errorWidget:
-                                                  (
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          child: resolveMediaUrl(
+                                                    _currentRestaurant
+                                                        ?.logoPath,
+                                                  ).isNotEmpty
+                                              ? CachedNetworkImage(
+                                                  fadeInDuration:
+                                                      Duration.zero,
+                                                  fadeOutDuration:
+                                                      Duration.zero,
+                                                  imageUrl: resolveMediaUrl(
+                                                    _currentRestaurant!
+                                                        .logoPath,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (context, url) =>
+                                                          const ImageSkeletonLoader(),
+                                                  errorWidget: (
                                                     context,
                                                     url,
                                                     error,
-                                                  ) => _buildLogoFallback(
-                                                    _currentRestaurant?.name ??
+                                                  ) =>
+                                                      _buildLogoFallback(
+                                                    _currentRestaurant
+                                                            ?.name ??
                                                         '',
                                                   ),
+                                                )
+                                              : _buildLogoFallback(
+                                                  _currentRestaurant?.name ??
+                                                      '',
+                                                ),
+                                        ),
+                                      ),
+                                    );
+
+                                    Widget child = logo;
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          final restaurant = _currentRestaurant;
+                                          if (restaurant == null) return;
+                                          
+                                          final img = resolveMediaUrl(
+                                            restaurant.logoPath,
+                                        );
+                                        if (img.isNotEmpty) {
+                                          Navigator.push(
+                                            context,
+                                            PageRouteBuilder(
+                                              opaque: false,
+                                              barrierDismissible: true,
+                                              pageBuilder:
+                                                  (context, _, _) =>
+                                                      FullScreenImageViewer(
+                                                imageUrls: [img],
+                                                initialIndex: 0,
+                                                heroTagPrefix:
+                                                    'restaurant_logo_${widget.id}_',
+                                              ),
                                             ),
-                                          )
-                                        : _buildLogoFallback(
-                                            _currentRestaurant?.name ?? '',
-                                          ),
-                                  ),
+                                          );
+                                        }
+                                      },
+                                      child: child,
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -1267,6 +1345,43 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
+                                          if (_currentRestaurant
+                                                  ?.freeDeliveryActive ==
+                                              true) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            Text(
+                                              context.tr('common.free') +
+                                                  ' delivery',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF10B981),
+                                              ),
+                                            ),
+                                          ] else if ((_currentRestaurant
+                                                      ?.deliveryFee ??
+                                                  '')
+                                              .isNotEmpty) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            Text(
+                                              _currentRestaurant!.deliveryFee!,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: const Color(0xFF10B981),
+                                              ),
+                                            ),
+                                          ],
                                           if (!(_orderAvailability?.isBlocked ??
                                               false)) ...[
                                             Text(
@@ -1305,14 +1420,15 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               ],
                             ),
                           ),
+                         ),
                         ),
                       ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              );
+            },
             ),
 
             // Active Order Bar & Cart Summary

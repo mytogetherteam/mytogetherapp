@@ -1,6 +1,6 @@
 import 'models/menu_item_dto.dart';
 import 'models/shop_dto.dart'
-    show OperatingHourDto, ShopPaymentTypeDto, LocalTimeDto;
+    show OperatingHourDto, ShopPaymentTypeDto, LocalTimeDto, ShopMyDayDto;
 import '../../../core/localization/locale_controller.dart';
 
 class Restaurant {
@@ -31,6 +31,13 @@ class Restaurant {
   final String? paymentQrUrl;
   final String? deliveryFee;
   final String? originalDeliveryFee;
+  final bool freeDeliveryActive;
+
+  /// Shop window or all-shops campaign from the server. The first-order offer is separate.
+  final bool shopPromoFreeDelivery;
+
+  /// Shop does not take platform free delivery, including a new user's first order.
+  final bool freeDeliveryOptOutOfGlobal;
 
   // New fields for Overview Page
   final String? address;
@@ -51,6 +58,9 @@ class Restaurant {
   /// Whether MyTogether has verified this shop.
   final bool isVerified;
 
+  /// Active shop MyDay stories (24h photo posts).
+  final List<ShopMyDayDto> myDays;
+
   // Amenities / features
   final bool hasParking;
   final bool hasWifi;
@@ -69,6 +79,8 @@ class Restaurant {
 
   /// Whether at least one amenity is available (used to hide the section).
   bool get hasAnyFeature => hasParking || hasWifi || isHalal || isVegetarian;
+
+  bool get hasActiveMyDays => myDays.isNotEmpty;
 
   /// Live open/closed state computed from [operatingHours] against the device
   /// clock. Falls back to the API [status] flag when no schedule is available.
@@ -117,6 +129,10 @@ class Restaurant {
     this.paymentQrUrl,
     this.deliveryFee,
     this.originalDeliveryFee,
+    this.freeDeliveryActive = false,
+    this.shopPromoFreeDelivery = false,
+    this.freeDeliveryOptOutOfGlobal = false,
+    this.myDays = const [],
   }) : _name = name;
 
   Restaurant copyWith({
@@ -147,6 +163,9 @@ class Restaurant {
     String? paymentQrUrl,
     String? deliveryFee,
     String? originalDeliveryFee,
+    bool? freeDeliveryActive,
+    bool? shopPromoFreeDelivery,
+    bool? freeDeliveryOptOutOfGlobal,
     String? address,
     String? addressMm,
     String? addressTh,
@@ -158,6 +177,11 @@ class Restaurant {
     bool? deliveryEnabled,
     bool? taxEnable,
     bool? isVerified,
+    bool? hasParking,
+    bool? hasWifi,
+    bool? isHalal,
+    bool? isVegetarian,
+    List<ShopMyDayDto>? myDays,
   }) {
     return Restaurant(
       id: id ?? this.id,
@@ -187,6 +211,11 @@ class Restaurant {
       paymentQrUrl: paymentQrUrl ?? this.paymentQrUrl,
       deliveryFee: deliveryFee ?? this.deliveryFee,
       originalDeliveryFee: originalDeliveryFee ?? this.originalDeliveryFee,
+      freeDeliveryActive: freeDeliveryActive ?? this.freeDeliveryActive,
+      shopPromoFreeDelivery:
+          shopPromoFreeDelivery ?? this.shopPromoFreeDelivery,
+      freeDeliveryOptOutOfGlobal:
+          freeDeliveryOptOutOfGlobal ?? this.freeDeliveryOptOutOfGlobal,
       address: address ?? this.address,
       addressMm: addressMm ?? this.addressMm,
       addressTh: addressTh ?? this.addressTh,
@@ -198,6 +227,11 @@ class Restaurant {
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
       taxEnable: taxEnable ?? this.taxEnable,
       isVerified: isVerified ?? this.isVerified,
+      hasParking: hasParking ?? this.hasParking,
+      hasWifi: hasWifi ?? this.hasWifi,
+      isHalal: isHalal ?? this.isHalal,
+      isVegetarian: isVegetarian ?? this.isVegetarian,
+      myDays: myDays ?? this.myDays,
     );
   }
 }

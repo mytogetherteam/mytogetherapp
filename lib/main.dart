@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'core/auth/auth_service.dart';
 import 'core/network/api_client.dart';
 import 'core/localization/locale_controller.dart';
+import 'core/splash/branded_splash.dart';
 import 'features/cart/data/active_order_state.dart';
 import 'features/cart/data/cart_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -16,8 +17,12 @@ import 'features/onboarding/data/onboarding_prefs.dart';
 import 'core/utils/lock_screen_widget_manager.dart';
 import 'core/security/security_check.dart';
 import 'app.dart';
+import 'features/social/post_link_listener.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'core/auth/order_ownership.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -72,6 +77,65 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       (mainType == 'ORDER' ? 'ORDER_STATUS' : null);
   if (type == 'SILENT_SYNC') {
     await NotificationService().cancelAllNotifications();
+    return;
+  } else if (type == 'CALL_INCOMING') {
+    final callId = data['callId']?.toString() ?? '';
+    final callerName = data['callerName']?.toString() ?? 'Shop';
+    
+    if (callId.isNotEmpty) {
+      final callKitParams = CallKitParams(
+        id: callId,
+        nameCaller: callerName,
+        appName: 'MyTogether',
+        avatar: '',
+        handle: 'Incoming Call',
+        type: 0,
+        duration: 60000,
+        missedCallNotification: const NotificationParams(
+          showNotification: true,
+          isShowCallback: false,
+          subtitle: 'Missed call from shop',
+          callbackText: 'Call back',
+        ),
+        extra: <String, dynamic>{},
+        headers: <String, dynamic>{},
+        android: const AndroidParams(
+          isCustomNotification: true,
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#EF4444',
+          actionColor: '#22C55E',
+          textColor: '#ffffff',
+          incomingCallNotificationChannelName: "Incoming Call",
+          missedCallNotificationChannelName: "Missed Call",
+        ),
+        ios: const IOSParams(
+          iconName: 'AppIcon',
+          handleType: '',
+          supportsVideo: false,
+          maximumCallGroups: 2,
+          maximumCallsPerCallGroup: 1,
+          audioSessionMode: 'default',
+          audioSessionActive: true,
+          audioSessionPreferredSampleRate: 44100.0,
+          audioSessionPreferredIOBufferDuration: 0.005,
+          supportsDTMF: true,
+          supportsHolding: true,
+          supportsGrouping: false,
+          supportsUngrouping: false,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      );
+      await FlutterCallkitIncoming.showCallkitIncoming(callKitParams);
+    }
+    return;
+  } else if (type == 'CALL_END' || type == 'CALL_TIMEOUT') {
+    final callId = data['callId']?.toString() ?? '';
+    if (callId.isNotEmpty) {
+      await FlutterCallkitIncoming.endCall(callId);
+    } else {
+      await FlutterCallkitIncoming.endAllCalls();
+    }
     return;
   }
   
@@ -190,6 +254,13 @@ void main() async {
     debugPrint('[BOOT] Checking onboarding status...');
     hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
     debugPrint('[BOOT] Onboarding status loaded: $hasSeenOnboarding');
+
+    debugPrint('[BOOT] Prefetching Splash banner...');
+    try {
+      await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
+    } catch (e) {
+      debugPrint('[BOOT] Splash banner prefetch timed out/failed: $e');
+    }
   } catch (e, stackTrace) {
     debugPrint('[BOOT] Critical error during initialization: $e\n$stackTrace');
   }
@@ -218,5 +289,10 @@ void main() async {
 
   debugPrint('[BOOT] Calling runApp()...');
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
+  if (!kIsWeb) {
+    unawaited(PostLinkListener.instance.start());
+  }
   debugPrint('[BOOT] runApp() called.');
 }
+
+

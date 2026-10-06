@@ -1,11 +1,13 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
 import '../../../../features/food/presentation/screens/food_page.dart';
-import '../../../../features/order/presentation/screens/order_history_page.dart';
+import '../../../../features/social/presentation/screens/social_page.dart';
 import '../../../../features/cart/presentation/widgets/styled_cart_fab.dart';
 import '../../../../features/cart/data/active_order_state.dart';
 import '../../../../features/cart/presentation/screens/order_complete_page.dart';
@@ -15,14 +17,19 @@ import '../../../../core/network/websocket_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
-import '../../../../features/auth/presentation/screens/profile_page.dart';
 import '../../../../features/news/presentation/screens/news_page.dart';
+import '../../../../features/auth/presentation/screens/profile_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/presentation/widgets/permission_rationale_modal.dart';
 import '../widgets/guest_welcome_banner.dart';
+import '../widgets/first_order_free_delivery_banner.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
+import '../../../../features/call/data/call_session.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/app.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -36,15 +43,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int? _lastStatus;
   late List<Widget> _screens;
   String _screenLocaleKey = '';
+  int _socialVisitCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadSocialVisitCount();
     _rebuildScreens();
     NavigationController.instance.tabChangeRequest.addListener(
       _onTabChangeRequested,
     );
     LocaleController.instance.addListener(_onLanguageChanged);
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOffer);
+    NewUserFreeDeliveryOffer.instance.refresh();
 
     // Global listener for order completion
     _lastStatus = ActiveOrderState.instance.orderStatus;
@@ -55,10 +66,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       WebSocketService().connect();
     }
 
+    // Wire up shop-to-user incoming call handler.
+    // When a shop calls this user AND user taps notification/accepts, navigate to CallScreen.
+    CallSession().onCallAcceptedFromOS = (callId, shopName) {
+      final nav = App.navigatorKey.currentState;
+      if (nav == null) return;
+      nav.push(
+        MaterialPageRoute(
+          builder: (_) => CallScreen(
+            shopName: shopName,
+            shopImageUrl: CallSession().currentShopImageUrl,
+          ),
+        ),
+      );
+    };
+
     // Request permissions after first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissions();
     });
+  }
+
+  Future<void> _loadSocialVisitCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _socialVisitCount = prefs.getInt('social_tab_visit_count') ?? 0;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onLanguageChanged() {
@@ -76,7 +113,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _screens = <Widget>[
       HomePage(key: ValueKey('home_$localeKey')),
       FoodPage(key: ValueKey('food_$localeKey')),
-      OrderHistoryPage(key: ValueKey('orders_$localeKey')),
+      SocialPage(key: ValueKey('social_$localeKey')),
       _newsTab(localeKey),
       ProfilePage(key: ValueKey('profile_$localeKey')),
     ];
@@ -156,15 +193,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Shop-cancel navigation is handled globally by [OrderActionPresenter].
 
     _lastStatus = newStatus;
+    NewUserFreeDeliveryOffer.instance.refresh();
+  }
+
+  void _onNewUserOffer() {
+    if (mounted) setState(() {});
   }
 
   void _onTabChangeRequested() {
     final requested = NavigationController.instance.tabChangeRequest.value;
     if (requested != null && mounted) {
-      setState(() => _currentIndex = requested);
-      // Reset the request after the current notification dispatch completes,
-      // rather than re-entrantly mutating the notifier from inside its own
-      // listener (which can swallow subsequent identical requests).
+      // Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Profile.
+      final index = requested.clamp(0, 4);
+      setState(() {
+        _currentIndex = index;
+        NavigationController.instance.currentIndex.value = index;
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (NavigationController.instance.tabChangeRequest.value == requested) {
           NavigationController.instance.tabChangeRequest.value = null;
@@ -180,6 +224,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
     ActiveOrderState.instance.removeListener(_onOrderStateChanged);
     LocaleController.instance.removeListener(_onLanguageChanged);
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOffer);
     super.dispose();
   }
 
@@ -187,12 +232,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Fire iOS 3D-touch-style haptic on every bottom nav icon tap
     AppHaptics.buttonTap();
 
+    if (index == 2 && _socialVisitCount < 3) {
+      _socialVisitCount++;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt('social_tab_visit_count', _socialVisitCount);
+      });
+    }
+
     if (index == _currentIndex) {
-      // Same tab tapped again → scroll to top + refresh that tab's content
+      // Same tab tapped again â†’ scroll to top + refresh that tab's content
       NavigationController.instance.triggerScrollToTop(index);
     } else {
       setState(() {
         _currentIndex = index;
+        NavigationController.instance.currentIndex.value = index;
       });
     }
   }
@@ -205,7 +258,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _rebuildScreens();
     }
 
+    final isSocial = _currentIndex == 2;
     return Scaffold(
+      extendBody: isSocial,
       body: Stack(
         children: [IndexedStack(index: _currentIndex, children: _screens)],
       ),
@@ -213,9 +268,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!AuthService().isLoggedIn)
+          // Hide guest promo on Social â€” it fights the full-bleed dark feed.
+          if (NewUserFreeDeliveryOffer.instance.showBanner && _currentIndex != 2)
+            FirstOrderFreeDeliveryBanner(
+              showFoodButton: _currentIndex != 1,
+              onOpenFood: () => _onTabTapped(1),
+            )
+          else if (!AuthService().isLoggedIn && _currentIndex != 2)
             GuestWelcomeBanner(
               onAuthFlowComplete: () {
+                NewUserFreeDeliveryOffer.instance.refresh();
                 if (mounted) setState(() {});
               },
             ),
@@ -227,135 +289,317 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   /// The cart FAB shown across tabs.
   ///
-  /// Tabs: 0=Home, 1=Food, 2=Orders, 3=News, 4=Profile.
-  /// - Hidden on News and Profile.
-  /// - Lifted above the active-order tracking card on Home, Food and Orders
-  ///   (the tabs that render it).
+  /// Tabs: 0=Home, 1=Food, 2=Social, 3=News, 4=Profile.
+  /// - Hidden on Social and News.
   Widget? _buildCartFab() {
-    if (_currentIndex == 3 || _currentIndex == 4) return null;
+    if (_currentIndex == 2 || _currentIndex == 3 || _currentIndex == 4) return null;
     return const StyledCartFab();
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-        height: 60 + (Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
-        padding: EdgeInsets.only(bottom: Theme.of(context).platform == TargetPlatform.iOS ? MediaQuery.of(context).padding.bottom * 0.5 : MediaQuery.of(context).padding.bottom),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+    final isSocial = _currentIndex == 2;
+    final barColor = isSocial ? Colors.black.withValues(alpha: 0.6) : Colors.white;
+    final inactiveColor =
+        isSocial ? Colors.white70 : Colors.grey.shade400;
+    final bottomInset = Theme.of(context).platform == TargetPlatform.iOS
+        ? MediaQuery.of(context).padding.bottom * 0.5
+        : MediaQuery.of(context).padding.bottom;
+
+    // Keep the bar at the original ~60px; raised Social button paints above
+    // via clipBehavior: Clip.none (does not inflate footer height).
+    const barBodyHeight = 60.0;
+
+    Widget barContent = Material(
+      color: Colors.transparent,
+      child: Container(
+        color: barColor,
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SizedBox(
+          height: barBodyHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (!isSocial)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Row(
+                children: [
+                  _buildNavItem(
+                    0,
+                    PhosphorIcons.house,
+                    PhosphorIcons.houseFill,
+                    context.tr('nav.home'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    1,
+                    PhosphorIcons.forkKnife,
+                    PhosphorIcons.forkKnifeFill,
+                    context.tr('nav.food'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    2,
+                    PhosphorIcons.planet,
+                    PhosphorIcons.planetFill,
+                    context.tr('nav.social'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                    badgeText: _socialVisitCount < 3 ? 'NEW' : null,
+                  ),
+                  _buildNavItem(
+                    3,
+                    PhosphorIcons.newspaper,
+                    PhosphorIcons.newspaperFill,
+                    context.tr('nav.news'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                  _buildNavItem(
+                    4,
+                    PhosphorIcons.user,
+                    PhosphorIcons.userFill,
+                    context.tr('nav.profile'),
+                    inactiveColor: inactiveColor,
+                    socialMode: isSocial,
+                    height: barBodyHeight,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              0,
-              PhosphorIcons.house,
-              PhosphorIcons.houseFill,
-              context.tr('nav.home'),
-            ),
-            _buildNavItem(
-              1,
-              PhosphorIcons.forkKnife,
-              PhosphorIcons.forkKnifeFill,
-              context.tr('nav.food'),
-            ),
-            _buildNavItem(
-              2,
-              PhosphorIcons.receipt,
-              PhosphorIcons.receiptFill,
-              context.tr('nav.orders'),
-            ),
-            _buildNavItem(
-              3,
-              PhosphorIcons.newspaper,
-              PhosphorIcons.newspaperFill,
-              context.tr('nav.news'),
-            ),
-            _buildNavItem(
-              4,
-              GuestAuthGuard.isGuest
-                  ? PhosphorIcons.gearSix
-                  : PhosphorIcons.user,
-              GuestAuthGuard.isGuest
-                  ? PhosphorIcons.gearSixFill
-                  : PhosphorIcons.userFill,
-              GuestAuthGuard.isGuest
-                  ? context.tr('nav.settings')
-                  : context.tr('nav.profile'),
-            ),
-          ],
+      ),
+    );
+
+    if (isSocial) {
+      barContent = ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: barContent,
         ),
       );
+    }
+
+    return barContent;
   }
+
 
   Widget _buildNavItem(
     int index,
     IconData icon,
     IconData activeIcon,
-    String label,
-  ) {
+    String label, {
+    required Color inactiveColor,
+    required bool socialMode,
+    required double height,
+    String? badgeText,
+  }) {
     final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => _onTabTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: MediaQuery.of(context).size.width / 5,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Column(
-                children: [
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: AppColors.primaryGradient.colors,
-                    ).createShader(bounds),
-                    child: Icon(activeIcon, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(height: 4),
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: AppColors.primaryGradient.colors,
-                    ).createShader(bounds),
-                    child: Text(
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          height: height,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isSelected)
+                socialMode
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topRight,
+                            children: [
+                              Icon(activeIcon, color: Colors.white, size: 26),
+                              if (badgeText != null)
+                                Positioned(
+                                  top: -6,
+                                  right: -12,
+                                  child: _NavPulsingBadge(text: badgeText),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            label,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topRight,
+                            children: [
+                              ShaderMask(
+                                shaderCallback: (bounds) => LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: AppColors.primaryGradient.colors,
+                                ).createShader(bounds),
+                                child: Icon(
+                                  activeIcon,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
+                              if (badgeText != null)
+                                Positioned(
+                                  top: -6,
+                                  right: -12,
+                                  child: _NavPulsingBadge(text: badgeText),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: AppColors.primaryGradient.colors,
+                            ).createShader(bounds),
+                            child: Text(
+                              label,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+              else
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topRight,
+                      children: [
+                        Icon(icon, color: inactiveColor, size: 26),
+                        if (badgeText != null)
+                          Positioned(
+                            top: -6,
+                            right: -12,
+                            child: _NavPulsingBadge(text: badgeText),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       label,
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: inactiveColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
+                        height: 1.1,
                       ),
                     ),
-                  ),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  Icon(icon, color: Colors.grey.shade400, size: 26),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey.shade400,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-          ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+class _NavPulsingBadge extends StatefulWidget {
+  final String text;
+  const _NavPulsingBadge({required this.text});
+
+  @override
+  State<_NavPulsingBadge> createState() => _NavPulsingBadgeState();
+}
+
+class _NavPulsingBadgeState extends State<_NavPulsingBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF2D55), // Bright vibrant red/pink for Social
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF2D55).withValues(alpha: 0.4),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Text(
+          widget.text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 8.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

@@ -41,6 +41,7 @@ class GeoFeedAvailability {
               lon: coords.lon,
               radius: 10.0,
               size: 1,
+              deliveryOnly: true,
             )
             .timeout(const Duration(seconds: 10));
         nearbyHasData = nearbyShops.isNotEmpty;

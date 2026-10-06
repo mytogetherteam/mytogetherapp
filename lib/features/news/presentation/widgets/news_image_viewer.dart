@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/models/news_item.dart';
-import '../screens/news_detail_page.dart';
+import 'news_comments_sheet.dart';
 
 class NewsImageViewer extends StatefulWidget {
   final List<String> imageUrls;
@@ -254,17 +254,15 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                     const SizedBox(width: 32),
                     // Comment Button
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => NewsDetailPage(
-                              item: widget.item,
-                              autoFocusComment: true,
-                            ),
-                          ),
+                        final updatedCount = await showNewsCommentsSheet(
+                          context: context,
+                          item: widget.item,
                         );
+                        if (updatedCount != null) {
+                          widget.item.commentsCount = updatedCount;
+                        }
                       },
                       child: Row(
                         children: [

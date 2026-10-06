@@ -125,8 +125,11 @@ class ShopListItemDto {
   final double? latitude;
   final double? longitude;
   final List<String> imageUrls;
+  final bool freeDeliveryActive;
+  final bool freeDeliveryOptOutOfGlobal;
   final String? displayDeliveryFee;
   final String? originalDeliveryFee;
+  final List<ShopMyDayDto> myDays;
 
   String get name => LocaleController.instance.localizedOr(
     _name,
@@ -194,8 +197,11 @@ class ShopListItemDto {
     this.latitude,
     this.longitude,
     this.imageUrls = const <String>[],
+    this.freeDeliveryActive = false,
+    this.freeDeliveryOptOutOfGlobal = false,
     this.displayDeliveryFee,
     this.originalDeliveryFee,
+    this.myDays = const [],
   }) : _name = name,
        _category = category,
        _estimatedTime = estimatedTime;
@@ -260,20 +266,36 @@ class ShopListItemDto {
           ? (json['longitude'] as num).toDouble()
           : null,
       imageUrls: imageUrls,
+      freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
+      myDays: (json['myDays'] as List? ?? [])
+          .map((e) => ShopMyDayDto.fromJson(e as Map<String, dynamic>))
+          .where((d) => d.isActive)
+          .toList(),
     );
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
-    // API returns displayDeliveryFee as a number (e.g. 1000)
+    if (json['freeDeliveryActive'] == true) {
+      return LocaleController.instance.tr('common.free');
+    }
+    // API returns displayDeliveryFee as a number (e.g. 1000) or "FREE"
     final raw =
         json['displayDeliveryFee'] ??
         json['displayBaseDeliveryFee'] ??
         json['baseDeliveryFee'];
-    if (raw == null) return null;
-    final num? fee = num.tryParse(raw.toString());
-    if (fee == null) return raw.toString();
+    if (raw == null) {
+      // Effective free delivery may only be exposed via freeDeliveryActive.
+      return null;
+    }
+    final asText = raw.toString().trim();
+    if (asText.toUpperCase() == 'FREE') {
+      return LocaleController.instance.tr('common.free');
+    }
+    final num? fee = num.tryParse(asText);
+    if (fee == null) return asText;
     if (fee == 0) return LocaleController.instance.tr('common.free');
     return '฿${fee.toStringAsFixed(0)}';
   }
@@ -310,6 +332,40 @@ class PageableDto {
       offset: json['offset'] ?? 0,
       paged: json['paged'] ?? false,
       unpaged: json['unpaged'] ?? false,
+    );
+  }
+}
+
+class ShopMyDayDto {
+  final int id;
+  final int shopId;
+  final String imageUrl;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+
+  const ShopMyDayDto({
+    required this.id,
+    required this.shopId,
+    required this.imageUrl,
+    required this.createdAt,
+    required this.expiresAt,
+  });
+
+  bool get isActive => expiresAt.isAfter(DateTime.now());
+
+  factory ShopMyDayDto.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is DateTime) return value.toLocal();
+      return DateTime.tryParse(value?.toString() ?? '')?.toLocal() ??
+          DateTime.now();
+    }
+
+    return ShopMyDayDto(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      shopId: (json['shopId'] as num?)?.toInt() ?? 0,
+      imageUrl: ImageUtils.cleanImageUrl(json['imageUrl']?.toString()) ?? '',
+      createdAt: parseDate(json['createdAt']),
+      expiresAt: parseDate(json['expiresAt']),
     );
   }
 }
@@ -366,6 +422,8 @@ class ShopDetailDto {
   final bool deliveryEnabled;
   final bool taxEnable;
   final bool isVerified;
+  final bool freeDeliveryActive;
+  final bool freeDeliveryOptOutOfGlobal;
   final String? address;
   final String? addressMm;
   final String? addressTh;
@@ -386,6 +444,8 @@ class ShopDetailDto {
   final int? minEta;
   final int? maxEta;
   final List<DeliveryTierDto> deliveryTiers;
+  final List<ShopMyDayDto> myDays;
+  final String? displayDeliveryFee;
 
   String get name => LocaleController.instance.localizedOr(
     _name,
@@ -465,6 +525,10 @@ class ShopDetailDto {
     this.minEta,
     this.maxEta,
     this.deliveryTiers = const [],
+    this.myDays = const [],
+    this.freeDeliveryActive = false,
+    this.freeDeliveryOptOutOfGlobal = false,
+    this.displayDeliveryFee,
   }) : _name = name,
        _estimatedTime = estimatedTime;
 
@@ -533,6 +597,14 @@ class ShopDetailDto {
       deliveryTiers: (json['deliveryTiers'] as List? ?? [])
           .map((e) => DeliveryTierDto.fromJson(e as Map<String, dynamic>))
           .toList(),
+      myDays: (json['myDays'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => ShopMyDayDto.fromJson(e.cast<String, dynamic>()))
+          .where((d) => d.imageUrl.isNotEmpty && d.isActive)
+          .toList(),
+      freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
+      displayDeliveryFee: ShopListItemDto._parseDeliveryFee(json),
     );
   }
 
@@ -611,6 +683,10 @@ class ShopDetailDto {
       normalized['distance'] = distanceKm;
     } else {
       normalized['distance'] = json['distanceKm'] ?? json['distance'] ?? 0;
+    }
+
+    if (json['myDays'] is List) {
+      normalized['myDays'] = json['myDays'];
     }
 
     return ShopDetailDto.fromJson(normalized);

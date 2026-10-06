@@ -112,18 +112,12 @@ class CurrencyExchangeRepository {
         if (crossRate <= 0) continue;
 
         // Effective black market rate per 1 unit of foreign currency
-        // Equation: 1 USD = 3990 MMK. 1 USD = 34 THB. So 34 THB = 3990 MMK. -> 1 THB = 3990 / 34 MMK.
+        // Equation: 1 USD = 4231 MMK. 1 USD = 34 THB. So 34 THB = 4231 MMK. -> 1 THB = 4231 / 34 MMK.
         final targetBlackMarketMmK = usdBlackMarket / crossRate;
 
         // synthesized realistic Buy/Sell spread data (e.g., ~1.6% total spread)
         double buy = targetBlackMarketMmK * 0.992;
         double sell = targetBlackMarketMmK * 1.008;
-
-        // Hardcoded real prices for THB as requested
-        if (code == 'THB') {
-          buy = 128.21;
-          sell = 131.58;
-        }
 
         list.add(CurrencyRateModel(currency: code, buy: buy, sell: sell));
       }

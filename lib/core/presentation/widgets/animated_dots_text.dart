@@ -44,11 +44,22 @@ class _AnimatedDotsTextState extends State<AnimatedDotsText>
       builder: (context, child) {
         int dotCount = (_controller.value * 4).floor();
         String dots = '.' * dotCount;
-        return Text(
-          '${widget.baseText}$dots',
-          style: widget.style,
+        return RichText(
           maxLines: widget.maxLines,
           overflow: widget.overflow,
+          text: TextSpan(
+            text: widget.baseText,
+            style: widget.style,
+            children: [
+              TextSpan(
+                text: dots,
+              ),
+              TextSpan(
+                text: '.' * (3 - dotCount),
+                style: widget.style?.copyWith(color: Colors.transparent) ?? const TextStyle(color: Colors.transparent),
+              ),
+            ],
+          ),
         );
       },
     );

@@ -41,6 +41,8 @@ import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import '../../../reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
+import '../../../call/data/call_session.dart';
 
 class AwaitingPaymentPage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -1099,6 +1101,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -1612,6 +1619,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         shopCoupon: order?.shopCoupon,
                       ),
                     ],
+                    if ((order?.transactionDiscount ?? 0) > 0) ...[
+                      const SizedBox(height: 10),
+                      _summaryRow(
+                        context.tr('order_status.transaction_discount'),
+                        '- ${(order?.displayTransactionDiscount ?? order!.transactionDiscount!.toFormattedPrice())}',
+                        isValue: false,
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     if (order?.isPickupFulfillment != true &&
                         order?.hasDeliveryFeeEstimate == true &&
@@ -1620,22 +1635,37 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                       _summaryRow(
                         context.tr('order_status.delivery_fee'),
                         '',
-                        customValue: order!.isFlexibleDelivery
-                            ? GradientText(
-                                order.deliveryFee!.toFormattedPrice(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              )
-                            : Text(
-                                order.deliveryFee!.toFormattedPrice(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
+                        customValue: Text(
+                          () {
+                            final o = order!;
+                            if (o.isFreeDelivery ||
+                                (o.displayDeliveryFee ?? '')
+                                    .toUpperCase()
+                                    .contains('FREE') ||
+                                (o.displayDeliveryFee ?? '').toLowerCase() ==
+                                    'free') {
+                              return context.tr('common.free');
+                            }
+                            if (o.displayDeliveryFee != null &&
+                                o.displayDeliveryFee!.trim().isNotEmpty) {
+                              return o.displayDeliveryFee!.toFormattedPrice();
+                            }
+                            return o.deliveryFee!.toFormattedPrice();
+                          }(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: (order!.isFreeDelivery ||
+                                    (order.displayDeliveryFee ?? '')
+                                        .toUpperCase()
+                                        .contains('FREE') ||
+                                    (order.displayDeliveryFee ?? '')
+                                        .toLowerCase() ==
+                                        'free')
+                                ? const Color(0xFF10B981)
+                                : Colors.black,
+                          ),
+                        ),
                         isValue: false,
                       ),
                     ],
@@ -1710,32 +1740,56 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           avatarUrl: state.logoPath,
                         );
                       },
-                      child: Container(
-                        height: 48,
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ChatUnreadBadge(
-                              orderId: _chatOrderId,
-                              child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              context.tr('order_confirm.chat'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ChatUnreadBadge(
+                                    orderId: _chatOrderId,
+                                    child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    context.tr('order_confirm.chat'),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () {
+                              _makeCall(ActiveOrderState.instance.shopPhone);
+                            },
+                            child: Container(
+                              height: 48,
+                              width: 48,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF8FAFC),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                PhosphorIcons.phoneFill,
+                                color: Color(0xFF1E293B),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1980,6 +2034,34 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         ],
       ),
     );
+  }
+
+  Future<void> _makeCall(String? phone) async {
+    final state = ActiveOrderState.instance;
+    final shopId = int.tryParse(state.shopId ?? '');
+    
+    if (shopId != null && shopId > 0) {
+      final shopName = state.displayShopName.isNotEmpty ? state.displayShopName : (state.restaurantName ?? 'Shop');
+      final shopImageUrl = state.shopImageUrl ?? state.logoPath;
+      
+      final success = await CallSession().initiateCall(
+        shopId: shopId,
+        shopName: shopName,
+        shopImageUrl: shopImageUrl,
+      );
+      
+      if (success && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CallScreen(
+              shopName: shopName,
+              shopImageUrl: shopImageUrl,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _openChat({

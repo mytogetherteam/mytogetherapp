@@ -213,6 +213,10 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                       const SizedBox(width: 8),
                       const _EarlyBirdTag(),
                     ],
+                    if (coupon.isReferral) ...[
+                      const SizedBox(width: 8),
+                      const _ReferralTag(),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -263,7 +267,9 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                   label: context.tr('coupon.eligibility'),
                   value: coupon.isEarlyBird
                       ? context.tr('coupon.for_early_bird')
-                      : context.tr('coupon.for_everyone'),
+                      : coupon.isReferral
+                          ? context.tr('coupon.for_referral')
+                          : context.tr('coupon.for_everyone'),
                 ),
                 if (validFrom != null) ...[
                   const SizedBox(height: 10),
@@ -359,6 +365,36 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _ReferralTag extends StatelessWidget {
+  const _ReferralTag();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F7EF),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🎁', style: TextStyle(fontSize: 11)),
+          const SizedBox(width: 4),
+          Text(
+            context.tr('coupon.referral'),
+            style: GoogleFonts.poppins(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF0F7A45),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -602,11 +638,20 @@ class _CouponWishlistButtonState extends State<_CouponWishlistButton> {
         _loading = false;
       });
       if (saved) {
+        // Capture the root navigator now, while this context is guaranteed
+        // mounted. The toast can be tapped after the sheet's own context is
+        // gone, and the coupon sheet lives on a nested navigator — so we must
+        // push Saved Coupons on the ROOT navigator, not this sheet's one.
+        final rootNavigator = Navigator.of(context, rootNavigator: true);
         AppDialog.showToast(
           context,
           context.tr('coupon.saved_to_wishlist'),
           actionLabel: context.tr('wishlist.view_action'),
-          onAction: () => SavedCouponsPage.open(context),
+          onAction: () {
+            rootNavigator.push(
+              MaterialPageRoute(builder: (_) => const SavedCouponsPage()),
+            );
+          },
         );
       } else {
         AppDialog.showToast(

@@ -3,11 +3,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
@@ -28,6 +33,18 @@
             android:name="com.example.live_activities.LiveActivityFirebaseMessagingService"
             tools:node="remove" />
 
+        <!-- Override CallkitNotificationService to prevent background microphone FGS crash on Android 14+ -->
+        <service
+            android:name="com.hiennv.flutter_callkit_incoming.CallkitNotificationService"
+            android:exported="true"
+            android:foregroundServiceType="phoneCall"
+            tools:replace="android:foregroundServiceType,android:exported" />
+
+        <service
+            android:name=".ActiveCallService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|phoneCall" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,9 +62,30 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="api.mytogether.org"
+                    android:pathPrefix="/p/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="mytogether"
+                    android:host="p"
+                    android:pathPrefix="/" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
@@ -92,3 +130,4 @@
         </intent>
     </queries>
 </manifest>
+

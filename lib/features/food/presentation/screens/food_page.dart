@@ -7,6 +7,7 @@ import 'package:mytogetherapp/features/auth/data/repositories/user_location_repo
 import 'package:mytogetherapp/core/location/location_service.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
+import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
@@ -26,6 +27,7 @@ import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import 'food_search_page.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_leaderboard_section.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/all_shop_my_days_section.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
 class FoodPage extends StatefulWidget {
@@ -37,12 +39,13 @@ class FoodPage extends StatefulWidget {
 
 class _FoodPageState extends State<FoodPage> {
   /// Toggle to show discount + collection rails between banner and restaurants.
-  static const _showDiscountAndCollectionRails = false;
+  static const _showDiscountAndCollectionRails = true;
 
   Key _refreshKey = UniqueKey();
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
   bool _isScrolled = false;
+  bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
   @override
   void initState() {
@@ -52,10 +55,19 @@ class _FoodPageState extends State<FoodPage> {
     UserLocationRepository.instance.getPrimaryLocation().then((_) {
       _loadCoordinates();
     });
-    // Double-tap same bottom tab → scroll to top + refresh
+    // Double-tap same bottom tab â†’ scroll to top + refresh
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
+  }
+
+  void _onNewUserOfferChanged() {
+    final next = NewUserFreeDeliveryOffer.instance.applies;
+    if (!mounted || next == _newUserFreeApplied) return;
+    _newUserFreeApplied = next;
+    RestaurantRepository.instance.clearCache();
+    setState(() => _refreshKey = UniqueKey());
   }
 
   @override
@@ -66,6 +78,7 @@ class _FoodPageState extends State<FoodPage> {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 
@@ -229,6 +242,12 @@ class _FoodPageState extends State<FoodPage> {
                           ),
                         ),
                         const SizedBox(height: 28),
+                        if (_showDiscountAndCollectionRails) ...[
+                          const CollectionsSection(),
+                          const SizedBox(height: 28),
+                        ],
+                        const AllShopMyDaysSection(),
+                        const SizedBox(height: 28),
                         const FoodLeaderboardSection(),
                         const SizedBox(height: 28),
                         const FoodPromotionsCarousel(),
@@ -248,8 +267,6 @@ class _FoodPageState extends State<FoodPage> {
                           FoodDiscountSelectionSection(
                             key: ValueKey('discount_$_refreshKey'),
                           ),
-                          const SizedBox(height: 32),
-                          const CollectionsSection(),
                           const SizedBox(height: 32),
                         ] else
                           const SizedBox(height: 32),
@@ -361,4 +378,5 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 }
+
 

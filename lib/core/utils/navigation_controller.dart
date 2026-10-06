@@ -5,6 +5,9 @@ class NavigationController {
   NavigationController._();
   static final NavigationController instance = NavigationController._();
 
+  /// Current active tab index.
+  final ValueNotifier<int> currentIndex = ValueNotifier(0);
+
   /// Listen to this from MainNavigationScreen to switch tabs.
   final ValueNotifier<int?> tabChangeRequest = ValueNotifier(null);
 
@@ -40,4 +43,10 @@ class NavigationController {
 
   // Home tab is index 0
   void goToHomeTab() => goToTab(0);
+
+  // Social tab is index 2
+  void goToSocialTab() => goToTab(2);
+
+  // Orders tab is index 4
+  void goToOrdersTab() => goToTab(4);
 }

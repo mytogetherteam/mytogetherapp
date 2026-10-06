@@ -22,10 +22,31 @@ class PickedImage {
     final bytes = await file.readAsBytes();
     final name = file.name.trim().isNotEmpty
         ? file.name
-        : 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        : 'media_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final ext = name.contains('.') ? name.split('.').last.toLowerCase() : 'jpg';
-    final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-    return PickedImage(bytes: bytes, filename: name, mimeType: mimeType);
+    return PickedImage(
+      bytes: bytes,
+      filename: name,
+      mimeType: mimeTypeForExtension(ext, file.mimeType),
+    );
+  }
+
+  bool get isVideo => mimeType.startsWith('video/');
+
+  static String mimeTypeForExtension(String ext, String? fallback) {
+    return switch (ext) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      'heic' => 'image/heic',
+      'heif' => 'image/heif',
+      'mp4' => 'video/mp4',
+      'mov' => 'video/quicktime',
+      'm4v' => 'video/x-m4v',
+      'webm' => 'video/webm',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      _ => (fallback != null && fallback.isNotEmpty) ? fallback : 'image/jpeg',
+    };
   }
 
   MultipartFile toMultipartFile({String? filenameOverride}) {

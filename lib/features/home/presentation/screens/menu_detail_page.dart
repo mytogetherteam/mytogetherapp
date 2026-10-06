@@ -10,6 +10,7 @@ import '../widgets/image_skeleton_loader.dart';
 import '../widgets/review_card.dart';
 import '../widgets/view_all_icon_button.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/menu_item_price.dart';
 import '../../../cart/data/cart_manager.dart';
 import '../../../cart/data/models/cart_dto.dart';
 import '../../data/restaurant_data.dart';
@@ -56,6 +57,7 @@ class MenuDetailPage extends StatefulWidget {
     this.restaurantName = '',
     this.displayPrice,
     this.initialVariantId,
+    this.initialAdditionalVariantIds,
     this.initialOptionIds,
     this.initialInstructions,
     this.cartItemId,
@@ -64,6 +66,7 @@ class MenuDetailPage extends StatefulWidget {
   });
 
   final int? initialVariantId;
+  final List<int>? initialAdditionalVariantIds;
   final List<int>? initialOptionIds;
   final String? initialInstructions;
   final String? cartItemId;
@@ -84,7 +87,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   FoodDetailDto? _currentFood;
   bool _isLoading = true;
 
-  int? _selectedVariantId;
+  /// One selection per variant group (groupId → variantId).
+  /// Multi-group menus (e.g. Protein + Spicy Level) must not share a single id.
+  final Map<int, int> _selectedVariantByGroup = {};
   // Map<optionGroupId, Set<optionId>>
   final Map<int, Set<int>> _selectedOptions = {};
 
@@ -101,6 +106,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
   // Special instructions
   final TextEditingController _instructionsController = TextEditingController();
+  final FocusNode _instructionsFocusNode = FocusNode();
 
   // Mock recommended items - To be replaced by API if available
   final List<Map<String, String>> _recommendedItems = [];
@@ -183,12 +189,105 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   }
 
   void _initializeSelections() {
-    _selectedVariantId = widget.initialVariantId;
-    if (widget.initialOptionIds != null) {
-      // Note: We don't have the group assignment yet, so we'll need to
-      // map these once _currentFood is loaded.
-      // For now, we'll store them in a temporary set or handle it in _fetchFoodDetails
+    // Variant/option group mapping needs food detail — applied in _fetchFoodDetails.
+  }
+
+  List<MenuItemVariantDto> get _selectedVariantDtos {
+    final food = _currentFood;
+    if (food == null || _selectedVariantByGroup.isEmpty) return const [];
+    final out = <MenuItemVariantDto>[];
+    for (final id in _selectedVariantByGroup.values) {
+      try {
+        out.add(food.variants.firstWhere((v) => v.id == id));
+      } catch (_) {}
     }
+    out.sort((a, b) {
+      final g = (a.variantGroupDisplayOrder ?? 0)
+          .compareTo(b.variantGroupDisplayOrder ?? 0);
+      if (g != 0) return g;
+      return (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0);
+    });
+    return out;
+  }
+
+  /// Cart/API primary variantId — highest-priced pick.
+  int? get _primaryVariantId {
+    final selected = _selectedVariantDtos;
+    if (selected.isEmpty) return null;
+    var best = selected.first;
+    for (final v in selected.skip(1)) {
+      if (v.price > best.price) best = v;
+    }
+    return best.id;
+  }
+
+  /// Other group picks sent as additionalVariantIds.
+  List<int> get _additionalVariantIds {
+    final primary = _primaryVariantId;
+    return _selectedVariantDtos
+        .map((v) => v.id)
+        .where((id) => primary == null || id != primary)
+        .toList()
+      ..sort();
+  }
+
+  double _baseMenuPrice(FoodDetailDto food) {
+    // API `price` is already the discounted selling price when present.
+    final currentPrice = food.price;
+    final originalPrice = food.originalPrice ?? 0.0;
+    if (currentPrice > 0) return currentPrice;
+    if (originalPrice > 0) {
+      return effectiveMenuItemPrice(
+        originalPrice: originalPrice,
+        discountAmount: food.discountAmount,
+        discountPercentage: food.discountPercentage,
+      );
+    }
+    return 0;
+  }
+
+  /// Absolute + surcharge variant pricing (matches backend cart-price.util).
+  double _resolvedVariantOrBasePrice(FoodDetailDto food) {
+    final selected = _selectedVariantDtos;
+    if (selected.isEmpty) return _baseMenuPrice(food);
+    final fromVariants = resolveSelectedVariantsListPrice(
+      selectedPrices: selected.map((v) => v.price).toList(),
+      menuOriginalPrice: food.originalPrice ?? food.price,
+      discountAmount: food.discountAmount,
+      discountPercentage: food.discountPercentage,
+    );
+    if (fromVariants == null) return _baseMenuPrice(food);
+    if (fromVariants <= 0) return _baseMenuPrice(food);
+    return fromVariants;
+  }
+
+  ({String? en, String? mm}) _combinedVariantNames() {
+    final selected = _selectedVariantDtos;
+    if (selected.isEmpty) return (en: null, mm: null);
+    final en = selected
+        .map((v) => (v.nameEn ?? v.name).trim())
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+    final mmParts = selected
+        .map((v) => (v.nameMm ?? '').trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return (
+      en: en.isEmpty ? null : en,
+      mm: mmParts.isEmpty ? null : mmParts.join(', '),
+    );
+  }
+
+  String? _missingRequiredOptionGroupName() {
+    final food = _currentFood;
+    if (food == null) return null;
+    for (final group in food.optionGroups) {
+      final min = group.minSelection;
+      if (min <= 0) continue;
+      final count = _selectedOptions[group.id]?.length ?? 0;
+      if (count < min) return group.name;
+    }
+    return null;
   }
 
   void _onCartChanged() {
@@ -213,22 +312,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
   double _computeUnitPrice() {
     final food = _currentFood;
     if (food != null) {
-      double price;
-      if (_selectedVariantId != null) {
-        try {
-          price = food.variants
-              .firstWhere((v) => v.id == _selectedVariantId)
-              .price;
-        } catch (_) {
-          price = food.price;
-        }
-      } else {
-        final currentPrice = food.price;
-        final originalPrice = food.originalPrice ?? 0.0;
-        price = (currentPrice == 0 && originalPrice > 0)
-            ? originalPrice
-            : currentPrice;
-      }
+      var price = _resolvedVariantOrBasePrice(food);
       for (final group in food.optionGroups) {
         for (final optId in _selectedOptions[group.id] ?? const <int>[]) {
           try {
@@ -268,7 +352,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     // to show the correct quantity for that specific configuration.
     final cartItem = CartManager.instance.findItemInCarts(
       _currentFood!.id,
-      variantId: _selectedVariantId,
+      variantId: _primaryVariantId,
+      additionalVariantIds: _additionalVariantIds,
       optionIds: allOptionIds.isNotEmpty ? allOptionIds : null,
     );
 
@@ -298,6 +383,23 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
           _isLoading = false;
 
           if (food != null) {
+            if (widget.initialVariantId != null) {
+              try {
+                final v = food.variants
+                    .firstWhere((x) => x.id == widget.initialVariantId);
+                _selectedVariantByGroup[v.variantGroupId ?? 0] = v.id;
+              } catch (_) {}
+            }
+            final extras = widget.initialAdditionalVariantIds;
+            if (extras != null) {
+              for (final id in extras) {
+                try {
+                  final v = food.variants.firstWhere((x) => x.id == id);
+                  _selectedVariantByGroup[v.variantGroupId ?? 0] = v.id;
+                } catch (_) {}
+              }
+            }
+
             // Map initial options to their groups
             if (widget.initialOptionIds != null) {
               for (final group in food.optionGroups) {
@@ -360,6 +462,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     _hoursRefreshTimer?.cancel();
     ShopOrderStateCache.instance.removeListener(_orderStateListener);
     _instructionsController.dispose();
+    _instructionsFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -381,6 +484,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             CustomScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverAppBar(
                   expandedHeight: 270.0,
@@ -511,31 +615,10 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             GradientText(
                               (() {
                                 if (widget.displayPrice != null &&
-                                    _selectedVariantId == null) {
+                                    _selectedVariantByGroup.isEmpty) {
                                   return widget.displayPrice!;
                                 }
-                                double price = 0;
-                                if (_currentFood != null) {
-                                  if (_selectedVariantId != null) {
-                                    final variant = _currentFood!.variants
-                                        .firstWhere(
-                                          (v) => v.id == _selectedVariantId,
-                                          orElse: () =>
-                                              _currentFood!.variants.first,
-                                        );
-                                    price = variant.price;
-                                  } else {
-                                    double currentPrice = _currentFood!.price;
-                                    double originalPrice =
-                                        _currentFood!.originalPrice ?? 0.0;
-                                    price =
-                                        (currentPrice == 0 && originalPrice > 0)
-                                        ? originalPrice
-                                        : currentPrice;
-                                  }
-                                } else {
-                                  price = widget.price;
-                                }
+                                final price = _computeUnitPrice();
                                 return price
                                     .toStringAsFixed(0)
                                     .toFormattedPrice(
@@ -653,6 +736,12 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         option.id,
                                       ) ??
                                       false;
+                                  final maxSelection = group.maxSelection;
+                                  final atMaxSelection = maxSelection != null &&
+                                      !isSelected &&
+                                      (_selectedOptions[group.id]?.length ??
+                                              0) >=
+                                          maxSelection;
                                   return _buildSelectionItem(
                                     title: option.name,
                                     price: option.price == 0
@@ -660,19 +749,46 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         : '+ ${option.price.toStringAsFixed(0)} ${_currentFood?.currency ?? widget.currency}',
                                     isSelected: isSelected,
                                     isRadio: false,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        final current =
-                                            _selectedOptions[group.id] ?? {};
-                                        if (value == true) {
-                                          current.add(option.id);
-                                        } else {
-                                          current.remove(option.id);
-                                        }
-                                        _selectedOptions[group.id] = current;
-                                        _syncWithCart();
-                                      });
-                                    },
+                                    onChanged: atMaxSelection
+                                        ? (_) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  context.trArgs(
+                                                    'menu.max_addon_reached',
+                                                    {
+                                                      'max': maxSelection
+                                                          .toString(),
+                                                      'group': group.name
+                                                              .trim()
+                                                              .isNotEmpty
+                                                          ? group.name
+                                                          : context.tr(
+                                                              'menu.add_on',
+                                                            ),
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        : (value) {
+                                            setState(() {
+                                              final current = Set<int>.from(
+                                                _selectedOptions[group.id] ??
+                                                    const {},
+                                              );
+                                              if (value == true) {
+                                                current.add(option.id);
+                                              } else {
+                                                current.remove(option.id);
+                                              }
+                                              _selectedOptions[group.id] =
+                                                  current;
+                                              _syncWithCart();
+                                            });
+                                          },
                                   );
                                 }),
                                 const SizedBox(height: 20),
@@ -706,9 +822,19 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                           child: TextField(
                             controller: _instructionsController,
-                            maxLines: null,
+                            focusNode: _instructionsFocusNode,
+                            maxLines: 4,
+                            minLines: 3,
                             maxLength: 200,
                             maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) =>
+                                _instructionsFocusNode.unfocus(),
+                            onTapOutside: (_) =>
+                                _instructionsFocusNode.unfocus(),
+                            scrollPadding: EdgeInsets.only(
+                              bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                            ),
                             buildCounter:
                                 (
                                   context, {
@@ -731,7 +857,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         ),
                         const SizedBox(height: 8),
                         Align(
-                          alignment: Alignment.bottomRight,
+                          alignment: Alignment.centerRight,
                           child: Text(
                             '${_instructionsController.text.length}/200',
                             style: GoogleFonts.poppins(
@@ -739,6 +865,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               fontSize: 12,
                             ),
                           ),
+                        ),
+                        SizedBox(
+                          height: MediaQuery.viewInsetsOf(context).bottom + 24,
                         ),
                         const SizedBox(height: 32),
 
@@ -986,8 +1115,28 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         onTap: (_isAddingToCart || _orderBlocked)
                             ? null
                             : () async {
+                                FocusScope.of(context).unfocus();
                                 if (_currentFood == null && widget.price == 0) {
                                   return; // Basic validation
+                                }
+
+                                final missingGroup =
+                                    _missingRequiredOptionGroupName();
+                                if (missingGroup != null) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        context.trArgs(
+                                          'menu.required_addon',
+                                          {'group': missingGroup},
+                                        ),
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                  return;
                                 }
 
                                 bool operationCompleted = false;
@@ -1026,21 +1175,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
 
                                     CartDto? result;
                                     if (widget.cartItemId != null) {
-                                      // Find the names for the newly selected variant
-                                      String? vName;
-                                      String? vNameMm;
-                                      if (_selectedVariantId != null &&
-                                          _currentFood != null) {
-                                        try {
-                                          final variant = _currentFood!.variants
-                                              .firstWhere(
-                                                (v) =>
-                                                    v.id == _selectedVariantId,
-                                              );
-                                          vName = variant.name;
-                                          vNameMm = variant.nameMm;
-                                        } catch (_) {}
-                                      }
+                                      final names = _combinedVariantNames();
 
                                       // Update existing item
                                       result = await CartManager.instance
@@ -1048,9 +1183,11 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                             widget.restaurantName,
                                             widget.cartItemId!,
                                             _quantity,
-                                            variantId: _selectedVariantId,
-                                            variantName: vName,
-                                            variantNameMm: vNameMm,
+                                            variantId: _primaryVariantId,
+                                            additionalVariantIds:
+                                                _additionalVariantIds,
+                                            variantName: names.en,
+                                            variantNameMm: names.mm,
                                             optionIds: allOptionIds.isNotEmpty
                                                 ? allOptionIds
                                                 : null,
@@ -1064,24 +1201,18 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                           );
                                     } else {
                                       final food = _currentFood;
-                                      String? vName;
-                                      String? vNameMm;
-                                      if (_selectedVariantId != null && food != null) {
-                                        try {
-                                          final variant = food.variants.firstWhere(
-                                            (v) => v.id == _selectedVariantId,
-                                          );
-                                          vName = variant.nameEn ?? variant.name;
-                                          vNameMm = variant.nameMm;
-                                        } catch (_) {}
-                                      }
+                                      final names = _combinedVariantNames();
 
                                       result = await CartManager.instance.addMenuItem(
                                         request: AddToCartRequest(
                                           menuItemId: menuItemId,
                                           quantity: _quantity,
                                           shopId: shopId,
-                                          variantId: _selectedVariantId,
+                                          variantId: _primaryVariantId,
+                                          additionalVariantIds:
+                                              _additionalVariantIds.isEmpty
+                                                  ? null
+                                                  : _additionalVariantIds,
                                           specialInstructions:
                                               _instructionsController.text
                                                   .trim()
@@ -1105,8 +1236,8 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                         shopNameTh: food?.shopNameTh,
                                         imageUrl: food?.imageUrl,
                                         currency: food?.currency ?? widget.currency,
-                                        variantNameEn: vName,
-                                        variantNameMm: vNameMm,
+                                        variantNameEn: names.en,
+                                        variantNameMm: names.mm,
                                         optionNames: _selectedOptionNames(),
                                       );
                                     }
@@ -1234,48 +1365,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                     const SizedBox(width: 12),
                                     Text(
                                       (() {
-                                        double basePrice = 0;
-                                        double optionsPrice = 0;
-                                        if (_currentFood != null) {
-                                          if (_selectedVariantId != null) {
-                                            final variant = _currentFood!
-                                                .variants
-                                                .firstWhere(
-                                                  (v) =>
-                                                      v.id ==
-                                                      _selectedVariantId,
-                                                );
-                                            basePrice = variant.price;
-                                          } else {
-                                            double currentPrice =
-                                                _currentFood!.price;
-                                            double originalPrice =
-                                                _currentFood!.originalPrice ??
-                                                0.0;
-                                            basePrice =
-                                                (currentPrice == 0 &&
-                                                    originalPrice > 0)
-                                                ? originalPrice
-                                                : currentPrice;
-                                          }
-                                          for (var group
-                                              in _currentFood!.optionGroups) {
-                                            final selectedIds =
-                                                _selectedOptions[group.id] ??
-                                                {};
-                                            for (var id in selectedIds) {
-                                              final option = group.options
-                                                  .firstWhere(
-                                                    (o) => o.id == id,
-                                                  );
-                                              optionsPrice += option.price;
-                                            }
-                                          }
-                                        } else {
-                                          basePrice = widget.price;
-                                        }
-                                        return ((basePrice + optionsPrice) *
-                                                _quantity)
+                                        final total =
+                                            _computeUnitPrice() * _quantity;
+                                        return total
                                             .toStringAsFixed(0)
                                             .toFormattedPrice(
                                               currency:
@@ -1394,14 +1486,14 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                 : variant.price
                     .toStringAsFixed(0)
                     .toFormattedPrice(currency: _currentFood!.currency),
-            isSelected: _selectedVariantId == variant.id,
+            isSelected: _selectedVariantByGroup[groupKey] == variant.id,
             isRadio: true,
             onChanged: (_) {
               setState(() {
-                if (_selectedVariantId == variant.id) {
-                  _selectedVariantId = null;
+                if (_selectedVariantByGroup[groupKey] == variant.id) {
+                  _selectedVariantByGroup.remove(groupKey);
                 } else {
-                  _selectedVariantId = variant.id;
+                  _selectedVariantByGroup[groupKey] = variant.id;
                 }
                 _syncWithCart();
               });

@@ -71,6 +71,8 @@ class ActiveOrderItem {
   // Applied shop coupon (if any). discountAmount = ฿ taken off the subtotal.
   double? discountAmount;
   String? displayDiscountAmount;
+  double? transactionDiscount;
+  String? displayTransactionDiscount;
   String? couponName;
   String? couponCode;
   OrderShopCouponInfo? shopCoupon;
@@ -100,6 +102,7 @@ class ActiveOrderItem {
   double? routeDistanceKm;
   int? routeDurationMins;
   double? deliveryFee;
+  bool isFreeDelivery;
   String? riderName;
   String? riderPhone;
   String? riderProfileUrl;
@@ -157,7 +160,7 @@ class ActiveOrderItem {
 
   /// Food subtotal before tax and delivery — prefers backend `itemPrice`.
   double get resolvedItemSubtotal {
-    if (itemPrice != null && itemPrice! > 0) return itemPrice!;
+    if (itemPrice != null) return itemPrice!;
     if (orderItems.isNotEmpty) {
       return orderItems.fold<double>(0, (sum, item) => sum + item.total);
     }
@@ -181,17 +184,19 @@ class ActiveOrderItem {
 
   double resolvedGrandTotal({double fallbackDeliveryFee = 0}) {
     if (totalAmount != null && totalAmount! > 0) return totalAmount!;
-    final delivery = isPickupFulfillment
+    final delivery = isPickupFulfillment || isFreeDelivery
         ? 0.0
         : (deliveryFee ?? fallbackDeliveryFee);
     // Subtract any coupon discount so the fallback matches the backend total.
     final discount = discountAmount ?? 0;
+    final txnDiscount = transactionDiscount ?? 0;
     final total = OrderTax.calculateTotal(
           itemSubtotal: resolvedItemSubtotal,
           deliveryFee: delivery,
           taxEnable: resolvedTaxEnable,
         ) -
-        discount;
+        discount -
+        txnDiscount;
     return total < 0 ? 0 : total;
   }
 
@@ -202,11 +207,15 @@ class ActiveOrderItem {
     }
     // Food + tax, less any coupon discount applied to the subtotal.
     final discount = discountAmount ?? 0;
-    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount;
+    final txnDiscount = transactionDiscount ?? 0;
+    final payNow = resolvedItemSubtotal + resolvedTaxAmount - discount - txnDiscount;
     return payNow < 0 ? 0 : payNow;
   }
 
   bool get hasDeliveryFeeEstimate {
+    if (isFreeDelivery) return true;
+    final display = displayDeliveryFee?.trim().toLowerCase() ?? '';
+    if (display == 'free' || display == 'FREE'.toLowerCase()) return true;
     final fee = deliveryFee;
     return fee != null && fee > 0;
   }
@@ -255,6 +264,8 @@ class ActiveOrderItem {
     this.totalAmount,
     this.discountAmount,
     this.displayDiscountAmount,
+    this.transactionDiscount,
+    this.displayTransactionDiscount,
     this.couponName,
     this.couponCode,
     this.shopCoupon,
@@ -271,6 +282,7 @@ class ActiveOrderItem {
     this.routeDistanceKm,
     this.routeDurationMins,
     this.deliveryFee,
+    this.isFreeDelivery = false,
     this.riderName,
     this.riderPhone,
     this.riderProfileUrl,
@@ -348,6 +360,8 @@ class ActiveOrderItem {
     'totalAmount': totalAmount,
     'discountAmount': discountAmount,
     'displayDiscountAmount': displayDiscountAmount,
+    'transactionDiscount': transactionDiscount,
+    'displayTransactionDiscount': displayTransactionDiscount,
     'couponName': couponName,
     'couponCode': couponCode,
     'shopCoupon': shopCoupon?.toJson(),
@@ -362,6 +376,7 @@ class ActiveOrderItem {
     'routeDistanceKm': routeDistanceKm,
     'routeDurationMins': routeDurationMins,
     'deliveryFee': deliveryFee,
+    'isFreeDelivery': isFreeDelivery,
     'riderName': riderName,
     'riderPhone': riderPhone,
     'riderProfileUrl': riderProfileUrl,
@@ -418,6 +433,8 @@ class ActiveOrderItem {
         totalAmount: json['totalAmount'],
         discountAmount: (json['discountAmount'] as num?)?.toDouble(),
         displayDiscountAmount: json['displayDiscountAmount']?.toString(),
+        transactionDiscount: (json['transactionDiscount'] as num?)?.toDouble(),
+        displayTransactionDiscount: json['displayTransactionDiscount']?.toString(),
         couponName: json['couponName']?.toString(),
         couponCode: json['couponCode']?.toString(),
         shopCoupon: json['shopCoupon'] is Map
@@ -440,6 +457,8 @@ class ActiveOrderItem {
         routeDistanceKm: json['routeDistanceKm'],
         routeDurationMins: json['routeDurationMins'],
         deliveryFee: json['deliveryFee'],
+        isFreeDelivery: json['isFreeDelivery'] == true ||
+            (json['displayDeliveryFee']?.toString().toUpperCase() == 'FREE'),
         riderName: json['riderName'] ?? json['deliveryRiderName'] ?? (json['driver'] != null ? json['driver']['name'] : null),
         riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
         riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
@@ -674,6 +693,15 @@ class ActiveOrderState extends ChangeNotifier {
   double? get taxAmount => _primary?.taxAmount;
   double? get totalAmount => _primary?.totalAmount;
   double get discountAmount => _primary?.discountAmount ?? 0;
+  double get transactionDiscount => _primary?.transactionDiscount ?? 0;
+  bool get hasTransactionDiscount => transactionDiscount > 0;
+  String? get displayTransactionDiscount =>
+      _primary?.displayTransactionDiscount?.toFormattedPrice();
+
+  bool get isFreeDelivery =>
+      _primary?.isFreeDelivery == true ||
+      (displayDeliveryFee?.toUpperCase() == 'FREE') ||
+      (displayDeliveryFee?.toLowerCase() == 'free');
   bool get hasDiscount => hasAppliedCoupon;
   String? get couponCode => _primary?.couponCode;
   OrderShopCouponInfo? get shopCoupon => _primary?.shopCoupon;
@@ -765,8 +793,14 @@ class ActiveOrderState extends ChangeNotifier {
     if (_primary != null) _primary!.displayTaxAmount = val;
   }
 
-  String? get displayDeliveryFee =>
-      _primary?.displayDeliveryFee?.toFormattedPrice();
+  String? get displayDeliveryFee {
+    final raw = _primary?.displayDeliveryFee;
+    if (raw == null) return null;
+    if (raw.toUpperCase() == 'FREE' || raw.toLowerCase() == 'free') {
+      return raw;
+    }
+    return raw.toFormattedPrice();
+  }
   set displayDeliveryFee(String? val) {
     if (_primary != null) _primary!.displayDeliveryFee = val;
   }
@@ -796,6 +830,7 @@ class ActiveOrderState extends ChangeNotifier {
     LatLng? userLocation,
     String? orderType,
     String? lastOrderNo,
+    bool isFreeDelivery = false,
   }) {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
@@ -823,6 +858,7 @@ class ActiveOrderState extends ChangeNotifier {
       userLocation: userLocation,
       orderType: orderType,
       lastOrderNo: lastOrderNo,
+      isFreeDelivery: isFreeDelivery,
     );
     saveToPrefs();
     notifyListeners();
@@ -1077,6 +1113,13 @@ class ActiveOrderState extends ChangeNotifier {
       item.displayDiscountAmount =
           _parseSafeString(data['displayDiscountAmount']);
     }
+    if (data['transactionDiscount'] != null) {
+      item.transactionDiscount = _parseSafeDouble(data['transactionDiscount']);
+    }
+    if (data['displayTransactionDiscount'] != null) {
+      item.displayTransactionDiscount =
+          _parseSafeString(data['displayTransactionDiscount']);
+    }
     if (data['shopCoupon'] is Map) {
       final coupon = Map<String, dynamic>.from(data['shopCoupon'] as Map);
       item.shopCoupon = OrderShopCouponInfo.fromJson(coupon);
@@ -1239,10 +1282,20 @@ class ActiveOrderState extends ChangeNotifier {
     if (data['displayTaxAmount'] != null)
       item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
     if (data['displayDeliveryFee'] != null) {
+      final display = _parseSafeString(data['displayDeliveryFee']);
       final fee = item.deliveryFee ?? _parseSafeDouble(data['deliveryFee']);
-      if (fee != null && fee > 0) {
-        item.displayDeliveryFee = _parseSafeString(data['displayDeliveryFee']);
+      final isFree = data['isFreeDelivery'] == true ||
+          (display?.toUpperCase() == 'FREE') ||
+          (display?.toLowerCase() == 'free');
+      if (isFree || (fee != null && fee > 0)) {
+        item.displayDeliveryFee = display;
       }
+    }
+    if (data['isFreeDelivery'] != null) {
+      item.isFreeDelivery = data['isFreeDelivery'] == true;
+    } else if ((item.displayDeliveryFee ?? '').toUpperCase() == 'FREE' ||
+        (item.displayDeliveryFee ?? '').toLowerCase() == 'free') {
+      item.isFreeDelivery = true;
     }
     if (data['displayTotalAmount'] != null)
       item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
@@ -1493,6 +1546,18 @@ class ActiveOrderState extends ChangeNotifier {
           optionIds: optionIds.isEmpty ? null : optionIds,
           specialInstructions: _parseSafeString(map['specialInstructions']),
           variantId: _parseSafeInt(map['variantId']),
+          additionalVariantIds: (map['additionalVariantIds'] is List)
+              ? (map['additionalVariantIds'] as List)
+                  .map((e) => _parseSafeInt(e))
+                  .whereType<int>()
+                  .where((id) => id > 0)
+                  .toList()
+              : const [],
+          variantNameKey: _parseSafeString(map['variantNameEn']) ??
+              _parseSafeString(map['variantName']),
+          variantNameEn: _parseSafeString(map['variantNameEn']),
+          variantNameMm: _parseSafeString(map['variantNameMm']),
+          variantNameTh: _parseSafeString(map['variantNameTh']),
         ),
       );
     }
@@ -1797,10 +1862,16 @@ class ActiveOrderState extends ChangeNotifier {
       taxEnable: o.resolvedTaxEnable,
       displayTotalAmount: o.displayTotalAmount,
       deliveryFee:
-          (o.deliveryFee != null && o.deliveryFee! > 0) ? o.deliveryFee : null,
-      displayDeliveryFee: (o.deliveryFee != null && o.deliveryFee! > 0)
+          (o.isFreeDelivery || (o.deliveryFee != null && o.deliveryFee! > 0))
+              ? (o.deliveryFee ?? 0)
+              : null,
+      displayDeliveryFee: (o.isFreeDelivery ||
+              (o.deliveryFee != null && o.deliveryFee! > 0))
           ? o.displayDeliveryFee
           : null,
+      isFreeDelivery: o.isFreeDelivery,
+      transactionDiscount: o.transactionDiscount,
+      displayTransactionDiscount: o.displayTransactionDiscount,
     );
   }
 
@@ -1824,11 +1895,18 @@ class ActiveOrderState extends ChangeNotifier {
     if (o.displayTotalAmount != null) {
       item.displayTotalAmount = o.displayTotalAmount;
     }
-    if (o.deliveryFee != null && o.deliveryFee! > 0) {
-      item.deliveryFee = o.deliveryFee;
+    if (o.isFreeDelivery || (o.deliveryFee != null && o.deliveryFee! > 0)) {
+      item.deliveryFee = o.deliveryFee ?? 0;
       if (o.displayDeliveryFee != null) {
         item.displayDeliveryFee = o.displayDeliveryFee;
       }
+      item.isFreeDelivery = o.isFreeDelivery;
+    }
+    if (o.transactionDiscount != null) {
+      item.transactionDiscount = o.transactionDiscount;
+    }
+    if (o.displayTransactionDiscount != null) {
+      item.displayTransactionDiscount = o.displayTransactionDiscount;
     }
     applyStatusString(item, o.status);
   }

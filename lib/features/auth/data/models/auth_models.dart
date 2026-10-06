@@ -32,6 +32,44 @@ class RegisterRequest {
       };
 }
 
+class GoogleAuthRequest {
+  final String idToken;
+
+  GoogleAuthRequest({required this.idToken});
+
+  Map<String, dynamic> toJson() => {'idToken': idToken};
+}
+
+/// Existing Google account → session; new account → isNewUser for PIN setup.
+class GoogleAuthResponse {
+  final bool isNewUser;
+  final String? name;
+  final String? email;
+  final AuthResponse? session;
+
+  GoogleAuthResponse({
+    required this.isNewUser,
+    this.name,
+    this.email,
+    this.session,
+  });
+
+  factory GoogleAuthResponse.fromJson(Map<String, dynamic> json) {
+    final isNew = json['isNewUser'] == true;
+    if (isNew) {
+      return GoogleAuthResponse(
+        isNewUser: true,
+        name: json['name']?.toString(),
+        email: json['email']?.toString(),
+      );
+    }
+    return GoogleAuthResponse(
+      isNewUser: false,
+      session: AuthResponse.fromJson(json),
+    );
+  }
+}
+
 class AuthResponse {
   final String token;
   final String refreshToken;

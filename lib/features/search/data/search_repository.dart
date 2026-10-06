@@ -125,6 +125,22 @@ class SearchRepository {
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Shops with active MyDays globally/randomly.
+  Future<SearchPageResult> searchNearbyActiveMyDays({
+    int page = 1,
+    int size = 20,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/search/mydays',
+      queryParameters: {
+        'page': page,
+        'size': size,
+        '_cb': DateTime.now().millisecondsSinceEpoch, // bypass DioCacheInterceptor
+      },
+    );
+    return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// Text search across published menu items.
   Future<List<MenuItemSearchResultDto>> searchMenuItems({
     required String query,

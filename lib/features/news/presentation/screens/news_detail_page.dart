@@ -6,41 +6,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/news_image_viewer.dart';
 import '../../data/models/news_item.dart';
+import '../../data/models/news_comment.dart';
 import '../../data/repositories/news_repository.dart';
 import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-
-class NewsComment {
-  final int? id;
-  final String authorName;
-  final String authorAvatar;
-  final String content;
-  final String timeAgo;
-  final bool isMine;
-
-  NewsComment({
-    this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.content,
-    required this.timeAgo,
-    this.isMine = false,
-  });
-
-  NewsComment copyWith({String? content}) {
-    return NewsComment(
-      id: id,
-      authorName: authorName,
-      authorAvatar: authorAvatar,
-      content: content ?? this.content,
-      timeAgo: timeAgo,
-      isMine: isMine,
-    );
-  }
-}
 
 class NewsDetailPage extends StatefulWidget {
   final NewsItem item;
@@ -61,6 +33,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   late int _likesCount;
   // Use viewportFraction 0.80 for the "peek" effect, matching the feed
   final PageController _pageController = PageController(viewportFraction: 0.80);
+  final ScrollController _scrollController = ScrollController();
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
 
@@ -88,13 +61,24 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     }
 
     if (widget.autoFocusComment) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _focusCommentIfSignedIn());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) _focusCommentIfSignedIn();
+        });
+      });
     }
   }
 
   Future<void> _focusCommentIfSignedIn() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
     _commentFocusNode.requestFocus();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   Future<void> _loadComments() async {
@@ -157,6 +141,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose();
     _commentController.dispose();
     _commentFocusNode.dispose();
     super.dispose();
@@ -441,6 +426,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           // Header: Consistent minimalist App Bar with Author Info
           SliverAppBar(

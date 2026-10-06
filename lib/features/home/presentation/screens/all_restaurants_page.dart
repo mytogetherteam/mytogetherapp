@@ -17,7 +17,11 @@ import '../../../../features/auth/data/repositories/user_location_repository.dar
 import 'restaurant_detail_page.dart';
 
 class AllRestaurantsPage extends StatefulWidget {
-  const AllRestaurantsPage({super.key});
+  /// When true, show browse/visit-only shops (`deliveryEnabled == false`).
+  /// When false, show shops that accept ordering/delivery.
+  final bool visitOnly;
+
+  const AllRestaurantsPage({super.key, this.visitOnly = false});
 
   @override
   State<AllRestaurantsPage> createState() => _AllRestaurantsPageState();
@@ -75,6 +79,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         search: _searchQuery.trim().isEmpty ? null : _searchQuery,
         originLat: lat,
         originLon: lon,
+        deliveryOnly: !widget.visitOnly,
+        visitOnly: widget.visitOnly,
       );
       results = pageResult.restaurants;
       hasMore = pageResult.hasMore;
@@ -85,6 +91,8 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
         page: page,
         size: _pagination.pageSize,
         search: _searchQuery,
+        deliveryOnly: !widget.visitOnly,
+        visitOnly: widget.visitOnly,
       );
       results = pageResult.restaurants;
       hasMore = pageResult.hasMore;

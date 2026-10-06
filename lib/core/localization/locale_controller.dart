@@ -105,6 +105,20 @@ class LocaleController extends ChangeNotifier {
     return DateFormat(olderFormat).format(date);
   }
 
+  /// Localize a countdown such as "3 hr 52 min" for [remaining].
+  ///
+  /// Minutes are rounded up so a countdown never reads "0 min" while time is
+  /// still left. Returns an empty string once [remaining] runs out.
+  String countdown(Duration remaining) {
+    if (remaining <= Duration.zero) return '';
+    final totalMinutes = (remaining.inSeconds / 60).ceil();
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (hours == 0) return trArgs('time.duration_m', {'m': '$minutes'});
+    if (minutes == 0) return trArgs('time.duration_h', {'h': '$hours'});
+    return trArgs('time.duration_hm', {'h': '$hours', 'm': '$minutes'});
+  }
+
   /// Localize an order status that the backend only sends in English.
   ///
   /// The backend exposes a stable status enum (e.g. `PENDING`, `DELIVERED`)

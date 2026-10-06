@@ -1,20 +1,32 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/websocket_service.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/time_formatter.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_model.dart';
+import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_service.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
+import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/audio_message_bubble.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
+import 'package:mytogetherapp/features/chat/presentation/chat_ui_tokens.dart';
+import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
+import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
+import 'package:mytogetherapp/features/call/data/call_session.dart';
 import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -42,33 +54,47 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with RouteAware {
+class _ChatPageState extends State<ChatPage>
+    with RouteAware, WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final List<ChatMessage> _messages = [];
+  final ChatVoiceRecorder _voiceRecorder = ChatVoiceRecorder();
+  final ImagePicker _imagePicker = ImagePicker();
 
   late int _conversationId;
+  int? _shopId;
   bool _isLoading = true;
   bool _hasError = false;
   bool _isSending = false;
   bool _isLoadingOlder = false;
+  bool _isChatClosed = false;
   int _currentPage = 1;
   int _lastPage = 1;
 
   StreamSubscription<Map<String, dynamic>>? _chatSub;
+  StreamSubscription<Map<String, dynamic>>? _orderSub;
+  Timer? _chatWindowTimer;
+  Timer? _countdownTicker;
+  DateTime? _chatClosesAt;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _conversationId = 0;
     WebSocketService().connect();
     _scrollController.addListener(_onScroll);
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
     _chatSub = WebSocketService().chatUpdates.listen(_onChatEvent);
+    _orderSub = WebSocketService().orderUpdates.listen(_onOrderEvent);
     // Opening a thread marks the shop's messages as read; clear its badge.
     ChatUnreadController.instance.start();
     ChatUnreadController.instance.clear(widget.orderId);
-    
+
     _bootstrap();
   }
 
@@ -106,13 +132,30 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshChatWindow();
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _voiceRecorder.cancel();
+    }
+  }
+
+  @override
   void dispose() {
     App.routeObserver.unsubscribe(this);
-    
+    WidgetsBinding.instance.removeObserver(this);
+    _voiceRecorder.dispose();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
     _chatSub?.cancel();
+    _orderSub?.cancel();
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
     // Anything received while the thread was open has now been seen.
     ChatUnreadController.instance.clear(widget.orderId);
     super.dispose();
@@ -124,22 +167,108 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       _hasError = false;
     });
 
-    final conversation =
-        await ChatService.instance.getConversationByOrder(widget.orderId);
+    final conversation = await ChatService.instance.getConversationByOrder(
+      widget.orderId,
+    );
 
     if (!mounted) return;
 
     if (conversation != null) {
       _conversationId = conversation.id;
-      await ChatService.instance.markAsRead(_conversationId);
-      ChatUnreadController.instance.clear(widget.orderId);
-      await _loadMessages();
-      return;
+      _shopId = conversation.shopId;
+      _isChatClosed = !conversation.isChatWritable;
+      _setChatWindow(
+        status: conversation.orderStatus,
+        orderUpdatedAt: conversation.orderUpdatedAt,
+      );
+      if (_conversationId > 0) {
+        await ChatService.instance.markAsRead(_conversationId);
+        ChatUnreadController.instance.clear(widget.orderId);
+        await _loadMessages();
+        return;
+      }
     }
 
     setState(() {
       _isLoading = false;
       _hasError = false;
+    });
+  }
+
+  void _onOrderEvent(Map<String, dynamic> event) {
+    if (!mounted) return;
+
+    Map<String, dynamic> order = event;
+    if (event['order'] is Map) {
+      order = Map<String, dynamic>.from(event['order'] as Map);
+    } else if (event['data'] is Map) {
+      order = Map<String, dynamic>.from(event['data'] as Map);
+    }
+
+    final orderId =
+        (order['id'] as num?)?.toInt() ?? (event['orderId'] as num?)?.toInt();
+    if (orderId != widget.orderId) return;
+
+    _setChatWindow(
+      status: order['status']?.toString(),
+      orderUpdatedAt: DateTime.tryParse(
+        order['updatedAt']?.toString() ?? '',
+      )?.toLocal(),
+    );
+  }
+
+  void _setChatWindow({
+    required String? status,
+    required DateTime? orderUpdatedAt,
+  }) {
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
+    final normalized = status?.toUpperCase();
+
+    if (normalized == 'CANCELED' || normalized == 'CANCELLED') {
+      _chatClosesAt = null;
+      if (mounted) setState(() => _isChatClosed = true);
+      return;
+    }
+
+    if ((normalized != 'DELIVERED' && normalized != 'PICKED_UP') ||
+        orderUpdatedAt == null) {
+      _chatClosesAt = null;
+      return;
+    }
+
+    _chatClosesAt = ChatWindow.closesAt(normalized, orderUpdatedAt);
+    _refreshChatWindow();
+  }
+
+  void _refreshChatWindow() {
+    _chatWindowTimer?.cancel();
+    _countdownTicker?.cancel();
+    final closesAt = _chatClosesAt;
+    if (closesAt == null || !mounted) return;
+
+    final remaining = closesAt.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      setState(() => _isChatClosed = true);
+      return;
+    }
+
+    setState(() => _isChatClosed = false);
+    _countdownTicker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+    _chatWindowTimer = Timer(remaining, () {
+      _countdownTicker?.cancel();
+      if (mounted) setState(() => _isChatClosed = true);
+    });
+  }
+
+  String get _headerSubtitle {
+    if (_isChatClosed) return context.tr('chat.closed_title');
+    final timeLeft = ChatWindow.timeLeftUntil(_chatClosesAt);
+    if (timeLeft == null) return widget.peerSubtitle;
+    return context.trArgs('chat.support_subtitle', {
+      'time': context.countdown(timeLeft),
     });
   }
 
@@ -157,8 +286,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       _hasError = false;
     });
 
-    final result =
-        await ChatService.instance.getMessages(_conversationId);
+    final result = await ChatService.instance.getMessages(_conversationId);
     if (!mounted) return;
 
     setState(() {
@@ -215,7 +343,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     if (type == 'CHAT_CONVERSATION_HIDDEN') {
       final orderId = (event['orderId'] as num?)?.toInt();
       if (orderId == widget.orderId) {
-        Navigator.of(context).pop();
+        setState(() => _isChatClosed = true);
       }
       return;
     }
@@ -225,7 +353,8 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       final orderId = (event['orderId'] as num?)?.toInt();
       final conversationId = (event['conversationId'] as num?)?.toInt();
       final matchesOrder = orderId == null || orderId == widget.orderId;
-      final matchesConversation = conversationId == null ||
+      final matchesConversation =
+          conversationId == null ||
           _conversationId <= 0 ||
           conversationId == _conversationId;
       if (!matchesOrder || !matchesConversation) return;
@@ -297,13 +426,73 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isSending) return;
+    if (text.isEmpty || _isChatClosed) return;
 
     _controller.clear();
-    setState(() => _isSending = true);
+    
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
-    final sent =
-        await ChatService.instance.sendTextMessage(widget.orderId, text);
+    final tempMsg = ChatMessage(
+      id: tempId,
+      senderType: ChatSenderType.user,
+      kind: ChatMessageKind.text,
+      createdAt: DateTime.now(),
+      isSending: true,
+      content: text,
+    );
+
+    setState(() {
+      _messages.add(tempMsg);
+      _isSending = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    final sent = await ChatService.instance.sendTextMessage(
+      widget.orderId,
+      text,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isSending = false;
+      final index = _messages.indexWhere((m) => m.id == tempId);
+      if (sent != null) {
+        if (_conversationId <= 0 && sent.conversationId != null) {
+          _conversationId = sent.conversationId!;
+        }
+        if (index != -1) {
+          _messages[index] = sent;
+        } else {
+          _messages.add(sent);
+        }
+      } else {
+        if (index != -1) _messages.removeAt(index);
+      }
+    });
+
+    if (sent != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } else {
+      _controller.text = text;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
+    }
+  }
+
+  Future<void> _sendVoiceMessage(VoiceRecordingResult result) async {
+    if (_isSending || _isChatClosed) {
+      await ChatVoiceRecorder.deleteFile(result.path);
+      return;
+    }
+
+    setState(() => _isSending = true);
+    final sent = await ChatService.instance.sendVoiceMessage(
+      widget.orderId,
+      result.path,
+      durationSeconds: result.durationSeconds,
+    );
+    await ChatVoiceRecorder.deleteFile(result.path);
     if (!mounted) return;
 
     setState(() {
@@ -324,11 +513,111 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     if (sent != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } else {
-      _controller.text = text;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('chat.send_failed'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
     }
+  }
+
+  Future<void> _pickAndSendImage() async {
+    if (_isChatClosed) return;
+
+    final action = await ImageUploadBottomSheet.show(context);
+    if (!mounted || action == null || action == ImageUploadAction.remove) {
+      return;
+    }
+
+    final source = action == ImageUploadAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+    if (!mounted || picked == null) return;
+
+    final image = await PickedImage.fromXFile(picked);
+    if (!mounted) return;
+    if (image.isVideo || !image.mimeType.startsWith('image/')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.video_not_allowed'))),
+      );
+      return;
+    }
+
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMsg = ChatMessage(
+      id: tempId,
+      senderType: ChatSenderType.user,
+      kind: ChatMessageKind.image,
+      createdAt: DateTime.now(),
+      isSending: true,
+      attachmentUrl: picked.path,
+    );
+
+    setState(() {
+      _messages.add(tempMsg);
+      _isSending = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    final sent = await ChatService.instance.sendImageMessage(
+      widget.orderId,
+      image,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isSending = false;
+      final index = _messages.indexWhere((m) => m.id == tempId);
+      if (sent != null) {
+        if (_conversationId <= 0 && sent.conversationId != null) {
+          _conversationId = sent.conversationId!;
+        }
+        if (index != -1) {
+          _messages[index] = sent;
+        } else {
+          _messages.add(sent);
+        }
+      } else {
+        if (index != -1) _messages.removeAt(index);
+      }
+    });
+
+    if (sent != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('chat.send_failed'))));
+    }
+  }
+
+  void _openImage(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _editMessage(ChatMessage message) async {
@@ -337,8 +626,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(context.tr('chat.edit_title'),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(
+          context.tr('chat.edit_title'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         content: TextField(
           controller: editController,
           autofocus: true,
@@ -378,8 +669,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(context.tr('chat.delete_title'),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(
+          context.tr('chat.delete_title'),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         content: Text(context.tr('chat.delete_body')),
         actions: [
           TextButton(
@@ -388,16 +681,20 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(context.tr('common.delete'),
-                style: const TextStyle(color: Color(0xFFEF4444))),
+            child: Text(
+              context.tr('common.delete'),
+              style: const TextStyle(color: Color(0xFFEF4444)),
+            ),
           ),
         ],
       ),
     );
     if (confirm != true) return;
 
-    final ok =
-        await ChatService.instance.deleteMessage(_conversationId, message.id);
+    final ok = await ChatService.instance.deleteMessage(
+      _conversationId,
+      message.id,
+    );
     if (!mounted || !ok) return;
     setState(() {
       final index = _messages.indexWhere((m) => m.id == message.id);
@@ -407,11 +704,15 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     });
   }
 
+
+
   void _showMessageActions(ChatMessage message) {
     if (message.isDeleted) return;
 
     // Extract links
-    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
+    final urlRegExp = RegExp(
+      r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+    );
     final matches = urlRegExp.allMatches(message.content ?? '');
     final urls = matches.map((m) => m.group(0)!).toList();
 
@@ -425,25 +726,42 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+
             if (message.kind == ChatMessageKind.text)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
-                title: Text(context.tr('common.copy') == 'common.copy' ? 'Copy Text' : context.tr('common.copy')),
+                title: Text(
+                  context.tr('common.copy') == 'common.copy'
+                      ? 'Copy Text'
+                      : context.tr('common.copy'),
+                ),
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: message.content ?? ''));
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.tr('chat.copied') == 'chat.copied' ? 'Copied to clipboard' : context.tr('chat.copied'))),
+                    SnackBar(
+                      content: Text(
+                        context.tr('chat.copied') == 'chat.copied'
+                            ? 'Copied to clipboard'
+                            : context.tr('chat.copied'),
+                      ),
+                    ),
                   );
                 },
               ),
             for (var url in urls)
               ListTile(
                 leading: const Icon(Icons.open_in_browser_rounded),
-                title: Text('Open link: $url', maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  'Open link: $url',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+                  final uri = Uri.parse(
+                    url.startsWith('http') ? url : 'https://$url',
+                  );
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
                   }
@@ -460,10 +778,14 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               ),
             if (message.isMe)
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded,
-                    color: Color(0xFFEF4444)),
-                title: Text(context.tr('chat.delete_title'),
-                    style: const TextStyle(color: Color(0xFFEF4444))),
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFEF4444),
+                ),
+                title: Text(
+                  context.tr('chat.delete_title'),
+                  style: const TextStyle(color: Color(0xFFEF4444)),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _deleteMessage(message);
@@ -478,12 +800,13 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: ChatUiTokens.screenBg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: ChatUiTokens.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
@@ -500,63 +823,151 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                     widget.peerName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E293B),
+                    style: ChatUiTokens.headerTitle(
+                      color: ChatUiTokens.textPrimary,
                     ),
                   ),
                   Text(
-                    widget.peerSubtitle,
+                    _headerSubtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: ChatUiTokens.headerSubtitle(),
                   ),
                 ],
               ),
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+              child: const Icon(PhosphorIcons.phoneCallFill, color: Colors.white),
+            ),
+            onPressed: () async {
+              if (_shopId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Connecting... Please try again in a moment.')),
+                );
+                return;
+              }
+              final success = await CallSession().initiateCall(
+                shopId: _shopId!,
+                shopName: widget.peerName,
+                shopImageUrl: widget.avatarUrl,
+              );
+              if (success && context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CallScreen(
+                      shopName: widget.peerName,
+                      shopImageUrl: widget.avatarUrl,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.grey[100], height: 1),
+          child: Container(color: ChatUiTokens.hairline, height: 1),
         ),
       ),
       body: Column(
         children: [
+          if (!_isChatClosed && _chatClosesAt != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: ChatWindowHint(closesAt: _chatClosesAt, filled: true),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CustomLoadingIndicator())
                 : _hasError
-                    ? _buildErrorState()
-                    : _messages.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                            itemCount:
-                                _messages.length + (_isLoadingOlder ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (_isLoadingOlder && index == 0) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Center(
-                                    child: CustomLoadingIndicator(size: 20),
-                                  ),
-                                );
-                              }
-                              final msgIndex =
-                                  _isLoadingOlder ? index - 1 : index;
-                              return _buildBubble(
-                                  context, _messages[msgIndex]);
-                            },
+                ? _buildErrorState()
+                : _messages.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    itemCount: _messages.length + (_isLoadingOlder ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (_isLoadingOlder && index == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Center(
+                            child: CustomLoadingIndicator(size: 20),
                           ),
+                        );
+                      }
+                      final msgIndex = _isLoadingOlder ? index - 1 : index;
+                      final message = _messages[msgIndex];
+                      final prev = msgIndex > 0 ? _messages[msgIndex - 1] : null;
+                      final newSender = prev == null || prev.isMe != message.isMe;
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: newSender
+                              ? ChatUiTokens.gapNewSender
+                              : ChatUiTokens.gapSameSender,
+                        ),
+                        child: _buildBubble(context, message),
+                      );
+                    },
+                  ),
           ),
-          _buildInputBar(),
+          if (_isChatClosed) _buildClosedOrderAlert() else _buildInputBar(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildClosedOrderAlert() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        color: Colors.white,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: ChatUiTokens.composerFill,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ChatUiTokens.hairline),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.lock_outline_rounded,
+                color: ChatUiTokens.textSecondary,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('chat.closed_title'),
+                      style: ChatUiTokens.hint(
+                        color: ChatUiTokens.textPrimary,
+                      ).copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      context.tr('chat.closed_body'),
+                      style: ChatUiTokens.hint(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -566,8 +977,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(context.tr('chat.load_failed'),
-              style: GoogleFonts.poppins(color: Colors.grey[600])),
+          Text(
+            context.tr('chat.load_failed'),
+            style: GoogleFonts.poppins(color: Colors.grey[600]),
+          ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: _conversationId > 0 ? _loadMessages : _bootstrap,
@@ -589,7 +1002,9 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       ),
       clipBehavior: Clip.antiAlias,
       child: (url != null && url.isNotEmpty)
-          ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+          ? CachedNetworkImage(
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
               imageUrl: url,
               fit: BoxFit.cover,
               errorWidget: (_, _, _) => _buildAvatarFallback(),
@@ -600,7 +1015,11 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
   Widget _buildAvatarFallback() {
     return Center(
-      child: Icon(widget.fallbackIcon, size: 20, color: AppColors.primary),
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+        child: Icon(widget.fallbackIcon, size: 20, color: Colors.white),
+      ),
     );
   }
 
@@ -618,31 +1037,27 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                PhosphorIcons.chatCircleTextFill,
-                size: 44,
-                color: AppColors.primary,
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                child: const Icon(
+                  PhosphorIcons.chatCircleTextFill,
+                  size: 44,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               context.tr('chat.empty_title'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1E293B),
-              ),
+              style: ChatUiTokens.headerTitle(color: ChatUiTokens.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               context.tr('chat.empty_sub'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: const Color(0xFF94A3B8),
-                fontWeight: FontWeight.w500,
-              ),
+              style: ChatUiTokens.hint(color: ChatUiTokens.textMuted),
             ),
           ],
         ),
@@ -652,205 +1067,355 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
   Widget _buildBubble(BuildContext context, ChatMessage message) {
     if (message.isDeleted) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Center(
-          child: Text(
-            context.tr('chat.message_deleted'),
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-              color: Colors.grey[500],
-            ),
-          ),
+      return Center(
+        child: Text(
+          context.tr('chat.message_deleted'),
+          style: ChatUiTokens.hint(color: ChatUiTokens.textMuted)
+              .copyWith(fontStyle: FontStyle.italic),
         ),
       );
     }
 
     final isMine = message.isMe;
     final timeLabel = TimeFormatter.formatClock(message.createdAt);
-    final displayText = message.kind == ChatMessageKind.image
-        ? '📷 ${context.tr('chat.photo')}'
+    final imageUrls = message.imageUrls;
+    final hasImages = imageUrls.isNotEmpty;
+    final displayText = hasImages
+        ? (message.content ?? '')
+        : message.isVoice
+        ? '🎤 ${context.tr('chat.voice')}'
         : (message.content ?? '');
 
-    final urlRegExp = RegExp(r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+');
-    final urls = urlRegExp.allMatches(displayText).map((m) => m.group(0)!).toList();
+    final urlRegExp = RegExp(
+      r'(?:(?:https?|ftp)://)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+    );
+    final urls = urlRegExp
+        .allMatches(displayText)
+        .map((m) => m.group(0)!)
+        .toList();
     final firstUrl = urls.isNotEmpty ? urls.first : null;
+    final voiceUrl = message.voiceUrl;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onLongPress: () => _showMessageActions(message),
-        child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72,
-              ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: isMine ? AppColors.primaryGradient : null,
-                color: isMine ? null : Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isMine ? 18 : 4),
-                  bottomRight: Radius.circular(isMine ? 4 : 18),
-                ),
-                border: isMine ? null : Border.all(color: Colors.grey.shade200),
-              ),
-              child: Text(
-                displayText,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  height: 1.4,
-                  color: isMine ? Colors.white : const Color(0xFF1E293B),
-                ),
-              ),
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(message),
+      child: Column(
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width *
+                  ChatUiTokens.maxBubbleWidthFactor,
             ),
-            if (firstUrl != null)
-              FutureBuilder(
-                future: AnyLinkPreview.getMetadata(
-                  link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
-                ),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox.shrink();
-                  }
-                  final metadata = snapshot.data;
-                  if (metadata == null || metadata.image == null || metadata.image!.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.72,
-                    ),
-                    child: AnyLinkPreview(
-                      link: firstUrl.startsWith('http') ? firstUrl : 'https://$firstUrl',
-                      displayDirection: UIDirection.uiDirectionHorizontal,
-                      cache: const Duration(hours: 1),
-                      backgroundColor: Colors.white,
-                      errorWidget: const SizedBox.shrink(),
-                      borderRadius: 12,
-                    ),
-                  );
-                },
-              ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    message.isEdited ? '$timeLabel · ${context.tr('chat.edited')}' : timeLabel,
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      color: Colors.grey[400],
+            padding: hasImages
+                ? const EdgeInsets.all(4)
+                : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: isMine ? AppColors.primaryGradient : null,
+              color: isMine ? null : ChatUiTokens.incomingBubble,
+              borderRadius: ChatUiTokens.bubbleRadiusFor(isMine: isMine),
+            ),
+            child: message.isVoice && voiceUrl != null && voiceUrl.isNotEmpty
+                ? AudioMessageBubble(
+                    url: voiceUrl,
+                    durationSeconds: message.voiceDurationSeconds,
+                    isMine: isMine,
+                    foreground: isMine
+                        ? Colors.white
+                        : ChatUiTokens.textPrimary,
+                    background: Colors.transparent,
+                  )
+                : hasImages
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (final url in imageUrls)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: GestureDetector(
+                            onTap: () => _openImage(url),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                ChatUiTokens.imageRadius,
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  url.startsWith('http')
+                                    ? CachedNetworkImage(
+                                        imageUrl: url,
+                                        width: 200,
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, _) => Container(
+                                          width: 200,
+                                          height: 200,
+                                          color: Colors.black12,
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: (_, _, _) => Container(
+                                          width: 200,
+                                          height: 120,
+                                          color: Colors.black12,
+                                          child: const Icon(
+                                            Icons.broken_image_outlined,
+                                          ),
+                                        ),
+                                      )
+                                    : Image.file(
+                                        File(url),
+                                        width: 200,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          width: 200,
+                                          height: 120,
+                                          color: Colors.black12,
+                                          child: const Icon(
+                                            Icons.broken_image_outlined,
+                                          ),
+                                        ),
+                                      ),
+                                  if (message.isSending)
+                                    Container(
+                                      width: 200,
+                                      height: 200,
+                                      color: Colors.black45,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (displayText.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+                          child: Text(
+                            displayText,
+                            style: ChatUiTokens.messageBody(
+                              color: isMine
+                                  ? Colors.white
+                                  : ChatUiTokens.textPrimary,
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
+                : Text(
+                    displayText,
+                    style: ChatUiTokens.messageBody(
+                      color: isMine
+                          ? Colors.white
+                          : ChatUiTokens.textPrimary,
                     ),
                   ),
-                  // Read receipt for the user's own messages: a single check
-                  // once sent, a double (coloured) check once the shop reads it.
-                  if (isMine) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      message.isRead
-                          ? Icons.done_all_rounded
-                          : Icons.done_rounded,
-                      size: 13,
-                      color: message.isRead
-                          ? AppColors.primary
-                          : Colors.grey[400],
-                    ),
-                  ],
-                ],
+          ),
+
+          if (firstUrl != null)
+            FutureBuilder(
+              future: AnyLinkPreview.getMetadata(
+                link: firstUrl.startsWith('http')
+                    ? firstUrl
+                    : 'https://$firstUrl',
               ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox.shrink();
+                }
+                final metadata = snapshot.data;
+                if (metadata == null ||
+                    metadata.image == null ||
+                    metadata.image!.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width *
+                        ChatUiTokens.maxBubbleWidthFactor,
+                  ),
+                  child: AnyLinkPreview(
+                    link: firstUrl.startsWith('http')
+                        ? firstUrl
+                        : 'https://$firstUrl',
+                    displayDirection: UIDirection.uiDirectionHorizontal,
+                    cache: const Duration(hours: 1),
+                    backgroundColor: Colors.white,
+                    errorWidget: const SizedBox.shrink(),
+                    borderRadius: 12,
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message.isEdited
+                      ? '$timeLabel · ${context.tr('chat.edited')}'
+                      : timeLabel,
+                  style: ChatUiTokens.meta(),
+                ),
+                if (isMine) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    message.isSending
+                        ? Icons.access_time_rounded
+                        : (message.isRead
+                            ? Icons.done_all_rounded
+                            : Icons.done_rounded),
+                    size: 14,
+                    color: message.isRead
+                        ? AppColors.primary
+                        : ChatUiTokens.textMuted,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInputBar() {
+    final hasText = _controller.text.trim().isNotEmpty;
     return SafeArea(
       top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              offset: const Offset(0, -2),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendMessage(),
-                  style: GoogleFonts.poppins(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: context.tr('chat.input_hint'),
-                    hintStyle: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.grey[400],
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+
+          Container(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: const Border(
+                top: BorderSide(color: ChatUiTokens.hairline, width: 1),
               ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _isSending ? null : _sendMessage,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: _isSending ? null : AppColors.primaryGradient,
-                  color: _isSending ? Colors.grey[300] : null,
-                  shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  offset: const Offset(0, -1),
+                  blurRadius: 6,
                 ),
-                child: _isSending
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.send_rounded,
+              ],
+            ),
+            child: ValueListenableBuilder<VoiceRecordPhase>(
+          valueListenable: _voiceRecorder.phaseNotifier,
+          builder: (context, phase, _) {
+            final recording = phase != VoiceRecordPhase.idle;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!recording && !_isChatClosed)
+                  IconButton(
+                    onPressed: _pickAndSendImage,
+                    tooltip: context.tr('chat.add_photo'),
+                    icon: ShaderMask(
+                      blendMode: BlendMode.srcIn,
+                      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                      child: const Icon(
+                        Icons.photo_outlined,
                         color: Colors.white,
-                        size: 20,
                       ),
-              ),
-            ),
-          ],
+                    ),
+                  ),
+                Expanded(
+                  child: recording
+                      ? VoiceRecordingStrip(
+                          recorder: _voiceRecorder,
+                          isBusy: _isSending,
+                          onSend: _sendVoiceMessage,
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: ChatUiTokens.composerFill,
+                            borderRadius: BorderRadius.circular(
+                              ChatUiTokens.composerRadius,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            minLines: 1,
+                            maxLines: 5,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendMessage(),
+                            style: ChatUiTokens.composer(
+                              color: ChatUiTokens.textPrimary,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: context.tr('chat.input_hint'),
+                              hintStyle: ChatUiTokens.composer(
+                                color: ChatUiTokens.textMuted,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 8),
+                if (hasText && !recording)
+                  GestureDetector(
+                    onTap: _isSending ? null : _sendMessage,
+                    child: Container(
+                      width: ChatUiTokens.composerActionSize,
+                      height: ChatUiTokens.composerActionSize,
+                      decoration: BoxDecoration(
+                        gradient: _isSending ? null : AppColors.primaryGradient,
+                        color: _isSending ? Colors.grey[300] : null,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isSending
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                    ),
+                  )
+                else
+                  VoiceRecordButton(
+                    recorder: _voiceRecorder,
+                    enabled: !_isSending && !_isChatClosed,
+                    isBusy: _isSending,
+                    onSend: _sendVoiceMessage,
+                    onPermissionDenied: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.tr('chat.mic_permission')),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            );
+          },
         ),
+      ),
+      ],
       ),
     );
   }
 }
-

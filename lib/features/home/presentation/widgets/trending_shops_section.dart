@@ -5,9 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
+import '../screens/food_collection_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'image_skeleton_loader.dart';
 import 'restaurant_card.dart';
+import 'restaurant_ordering_filter_chips.dart';
+import 'view_all_icon_button.dart';
 
 /// Horizontal "Trending Now" rail backed by
 /// `GET /api/user/shop-profile/trending` (shops ranked by completed orders).
@@ -22,6 +25,7 @@ class TrendingShopsSection extends StatefulWidget {
 class _TrendingShopsSectionState extends State<TrendingShopsSection> {
   late Future<List<Restaurant>> _future;
   final Map<String, bool> _localFavorites = {};
+  RestaurantOrderingFilter _filter = RestaurantOrderingFilter.delivery;
 
   @override
   void initState() {
@@ -35,11 +39,18 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
       final coords =
           await UserLocationRepository.instance.resolveActiveCoordinates();
       return await RestaurantRepository.instance
-          .getTrendingShops(lat: coords.lat, lon: coords.lon, size: 10)
+          .getTrendingShops(lat: coords.lat, lon: coords.lon, size: 30)
           .timeout(const Duration(seconds: 10));
     } catch (_) {
       return [];
     }
+  }
+
+  List<Restaurant> _filtered(List<Restaurant> all) {
+    final filtered = _filter == RestaurantOrderingFilter.delivery
+        ? RestaurantRepository.filterDeliveryEnabled(all)
+        : RestaurantRepository.filterVisitOnly(all);
+    return filtered.take(10).toList();
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -66,8 +77,10 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton();
         }
-        final shops = snapshot.data ?? [];
-        if (shops.isEmpty) return const SizedBox.shrink();
+        final allShops = snapshot.data ?? [];
+        if (allShops.isEmpty) return const SizedBox.shrink();
+
+        final shops = _filtered(allShops);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,71 +91,112 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
                 children: [
                   const Text('🔥', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
-                  Text(
-                    context.tr('food.trending_now'),
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: Colors.black87,
+                  Expanded(
+                    child: Text(
+                      context.tr('food.trending_now'),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 245,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: shops.length,
-                itemBuilder: (context, index) {
-                  final data = shops[index];
-                  return RestaurantCard(
-                    name: data.name,
-                    category: data.category,
-                    rating: data.rating,
-                    reviewCount: data.reviewCount,
-                    distance: data.distance,
-                    imagePath: data.imagePath,
-                    logoPath: data.logoPath,
-                    deliveryTime: data.deliveryTime,
-                    deliveryFee: data.deliveryFee,
-                    originalDeliveryFee: data.originalDeliveryFee,
-                    deliveryEnabled: data.deliveryEnabled,
-                    operatingHours: data.operatingHours,
-                    status: data.status,
-                    shopId: data.id,
-                    isVerified: data.isVerified,
-                    compact: true,
-                    isFavorite: _localFavorites[data.id] ?? data.isFavorite,
-                    onFavoriteToggle: () => _toggleFavorite(data),
-                    width: 240,
-                    onTap: () {
+                  ViewAllIconButton(
+                    onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RestaurantDetailPage(
-                            id: data.id,
-                            name: data.name,
-                            category: data.category,
-                            rating: data.rating,
-                            reviewCount: data.reviewCount,
-                            distance: data.distance,
-                            imagePath: data.imagePath,
-                            logoPath: data.logoPath,
-                            deliveryTime: data.deliveryTime,
-                            status: data.status,
-                            isFavorite:
-                                _localFavorites[data.id] ?? data.isFavorite,
+                          builder: (context) => FoodCollectionListPage(
+                            kind: FoodCollectionKind.trending,
+                            visitOnly: _filter ==
+                                RestaurantOrderingFilter.visitOnly,
                           ),
                         ),
                       );
                     },
-                  );
-                },
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 12),
+            RestaurantOrderingFilterChips(
+              selected: _filter,
+              onChanged: (value) {
+                if (value == _filter) return;
+                setState(() => _filter = value);
+              },
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+            ),
+            const SizedBox(height: 16),
+            if (shops.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Text(
+                  context.tr(
+                    _filter == RestaurantOrderingFilter.delivery
+                        ? 'restaurants.empty_delivery'
+                        : 'restaurants.empty_visit_only',
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 245,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: shops.length,
+                  itemBuilder: (context, index) {
+                    final data = shops[index];
+                    return RestaurantCard(
+                      name: data.name,
+                      category: data.category,
+                      rating: data.rating,
+                      reviewCount: data.reviewCount,
+                      distance: data.distance,
+                      imagePath: data.imagePath,
+                      logoPath: data.logoPath,
+                      deliveryTime: data.deliveryTime,
+                      deliveryFee: data.deliveryFee,
+                      originalDeliveryFee: data.originalDeliveryFee,
+                      deliveryEnabled: data.deliveryEnabled,
+                      operatingHours: data.operatingHours,
+                      status: data.status,
+                      shopId: data.id,
+                      isVerified: data.isVerified,
+                      compact: true,
+                      isFavorite: _localFavorites[data.id] ?? data.isFavorite,
+                      onFavoriteToggle: () => _toggleFavorite(data),
+                      width: 240,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RestaurantDetailPage(
+                              id: data.id,
+                              name: data.name,
+                              category: data.category,
+                              rating: data.rating,
+                              reviewCount: data.reviewCount,
+                              distance: data.distance,
+                              imagePath: data.imagePath,
+                              logoPath: data.logoPath,
+                              deliveryTime: data.deliveryTime,
+                              status: data.status,
+                              isFavorite: _localFavorites[data.id] ??
+                                  data.isFavorite,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
             const SizedBox(height: 24),
           ],
         );
@@ -160,6 +214,12 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
             borderRadius: BorderRadius.circular(8),
             child: const ImageSkeletonLoader(width: 150, height: 20),
           ),
+        ),
+        const SizedBox(height: 12),
+        const RestaurantOrderingFilterChips(
+          selected: RestaurantOrderingFilter.delivery,
+          onChanged: _noopFilter,
+          padding: EdgeInsets.symmetric(horizontal: 20),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -183,4 +243,6 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
       ],
     );
   }
+
+  static void _noopFilter(RestaurantOrderingFilter _) {}
 }

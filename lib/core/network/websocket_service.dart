@@ -45,6 +45,13 @@ class WebSocketService {
   /// Shop → user chat events on `/user/queue/chat-updates`.
   Stream<Map<String, dynamic>> get chatUpdates => _chatUpdateController.stream;
 
+  final StreamController<Map<String, dynamic>> _callUpdateController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Call signaling events on `/user/queue/call` (CALL_ACCEPTED, CALL_REJECTED,
+  /// CALL_ANSWER, CALL_ICE, CALL_END, CALL_TIMEOUT).
+  Stream<Map<String, dynamic>> get callUpdates => _callUpdateController.stream;
+
   bool _isConnecting = false;
   bool _shouldReconnect = true;
   int _reconnectAttempts = 0;
@@ -251,6 +258,13 @@ class WebSocketService {
       headers: {...headers, 'receipt': 'rcpt-chat-updates'},
       callback: _handleChatFrame,
     );
+
+    // Private per-user call signaling events
+    _stompClient?.subscribe(
+      destination: '/user/queue/call',
+      headers: {...headers, 'receipt': 'rcpt-call'},
+      callback: _handleCallFrame,
+    );
   }
 
   /// Handles `/topic/broadcasts/users` and `/user/queue/broadcasts`
@@ -327,6 +341,20 @@ class WebSocketService {
       final raw = Map<String, dynamic>.from(decoded);
       debugPrint(' 💬 [WS] CHAT event: ${raw['type']}');
       _chatUpdateController.add(raw);
+    } catch (_) {
+      // Ignore malformed frames.
+    }
+  }
+
+  void _handleCallFrame(StompFrame frame) {
+    final body = _stompBody(frame);
+    if (body == null) return;
+    try {
+      final decoded = json.decode(body);
+      if (decoded is! Map) return;
+      final raw = Map<String, dynamic>.from(decoded);
+      debugPrint(' 📞 [WS] CALL event: ${raw['type']}');
+      _callUpdateController.add(raw);
     } catch (_) {
       // Ignore malformed frames.
     }

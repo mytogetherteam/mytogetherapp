@@ -18,6 +18,8 @@ import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
+import '../../../../core/utils/delivery_fee_estimate.dart';
+import '../../../home/data/new_user_free_delivery.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
@@ -69,14 +71,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _isLoadingLocation = true;
   List<ShopPaymentTypeDto>? _paymentTypes;
 
-  // Coupons eligible for this shop (raw); the precise discount per coupon is
-  // previewed client-side against the current cart. _selectedCoupon is the one
-  // the user picked on this page; it's applied to the order at place-order time.
+  // Shop coupon catalog (browse). Cart-specific ฿-off / free-item amounts come
+  // from POST /user/coupons/preview — the app must not invent them locally.
   List<CouponModel> _shopCoupons = const [];
+  List<CouponModel> _previewCoupons = const [];
+  String? _previewCartSignature;
   CouponModel? _selectedCoupon;
   bool _forcedAddressFlowOpen = false;
   double _draftDistanceKm = 0.0;
   double _draftDeliveryFee = 0.0;
+  /// Grab-style free delivery — set from cache ASAP, then confirmed by shop API.
+  bool _freeDeliveryActive = false;
 
   @override
   void initState() {
@@ -96,6 +101,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     // Stay in sync with primary-location changes made from any selection path
     // (the modal, or the full search page that may close without a callback).
     UserLocationRepository.instance.addListener(_onLocationRepositoryChanged);
+    NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
     if (widget.store.items.isNotEmpty) {
       final restaurantIdString = widget.store.items.first.restaurantId;
       final restaurantId = int.tryParse(restaurantIdString);
@@ -111,13 +117,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           }
         });
 
-        // 2. Fetch shop details (restaurant info + route pre-fetch).
-        RestaurantRepository.instance.getShopById(restaurantId).then((shop) {
-          if (mounted) {
-            setState(() => _restaurant = shop);
-            _preFetchRoute(); // Start pre-fetching route
-          }
-        });
+        // 2. Shop details — cache first so FREE shows immediately (Grab-style),
+        //    then refresh from API.
+        _loadShopForCheckout(restaurantId);
+        NewUserFreeDeliveryOffer.instance.refresh();
 
         // 3. Fetch the authoritative payment methods for this shop from the
         //    dedicated endpoint: GET /api/user/shops/:shopId/payment-methods.
@@ -127,6 +130,36 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         //    immediately on this page.
         _loadShopCoupons(restaurantId);
       }
+    }
+  }
+
+  Future<void> _loadShopForCheckout(int restaurantId) async {
+    // Cache first — FREE must show before the network round-trip (Grab-style).
+    final cached = await ShopStorage.getShop(restaurantId);
+    if (cached != null && mounted) {
+      final cachedFree = cached['freeDeliveryActive'] == true ||
+          DeliveryFeeEstimate.isFreeLabel(
+            cached['displayDeliveryFee']?.toString(),
+          );
+      if (cachedFree) {
+        setState(() => _freeDeliveryActive = true);
+      }
+    }
+
+    try {
+      final shop =
+          await RestaurantRepository.instance.getShopById(restaurantId);
+      if (!mounted) return;
+      setState(() {
+        _restaurant = shop;
+        // Replace the cached flag. A newer shop response must be able to turn Free off.
+        _freeDeliveryActive = shop.shopPromoFreeDelivery;
+      });
+      _preFetchRoute();
+    } catch (_) {
+      // A saved Free flag is not safe once the shop response failed.
+      if (!mounted) return;
+      setState(() => _freeDeliveryActive = false);
     }
   }
 
@@ -149,53 +182,85 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _selectedCoupon == null) {
-          _openCouponSheet(totalStorePrice.toDouble(), currentStore.items);
+          _openCouponSheet(currentStore.items);
         }
       });
     }
   }
 
-  /// Coupons that actually apply to the current cart, each with a live,
-  /// client-computed discount preview (mirrors the backend).
-  List<CouponModel> _applicableCoupons(double subtotal, List<CartItem> items) {
-    if (_shopCoupons.isEmpty) return const [];
-    final lines = items
-        .map<CouponCartLine>(
-          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
-        )
-        .toList();
-    final out = <CouponModel>[];
-    for (final c in _shopCoupons) {
-      final discount = CouponService.computePreview(
-        coupon: c,
-        subtotal: subtotal,
-        items: lines,
-      );
-      out.add(c.copyWith(discountPreview: discount));
-    }
-    return out;
+  List<CouponCartLine> _couponCartLines(List<CartItem> items) => items
+      .map(
+        (i) => (
+          menuItemId: i.menuItemId,
+          quantity: i.quantity,
+          price: i.price,
+        ),
+      )
+      .toList();
+
+  int? get _shopIdForCoupons {
+    final fromRestaurant = int.tryParse(_restaurant?.id ?? '');
+    if (fromRestaurant != null) return fromRestaurant;
+    return int.tryParse(widget.store.items.first.restaurantId);
   }
 
-  double _discountForSelected(double subtotal, List<CartItem> items) {
-    final coupon = _selectedCoupon;
-    if (coupon == null) return 0;
-    final lines = items
-        .map<CouponCartLine>(
-          (i) => (menuItemId: i.menuItemId, quantity: i.quantity, price: i.price),
-        )
-        .toList();
-    return CouponService.computePreview(
-      coupon: coupon,
-      subtotal: subtotal,
-      items: lines,
+  /// Coupons that qualify for the current cart — amounts come from the server
+  /// (`POST /user/coupons/preview`), not local Buy 1 Get 1 / discount math.
+  Future<List<CouponModel>> _loadPreviewCoupons(List<CartItem> items) async {
+    final shopId = _shopIdForCoupons;
+    if (shopId == null || items.isEmpty) return const [];
+    return CouponService.instance.previewForCart(
+      shopId: shopId,
+      items: _couponCartLines(items),
     );
   }
 
-  Future<void> _openCouponSheet(
-    double subtotal,
-    List<CartItem> items,
-  ) async {
-    final applicable = _applicableCoupons(subtotal, items);
+  String _cartPreviewSignature(List<CartItem> items) => items
+      .map((i) => '${i.menuItemId}:${i.quantity}:${i.price}')
+      .join('|');
+
+  /// Refreshes server preview when cart lines change.
+  Future<void> _refreshCouponPreview(List<CartItem> items) async {
+    final coupons = await _loadPreviewCoupons(items);
+    if (!mounted) return;
+    setState(() {
+      _previewCoupons = coupons;
+      _previewCartSignature = _cartPreviewSignature(items);
+      final selectedId = _selectedCoupon?.id;
+      if (selectedId != null) {
+        CouponModel? updated;
+        for (final c in coupons) {
+          if (c.id == selectedId) {
+            updated = c;
+            break;
+          }
+        }
+        _selectedCoupon = updated;
+      }
+    });
+  }
+
+  void _maybeRefreshCouponPreview(List<CartItem> items) {
+    final sig = _cartPreviewSignature(items);
+    if (sig == _previewCartSignature) return;
+    _refreshCouponPreview(items);
+  }
+
+  double _discountForSelected() => _selectedCoupon?.discountPreview ?? 0;
+
+  bool _selectedCouponApplies() {
+    final c = _selectedCoupon;
+    if (c == null) return false;
+    if (c.isFreeItem) {
+      return c.previewFreeItems.isNotEmpty || c.isBogoAllItems;
+    }
+    return c.discountPreview > 0;
+  }
+
+  Future<void> _openCouponSheet(List<CartItem> items) async {
+    final applicable = await _loadPreviewCoupons(items);
+    if (!mounted) return;
+    setState(() => _previewCoupons = applicable);
     if (applicable.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -273,9 +338,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  void _onNewUserOfferChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     UserLocationRepository.instance.removeListener(_onLocationRepositoryChanged);
+    NewUserFreeDeliveryOffer.instance.removeListener(_onNewUserOfferChanged);
     super.dispose();
   }
 
@@ -388,17 +458,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           response.data['routes'] != null &&
           (response.data['routes'] as List).isNotEmpty) {
         final route = response.data['routes'][0];
-        final List coords = route['geometry']['coordinates'];
         final double distanceM = (route['distance'] as num).toDouble();
-        final double durationS = (route['duration'] as num).toDouble();
-
-        final List<LatLng> points = coords
-            .map<LatLng>((c) => LatLng(c[1], c[0]))
-            .toList();
         final km = distanceM / 1000;
-        final mins = (durationS / 60).ceil();
 
-        final baseFee = (15.0 + (km * 8.5)).floorToDouble();
+        final baseFee = DeliveryFeeEstimate.minFee(km);
         if (mounted) {
           setState(() {
             _draftDistanceKm = km;
@@ -426,7 +489,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
     final km = distanceM / 1000;
 
-    final baseFee = (15.0 + (km * 8.5)).floorToDouble();
+    final baseFee = DeliveryFeeEstimate.minFee(km);
     if (mounted) {
       setState(() {
         _draftDistanceKm = km;
@@ -435,27 +498,53 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
+  bool get _newUserFreeForLoadedShop {
+    if (!_isDelivery || !NewUserFreeDeliveryOffer.instance.applies) return false;
+    final shop = _restaurant;
+    if (shop == null) return false;
+    return !shop.freeDeliveryOptOutOfGlobal;
+  }
+
+  bool get _isFreeDelivery {
+    if (_newUserFreeForLoadedShop) return true;
+    final shop = _restaurant;
+    if (shop != null) return shop.shopPromoFreeDelivery;
+    return _freeDeliveryActive;
+  }
+
+  Widget _newUserFreeDeliveryNote() {
+    if (!_newUserFreeForLoadedShop) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        context.tr('delivery.first_order_free'),
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF067647),
+        ),
+      ),
+    );
+  }
+
   String _getEstimatedDeliveryFeeText() {
+    if (_isFreeDelivery) return 'FREE';
     final km = _draftDistanceKm;
     if (km == 0.0) {
       return '฿ 0.00';
     }
-    // Bolt style (minimum): Base 15 + 8.5/km
-    final double baseFee = (15.0 + (km * 8.5)).floorToDouble();
-    // Grab style (maximum): Base 35 + 7.2/km
-    final double maxFee = (35.0 + (km * 7.2)).ceilToDouble();
-    
-    final minVal = baseFee < maxFee ? baseFee : maxFee;
-    final maxVal = baseFee > maxFee ? baseFee : maxFee;
-    
-    if (minVal == maxVal) return minVal.toFormattedPrice();
-    return '฿ ${minVal.toStringAsFixed(0)} - ฿ ${maxVal.toStringAsFixed(0)}';
+    return DeliveryFeeEstimate.rangeLabel(km);
   }
 
   String _getTotalWithDeliveryRange(double payableTotal) {
-    if (_draftDistanceKm == 0.0) return payableTotal.toFormattedPrice();
-    final double baseFee = (15.0 + (_draftDistanceKm * 8.5)).floorToDouble();
-    final double maxFee = (35.0 + (_draftDistanceKm * 7.2)).ceilToDouble();
+    // Grab-style: FREE promo → pay food + tax only (no fee range).
+    if (_isFreeDelivery || _draftDistanceKm == 0.0) {
+      return payableTotal.toFormattedPrice();
+    }
+    final double baseFee = DeliveryFeeEstimate.minFee(_draftDistanceKm);
+    final double maxFee = DeliveryFeeEstimate.maxFee(_draftDistanceKm);
     
     final minTotal = payableTotal + (baseFee < maxFee ? baseFee : maxFee);
     final maxTotal = payableTotal + (baseFee > maxFee ? baseFee : maxFee);
@@ -665,6 +754,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   "quantity": item.quantity,
                   if (item.variantId != null && item.variantId! > 0)
                     "variantId": item.variantId,
+                  if (item.additionalVariantIds.isNotEmpty)
+                    "additionalVariantIds": item.additionalVariantIds,
                   if ((item.specialInstructions ?? "").isNotEmpty)
                     "specialInstructions": item.specialInstructions,
                   if ((item.optionIds ?? []).isNotEmpty)
@@ -708,7 +799,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             _restaurant?.id ?? widget.store.items.first.restaurantId,
         orderType: _isDelivery ? 'DELIVERY' : 'PICK_UP',
         lastOrderNo: lastOrderNo,
+        isFreeDelivery: _isDelivery && _isFreeDelivery,
       );
+      if (_isDelivery) {
+        NewUserFreeDeliveryOffer.instance.refresh();
+      }
       ActiveOrderState.instance.restaurantAddress =
           _restaurant?.address ??
           _restaurant?.addressEn ??
@@ -913,10 +1008,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           itemSubtotal: foodSubtotal,
           taxEnable: taxEnable,
         );
-        final couponDiscount =
-            _discountForSelected(foodSubtotal, currentStore.items);
+        final couponDiscount = _discountForSelected();
         final payableTotal =
             (checkoutTotal - couponDiscount).clamp(0, double.infinity).toDouble();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _maybeRefreshCouponPreview(currentStore.items);
+        });
 
         return Scaffold(
           backgroundColor: const Color(0xFFF7F7F7),
@@ -956,7 +1054,68 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-// Deliver Information Section
+         // Deliver Information Section
+                      if (_isDelivery && _isFreeDelivery)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  PhosphorIconsFill.star,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'FREE DELIVERY',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      context.tr('cart.free_delivery_saved').contains('cart.free_delivery_saved') 
+                                          ? 'You saved delivery fee on this order!' 
+                                          : context.tr('cart.free_delivery_saved'),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1111,32 +1270,48 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ),
-                              if (_draftDeliveryFee > 0) ...[
+                              // Always show the fee row for delivery — FREE or range.
+                              if (_isDelivery) ...[
                                 const SizedBox(height: 16),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       PhosphorIconsRegular.money,
-                                      color: Color(0xFF94A3B8),
+                                      color: _isFreeDelivery
+                                          ? AppColors.primary
+                                          : const Color(0xFF94A3B8),
                                       size: 18,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       context.tr('cart.est_delivery_fee'),
                                       style: GoogleFonts.poppins(
-                                        color: const Color(0xFF94A3B8),
+                                        color: _isFreeDelivery
+                                            ? AppColors.primary
+                                            : const Color(0xFF94A3B8),
                                         fontSize: 13,
                                       ),
                                     ),
-                                    GradientText(
-                                      _getEstimatedDeliveryFeeText(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                    if (_isFreeDelivery)
+                                      Text(
+                                        'FREE',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                        ),
+                                      )
+                                    else if (_draftDeliveryFee > 0)
+                                      GradientText(
+                                        _getEstimatedDeliveryFeeText(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
                                   ],
                                 ),
+                                _newUserFreeDeliveryNote(),
                               ],
 
                               // Delivery fee estimate appears after shop confirms.
@@ -1393,28 +1568,56 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 taxAmount.toFormattedPrice(),
                               ),
                             ],
-                            if (couponDiscount > 0) ...[
+                            if (couponDiscount > 0 ||
+                                (_selectedCoupon?.isFreeItem == true &&
+                                    _selectedCouponApplies())) ...[
                               const SizedBox(height: 6),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Flexible(
-                                    child: Text(
-                                      _selectedCoupon?.name.isNotEmpty == true
-                                          ? _selectedCoupon!.name
-                                          : context.tr('order_status.discount'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                        color: AppColors.primary,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedCoupon?.name.isNotEmpty ==
+                                                  true
+                                              ? _selectedCoupon!.name
+                                              : context.tr(
+                                                  'order_status.discount',
+                                                ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.poppins(
+                                            color: AppColors.primary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (_selectedCoupon?.isFreeItem ==
+                                            true) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            couponBogoGiftSummary(
+                                              context,
+                                              _selectedCoupon!,
+                                            ),
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   Text(
-                                    '- ${couponDiscount.toFormattedPrice()}',
+                                    couponDiscount > 0
+                                        ? '- ${couponDiscount.toFormattedPrice()}'
+                                        : context.tr('coupon.free'),
                                     style: GoogleFonts.poppins(
                                       color: AppColors.primary,
                                       fontSize: 13,
@@ -1424,19 +1627,27 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ],
                               ),
                             ],
-                            if (_isDelivery && _draftDeliveryFee > 0) ...[
+                            if (_isDelivery) ...[
                               const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(PhosphorIconsRegular.motorcycle, size: 16, color: Color(0xFF64748B)),
+                                      Icon(
+                                        PhosphorIconsRegular.motorcycle,
+                                        size: 16,
+                                        color: _isFreeDelivery
+                                            ? AppColors.primary
+                                            : const Color(0xFF64748B),
+                                      ),
                                       const SizedBox(width: 6),
                                       Text(
                                         context.tr('cart.est_delivery_fee'),
                                         style: GoogleFonts.poppins(
-                                          color: const Color(0xFF64748B),
+                                          color: _isFreeDelivery
+                                              ? AppColors.primary
+                                              : const Color(0xFF64748B),
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -1444,15 +1655,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ],
                                   ),
                                   Text(
-                                    _getEstimatedDeliveryFeeText(),
+                                    _isFreeDelivery
+                                        ? 'FREE'
+                                        : (_draftDeliveryFee > 0
+                                            ? _getEstimatedDeliveryFeeText()
+                                            : '—'),
                                     style: GoogleFonts.poppins(
-                                      color: const Color(0xFF64748B),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                                      color: _isFreeDelivery
+                                          ? AppColors.primary
+                                          : const Color(0xFF64748B),
+                                      fontSize: _isFreeDelivery ? 15 : 13,
+                                      fontWeight: _isFreeDelivery
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
+                              _newUserFreeDeliveryNote(),
                             ],
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
@@ -1574,7 +1794,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             Expanded(
                               child: Text(
                                 _isDelivery
-                                    ? '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}'
+                                    ? (_isFreeDelivery
+                                        ? '${context.tr('cart.check_order_notice')} ဒီအော်ဒါအတွက် ပို့ဆောင်ခ အခမဲ့ ရရှိထားပါသည်။'
+                                        : '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}')
                                     : context.tr('cart.check_order_notice'),
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF334155),
@@ -1664,8 +1886,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final couponOrderId = int.tryParse((orderId ?? '').replaceAll('#', ''));
     if (couponOrderId == null) return;
 
-    // Skip if the selection no longer applies to the final cart.
-    if (_discountForSelected(subtotal, items) <= 0) return;
+    // Skip if server preview says the coupon no longer applies to this cart.
+    if (!_selectedCouponApplies()) return;
 
     try {
       final result = await CouponService.instance.apply(
@@ -1702,10 +1924,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   ) {
     if (coupon.isFreeItem) {
       final gift = couponBogoGiftSummary(context, coupon);
-      if (discount > 0) {
-        return '${coupon.name}  •  $gift  •  - ${discount.toFormattedPrice()}';
-      }
-      return '${coupon.name}  •  $gift';
+      return gift.isNotEmpty ? '${coupon.name}  •  $gift' : coupon.name;
     }
     return '${coupon.name}  •  - ${discount.toFormattedPrice()}';
   }
@@ -1713,8 +1932,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   /// The "Apply Coupon" card shown on the summary page. Hidden when the shop has
   /// no coupons that apply to the current cart (and none is selected).
   Widget _buildCouponSection(double subtotal, List<CartItem> items) {
-    final applicable = _applicableCoupons(subtotal, items);
-    final discount = _discountForSelected(subtotal, items);
+    final applicable = _previewCoupons;
+    final discount = _discountForSelected();
     final hasSelection = _selectedCoupon != null;
     final hasCoupons = _shopCoupons.isNotEmpty;
     final isHighlighted = hasSelection || hasCoupons;
@@ -1748,7 +1967,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => _openCouponSheet(subtotal, items),
+          onTap: () => _openCouponSheet(items),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -1810,7 +2029,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     icon: PhosphorIconsRegular.arrowsLeftRight,
                     tooltip: context.tr('coupon.change'),
                     color: AppColors.primary,
-                    onTap: () => _openCouponSheet(subtotal, items),
+                    onTap: () => _openCouponSheet(items),
                   ),
                   const SizedBox(width: 4),
                   _CouponRowIconButton(
@@ -2431,6 +2650,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     imagePath: item.imagePath,
                                     restaurantName: storeName,
                                     initialVariantId: item.variantId,
+                                    initialAdditionalVariantIds:
+                                        item.additionalVariantIds.isEmpty
+                                            ? null
+                                            : item.additionalVariantIds,
                                     initialOptionIds: item.optionIds,
                                     initialInstructions:
                                         item.specialInstructions,
