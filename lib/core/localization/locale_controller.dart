@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_language.dart';
 import 'app_translations.dart';
+import 'language_policy_client.dart';
 
 /// Holds the currently selected [AppLanguage] for the whole app and
 /// notifies listeners (e.g. the root [MaterialApp]) when it changes.
@@ -23,8 +26,12 @@ class LocaleController extends ChangeNotifier {
   AppLanguage get language => _language;
 
   bool _initialized = false;
+  Timer? _policyTimer;
+  int _policyGeneration = 0;
+  static const String _forceTokenKey = 'language_force_token';
+  static const String _beforeForceKey = 'language_before_force';
 
-  /// Load the persisted language. Call once during app startup.
+  /// Load the persisted language, then apply the admin language switch.
   Future<void> initialize() async {
     if (_initialized) return;
     try {
@@ -34,6 +41,56 @@ class LocaleController extends ChangeNotifier {
       _language = AppLanguage.mm;
     }
     _initialized = true;
+    await refreshLanguagePolicy();
+    _policyTimer ??= Timer.periodic(const Duration(seconds: 45), (_) {
+      refreshLanguagePolicy();
+    });
+  }
+
+  /// When an admin turns this app's switch on, remember the current language
+  /// and set Thai. People can change it afterward. Turning the switch off
+  /// restores the language from before that switch was turned on.
+  /// A failed request leaves the current language alone.
+  Future<void> refreshLanguagePolicy() async {
+    final generation = ++_policyGeneration;
+    final push = await LanguagePolicyClient.fetch('customer');
+    if (generation != _policyGeneration || push == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (generation != _policyGeneration) return;
+      if (!push.enabled) {
+        await _restoreLanguage(prefs);
+        return;
+      }
+      final token = push.at;
+      if (token == null || token.isEmpty) return;
+      if (prefs.getString(_forceTokenKey) == token) return;
+      if (prefs.getString(_beforeForceKey) == null) {
+        await prefs.setString(
+          _beforeForceKey,
+          prefs.getString(_prefsKey) ?? _language.code,
+        );
+      }
+      if (_language != AppLanguage.th) {
+        _language = AppLanguage.th;
+        notifyListeners();
+      }
+      await prefs.setString(_prefsKey, AppLanguage.th.code);
+      await prefs.setString(_forceTokenKey, token);
+    } catch (_) {}
+  }
+
+  Future<void> _restoreLanguage(SharedPreferences prefs) async {
+    final before = prefs.getString(_beforeForceKey);
+    if (before == null) return;
+    final restored = AppLanguage.fromCode(before);
+    if (_language != restored) {
+      _language = restored;
+      notifyListeners();
+    }
+    await prefs.setString(_prefsKey, restored.code);
+    await prefs.remove(_beforeForceKey);
+    await prefs.remove(_forceTokenKey);
   }
 
   /// Change the active language and persist it.

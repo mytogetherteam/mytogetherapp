@@ -16,7 +16,8 @@ class AuthInterceptor extends QueuedInterceptor {
     final isAuthPath = path.contains('/auth/refresh') ||
         path.contains('/auth/login') ||
         path.contains('/auth/register') ||
-        path.contains('/auth/check-phone');
+        path.contains('/auth/check-phone') ||
+        path.contains('/app/language-policy');
 
     // Proactive refresh: if token is about to expire, refresh it BEFORE sending
     if (authService.isLoggedIn && authService.isTokenNearlyExpired && !isAuthPath) {
@@ -48,7 +49,8 @@ class AuthInterceptor extends QueuedInterceptor {
     final path = err.requestOptions.path;
 
     // Never retry auth endpoints themselves to avoid infinite loops
-    final isAuthEndpoint = path.contains('/auth/');
+    final isAuthEndpoint = path.contains('/auth/') ||
+        path.contains('/app/language-policy');
 
     if ((statusCode == 401 || statusCode == 403) && !isAuthEndpoint) {
       try {

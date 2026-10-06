@@ -58,7 +58,10 @@ class _LanguagePageState extends State<LanguagePage> {
     );
   }
 
-  Widget _buildLanguageTile(AppLanguage language, bool isSelected) {
+  Widget _buildLanguageTile(
+    AppLanguage language,
+    bool isSelected,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Container(
