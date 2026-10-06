@@ -725,6 +725,9 @@ class ActiveOrderState extends ChangeNotifier {
   String? get shopLogo => _primary?.shopLogo;
   String? get shopImageUrl => _primary?.shopImageUrl;
   String? get shopPhone => _primary?.shopPhone;
+  set shopPhone(String? val) {
+    if (_primary != null) _primary!.shopPhone = val;
+  }
 
   // More restored getters/setters for legacy UI
   String? get deliveryAddress => _primary?.deliveryAddress;
