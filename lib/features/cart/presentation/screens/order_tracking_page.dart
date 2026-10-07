@@ -2255,7 +2255,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                 // tracking page (via the State's context, not
                                 // the sheet's) with the cancellation screen.
                                 if (context.mounted) Navigator.pop(context);
-                                if (mounted) {
+                                if (context.mounted) {
                                   Navigator.popUntil(context, (route) => route.isFirst);
                                 }
                               } finally {

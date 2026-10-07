@@ -53,8 +53,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _isLoading = true;
       _page = 0;
-      _hasFetchedLikedItems = false;
-      _todayLikedItems = [];
     });
     await _fetchPage(_page);
     setState(() {
@@ -116,7 +114,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _items.removeAt(0);
       _likeCount++;
-      _totalSeen++;
     });
     _checkAndFetchMore();
   }
@@ -130,7 +127,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _items.removeAt(0);
       _skipCount++;
-      _totalSeen++;
     });
     _checkAndFetchMore();
   }
