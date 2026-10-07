@@ -222,8 +222,8 @@ struct ProgressBarView: View {
             AnimatedConnectorView(isActive: progress >= 2, isProcessing: progress == 0 || progress == 1)
             StepIconView(iconName: "doc.text.fill", isActive: progress >= 2)
             AnimatedConnectorView(isActive: progress >= 3, isProcessing: progress == 2)
-            // Pickup: show shippingbox.fill; Delivery: show bicycle
-            StepIconView(iconName: isPickup ? "shippingbox.fill" : "bicycle", isActive: progress >= 3)
+            // Pickup: show shippingbox.fill; Delivery: show motorcycle
+            StepIconView(iconName: isPickup ? "shippingbox.fill" : "motorcycle", isActive: progress >= 3)
             AnimatedConnectorView(isActive: progress >= 4, isProcessing: progress == 3)
             // Pickup: show bag.fill; Delivery: show house.fill
             StepIconView(iconName: isPickup ? "bag.fill" : "house.fill", isActive: progress >= 4)
