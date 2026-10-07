@@ -7,9 +7,7 @@ import 'package:mytogetherapp/features/home/presentation/widgets/shop_myday_view
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/features/home/data/restaurant_data.dart' show Restaurant;
-import 'package:mytogetherapp/features/auth/data/repositories/user_location_repository.dart';
 import 'package:mytogetherapp/core/location/location_refresh_mixin.dart';
-import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
 
 class AllShopMyDaysSection extends StatefulWidget {
   const AllShopMyDaysSection({super.key});
@@ -45,15 +43,11 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
       final shops = await RestaurantRepository.instance.getShopsWithActiveMyDays(
         size: 30,
       ).timeout(const Duration(seconds: 10));
-
-      debugPrint('AllShopMyDaysSection: API returned ${shops.length} shops with mydays');
       for (var shop in shops) {
-        debugPrint('Shop ${shop.name} has ${shop.myDays.length} active mydays');
       }
 
       return shops;
     } catch (e) {
-      debugPrint('AllShopMyDaysSection: API error or timeout: $e');
       return [];
     }
   }
@@ -96,7 +90,7 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                context.tr('home.recent_updates') ?? 'Recent Updates',
+                context.tr('home.recent_updates'),
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -145,7 +139,7 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
           color: Colors.grey[200],
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -175,10 +169,10 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.3),
+                        Colors.black.withValues(alpha: 0.3),
                         Colors.transparent,
                         Colors.transparent,
-                        Colors.black.withOpacity(0.7),
+                        Colors.black.withValues(alpha: 0.7),
                       ],
                     ),
                   ),

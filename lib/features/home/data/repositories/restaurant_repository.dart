@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import '../restaurant_data.dart';
 import '../models/banner_image_dto.dart';
@@ -161,7 +162,6 @@ class RestaurantRepository {
           .map((dto) => _mapShopWithDistance(dto.shop, lat: 0, lon: 0))
           .toList();
     } catch (e) {
-      print('Error fetching shops with active mydays: $e');
       return [];
     }
   }

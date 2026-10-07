@@ -52,7 +52,6 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Building App widget...');
     // Rebuild the whole app whenever the selected language changes so that
     // every `context.tr(...)` and localized field re-renders.
     return ListenableBuilder(
@@ -78,7 +77,6 @@ class _AppState extends State<App> {
                     ValueListenableBuilder<bool>(
                       valueListenable: FloatingChatHead.isHiddenNotifier,
                       builder: (context, isHidden, child) {
-                        print('ValueListenableBuilder in app.dart: isHidden = $isHidden');
                         return IgnorePointer(
                           ignoring: isHidden,
                           child: AnimatedOpacity(

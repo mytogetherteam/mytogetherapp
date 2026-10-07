@@ -589,7 +589,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         });
       }
     } catch (e) {
-      debugPrint('Order waiting banner fetch failed: $e');
     }
   }
 
@@ -1687,7 +1686,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     required String? name,
     required String subtitle,
     String? avatarUrl,
-    IconData fallbackIcon = Icons.storefront_rounded,
   }) async {
     final orderId = _currentOrderId;
     if (orderId == null) {

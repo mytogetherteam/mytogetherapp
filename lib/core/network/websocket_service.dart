@@ -86,7 +86,6 @@ class WebSocketService {
       // isn't forcing. A stale (disconnected) client must not be silently
       // re-activated, otherwise reconnects fail without any signal.
       if (force || !isConnected) {
-        debugPrint(' [WS] Re-creating STOMP client...');
         try {
           _intentionalTeardown = true;
           _stompClient?.deactivate();
@@ -103,11 +102,9 @@ class WebSocketService {
     }
 
     _isConnecting = true;
-    debugPrint(' [WS] Connecting to: $_wsUrl');
 
     final token = AuthService().accessToken;
     if (token == null || token.isEmpty) {
-      debugPrint(' [WS] Connection aborted: No access token found.');
       _isConnecting = false;
       return;
     }
@@ -117,35 +114,26 @@ class WebSocketService {
         url: _wsUrl,
         onConnect: onConnect,
         beforeConnect: () async {
-          debugPrint(' [WS] Preparing connection headers...');
         },
         onWebSocketError: (dynamic error) {
-          debugPrint(' 🚨 [WS] WebSocket Error: $error');
           _handleConnectionLost();
         },
         onWebSocketDone: () {
-          debugPrint(' 🔌 [WS] WebSocket Connection Closed.');
           _handleConnectionLost();
         },
         onDebugMessage: (String message) {
-          debugPrint(' ⚙️ [WS] [STOMP] $message');
         },
         stompConnectHeaders: {'Authorization': 'Bearer $token'},
         onStompError: (frame) {
-          debugPrint(' [WS] STOMP Error: ${frame.body}');
         },
         onUnhandledFrame: (frame) {
-          debugPrint(' [WS] Unhandled Frame: ${frame.command}');
         },
         onUnhandledMessage: (frame) {
-          debugPrint(' [WS] Unhandled Message: ${frame.body}');
         },
         onUnhandledReceipt: (frame) {
-          debugPrint(' [WS] Unhandled Receipt: ${frame.headers}');
         },
         webSocketConnectHeaders: {},
         onDisconnect: (frame) {
-          debugPrint(' [WS] Disconnected.');
           // onWebSocketDone already handles reconnect; avoid double-scheduling.
         },
         // Client-side heartbeat preference (server currently negotiates 0,0).
@@ -192,10 +180,6 @@ class WebSocketService {
     final delaySeconds =
         (_reconnectAttempts * 2).clamp(2, _maxReconnectDelaySeconds);
     final delay = Duration(seconds: delaySeconds);
-    debugPrint(
-      ' 🔄 [WS] Scheduling reconnection in ${delay.inSeconds}s '
-      '(attempt $_reconnectAttempts)',
-    );
 
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
@@ -205,7 +189,6 @@ class WebSocketService {
   }
 
   void onConnect(dynamic frame) {
-    debugPrint(' [WS]   Connected!');
     _isConnecting = false;
     _reconnectAttempts = 0;
     _reconnectScheduled = false;
@@ -217,7 +200,6 @@ class WebSocketService {
 
     // Private per-user order updates: /user/queue/shop-order-updates
     const destination = '/user/queue/shop-order-updates';
-    debugPrint(' [WS] Subscribing to: $destination');
 
     _stompClient?.subscribe(
       destination: destination,
@@ -278,7 +260,6 @@ class WebSocketService {
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
       if (raw['id'] == null) return;
-      debugPrint(' 📡 [WS] BROADCAST received: ${raw['title']}');
       final announcement = AnnouncementModel.fromJson(raw);
       AnnouncementPresenter.present(announcement);
     } catch (_) {
@@ -298,7 +279,6 @@ class WebSocketService {
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
       if (id != null) {
-        debugPrint(' 📡 [WS] SHOP_PROFILE_UPDATE shopId=$id: $raw');
         RestaurantRepository.instance.clearCache(shopId: id);
         _shopProfileUpdateController.add(raw);
       }
@@ -323,7 +303,6 @@ class WebSocketService {
       final raw = Map<String, dynamic>.from(decoded);
       final id = int.tryParse(raw['shopId']?.toString() ?? '');
       if (id != null) {
-        debugPrint(' 📡 [WS] MENU_UPDATE shopId=$id: $raw');
         RestaurantRepository.instance.clearCache(shopId: id);
         _menuUpdateController.add(raw);
       }
@@ -339,7 +318,6 @@ class WebSocketService {
       final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
-      debugPrint(' 💬 [WS] CHAT event: ${raw['type']}');
       _chatUpdateController.add(raw);
     } catch (_) {
       // Ignore malformed frames.
@@ -353,7 +331,6 @@ class WebSocketService {
       final decoded = json.decode(body);
       if (decoded is! Map) return;
       final raw = Map<String, dynamic>.from(decoded);
-      debugPrint(' 📞 [WS] CALL event: ${raw['type']}');
       _callUpdateController.add(raw);
     } catch (_) {
       // Ignore malformed frames.
@@ -376,15 +353,9 @@ class WebSocketService {
           if (messageType == 'MENU_ITEM_UPDATE') {
             final shopId = raw['shopId'];
             final itemId = raw['itemId'];
-            debugPrint(
-              ' 📡 [WS] MENU_ITEM_UPDATE RECEIVED: shopId=$shopId, itemId=$itemId',
-            );
             if (shopId != null) {
               final id = int.tryParse(shopId.toString());
               if (id != null) {
-                debugPrint(
-                  ' ✨ [WS] Triggering cache invalidation for Shop: $id',
-                );
                 RestaurantRepository.instance.clearCache(shopId: id);
                 _menuUpdateController.add(raw);
               }
@@ -398,13 +369,9 @@ class WebSocketService {
             if (nestedOrder is Map) {
               final orderMap = Map<String, dynamic>.from(nestedOrder);
               if (OrderOwnership.isForeignOrder(orderMap)) {
-                debugPrint(
-                  ' [WS] Ignoring foreign ORDER_UPDATE orderId=${orderMap['id'] ?? orderMap['orderId']}',
-                );
                 return;
               }
             } else if (OrderOwnership.isForeignOrder(raw)) {
-              debugPrint(' [WS] Ignoring foreign ORDER_UPDATE');
               return;
             }
           }
@@ -450,8 +417,6 @@ class WebSocketService {
             }
 
             final displayStatus = (status ?? 'UNKNOWN').toUpperCase();
-            debugPrint(' 📡 [WS] STATUS: $displayStatus 🔔 ✨');
-            debugPrint(' [WS] Message Content: $orderRaw');
 
             ActiveOrderState.instance.updateFromSocket(orderRaw);
             _orderUpdateController.add(orderRaw);

@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../features/home/data/repositories/restaurant_repository.dart';
-import '../theme/app_colors.dart';
 
 /// Holds the optional remote Splash banner fetched at boot.
 class BrandedSplash {
@@ -28,14 +27,12 @@ class BrandedSplash {
       );
       final url = banners.isNotEmpty ? banners.first.imageUrl : null;
       if (url == null || url.isEmpty) {
-        debugPrint('[BOOT] No Splash banner configured.');
         imageUrl = null;
         imageBytes = null;
         return;
       }
 
       imageUrl = url;
-      debugPrint('[BOOT] Splash banner URL: $url');
 
       try {
         final response = await Dio().get<List<int>>(
@@ -49,18 +46,13 @@ class BrandedSplash {
         final data = response.data;
         if (response.statusCode == 200 && data != null && data.isNotEmpty) {
           imageBytes = Uint8List.fromList(data);
-          debugPrint(
-            '[BOOT] Splash banner bytes ready (${imageBytes!.length})',
-          );
         }
       } catch (e) {
-        debugPrint('[BOOT] Splash byte download failed (URL fallback): $e');
         imageBytes = null;
       }
     } catch (e) {
       imageUrl = null;
       imageBytes = null;
-      debugPrint('[BOOT] Splash banner fetch failed: $e');
     }
   }
 }

@@ -10,7 +10,6 @@ import 'package:mytogetherapp/features/home/presentation/widgets/todays_overview
 import '../widgets/restaurants_nearby_section.dart';
 import '../widgets/lost_items_nearby_section.dart';
 import '../widgets/top_places_nearby_section.dart';
-import '../widgets/popular_brands_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
 import 'package:cached_network_image/cached_network_image.dart';

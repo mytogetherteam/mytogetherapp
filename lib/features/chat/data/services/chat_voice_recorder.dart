@@ -137,7 +137,6 @@ class ChatVoiceRecorder {
     try {
       await _recorder.cancel();
     } catch (e) {
-      debugPrint('[ChatVoiceRecorder.cancel] $e');
       try {
         final path = await _recorder.stop() ?? _path;
         await deleteFile(path);

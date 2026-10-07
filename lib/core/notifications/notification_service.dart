@@ -26,7 +26,6 @@ class NotificationService {
     try {
       _fcm ??= FirebaseMessaging.instance;
     } catch (e) {
-      debugPrint('Firebase Messaging not available: $e');
     }
     return _fcm!; 
   }
@@ -78,7 +77,6 @@ class NotificationService {
               _handleNotificationClick(message);
               return;
             } catch (e) {
-              debugPrint('Payload decode error: $e');
             }
           }
           _handleNotificationClick(null);
@@ -242,7 +240,6 @@ class NotificationService {
         }
       }
     } catch (e) {
-      debugPrint('Local notif launch details error: $e');
     }
 
     // Register token if already logged in
@@ -257,7 +254,6 @@ class NotificationService {
         }
       });
     } catch (e) {
-      debugPrint('FCM listener setup failed: $e');
     }
 
     _isInitialized = true;
@@ -275,7 +271,6 @@ class NotificationService {
         sound: true,
       );
     } catch (e) {
-      debugPrint('FCM permission request failed: $e');
     }
   }
 
@@ -300,7 +295,6 @@ class NotificationService {
         _registeredFcmToken = null;
       }
     } catch (e) {
-      debugPrint('FCM token unregister failed: $e');
     }
   }
 
@@ -326,7 +320,6 @@ class NotificationService {
       );
       _registeredFcmToken = token;
     } catch (e) {
-      debugPrint('FCM token registration failed: $e');
     }
   }
 
@@ -413,7 +406,6 @@ class NotificationService {
     try {
       await _localNotifications.cancelAll();
     } catch (e) {
-      debugPrint('Error cancelling notifications: $e');
     }
   }
 

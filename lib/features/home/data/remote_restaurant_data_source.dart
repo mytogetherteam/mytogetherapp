@@ -87,10 +87,7 @@ class RemoteRestaurantDataSource {
         }
       }
     } catch (e) {
-      debugPrint('getBackgroundTheme error: $e');
       if (e is DioException) {
-        debugPrint('Response data: ${e.response?.data}');
-        debugPrint('Status code: ${e.response?.statusCode}');
       }
     }
     return null;

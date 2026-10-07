@@ -162,72 +162,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
     }
   }
 
-  Widget _buildActivityChips(BuildContext context) {
-    return Container(
-      height: 48,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: _activityFilters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = _activityFilters[index];
-          final isSelected = _selectedActivity == filter.key;
-          final localizedLabel = context.tr(filter.labelKey);
-          final label = localizedLabel != filter.labelKey
-              ? localizedLabel
-              : filter.defaultLabel;
 
-          return GestureDetector(
-            onTap: () => _onSelectActivity(filter.key),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.grey[100],
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : Colors.grey.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    filter.icon,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12.5,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +188,6 @@ class _PlacesListPageState extends State<PlacesListPage> {
       ),
       body: Column(
         children: [
-          // _buildActivityChips(context),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,

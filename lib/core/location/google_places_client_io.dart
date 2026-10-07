@@ -35,7 +35,6 @@ class GooglePlacesClient {
       if (merged.isNotEmpty) return merged;
       return _geocodeSearch(query, lat: lat, lon: lon);
     } catch (e) {
-      debugPrint('PLACES API EXCEPTION: $e');
       return [];
     }
   }
@@ -80,7 +79,6 @@ class GooglePlacesClient {
     }
 
     if (status == 'ZERO_RESULTS') return [];
-    debugPrint('PLACES AUTOCOMPLETE FAILED: ${response.data}');
     return [];
   }
 
@@ -152,9 +150,7 @@ class GooglePlacesClient {
       }
 
       if (status == 'ZERO_RESULTS') return [];
-      debugPrint('PLACES TEXT SEARCH FAILED: ${response.data}');
     } catch (e) {
-      debugPrint('PLACES TEXT SEARCH EXCEPTION: $e');
     }
     return [];
   }
@@ -190,9 +186,7 @@ class GooglePlacesClient {
             )
             .toList();
       }
-      debugPrint('GEOCODE SEARCH FAILED: ${response.data}');
     } catch (e) {
-      debugPrint('GEOCODE SEARCH EXCEPTION: $e');
     }
     return [];
   }
@@ -261,11 +255,9 @@ class GooglePlacesClient {
           );
         }
       } else {
-        debugPrint('REVERSE GEOCODE API FAILED: ${response.data}');
       }
       return null;
     } catch (e) {
-      debugPrint('REVERSE GEOCODE EXCEPTION: $e');
       return null;
     }
   }

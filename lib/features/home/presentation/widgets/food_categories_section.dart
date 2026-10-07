@@ -52,7 +52,6 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
         });
       }
     } catch (e) {
-      debugPrint('[FoodCategoriesSection] Error loading categories: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;

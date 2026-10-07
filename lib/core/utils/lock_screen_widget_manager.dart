@@ -46,7 +46,6 @@ class LockScreenWidgetManager {
         );
         await _liveActivitiesPlugin.endAllActivities();
       } catch (e) {
-        debugPrint('Live Activities init failed: $e');
       }
     } else if (_isAndroid) {
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -135,7 +134,6 @@ class LockScreenWidgetManager {
               data['shopLogoPath'] = _lastLogoFile;
             }
           } catch (e) {
-            debugPrint('Failed to download logo for live activity: $e');
           }
         }
       }
@@ -153,7 +151,6 @@ class LockScreenWidgetManager {
           );
         }
       } catch (e) {
-        debugPrint('Live Activities update failed: $e');
       }
     } else if (_isAndroid) {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
