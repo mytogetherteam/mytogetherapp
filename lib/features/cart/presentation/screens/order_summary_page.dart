@@ -715,6 +715,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       // [_orderPlacementInFlight], which must not run before ensureCanPlaceNewOrder().
       ActiveOrderState.instance.beginOrderPlacement();
 
+      if (!context.mounted) return;
       final nav = Navigator.of(context);
       final foodTotal =
           CartManager.instance.getStoreTotal(widget.store.nameKey);
@@ -868,7 +869,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         displayTaxAmount: backendDisplayTax,
         taxEnable: orderTaxEnable,
         paymentMethod:
-            _selectedPaymentType?.displayName ?? context.tr('cart.payment'),
+            _selectedPaymentType?.displayName ?? (context.mounted ? context.tr('cart.payment') : 'Payment'),
         paymentMethodId: selectedMethodId,
         paymentMethodImageUrl: selectedMethodImage,
         items: List.from(storeItems),

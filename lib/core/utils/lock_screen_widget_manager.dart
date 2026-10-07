@@ -44,7 +44,10 @@ class LockScreenWidgetManager {
           appGroupId:
               'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
         );
-        await _liveActivitiesPlugin.endAllActivities();
+        final activities = await _liveActivitiesPlugin.getAllActivitiesIds();
+        if (activities.isNotEmpty) {
+          _currentLiveActivityId = activities.first;
+        }
       } catch (e) {
       }
     } else if (_isAndroid) {
