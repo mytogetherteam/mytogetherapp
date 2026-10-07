@@ -220,7 +220,6 @@ class AppTranslations {
     // Language page
     'language.title': 'Language',
     'language.subtitle': 'Choose your preferred language',
-
     // Home
     'home.search_hint': 'Search food, restaurants & more ...',
     'home.category_food': 'Food &\nRestaurant',
@@ -2722,7 +2721,6 @@ class AppTranslations {
     // Language page
     'language.title': 'ภาษา',
     'language.subtitle': 'เลือกภาษาที่คุณต้องการ',
-
     // Home
     'home.search_hint': 'ค้นหาอาหาร ร้านอาหาร และอื่นๆ ...',
     'home.category_food': 'อาหาร\nและร้านอาหาร',

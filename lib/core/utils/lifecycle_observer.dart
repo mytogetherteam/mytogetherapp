@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../analytics/app_stay_reporter.dart';
+import '../localization/locale_controller.dart';
 import '../../features/cart/presentation/order_action_presenter.dart';
 import '../network/websocket_service.dart';
 import '../../features/cart/data/active_order_state.dart';
@@ -40,6 +41,7 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       AppStayReporter.markForeground();
+      unawaited(LocaleController.instance.refreshLanguagePolicy());
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       unawaited(AppStayReporter.reportAndReset());
