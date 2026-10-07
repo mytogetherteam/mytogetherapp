@@ -145,7 +145,6 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
         });
       }
     } catch (e) {
-      debugPrint('CURRENT LOCATION ERROR: $e');
       if (mounted) {
         setState(() {
           _hasPreciseGps = false;
@@ -341,7 +340,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                 child: Row(
                   children: [
                     Text(
-                      context.tr('location.where_to') ?? 'Where to?', // Fallback if missing
+                      context.tr('location.where_to'), // Fallback if missing
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -380,7 +379,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         const Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey, size: 20),
                         const SizedBox(width: 12),
                         Text(
-                          context.tr('location.search_hint') ?? 'Find an address, building, or place',
+                          context.tr('location.search_hint'),
                           style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
                         ),
                       ],
@@ -441,7 +440,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Text(
-                                    context.tr('location.select_via_map') ?? 'Select location via map',
+                                    context.tr('location.select_via_map'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,

@@ -43,7 +43,6 @@ class GooglePlacesClient {
       );
       return _parsePlaceList(json);
     } catch (e, stack) {
-      debugPrint('WEB PLACES SEARCH EXCEPTION: $e\n$stack');
       return [];
     }
   }
@@ -63,7 +62,6 @@ class GooglePlacesClient {
       if (json == 'null') return place;
       return _parsePlace(json) ?? place;
     } catch (e, stack) {
-      debugPrint('WEB PLACE DETAILS EXCEPTION: $e\n$stack');
       return place;
     }
   }
@@ -76,7 +74,6 @@ class GooglePlacesClient {
       if (json == 'null') return null;
       return _parsePlace(json);
     } catch (e, stack) {
-      debugPrint('WEB REVERSE GEOCODE EXCEPTION: $e\n$stack');
       return null;
     }
   }

@@ -76,7 +76,6 @@ class ChatVoicePlayerController {
     try {
       await _player.setAudioContext(_voicePlaybackAudioContext());
     } catch (e) {
-      debugPrint('[ChatVoicePlayerController.audioContext] $e');
     }
     _posSub = _player.onPositionChanged.listen((value) {
       position.value = value;
@@ -90,13 +89,11 @@ class ChatVoicePlayerController {
       ChatVoicePlaybackCoordinator.instance.release(_stopForCoordinator);
     });
     _errorSub = _player.onLog.listen((msg) {
-      debugPrint('[ChatVoicePlayerController.log] $msg');
     });
   }
 
   Future<void> toggle(String url, {int? knownDurationSeconds}) async {
     if (url.isEmpty) {
-      debugPrint('[ChatVoicePlayerController] empty url');
       return;
     }
     if (knownDurationSeconds != null &&
@@ -119,7 +116,6 @@ class ChatVoicePlayerController {
 
       if (_loadedUrl != url) {
         await _player.stop();
-        debugPrint('[ChatVoicePlayerController] play $url');
         await _player.setSourceUrl(url);
         _loadedUrl = url;
         position.value = Duration.zero;
@@ -129,7 +125,6 @@ class ChatVoicePlayerController {
       await _player.resume();
       isPlaying.value = true;
     } catch (e) {
-      debugPrint('[ChatVoicePlayerController.toggle] $e');
       isPlaying.value = false;
     }
   }
@@ -158,7 +153,6 @@ class ChatVoicePlayerController {
     try {
       await _player.stop();
     } catch (e) {
-      debugPrint('[ChatVoicePlayerController.stop] $e');
     }
     isPlaying.value = false;
     position.value = Duration.zero;

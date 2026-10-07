@@ -179,13 +179,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   }
 
   Future<void> _makeCall(String phoneNumber) async {
-    debugPrint('Attempting to call from detail: $phoneNumber');
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
-        debugPrint('Could not launch from detail $launchUri');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(context.tr('news.dialer_failed'))),
@@ -193,7 +191,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
         }
       }
     } catch (e) {
-      debugPrint('Error launching call from detail: $e');
     }
   }
 

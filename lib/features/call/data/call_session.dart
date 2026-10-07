@@ -152,7 +152,6 @@ class CallSession {
 
       return true;
     } catch (e) {
-      debugPrint('[CallSession] initiateCall error: $e');
       state.value = CallState.idle;
       return false;
     }
@@ -259,7 +258,6 @@ class CallSession {
     try {
       await _dio.post('/api/call/user-accept/$_currentCallId');
     } catch (e) {
-      debugPrint('[CallSession] acceptIncomingCall error: $e');
     }
 
     _activeCallChannel.invokeMethod('start', {
@@ -364,7 +362,6 @@ class CallSession {
               'sdp': answer.sdp,
             });
           } catch (e) {
-            debugPrint('[CallSession] answer error: $e');
           }
         }
         break;
@@ -414,7 +411,6 @@ class CallSession {
         'video': false,
       });
     } catch (e) {
-      debugPrint('[CallSession] getUserMedia error: $e');
       return;
     }
 
@@ -469,7 +465,6 @@ class CallSession {
         'sdp': offer.sdp,
       });
     } catch (e) {
-      debugPrint('[CallSession] offer error: $e');
     }
   }
 
@@ -489,7 +484,6 @@ class CallSession {
         'video': false,
       });
     } catch (e) {
-      debugPrint('[CallSession] getUserMedia error: $e');
       return;
     }
 

@@ -48,7 +48,6 @@ class NominatimGeocoder {
         type: data['type']?.toString(),
       );
     } catch (e) {
-      debugPrint('NOMINATIM REVERSE GEOCODE FAILED: $e');
       return null;
     }
   }

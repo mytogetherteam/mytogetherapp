@@ -1535,7 +1535,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) => Container(
+                                      errorWidget: (_, _, _) => Container(
                                         width: 40,
                                         height: 40,
                                         color: Colors.grey.shade200,
@@ -1802,7 +1802,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              order!.usesPayNowTotal == true ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
+                              order.usesPayNowTotal == true ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
                               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
                             ),
                             Text(

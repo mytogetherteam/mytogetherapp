@@ -57,7 +57,6 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
           )
           .timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint('FoodRestaurantsSection: API error: $e');
       return [];
     }
   }

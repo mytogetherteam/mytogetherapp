@@ -48,7 +48,6 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
       ).timeout(const Duration(seconds: 8));
       return section.items;
     } catch (e) {
-      debugPrint('TodaysOverviewSection: API error or timeout: $e');
       return [];
     }
   }

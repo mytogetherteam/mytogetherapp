@@ -1,5 +1,6 @@
 import '../../../../core/network/api_client.dart';
 import '../models/shop_feed_item_dto.dart';
+import 'package:flutter/foundation.dart';
 
 class SwipeRankingRepository {
   static final SwipeRankingRepository instance = SwipeRankingRepository._();
@@ -16,7 +17,6 @@ class SwipeRankingRepository {
         return data.map((json) => ShopFeedItemDto.fromJson(json)).toList();
       }
     } catch (e) {
-      print('Error fetching swipe candidates: $e');
     }
     return [];
   }
@@ -32,7 +32,6 @@ class SwipeRankingRepository {
         return data.map((json) => ShopFeedItemDto.fromJson(json)).toList();
       }
     } catch (e) {
-      print('Error fetching leaderboard: $e');
     }
     return [];
   }
@@ -44,7 +43,6 @@ class SwipeRankingRepository {
         data: {'isLike': isLike},
       );
     } catch (e) {
-      print('Error submitting swipe: $e');
     }
   }
 
@@ -56,7 +54,6 @@ class SwipeRankingRepository {
       final List<dynamic> data = response.data['data'] ?? [];
       return data.map((json) => ShopFeedItemDto.fromJson(json)).toList();
     } catch (e) {
-      print('Error fetching today liked items: $e');
       return [];
     }
   }

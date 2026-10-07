@@ -79,7 +79,6 @@ class _FoodDiscountSelectionSectionState
       }
       await _loadDeals(initial);
     } catch (e) {
-      debugPrint('FoodDiscountSelectionSection: config error: $e');
       if (mounted) setState(() => _loadingConfig = false);
     }
   }
@@ -109,7 +108,6 @@ class _FoodDiscountSelectionSectionState
         });
       }
     } catch (e) {
-      debugPrint('FoodDiscountSelectionSection: deals error: $e');
       if (mounted) setState(() => _loadingDeals = false);
     }
   }

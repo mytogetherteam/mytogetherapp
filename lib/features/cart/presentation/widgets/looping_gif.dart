@@ -83,7 +83,6 @@ class _LoopingGifState extends State<LoopingGif> {
             loaded = Uint8List.fromList(data);
           }
         } catch (e) {
-          debugPrint('Error loading network gif: $e');
         }
       }
 
@@ -110,7 +109,6 @@ class _LoopingGifState extends State<LoopingGif> {
         });
       }
     } catch (e) {
-      debugPrint('Error loading gif: $e');
     }
   }
 

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
-import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/home/data/models/shop_dto.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/shop_myday_viewer.dart';
-import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class ShopMyDayListSection extends StatelessWidget {
   final String shopName;
@@ -58,7 +56,6 @@ class ShopMyDayListSection extends StatelessWidget {
   Widget _buildStoryThumbnail(
       BuildContext context, ShopMyDayDto story, int index) {
     final storyImg = resolveMediaUrl(story.imageUrl);
-    final logoImg = resolveMediaUrl(shopLogoUrl);
 
     return GestureDetector(
       onTap: () {
@@ -77,7 +74,7 @@ class ShopMyDayListSection extends StatelessWidget {
           color: Colors.grey[200],
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),

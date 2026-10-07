@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +23,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   bool _isFetchingMore = false;
   int _likeCount = 0;
   int _skipCount = 0;
-  int _totalSeen = 0;
+
   int _page = 0;
   final int _pageSize = 20;
 
@@ -32,9 +31,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   bool _isLikeAction = true;
   AnimationController? _actionController;
 
-  List<ShopFeedItemDto> _todayLikedItems = [];
-  bool _isFetchingLikedItems = false;
-  bool _hasFetchedLikedItems = false;
+
 
   @override
   void initState() {
@@ -328,19 +325,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     );
   }
 
-  Future<void> _fetchTodayLikedItems() async {
-    setState(() {
-      _isFetchingLikedItems = true;
-    });
-    final items = await SwipeRankingRepository.instance.getTodayLikedItems();
-    if (mounted) {
-      setState(() {
-        _todayLikedItems = items;
-        _isFetchingLikedItems = false;
-        _hasFetchedLikedItems = true;
-      });
-    }
-  }
+
 
   Widget _buildEmptyState() {
     return Center(

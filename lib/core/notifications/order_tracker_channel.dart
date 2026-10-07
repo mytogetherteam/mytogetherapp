@@ -18,7 +18,6 @@ class OrderTrackerChannel {
         'shopLogoUrl': shopLogoUrl ?? '',
       });
     } on PlatformException catch (e) {
-      debugPrint("Failed to start/update tracker: '${e.message}'.");
     }
   }
 
@@ -27,7 +26,6 @@ class OrderTrackerChannel {
     try {
       await _channel.invokeMethod('stopTracker');
     } on PlatformException catch (e) {
-      debugPrint("Failed to stop tracker: '${e.message}'.");
     }
   }
 }

@@ -48,7 +48,6 @@ class ImageCropHelper {
       );
       return cropped == null ? null : XFile(cropped.path);
     } catch (e) {
-      debugPrint('ImageCropHelper.crop error: $e');
       return file;
     }
   }

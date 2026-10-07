@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -143,7 +143,6 @@ class AnnouncementDetailSheet extends StatelessWidget {
               ),
             ),
             errorWidget: (context, url, error) {
-              debugPrint('ANNOUNCEMENT IMAGE LOAD ERROR: $url -> $error');
               return Container(
                 color: Colors.grey.shade200,
                 child: Icon(
