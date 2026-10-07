@@ -30,8 +30,10 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   bool _showActionOverlay = false;
   bool _isLikeAction = true;
   AnimationController? _actionController;
-
-
+  
+  bool _hasFetchedLikedItems = false;
+  List<dynamic> _todayLikedItems = [];
+  int _totalSeen = 0;
 
   @override
   void initState() {

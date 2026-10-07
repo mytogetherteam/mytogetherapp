@@ -5,6 +5,7 @@ import '../../data/referral_model.dart';
 import '../../data/referral_service.dart';
 import '../widgets/enter_friend_code_card.dart';
 import '../widgets/promote_code_card.dart';
+import '../../../../core/localization/app_translations.dart';
 
 class ReferralPage extends StatefulWidget {
   const ReferralPage({super.key});
@@ -65,9 +66,9 @@ class _ReferralPageState extends State<ReferralPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text(
-          'Referral & Promote Code',
-          style: TextStyle(
+        title: Text(
+          context.tr('profile.referral_promote'),
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -106,8 +107,8 @@ class _ReferralPageState extends State<ReferralPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                           ),
-                          child: const Text('Try Again',
-                              style: TextStyle(color: Colors.white)),
+                          child: Text(context.tr('common.retry'),
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -142,9 +143,9 @@ class _ReferralPageState extends State<ReferralPage> {
 
                         // Section 3: Friends who joined
                         if (_friends.isNotEmpty) ...[
-                          const Text(
-                            'Friends Who Joined',
-                            style: TextStyle(
+                          Text(
+                            context.tr('referral.friends_joined'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
@@ -193,7 +194,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                   ),
                                   subtitle: friend.joinedAt != null
                                       ? Text(
-                                          'Joined ${friend.joinedAt!.day}/${friend.joinedAt!.month}/${friend.joinedAt!.year}',
+                                          '${context.tr('referral.joined')} ${friend.joinedAt!.day}/${friend.joinedAt!.month}/${friend.joinedAt!.year}',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -223,14 +224,14 @@ class _ReferralPageState extends State<ReferralPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
-                                  Icon(PhosphorIcons.info,
+                                  const Icon(PhosphorIcons.info,
                                       size: 18, color: AppColors.primary),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    'How Referral Works',
-                                    style: TextStyle(
+                                    context.tr('referral.how_it_works'),
+                                    style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
@@ -241,23 +242,20 @@ class _ReferralPageState extends State<ReferralPage> {
                               const SizedBox(height: 14),
                               _buildStep(
                                 number: '1',
-                                title: 'Share Your Code',
-                                description:
-                                    'Share your custom promote code with friends via chat or social media.',
+                                title: context.tr('referral.step1_title'),
+                                description: context.tr('referral.step1_desc'),
                               ),
                               const SizedBox(height: 12),
                               _buildStep(
                                 number: '2',
-                                title: 'Friend Joins & Applies',
-                                description:
-                                    'When your friend registers or enters your code in their profile, you both get connected.',
+                                title: context.tr('referral.step2_title'),
+                                description: context.tr('referral.step2_desc'),
                               ),
                               const SizedBox(height: 12),
                               _buildStep(
                                 number: '3',
-                                title: 'Enjoy Rewards & Coupons',
-                                description:
-                                    'Earn exclusive restaurant and shop discount coupons directly in Saved Coupons!',
+                                title: context.tr('referral.step3_title'),
+                                description: context.tr('referral.step3_desc'),
                               ),
                             ],
                           ),

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/referral_model.dart';
 import '../../data/referral_service.dart';
 import 'edit_promote_code_dialog.dart';
+import '../../../../core/localization/app_translations.dart';
 
 class PromoteCodeCard extends StatelessWidget {
   final MyReferralCode? myCode;
@@ -98,13 +99,14 @@ class PromoteCodeCard extends StatelessWidget {
           children: [
             const Icon(PhosphorIcons.warningCircleFill, color: Colors.redAccent, size: 32),
             const SizedBox(height: 12),
-            const Text(
-              'Promote code disabled',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            Text(
+              context.tr('referral.promote_code_disabled'),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'An admin turned off "${myCode!.code}". Saving a new code will not turn it back on.',
+              context.tr('referral.promote_code_disabled_desc')
+                  .replaceAll('{code}', myCode!.code),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
             ),
@@ -145,9 +147,9 @@ class PromoteCodeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Create Your Promote Code',
-              style: TextStyle(
+            Text(
+              context.tr('referral.create_promote_code'),
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -155,7 +157,7 @@ class PromoteCodeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Customize your personal code and share it with friends. They can enter it within 7 days of joining, before their first order.',
+              context.tr('referral.create_promote_code_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -184,9 +186,9 @@ class PromoteCodeCard extends StatelessWidget {
                   if (newCode != null) onCodeUpdated();
                 },
                 icon: const Icon(PhosphorIcons.plusBold, size: 18, color: Colors.white),
-                label: const Text(
-                  'Set Custom Code',
-                  style: TextStyle(
+                label: Text(
+                  context.tr('referral.set_custom_code'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     fontSize: 15,
@@ -211,10 +213,16 @@ class PromoteCodeCard extends StatelessWidget {
     final usedCount = myCode!.usedCount;
     final goal = referrerTargetCount;
     final joinedLabel = goal == null
-        ? '$usedCount ${usedCount == 1 ? "friend joined" : "friends joined"}'
+        ? context.trArgs(
+            usedCount == 1
+                ? 'profile.referral_friend_joined'
+                : 'profile.referral_friends_joined',
+            {'count': usedCount.toString()})
         : usedCount >= goal
-            ? '$usedCount of $goal friends · reward earned'
-            : '$usedCount of $goal friends';
+            ? context.trArgs('profile.referral_of_goal_earned',
+                {'count': usedCount.toString(), 'goal': goal.toString()})
+            : context.trArgs('profile.referral_of_goal',
+                {'count': usedCount.toString(), 'goal': goal.toString()});
 
     return Container(
       width: double.infinity,
@@ -255,14 +263,14 @@ class PromoteCodeCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(PhosphorIcons.sparkleFill,
+                          const Icon(PhosphorIcons.sparkleFill,
                               color: Colors.white, size: 14),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'YOUR PROMOTE CODE',
-                            style: TextStyle(
+                            context.tr('referral.your_promote_code'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -359,9 +367,9 @@ class PromoteCodeCard extends StatelessWidget {
                       onPressed: () => _shareCode(code),
                       icon: const Icon(PhosphorIcons.shareNetworkBold,
                           size: 16, color: AppColors.primary),
-                      label: const Text(
-                        'Share',
-                        style: TextStyle(
+                      label: Text(
+                        context.tr('social.share'),
+                        style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
