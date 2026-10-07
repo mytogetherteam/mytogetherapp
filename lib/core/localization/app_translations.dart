@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+﻿import 'package:flutter/widgets.dart';
 
 import 'app_language.dart';
 import 'locale_controller.dart';
@@ -1980,7 +1980,7 @@ class AppTranslations {
     'currency.load_failed': 'ငွေလဲနှုန်း မတင်နိုင်ပါ။ ချိတ်ဆက်မှုကို စစ်ဆေးပါ။',
     'currency.mmk_to': 'MMK → {currency}',
     'currency.rates_disclaimer':
-        'ဤနှုန်းများသည် အချက်အလက်အတွက်သာ ခန့်မှန်းဈေးဖြစ်တယ်။',
+        'ဤနှုန်းများသည် အနီးစပ်ဆုံး ခန့်မှန်းဈေးဖြစ်တယ်။',
     'currency.sell': 'ရောင်းမယ်',
     'currency.to_mmk': '{currency} → MMK',
     'currency.welcome': 'ကြိုဆိုပါတယ်',
