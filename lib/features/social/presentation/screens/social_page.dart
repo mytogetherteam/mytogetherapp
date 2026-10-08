@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/config/env_config.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -22,6 +23,7 @@ import '../widgets/social_feed_status_view.dart';
 import '../widgets/social_media_pager.dart';
 import '../widgets/social_media_view.dart';
 import 'create_social_post_page.dart';
+import 'my_posts_page.dart';
 
 /// Full-screen vertical social feed (For You from API).
 class SocialPage extends StatefulWidget {
@@ -51,6 +53,12 @@ class _SocialPageState extends State<SocialPage> {
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
+    SocialPostsRepository.feedRevision.addListener(_onMineChanged);
+    _loadInitial();
+  }
+
+  void _onMineChanged() {
+    if (!mounted) return;
     _loadInitial();
   }
 
@@ -69,6 +77,7 @@ class _SocialPageState extends State<SocialPage> {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
+    SocialPostsRepository.feedRevision.removeListener(_onMineChanged);
     _pageController.dispose();
     for (var controller in _videoControllers.values) {
       controller.dispose();
@@ -205,20 +214,10 @@ class _SocialPageState extends State<SocialPage> {
                     children: [
                       // ── Top Left Logo ────────────────────────────────────────
                       Positioned(
-                        left: 4,
+                        left: 0,
                         top: 0,
                         bottom: 0,
-                        child: Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              'assets/images/app_icon_small.png',
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
+                        child: Center(child: _MyPostsAvatarButton()),
                       ),
                       // Centre title
                       Center(
@@ -335,6 +334,7 @@ class _SocialPageState extends State<SocialPage> {
             post: _posts[index],
             isActive: isTabActive && index == _currentPage,
             preloadedController: _videoControllers[index],
+            onDeleted: () => _loadInitial(),
           ),
         );
       },
@@ -355,7 +355,11 @@ class SocialPostViewerPage extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          _SocialFeedItem(post: post, isActive: true),
+          _SocialFeedItem(
+            post: post,
+            isActive: true,
+            onDeleted: () => Navigator.of(context).pop(),
+          ),
           Positioned(
             top: 0,
             left: 0,
@@ -375,15 +379,167 @@ class SocialPostViewerPage extends StatelessWidget {
   }
 }
 
+/// Vertical preview of one person's posts, opened from My posts.
+class OwnPostsPreviewPage extends StatefulWidget {
+  final List<SocialPostDto> posts;
+  final int initialIndex;
+  final int nextPage;
+  final bool hasMore;
+
+  const OwnPostsPreviewPage({
+    super.key,
+    required this.posts,
+    required this.initialIndex,
+    this.nextPage = 2,
+    this.hasMore = false,
+  });
+
+  @override
+  State<OwnPostsPreviewPage> createState() => _OwnPostsPreviewPageState();
+}
+
+class _OwnPostsPreviewPageState extends State<OwnPostsPreviewPage> {
+  late final PageController _pageController;
+  late List<SocialPostDto> _posts;
+  late int _index;
+  late int _nextPage;
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  bool _changed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _posts = List<SocialPostDto>.of(widget.posts);
+    _index = widget.initialIndex;
+    _nextPage = widget.nextPage;
+    _hasMore = widget.hasMore;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMore() async {
+    if (!_hasMore || _loadingMore) return;
+    _loadingMore = true;
+    try {
+      final result = await SocialPostsRepository.instance.fetchMine(page: _nextPage);
+      if (!mounted) return;
+      setState(() {
+        final seen = _posts.map((post) => post.id).toSet();
+        _posts.addAll(result.items.where((post) => seen.add(post.id)));
+        _nextPage += 1;
+        _hasMore = _nextPage <= result.totalPages && result.items.isNotEmpty;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      _loadingMore = false;
+    }
+  }
+
+  void _removeAt(int index) {
+    _posts.removeAt(index);
+    _changed = true;
+    if (_posts.isEmpty) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    final next = index.clamp(0, _posts.length - 1);
+    if (_pageController.hasClients &&
+        (_pageController.page ?? 0) >= _posts.length) {
+      _pageController.jumpToPage(next);
+    }
+    setState(() => _index = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.of(context).pop(_changed);
+      },
+      child: Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            itemCount: _posts.length,
+            onPageChanged: (index) {
+              setState(() => _index = index);
+              if (index >= _posts.length - 2) _loadMore();
+            },
+            itemBuilder: (context, index) {
+              final post = _posts[index];
+              return _SocialFeedItem(
+                key: ValueKey(post.id),
+                post: post,
+                isActive: index == _index,
+                onDeleted: () => _removeAt(index),
+              );
+            },
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (_posts.isNotEmpty && !_posts[_index].isActive)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr('social.hidden'),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
 class _SocialFeedItem extends StatefulWidget {
   final SocialPostDto post;
   final bool isActive;
   final VideoPlayerController? preloadedController;
+  final VoidCallback? onDeleted;
 
   const _SocialFeedItem({
+    super.key,
     required this.post,
     required this.isActive,
     this.preloadedController,
+    this.onDeleted,
   });
 
   @override
@@ -398,6 +554,14 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   bool _saving = false;
   bool _liking = false;
   bool _reporting = false;
+  bool _deleting = false;
+
+  bool get _isOwnPost {
+    final me = AuthService().currentUser?.id;
+    return me != null &&
+        widget.post.author.type == SocialAuthorType.user &&
+        widget.post.author.id == me;
+  }
   bool _captionExpanded = false;
   bool _sheetOpen = false;
   int _mediaIndex = 0;
@@ -665,16 +829,28 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                     _sharePost();
                   },
                 ),
-                _MoreTile(
-                  icon: PhosphorIcons.warningCircle,
-                  iconColor: Colors.red,
-                  label: context.tr('social.report_post'),
-                  labelColor: Colors.red,
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _showReportConfirmation();
-                  },
-                ),
+                if (_isOwnPost)
+                  _MoreTile(
+                    icon: PhosphorIcons.trash,
+                    iconColor: Colors.red,
+                    label: context.tr('social.delete_post'),
+                    labelColor: Colors.red,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showDeleteConfirmation();
+                    },
+                  )
+                else
+                  _MoreTile(
+                    icon: PhosphorIcons.warningCircle,
+                    iconColor: Colors.red,
+                    label: context.tr('social.report_post'),
+                    labelColor: Colors.red,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showReportConfirmation();
+                    },
+                  ),
               ],
             ),
           ),
@@ -682,6 +858,72 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
       },
     );
     if (mounted) setState(() => _sheetOpen = false);
+  }
+
+  Future<void> _deletePost() async {
+    if (_deleting) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+    _deleting = true;
+    try {
+      await SocialPostsRepository.instance.deletePost(widget.post.id);
+      if (!mounted) return;
+      AppDialog.showToast(context, context.tr('social.post_deleted'));
+      widget.onDeleted?.call();
+    } catch (_) {
+      if (!mounted) return;
+      AppDialog.showToast(
+        context,
+        context.tr('social.delete_failed'),
+        isError: true,
+      );
+    } finally {
+      _deleting = false;
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          context.tr('social.delete_post'),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          context.tr('social.delete_post_confirm'),
+          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              context.tr('common.cancel'),
+              style: GoogleFonts.poppins(color: Colors.white70),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _deletePost();
+            },
+            child: Text(
+              context.tr('social.delete_post'),
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submitReport() async {
@@ -1476,6 +1718,66 @@ class _RailAction extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MyPostsAvatarButton extends StatelessWidget {
+  const _MyPostsAvatarButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = AuthService().currentUser?.avatarUrl;
+    final url = raw == null || raw.isEmpty
+        ? ''
+        : (raw.startsWith('http') ? raw : '${ApiClient.baseUrl}/$raw');
+    return Semantics(
+      button: true,
+      label: context.tr('social.my_posts'),
+      child: GestureDetector(
+        onTap: () => MyPostsPage.open(context),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  color: Colors.black45,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: url.isEmpty
+                    ? const Icon(PhosphorIcons.user, color: Colors.white, size: 20)
+                    : CachedNetworkImage(imageUrl: url, fit: BoxFit.cover),
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black54),
+                  ),
+                  child: const Icon(
+                    PhosphorIcons.squaresFour,
+                    size: 10,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

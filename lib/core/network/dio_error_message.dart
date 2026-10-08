@@ -25,6 +25,21 @@ String dioErrorMessage(
   return fallback;
 }
 
+/// Text safe to show in a toast or snackbar.
+String userFacingError(
+  Object error, {
+  String fallback = 'Something went wrong. Please try again.',
+}) {
+  if (error is DioException) return dioErrorMessage(error, fallback: fallback);
+  var text = error.toString().trim();
+  const prefix = 'Exception: ';
+  if (text.startsWith(prefix)) {
+    text = text.substring(prefix.length).trim();
+  }
+  if (text.isEmpty || text == 'null') return fallback;
+  return text;
+}
+
 String? _readServerMessage(dynamic body) {
   if (body is! Map) return null;
   final raw = body['message'] ?? body['error'];

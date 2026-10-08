@@ -17,7 +17,6 @@ import '../../../../features/main_navigation/presentation/screens/main_navigatio
 import '../../../../core/utils/firebase_error_handler.dart';
 import '../../data/google_auth_helper.dart';
 import '../widgets/google_sign_in_button.dart';
-import 'setup_pin_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -116,14 +115,12 @@ class _LoginPageState extends State<LoginPage>
       if (!mounted) return;
 
       if (result.isNewUser) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SetupPinPage(
-              idToken: google.idToken,
-              name: result.name ?? google.name ?? '',
-              email: result.email ?? google.email ?? '',
-            ),
-          ),
+        await GoogleAuthHelper.signOut();
+        if (!mounted) return;
+        AppDialog.showToast(
+          context,
+          context.tr('auth.google_account_not_found'),
+          isError: true,
         );
         return;
       }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
@@ -24,11 +25,33 @@ class SocialPostsRepository {
   static final SocialPostsRepository instance = SocialPostsRepository._();
   SocialPostsRepository._();
 
+  /// Bumps when the signed-in user publishes or deletes a post.
+  /// For You stays mounted under the other tabs, so it listens and reloads.
+  static final feedRevision = ValueNotifier<int>(0);
+
+  static void markFeedChanged() {
+    feedRevision.value++;
+  }
+
   final Dio _dio = ApiClient().dio;
 
   Future<SocialPostsFeedPage> fetchFeed({int page = 1, int size = 10}) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: {'page': page, 'size': size},
+    );
+    final body = response.data;
+    return SocialPostsFeedPage(
+      items: ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson),
+      totalElements: ApiResponseUtils.parseTotalElements(body),
+      totalPages: ApiResponseUtils.parseLastPage(body),
+      page: page,
+    );
+  }
+
+  Future<SocialPostsFeedPage> fetchMine({int page = 1, int size = 18}) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts/mine',
       queryParameters: {'page': page, 'size': size},
     );
     final body = response.data;
@@ -143,6 +166,10 @@ class SocialPostsRepository {
       response.data,
       SocialPostCommentDto.fromJson,
     );
+  }
+
+  Future<void> deletePost(int id) async {
+    await _dio.delete('${ApiClient.apiPrefix}/user/posts/$id');
   }
 
   Future<void> deleteComment(int postId, int commentId) async {

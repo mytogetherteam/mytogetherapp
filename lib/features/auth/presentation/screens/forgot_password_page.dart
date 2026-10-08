@@ -86,7 +86,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
       setState(() => _isLoading = false);
     }
   }
@@ -112,7 +116,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
       setState(() => _isLoading = false);
     }
   }

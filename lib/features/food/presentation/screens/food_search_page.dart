@@ -1047,19 +1047,21 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     Widget? footer,
     Widget? searchField,
   }) {
-    // Cap the sheet at half the screen so large option lists scroll inside
-    // instead of taking over the entire screen. Short lists stay compact
-    // because the Column uses MainAxisSize.min.
-    final maxHeight = MediaQuery.of(ctx).size.height * 0.5;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          16 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+    // Cap the sheet at half the screen. The keyboard inset sits outside that
+    // cap so the search field is not squeezed out of the sheet.
+    final media = MediaQuery.of(ctx);
+    final keyboard = media.viewInsets.bottom;
+    final available = media.size.height - keyboard - media.padding.top - 24;
+    final half = media.size.height * 0.5;
+    final maxHeight = available < half
+        ? available.clamp(0.0, half)
+        : half;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1089,8 +1091,9 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             if (footer != null) ...[const SizedBox(height: 12), footer],
           ],
         ),
-      ),
-    );
+          ),
+        ),
+      );
   }
 
   /// Compact search field used inside filter sheets that have many options.

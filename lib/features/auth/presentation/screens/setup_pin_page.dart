@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
@@ -18,12 +19,14 @@ class SetupPinPage extends StatefulWidget {
   final String idToken;
   final String name;
   final String email;
+  final String? googleAccessToken;
 
   const SetupPinPage({
     super.key,
     required this.idToken,
     required this.name,
     required this.email,
+    this.googleAccessToken,
   });
 
   @override
@@ -130,6 +133,7 @@ class _SetupPinPageState extends State<SetupPinPage>
         pin: _pin,
         name: widget.name,
         email: widget.email,
+        googleAccessToken: widget.googleAccessToken,
       );
 
       if (!mounted) return;
@@ -154,7 +158,11 @@ class _SetupPinPageState extends State<SetupPinPage>
         _firstPin = '';
         _step = SetupPinStep.create; // Reset to create step
       });
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(
+        context,
+        userFacingError(e, fallback: context.tr('firebase.unknown_error')),
+        isError: true,
+      );
     }
   }
 

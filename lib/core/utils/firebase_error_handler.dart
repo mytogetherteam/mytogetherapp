@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../localization/app_translations.dart';
+import '../network/dio_error_message.dart';
 
 class FirebaseErrorHandler {
   static String getMessage(BuildContext context, dynamic error) {
@@ -24,7 +25,9 @@ class FirebaseErrorHandler {
       }
     }
     
-    // For non-Firebase errors or string exceptions
-    return error.toString();
+    return userFacingError(
+      error,
+      fallback: context.tr('firebase.unknown_error'),
+    );
   }
 }

@@ -12,9 +12,13 @@ import '../../../../core/config/google_maps_config.dart';
 import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_enable_dialog.dart';
+import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../auth/data/models/user_location_model.dart';
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
+import '../../../../core/network/dio_error_message.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/data/delivery_address_prefs.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
@@ -25,7 +29,7 @@ import '../widgets/pinned_map_view.dart';
 
 /// Unified map + search + pin screen for adding a delivery location.
 class LocationPickerPage extends StatefulWidget {
-  /// When true, user must save an address — no back navigation until saved.
+  /// First delivery: back asks to save or discard. Checkout still requires a saved address.
   final bool forcedSetup;
 
   const LocationPickerPage({super.key, this.forcedSetup = false});
@@ -37,6 +41,7 @@ class LocationPickerPage extends StatefulWidget {
 class _LocationPickerPageState extends State<LocationPickerPage> {
   final GlobalKey<PinnedMapViewState> _mapKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   late final MapPinGeocodeController _geocode;
 
@@ -48,12 +53,21 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   bool _showMap = false;
   bool _isSaving = false;
   bool _showSearchResults = false;
+  bool _didSaveAddress = false;
+  bool _leavePromptOpen = false;
+  bool _geocodeReady = false;
+  bool _askForPhone = false;
+  bool _checkingPhone = false;
+  String? _phoneError;
 
   static const _pinLift = 36.0;
 
   @override
   void initState() {
     super.initState();
+    final storedPhone = AuthService().currentUser?.phone?.trim() ?? '';
+    _askForPhone = !GuestAuthGuard.isGuest &&
+        (storedPhone.isEmpty || storedPhone.startsWith('g_'));
     if (GuestAuthGuard.isGuest) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
@@ -67,6 +81,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _geocode = MapPinGeocodeController(
       addressController: TextEditingController(),
     );
+    _geocodeReady = true;
     _searchFocus.addListener(() {
       if (!_searchFocus.hasFocus && _searchController.text.trim().isEmpty) {
         setState(() => _showSearchResults = false);
@@ -82,9 +97,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
-    _geocode.addressController.dispose();
-    _geocode.dispose();
+    if (_geocodeReady) {
+      _geocode.addressController.dispose();
+      _geocode.dispose();
+    }
     _searchFocus.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -225,15 +243,63 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
-  Future<void> _confirm() async {
-    if (_geocode.isMapMoving || _isSaving || _selectedPosition == null) return;
+  bool get _interceptBack => widget.forcedSetup && !GuestAuthGuard.isGuest;
+
+  void _onBack() {
+    if (_isSaving) return;
+    if (!_interceptBack) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _promptSaveOrDiscard();
+  }
+
+  Future<void> _promptSaveOrDiscard() async {
+    if (_leavePromptOpen || _isSaving || !mounted) return;
+    _leavePromptOpen = true;
+    try {
+      final action = await AppDialog.show<bool>(
+        context: context,
+        title: context.tr('location.leave_title'),
+        content: context.tr('location.leave_body'),
+        buttonText: context.tr('common.save'),
+        secondaryButtonText: context.tr('location.discard'),
+      );
+      if (!mounted) return;
+      if (action == false) {
+        Navigator.of(context).pop();
+        return;
+      }
+      if (action == true) {
+        final draft = await _currentDraft(notifyIfNotReady: true);
+        if (draft == null || !mounted) return;
+        await _persistNewLocation(draft);
+      }
+    } finally {
+      _leavePromptOpen = false;
+    }
+  }
+
+  /// Builds the pin address. Returns null when the map or street address is not ready.
+  Future<UserLocationModel?> _currentDraft({bool notifyIfNotReady = false}) async {
+    if (_isSaving) return null;
+    if (_geocode.isMapMoving || _selectedPosition == null) {
+      if (notifyIfNotReady && mounted) {
+        AppDialog.showToast(
+          context,
+          context.tr('location.address_not_ready'),
+          isError: true,
+        );
+      }
+      return null;
+    }
 
     final address = _geocode.addressController.text.trim();
     if (address.isEmpty) {
       _geocode.setAddressRequiredError(
         context.tr('location.street_address_required'),
       );
-      return;
+      return null;
     }
 
     final pos = _selectedPosition!;
@@ -242,10 +308,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       longitude: pos.longitude,
       address: address,
     );
+    if (!mounted) return null;
 
-    if (!mounted) return;
-
-    final draft = UserLocationModel(
+    return UserLocationModel(
       id: 0,
       latitude: pos.latitude,
       longitude: pos.longitude,
@@ -254,43 +319,104 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       locationType: 'OTHER',
       isPrimary: true,
     );
+  }
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (ctx) => LocationDetailsSheet(
-        location: draft,
-        isEdit: false,
-        allowDismiss: !widget.forcedSetup,
-        onSave: _persistNewLocation,
-      ),
-    );
+  bool _phoneDigitsAreValid(String digits) =>
+      RegExp(r'^[689]\d{8}$').hasMatch(digits);
+
+  Future<bool> _deliveryPhoneReady({bool checkTaken = false}) async {
+    if (!_askForPhone) return true;
+    final digits = _phoneController.text.trim();
+    if (!_phoneDigitsAreValid(digits)) {
+      if (mounted) {
+        setState(() {
+          _phoneError = digits.isEmpty
+              ? context.tr('location.delivery_phone_required')
+              : context.tr('auth.invalid_thai_phone');
+        });
+      }
+      return false;
+    }
+    if (checkTaken) {
+      final taken = await AuthRepository.instance.checkPhoneExists('+66$digits');
+      if (!mounted) return false;
+      if (taken) {
+        setState(() => _phoneError = context.tr('location.delivery_phone_taken'));
+        return false;
+      }
+    }
+    if (mounted && _phoneError != null) setState(() => _phoneError = null);
+    return true;
+  }
+
+  Future<bool> _saveDeliveryPhone() async {
+    if (!_askForPhone) return true;
+    if (!await _deliveryPhoneReady(checkTaken: true)) return false;
+    try {
+      await AuthRepository.instance.updateProfile(
+        phone: '+66${_phoneController.text.trim()}',
+      );
+      if (mounted) {
+        setState(() {
+          _askForPhone = false;
+          _phoneError = null;
+        });
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _phoneError = userFacingError(
+            e,
+            fallback: context.tr('firebase.unknown_error'),
+          );
+        });
+      }
+      return false;
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (_isSaving || _checkingPhone) return;
+    setState(() => _checkingPhone = true);
+    try {
+      if (!await _deliveryPhoneReady(checkTaken: true)) return;
+      final draft = await _currentDraft();
+      if (draft == null || !mounted) return;
+      if (mounted) setState(() => _checkingPhone = false);
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => LocationDetailsSheet(
+          location: draft,
+          isEdit: false,
+          onSave: _persistNewLocation,
+        ),
+      );
+    } finally {
+      if (mounted && _checkingPhone) setState(() => _checkingPhone = false);
+    }
   }
 
   Future<void> _persistNewLocation(UserLocationModel model) async {
     if (_isSaving) return;
+    if (!await _saveDeliveryPhone()) return;
+    if (!mounted) return;
     setState(() => _isSaving = true);
 
     try {
       final saved = await UserLocationRepository.instance.addLocation(model);
-      UserLocationRepository.instance.setActiveLocation(saved);
       if (widget.forcedSetup) {
         await DeliveryAddressPrefs.setCompletedSetup(true);
       }
-      if (mounted) {
-        Navigator.pop(context, saved);
-        if (!widget.forcedSetup) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('location.saved_success')),
-              backgroundColor: AppColors.primary,
-            ),
-          );
-        }
-      }
+      UserLocationRepository.instance.setActiveLocation(saved);
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _didSaveAddress = true;
+      });
+      Navigator.of(context).pop(saved);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -306,8 +432,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted && !_didSaveAddress) {
+        setState(() => _isSaving = false);
+      }
     }
+  }
+
+  Widget _buildBackButton() {
+    return Material(
+      color: Colors.white,
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: const CircleBorder(),
+      child: IconButton(
+        onPressed: _onBack,
+        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+      ),
+    );
   }
 
   Widget _buildForcedSetupBanner() {
@@ -360,11 +501,24 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final forcedBannerInset = widget.forcedSetup ? 88.0 : 0.0;
 
     return PopScope(
-      canPop: !widget.forcedSetup,
+      canPop: !_interceptBack,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || !_interceptBack) return;
+        _promptSaveOrDiscard();
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
         body: _isLoadingInitial || _selectedPosition == null
-            ? const Center(child: CustomLoadingIndicator(size: 32))
+            ? Stack(
+                children: [
+                  const Center(child: CustomLoadingIndicator(size: 32)),
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 8,
+                    left: 8,
+                    child: _buildBackButton(),
+                  ),
+                ],
+              )
             : Stack(
                 children: [
                   Column(
@@ -396,11 +550,21 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           addressController: _geocode.addressController,
                           isGeocoding: _geocode.isGeocoding,
                           isMapMoving: _geocode.isMapMoving,
-                          isSaving: _isSaving,
+                          isSaving: _isSaving || _checkingPhone,
                           canConfirmBase: _selectedPosition != null,
                           addressError: _geocode.addressError,
                           onAddressChanged: _geocode.onAddressEdited,
                           onConfirm: _confirm,
+                          askForPhone: _askForPhone,
+                          phoneController: _phoneController,
+                          phoneError: _phoneError,
+                          onPhoneChanged: () {
+                            final digits = _phoneController.text.trim();
+                            if (_phoneError != null &&
+                                _phoneDigitsAreValid(digits)) {
+                              setState(() => _phoneError = null);
+                            }
+                          },
                         ),
                       ),
                     ],
@@ -436,21 +600,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       return Stack(
         clipBehavior: Clip.none,
         children: [
-          if (!widget.forcedSetup)
-            Positioned(
-              top: topInset + 8,
-              left: 8,
-              child: Material(
-                color: Colors.white,
-                elevation: 4,
-                shadowColor: Colors.black26,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                ),
-              ),
-            ),
+          Positioned(
+            top: topInset + 8,
+            left: 8,
+            child: _buildBackButton(),
+          ),
         ],
       );
     }
@@ -464,11 +618,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           right: 16,
           child: Row(
             children: [
-              if (!widget.forcedSetup)
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                ),
+              IconButton(
+                onPressed: _onBack,
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+              ),
               Expanded(
                 child: Material(
                   elevation: 4,
@@ -527,7 +680,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         if (_showSearchResults && _searchController.text.trim().isNotEmpty)
           Positioned(
             top: topInset + 64,
-            left: widget.forcedSetup ? 16 : 56,
+            left: 56,
             right: 16,
             child: Material(
               elevation: 8,

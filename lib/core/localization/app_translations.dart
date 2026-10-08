@@ -166,6 +166,16 @@ class AppTranslations {
     'social.report_submitted': 'Report submitted successfully.',
     'social.report_failed': 'Could not send the report. Try again.',
     'social.report_own': 'You can\'t report your own post.',
+    'social.delete_post': 'Delete post',
+    'social.delete_post_confirm': 'Delete this post? It will disappear from the feed.',
+    'social.post_deleted': 'Post deleted.',
+    'social.delete_failed': 'Could not delete this post.',
+    'social.my_posts': 'My posts',
+    'social.new_post': 'New post',
+    'social.my_posts_empty': 'No posts yet',
+    'social.my_posts_empty_sub': 'Share a photo or video.',
+    'social.my_posts_load_failed': 'Could not load your posts.',
+    'social.hidden': 'Hidden',
     'social.post_unavailable': 'This post is unavailable.',
     'social.report': 'Report',
     'profile.edit_profile': 'Edit Profile',
@@ -536,6 +546,12 @@ class AppTranslations {
         'Before your first delivery, save where we should bring your order. This address will be selected for future orders.',
     'location.forced_setup_required':
         'Please save a delivery address to place your order.',
+    'location.leave_title': 'Save this address?',
+    'location.leave_body':
+        'Save this delivery address, or discard it and go back.',
+    'location.discard': 'Discard',
+    'location.address_not_ready':
+        'The map is still loading. Wait a moment, then save.',
     'menu.default_cuisine_tag': 'Myanmar Culture',
     'menu.add_on': 'Add On',
     'menu.max_addon_reached':
@@ -880,6 +896,11 @@ class AppTranslations {
     'location.street_address': 'Street address',
     'location.street_address_hint': 'House no., street, area…',
     'location.street_address_required': 'Please enter your delivery address',
+    'location.delivery_phone': 'Phone for delivery',
+    'location.delivery_phone_hint': '9-digit mobile number',
+    'location.delivery_phone_required':
+        'Enter a phone number so the rider can reach you',
+    'location.delivery_phone_taken': 'This phone number is already used',
     'location.pin_to_add_address':
         'GPS found — open the map pin to add your street address',
     'location.pick_on_map': 'Pick on map',
@@ -1222,6 +1243,7 @@ class AppTranslations {
     'payment.or_take_photo': 'or take a photo of your receipt',
     'auth.phone_not_registered':
         'Phone number is not registered. Please register first.',
+    'auth.google_account_not_found': 'This Google account is not found',
     'auth.invalid_thai_phone': 'Oops! Invalid Thai phone number',
     'auth.verification_failed': 'Verification failed',
     'auth.enter_otp': 'Please enter the OTP.',
@@ -1418,6 +1440,16 @@ class AppTranslations {
     'social.see_less': 'လျှော့ပြ',
     'social.report_failed': 'တိုင်ကြားချက် မပို့နိုင်ပါ။ ပြန်ကြိုးစားပါ။',
     'social.report_own': 'ကိုယ့်ပို့စ်ကို တိုင်ကြား၍မရပါ။',
+    'social.delete_post': 'ပို့စ်ဖျက်မည်',
+    'social.delete_post_confirm': 'ဤပို့စ်ကို ဖျက်မလား? ဖိဒ်ထဲမှ ပျောက်သွားပါမည်။',
+    'social.post_deleted': 'ပို့စ် ဖျက်ပြီးပါပြီ။',
+    'social.delete_failed': 'ပို့စ် ဖျက်၍ မရပါ။',
+    'social.my_posts': 'ကျွန်ုပ်၏ ပို့စ်များ',
+    'social.new_post': 'ပို့စ်အသစ်',
+    'social.my_posts_empty': 'ပို့စ် မရှိသေးပါ',
+    'social.my_posts_empty_sub': 'ဓာတ်ပုံ သို့မဟုတ် ဗီဒီယို မျှဝေပါ။',
+    'social.my_posts_load_failed': 'ပို့စ်များ ဖွင့်၍မရပါ။',
+    'social.hidden': 'ဖျောက်ထားသည်',
     'social.post_unavailable': 'ဒီပို့စ်ကို ဖွင့်မရပါ။',
 
     // Profile page
@@ -1782,6 +1814,12 @@ class AppTranslations {
         'ပထမဆုံး ပို့ဆောင်မှု မတိုင်မီ သင့်အော်ဒါရောက်စေမည့် လိပ်စာကို သိမ်းထားပါ။ နောက်ထပ် အော်ဒါများအတွက် ဤလိပ်စာကို အသုံးပြုပါမည်။',
     'location.forced_setup_required':
         'အော်ဒါတင်ရန် ပို့ဆောင်ရမည့် လိပ်စာ သိမ်းထားရန် လိုအပ်ပါသည်။',
+    'location.leave_title': 'ဤလိပ်စာကို သိမ်းမလား?',
+    'location.leave_body':
+        'ပို့ဆောင်ရမည့် လိပ်စာကို သိမ်းပါ၊ သို့မဟုတ် မသိမ်းဘဲ ပြန်သွားပါ။',
+    'location.discard': 'မသိမ်းပါ',
+    'location.address_not_ready':
+        'မြေပုံ ပြင်ဆင်နေဆဲဖြစ်သည်။ ခဏစောင့်ပြီးမှ သိမ်းပါ။',
     'menu.default_cuisine_tag': 'မြန်မာယဉ်ကျေးမှု',
     'menu.add_on': 'ထပ်တိုးရွေးချယ်မှု',
     'menu.max_addon_reached':
@@ -2125,6 +2163,11 @@ class AppTranslations {
     'location.street_address': 'လိပ်စာ',
     'location.street_address_hint': 'အိမ်အမှတ်၊ လမ်း၊ ရပ်ကွက်…',
     'location.street_address_required': 'ပို့ဆောင်ရမည့် လိပ်စာ ထည့်ပါ',
+    'location.delivery_phone': 'ပို့ဆောင်ရန် ဖုန်းနံပါတ်',
+    'location.delivery_phone_hint': 'ဖုန်းနံပါတ် ၉ လုံး',
+    'location.delivery_phone_required':
+        'ရိုက်ဒါ ဆက်သွယ်နိုင်ရန် ဖုန်းနံပါတ် ထည့်ပါ',
+    'location.delivery_phone_taken': 'ဤဖုန်းနံပါတ်ကို အသုံးပြုပြီးဖြစ်သည်',
     'location.pin_to_add_address':
         'တည်နေရာ တွေ့ပြီး — လိပ်စာထည့်ရန် မြေပုံမှာ ပင်မှတ်ချက်ထားပါ',
     'location.pick_on_map': 'မြေပုံတွင် ရွေးချယ်ပါ',
@@ -2467,6 +2510,7 @@ class AppTranslations {
     'payment.or_take_photo': 'သို့မဟုတ် ဘောင်ချာဓာတ်ပုံ ရိုက်ပါ',
     'auth.phone_not_registered':
         'ဖုန်းနံပါတ် မှတ်ပုံတင်ထားခြင်း မရှိပါ။ ဦးစွာ မှတ်ပုံတင်ပါ။',
+    'auth.google_account_not_found': 'ဤ Google အကောင့်ကို ရှာမတွေ့ပါ',
     'auth.invalid_thai_phone': 'ထိုင်းဖုန်းနံပါတ် မမှန်ပါဘူး',
     'auth.verification_failed': 'အတည်ပြုတာ အဆင်မပြေဘူးနော်',
     'auth.enter_otp': 'OTP မထည့်ပဲ ဘယ်လိုဆက်လုပ်ရမလဲကိုယ့်လူ!',
@@ -2666,6 +2710,16 @@ class AppTranslations {
     'social.see_less': 'ย่อ',
     'social.report_failed': 'ส่งรายงานไม่สำเร็จ ลองอีกครั้ง',
     'social.report_own': 'ไม่สามารถรายงานโพสต์ของตัวเองได้',
+    'social.delete_post': 'ลบโพสต์',
+    'social.delete_post_confirm': 'ลบโพสต์นี้หรือไม่? โพสต์จะหายจากฟีด',
+    'social.post_deleted': 'ลบโพสต์แล้ว',
+    'social.delete_failed': 'ลบโพสต์ไม่สำเร็จ',
+    'social.my_posts': 'โพสต์ของฉัน',
+    'social.new_post': 'โพสต์ใหม่',
+    'social.my_posts_empty': 'ยังไม่มีโพสต์',
+    'social.my_posts_empty_sub': 'แชร์รูปหรือวิดีโอ',
+    'social.my_posts_load_failed': 'โหลดโพสต์ไม่สำเร็จ',
+    'social.hidden': 'ซ่อนอยู่',
     'social.post_unavailable': 'โพสต์นี้ไม่พร้อมใช้งาน',
 
     // Profile page
@@ -3033,6 +3087,11 @@ class AppTranslations {
     'location.forced_setup_subtitle':
         'ก่อนจัดส่งครั้งแรก กรุณาบันทึกที่อยู่ที่ต้องการให้ส่งอาหาร ที่อยู่นี้จะถูกเลือกใช้สำหรับออเดอร์ถัดไป',
     'location.forced_setup_required': 'กรุณาบันทึกที่อยู่จัดส่งก่อนสั่งอาหาร',
+    'location.leave_title': 'บันทึกที่อยู่นี้หรือไม่?',
+    'location.leave_body': 'บันทึกที่อยู่จัดส่งนี้ หรือไม่บันทึกแล้วกลับ',
+    'location.discard': 'ไม่บันทึก',
+    'location.address_not_ready':
+        'แผนที่ยังโหลดไม่เสร็จ รอสักครู่แล้วค่อยบันทึก',
     'menu.default_cuisine_tag': 'วัฒนธรรมพม่า',
     'menu.add_on': 'เพิ่มเติม',
     'menu.max_addon_reached': 'เลือกได้สูงสุด {max} รายการจาก "{group}"',
@@ -3368,6 +3427,11 @@ class AppTranslations {
     'location.street_address': 'ที่อยู่',
     'location.street_address_hint': 'บ้านเลขที่ ถนน แขวง/ตำบล…',
     'location.street_address_required': 'กรุณากรอกที่อยู่จัดส่ง',
+    'location.delivery_phone': 'เบอร์โทรสำหรับจัดส่ง',
+    'location.delivery_phone_hint': 'เบอร์มือถือ 9 หลัก',
+    'location.delivery_phone_required':
+        'กรอกเบอร์โทรเพื่อให้ไรเดอร์ติดต่อได้',
+    'location.delivery_phone_taken': 'เบอร์นี้ถูกใช้แล้ว',
     'location.pin_to_add_address':
         'พบตำแหน่ง GPS แล้ว — เปิดแผนที่เพื่อปักหมุดและกรอกที่อยู่',
     'location.pick_on_map': 'เลือกบนแผนที่',
@@ -3702,6 +3766,7 @@ class AppTranslations {
     'payment.or_take_photo': 'หรือถ่ายรูปใบเสร็จของคุณ',
     'auth.phone_not_registered':
         'เบอร์โทรศัพท์นี้ยังไม่ได้ลงทะเบียน กรุณาลงทะเบียนก่อน',
+    'auth.google_account_not_found': 'ไม่พบบัญชี Google นี้',
     'auth.invalid_thai_phone': 'เบอร์โทรศัพท์ไทยไม่ถูกต้อง',
     'auth.verification_failed': 'การยืนยันล้มเหลว',
     'auth.enter_otp': 'กรุณากรอก OTP',

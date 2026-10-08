@@ -16,12 +16,14 @@ class RegisterRequest {
   final String pin;
   final String? name;
   final String? email;
+  final String? googleAccessToken;
 
   RegisterRequest({
     required this.idToken,
     required this.pin,
     this.name,
     this.email,
+    this.googleAccessToken,
   });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +31,8 @@ class RegisterRequest {
         'pin': pin,
         if (name != null && name!.isNotEmpty) 'name': name,
         if (email != null && email!.isNotEmpty) 'email': email,
+        if (googleAccessToken != null && googleAccessToken!.isNotEmpty)
+          'googleAccessToken': googleAccessToken,
       };
 }
 

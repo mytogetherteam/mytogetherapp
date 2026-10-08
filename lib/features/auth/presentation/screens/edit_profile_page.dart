@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/media/image_crop_helper.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -27,6 +28,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _usernameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
+  String? _accountPhone;
 
   bool _isSaving = false;
 
@@ -40,7 +42,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = AuthService().currentUser;
     _nameController = TextEditingController(text: user?.fullName ?? '');
     _usernameController = TextEditingController(text: user?.username ?? '');
-    _phoneController = TextEditingController(text: user?.phone ?? '');
+    _accountPhone = user?.phone;
+    final storedPhone = _accountPhone ?? '';
+    _phoneController = TextEditingController(
+      text: storedPhone.startsWith('g_') ? '' : storedPhone,
+    );
     _emailController = TextEditingController(text: user?.email ?? '');
     _currentAvatarUrl = user?.avatarUrl;
   }
@@ -89,6 +95,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
+  /// Google accounts without a profile phone are stored as g_{id}. Keep that
+  /// value on save, and don't show it in the phone field.
+  String _phoneForSave() {
+    final typed = _phoneController.text.trim();
+    final stored = _accountPhone ?? '';
+    if (typed.isEmpty && stored.startsWith('g_')) return stored;
+    return typed;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
@@ -100,7 +115,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       await AuthRepository.instance.updateProfile(
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: _phoneForSave(),
         email: _emailController.text.trim(),
         profilePhoto: _pickedImage,
       );
@@ -110,7 +125,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        AppDialog.showToast(context, e.toString(), isError: true);
+        AppDialog.showToast(
+          context,
+          userFacingError(e, fallback: context.tr('firebase.unknown_error')),
+          isError: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -167,6 +186,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: PhosphorIcons.phone,
                     keyboardType: TextInputType.phone,
                     readOnly: true,
+                    hint: context.tr('order_status.no_phone_number'),
                   ),
                   _buildField(
                     controller: _emailController,
@@ -278,6 +298,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     TextInputType? keyboardType,
     int maxLines = 1,
     bool readOnly = false,
+    String? hint,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -311,7 +332,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               isDense: true,
               filled: true,
               fillColor: Colors.white,
-              hintText: context.trArgs('common.enter_label', {'label': label}),
+              hintText: hint ??
+                  context.trArgs('common.enter_label', {'label': label}),
               hintStyle: GoogleFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey[400],

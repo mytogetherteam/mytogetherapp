@@ -31,6 +31,7 @@ import 'package:mytogetherapp/features/home/data/repositories/restaurant_reposit
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../cart/data/active_order_state.dart';
 import '../../../order/presentation/screens/order_history_page.dart';
+import 'package:mytogetherapp/features/social/presentation/screens/my_posts_page.dart';
 import 'auth_entry_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -323,21 +324,28 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
               if (!isGuest)
-                AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _headerOpacity > 0.8 ? 1.0 : 0.0,
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: user?.avatarUrl != null
-                      ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
-                      : null,
-                  child: user?.avatarUrl == null
-                      ? Icon(PhosphorIcons.userBold,
-                          size: 18, color: Colors.grey[400])
-                      : null,
+                IgnorePointer(
+                  ignoring: _headerOpacity <= 0.8,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: _headerOpacity > 0.8 ? 1.0 : 0.0,
+                    child: GestureDetector(
+                      onTap: () => MyPostsPage.open(context),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.grey[200],
+                        backgroundImage: user?.avatarUrl != null
+                            ? CachedNetworkImageProvider(
+                                _getImageUrl(user!.avatarUrl))
+                            : null,
+                        child: user?.avatarUrl == null
+                            ? Icon(PhosphorIcons.userBold,
+                                size: 18, color: Colors.grey[400])
+                            : null,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -421,32 +429,18 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             Positioned(
               bottom: -50,
-              child: GestureDetector(
-                onTap: () async {
+              child: _ProfilePostsAvatar(
+                imageUrl: user?.avatarUrl == null
+                    ? null
+                    : _getImageUrl(user!.avatarUrl),
+                onOpenPosts: () => MyPostsPage.open(context),
+                onEditProfile: () async {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const EditProfilePage()),
                   );
                   if (mounted) setState(() {});
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey[200],
-                    backgroundImage: user?.avatarUrl != null
-                        ? CachedNetworkImageProvider(_getImageUrl(user!.avatarUrl))
-                        : null,
-                    child: user?.avatarUrl == null
-                        ? Icon(PhosphorIcons.userBold,
-                            size: 40, color: Colors.grey[400])
-                        : null,
-                  ),
-                ),
               ),
             ),
           ],
@@ -467,7 +461,21 @@ class _ProfilePageState extends State<ProfilePage> {
             color: Colors.grey[600],
           ),
         ),
-        const SizedBox(height: 30),
+        TextButton(
+          onPressed: () => MyPostsPage.open(context),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            context.tr('social.my_posts'),
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
         _buildOptionTile(
           icon: PhosphorIcons.gearSix,
           title: context.tr('profile.account_settings'),
@@ -831,6 +839,77 @@ class _ReferralGlowBarState extends State<_ReferralGlowBar>
           },
         );
       },
+    );
+  }
+}
+
+class _ProfilePostsAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final VoidCallback onOpenPosts;
+  final VoidCallback onEditProfile;
+
+  const _ProfilePostsAvatar({
+    required this.imageUrl,
+    required this.onOpenPosts,
+    required this.onEditProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = imageUrl != null && imageUrl!.isNotEmpty;
+    return SizedBox(
+      width: 108,
+      height: 108,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: onOpenPosts,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: hasPhoto
+                    ? CachedNetworkImageProvider(imageUrl!)
+                    : null,
+                child: hasPhoto
+                    ? null
+                    : Icon(
+                        PhosphorIcons.userBold,
+                        size: 40,
+                        color: Colors.grey[400],
+                      ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: GestureDetector(
+              onTap: onEditProfile,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Icon(
+                  PhosphorIcons.pencilSimple,
+                  size: 16,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

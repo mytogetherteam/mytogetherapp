@@ -257,7 +257,7 @@ class _RegisterPageState extends State<RegisterPage>
 
     setState(() => _isGoogleLoading = true);
     try {
-      final google = await GoogleAuthHelper.signIn();
+      final google = await GoogleAuthHelper.signIn(requestPhone: true);
       if (google == null) return;
       if (!mounted) return;
 
@@ -273,6 +273,7 @@ class _RegisterPageState extends State<RegisterPage>
               idToken: google.idToken,
               name: result.name ?? google.name ?? _fullNameController.text.trim(),
               email: result.email ?? google.email ?? _emailController.text.trim(),
+              googleAccessToken: google.accessToken,
             ),
           ),
         );

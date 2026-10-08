@@ -33,6 +33,7 @@ import '../../data/coupon_service.dart';
 import '../widgets/coupon_ticket_sheet.dart';
 import '../../../coupons/presentation/widgets/coupon_display.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/user_model.dart';
 import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
@@ -915,12 +916,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       );
     } catch (e) {
       if (mounted) {
-        String errorMsg = e.toString();
-        if (e is DioException) {
-          errorMsg = e.response?.data?.toString() ??
-              e.message ??
-              LocaleController.instance.tr('cart.unknown_error');
-        }
+        final errorMsg = userFacingError(
+          e,
+          fallback: LocaleController.instance.tr('cart.unknown_error'),
+        );
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
