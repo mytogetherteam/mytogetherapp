@@ -101,7 +101,6 @@ class ApiClient {
         : logStr;
 
     if (truncated.length <= chunkSize) {
-      debugPrint('API_RESPONSE: $truncated');
       return;
     }
 
@@ -113,7 +112,6 @@ class ApiClient {
         start,
         start + chunkSize,
       );
-      debugPrint('API_RESPONSE: [Part $part] ${truncated.substring(start, end)}');
       start = end;
       part++;
     }

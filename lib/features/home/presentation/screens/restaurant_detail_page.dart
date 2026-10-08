@@ -42,10 +42,7 @@ import '../../../cart/data/active_order_state.dart';
 import '../../../cart/presentation/widgets/active_order_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/presentation/widgets/full_screen_image_viewer.dart';
-import '../widgets/shop_myday_viewer.dart';
 import '../widgets/shop_myday_list_section.dart';
-import '../../../call/data/call_session.dart';
-import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 
 class RestaurantDetailPage extends StatefulWidget {
   final String id;
@@ -243,9 +240,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         _wsReady = true;
         return;
       }
-      debugPrint(
-        ' [RestaurantDetailPage] WebSocket reconnected — refreshing menu...',
-      );
       _scheduleRefresh(silent: true);
     };
     WebSocketService().connectionStatus.addListener(_wsReconnectListener);
@@ -254,9 +248,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     _menuUpdateSubscription = WebSocketService().menuUpdates.listen((event) {
       final updatedShopId = event['shopId']?.toString();
       if (updatedShopId == widget.id && mounted) {
-        debugPrint(
-          ' [RestaurantDetailPage] Real-time menu update detected. Refreshing menu...',
-        );
         _scheduleRefresh(silent: true);
       }
     });
@@ -267,9 +258,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     ) {
       final updatedShopId = event['shopId']?.toString();
       if (updatedShopId == widget.id && mounted) {
-        debugPrint(
-          ' [RestaurantDetailPage] Real-time shop-profile update detected. Refreshing header...',
-        );
         setState(() {
           if (_currentRestaurant != null) {
             var updated = _currentRestaurant!;
@@ -362,7 +350,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   Future<void> _handleRefresh({bool silent = false}) async {
     final shopId = int.tryParse(widget.id);
     if (shopId != null) {
-      debugPrint(' [RestaurantDetailPage] Manual refresh triggered. silent: $silent');
 
       if (!silent) {
         setState(() {
@@ -426,7 +413,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         setState(() => _categories = cats);
       }
     } catch (e) {
-      debugPrint(' [RestaurantDetailPage] Error fetching categories: $e');
     }
   }
 
@@ -671,7 +657,6 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         }
       }
     } catch (e) {
-      debugPrint(' [RestaurantDetailPage] Error fetching menu: $e');
       if (mounted) {
         setState(() {
           if (!silent) _isMenuLoading = false;
@@ -1355,8 +1340,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               ),
                                             ),
                                             Text(
-                                              context.tr('common.free') +
-                                                  ' delivery',
+                                              '${context.tr('common.free')} delivery',
                                               style: GoogleFonts.poppins(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -1771,6 +1755,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   /// Toggles the shop (restaurant) wishlist via `POST/DELETE /api/user/wishlist`.
   Future<void> _toggleShopFavorite() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
 
     final shopId = int.tryParse(_currentRestaurant?.id ?? '');
     if (shopId == null) return;

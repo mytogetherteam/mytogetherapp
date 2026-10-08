@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:intl/intl.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'dart:math';
 
 import '../../data/models/currency_rate_model.dart';

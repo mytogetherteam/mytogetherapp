@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,11 +9,9 @@ class AppTheme {
   ///     back-swipe gesture/animation (requires
   ///     `android:enableOnBackInvokedCallback="true"` in the manifest).
   /// Other platforms keep Flutter's default zoom transition.
-  static const PageTransitionsTheme _pageTransitionsTheme =
-      PageTransitionsTheme(
+  static final PageTransitionsTheme _pageTransitionsTheme =
+      const PageTransitionsTheme(
     builders: <TargetPlatform, PageTransitionsBuilder>{
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
     },
   );

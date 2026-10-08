@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
@@ -14,7 +13,6 @@ import '../../../home/data/restaurant_order_availability.dart';
 import '../../../home/presentation/widgets/order_unavailability_ui.dart';
 import '../../../home/presentation/screens/restaurant_detail_page.dart';
 import '../../../home/presentation/screens/menu_detail_page.dart';
-import '../../../home/presentation/widgets/image_skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/order_tax.dart';
@@ -46,7 +44,6 @@ import '../../../home/presentation/widgets/location_selection_modal.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
-import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/location/geo_distance.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../home/data/shop_storage.dart';
@@ -719,6 +716,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       // [_orderPlacementInFlight], which must not run before ensureCanPlaceNewOrder().
       ActiveOrderState.instance.beginOrderPlacement();
 
+      if (!context.mounted) return;
       final nav = Navigator.of(context);
       final foodTotal =
           CartManager.instance.getStoreTotal(widget.store.nameKey);
@@ -872,7 +870,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         displayTaxAmount: backendDisplayTax,
         taxEnable: orderTaxEnable,
         paymentMethod:
-            _selectedPaymentType?.displayName ?? context.tr('cart.payment'),
+            _selectedPaymentType?.displayName ?? (context.mounted ? context.tr('cart.payment') : 'Payment'),
         paymentMethodId: selectedMethodId,
         paymentMethodImageUrl: selectedMethodImage,
         items: List.from(storeItems),
@@ -2819,7 +2817,6 @@ class _FarDeliveryModal extends StatelessWidget {
   final String limitStr;
 
   const _FarDeliveryModal({
-    super.key,
     required this.distanceStr,
     required this.limitStr,
   });

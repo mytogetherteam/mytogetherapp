@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,17 +23,17 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
   bool _isFetchingMore = false;
   int _likeCount = 0;
   int _skipCount = 0;
-  int _totalSeen = 0;
+
   int _page = 0;
   final int _pageSize = 20;
 
   bool _showActionOverlay = false;
   bool _isLikeAction = true;
   AnimationController? _actionController;
-
-  List<ShopFeedItemDto> _todayLikedItems = [];
-  bool _isFetchingLikedItems = false;
+  
   bool _hasFetchedLikedItems = false;
+  List<dynamic> _todayLikedItems = [];
+  int _totalSeen = 0;
 
   @override
   void initState() {
@@ -56,8 +55,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _isLoading = true;
       _page = 0;
-      _hasFetchedLikedItems = false;
-      _todayLikedItems = [];
     });
     await _fetchPage(_page);
     setState(() {
@@ -119,7 +116,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _items.removeAt(0);
       _likeCount++;
-      _totalSeen++;
     });
     _checkAndFetchMore();
   }
@@ -133,7 +129,6 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     setState(() {
       _items.removeAt(0);
       _skipCount++;
-      _totalSeen++;
     });
     _checkAndFetchMore();
   }
@@ -328,19 +323,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
     );
   }
 
-  Future<void> _fetchTodayLikedItems() async {
-    setState(() {
-      _isFetchingLikedItems = true;
-    });
-    final items = await SwipeRankingRepository.instance.getTodayLikedItems();
-    if (mounted) {
-      setState(() {
-        _todayLikedItems = items;
-        _isFetchingLikedItems = false;
-        _hasFetchedLikedItems = true;
-      });
-    }
-  }
+
 
   Widget _buildEmptyState() {
     return Center(

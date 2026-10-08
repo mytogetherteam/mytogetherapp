@@ -1100,12 +1100,15 @@ class ActiveOrderState extends ChangeNotifier {
       final fee = _parseSafeDouble(data['deliveryFee']);
       if (fee != null) item.deliveryFee = fee;
     }
-    if (data['itemPrice'] != null)
+    if (data['itemPrice'] != null) {
       item.itemPrice = _parseSafeDouble(data['itemPrice']);
-    if (data['taxAmount'] != null)
+    }
+    if (data['taxAmount'] != null) {
       item.taxAmount = _parseSafeDouble(data['taxAmount']);
-    if (data['totalAmount'] != null)
+    }
+    if (data['totalAmount'] != null) {
       item.totalAmount = _parseSafeDouble(data['totalAmount']);
+    }
     if (data['discountAmount'] != null) {
       item.discountAmount = _parseSafeDouble(data['discountAmount']);
     }
@@ -1228,8 +1231,9 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
-    if (logoUrl != null && logoUrl.isNotEmpty)
+    if (logoUrl != null && logoUrl.isNotEmpty) {
       item.logoPath = _getFullUrl(logoUrl);
+    }
 
     final parsedShopNameEn = _parseSafeString(
       data['shopNameEn'] ??
@@ -1260,12 +1264,15 @@ class ActiveOrderState extends ChangeNotifier {
       item.lastOrderNo = _parseSafeString(data['lastOrderNo']);
     }
 
-    if (data['statusLabel'] != null)
+    if (data['statusLabel'] != null) {
       item.statusLabel = _parseSafeString(data['statusLabel']);
-    if (data['statusLabelMm'] != null)
+    }
+    if (data['statusLabelMm'] != null) {
       item.statusLabelMm = _parseSafeString(data['statusLabelMm']);
-    if (data['statusLabelTh'] != null)
+    }
+    if (data['statusLabelTh'] != null) {
       item.statusLabelTh = _parseSafeString(data['statusLabelTh']);
+    }
 
     if (data['paymentMethod'] != null) {
       if (data['paymentMethod'] is String) {
@@ -1277,10 +1284,12 @@ class ActiveOrderState extends ChangeNotifier {
       }
     }
 
-    if (data['displayFoodPrice'] != null)
+    if (data['displayFoodPrice'] != null) {
       item.displayFoodPrice = _parseSafeString(data['displayFoodPrice']);
-    if (data['displayTaxAmount'] != null)
+    }
+    if (data['displayTaxAmount'] != null) {
       item.displayTaxAmount = _parseSafeString(data['displayTaxAmount']);
+    }
     if (data['displayDeliveryFee'] != null) {
       final display = _parseSafeString(data['displayDeliveryFee']);
       final fee = item.deliveryFee ?? _parseSafeDouble(data['deliveryFee']);
@@ -1297,8 +1306,9 @@ class ActiveOrderState extends ChangeNotifier {
         (item.displayDeliveryFee ?? '').toLowerCase() == 'free') {
       item.isFreeDelivery = true;
     }
-    if (data['displayTotalAmount'] != null)
+    if (data['displayTotalAmount'] != null) {
       item.displayTotalAmount = _parseSafeString(data['displayTotalAmount']);
+    }
     if (item.displayFoodPrice == null && item.itemPrice != null) {
       item.displayFoodPrice = '฿${item.itemPrice}';
     }
@@ -1309,10 +1319,12 @@ class ActiveOrderState extends ChangeNotifier {
     if (parsedDeliveryAddress != null) {
       item.deliveryAddress = parsedDeliveryAddress;
     }
-    if (data['restaurantAddress'] != null)
+    if (data['restaurantAddress'] != null) {
       item.restaurantAddress = _parseSafeString(data['restaurantAddress']);
-    if (data['userLocationName'] != null)
+    }
+    if (data['userLocationName'] != null) {
       item.userLocationName = _parseSafeString(data['userLocationName']);
+    }
 
     if (data['restaurantLatitude'] != null &&
         data['restaurantLongitude'] != null) {

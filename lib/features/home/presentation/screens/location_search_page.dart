@@ -501,7 +501,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 onChanged: _onSearchChanged,
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
-                  hintText: context.tr('location.search_hint') ?? 'Find an address, building, or place',
+                  hintText: context.tr('location.search_hint'),
                   hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
                   border: InputBorder.none,
                   prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey, size: 20),
@@ -633,7 +633,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                context.tr('location.select_via_map') ?? 'Select location via map',
+                context.tr('location.select_via_map'),
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

@@ -47,7 +47,6 @@ class ChatService {
       }
       return null;
     } catch (e) {
-      debugPrint('[ChatService.getConversationByOrder] $e');
       return null;
     }
   }
@@ -68,7 +67,6 @@ class ChatService {
       }
       return null;
     } catch (e) {
-      debugPrint('[ChatService.getMessages] $e');
       return null;
     }
   }
@@ -92,7 +90,6 @@ class ChatService {
       }
       return null;
     } catch (e) {
-      debugPrint('[ChatService.sendTextMessage] $e');
       return null;
     }
   }
@@ -100,9 +97,6 @@ class ChatService {
   /// Uploads a still image as an `IMAGE` message. Videos are rejected.
   Future<ChatMessage?> sendImageMessage(int orderId, PickedImage image) async {
     if (image.isVideo || !image.mimeType.startsWith('image/')) {
-      debugPrint(
-        '[ChatService.sendImageMessage] rejected non-image ${image.mimeType}',
-      );
       return null;
     }
 
@@ -123,13 +117,8 @@ class ChatService {
       }
       return null;
     } on DioException catch (e) {
-      debugPrint(
-        '[ChatService.sendImageMessage] ${e.response?.statusCode} '
-        '${e.response?.data ?? e.message}',
-      );
       return null;
     } catch (e) {
-      debugPrint('[ChatService.sendImageMessage] $e');
       return null;
     }
   }
@@ -180,13 +169,8 @@ class ChatService {
       }
       return null;
     } on DioException catch (e) {
-      debugPrint(
-        '[ChatService.sendVoiceMessage] ${e.response?.statusCode} '
-        '${e.response?.data ?? e.message}',
-      );
       return null;
     } catch (e) {
-      debugPrint('[ChatService.sendVoiceMessage] $e');
       return null;
     }
   }
@@ -209,7 +193,6 @@ class ChatService {
       }
       return null;
     } catch (e) {
-      debugPrint('[ChatService.editMessage] $e');
       return null;
     }
   }
@@ -223,7 +206,6 @@ class ChatService {
       final body = _body(response);
       return body != null && body['success'] == true;
     } catch (e) {
-      debugPrint('[ChatService.markAsRead] $e');
       return false;
     }
   }
@@ -236,7 +218,6 @@ class ChatService {
       final body = _body(response);
       return body != null && body['success'] == true;
     } catch (e) {
-      debugPrint('[ChatService.deleteMessage] $e');
       return false;
     }
   }

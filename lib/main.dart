@@ -65,7 +65,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       }
     }
   } catch (e) {
-    debugPrint('Background live activity update failed: $e');
   }
 
   await NotificationService().initialize();
@@ -143,9 +142,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  debugPrint('[BOOT] --- APP BOOT START ---');
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[BOOT] WidgetsBinding initialized.');
 
   // Check for Jailbroken/Rooted devices and kill app if compromised
   await SecurityCheck.ensureDeviceIsSecure();
@@ -153,18 +150,13 @@ void main() async {
   bool hasSeenOnboarding = false;
 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  debugPrint('[BOOT] Splash preserved.');
 
   try {
-    debugPrint('[BOOT] Loading .env...');
     await dotenv.load(fileName: ".env");
-    debugPrint('[BOOT] .env loaded successfully.');
   } catch (e) {
-    debugPrint('[BOOT] Failed to load .env: $e');
   }
 
   try {
-    debugPrint('[BOOT] Initializing Firebase...');
     if (kIsWeb) {
       await Firebase.initializeApp(
         options: FirebaseOptions(
@@ -180,19 +172,12 @@ void main() async {
     } else {
       await Firebase.initializeApp();
     }
-    debugPrint('[BOOT] Firebase initialized successfully.');
   } catch (e) {
-    debugPrint('[BOOT] Firebase initialization failed: $e');
   }
 
   try {
-    debugPrint('[BOOT] Initializing LocaleController...');
     await LocaleController.instance.initialize();
-    debugPrint('[BOOT] LocaleController initialized. Language: ${LocaleController.instance.language.code}');
-
-    debugPrint('[BOOT] Initializing AuthService...');
     await AuthService().initialize();
-    debugPrint('[BOOT] AuthService initialized. LoggedIn: ${AuthService().isLoggedIn}');
 
     // ── Next-day startup refresh ──────────────────────────────────────────
     // If the stored access token is already expired at launch, refresh it NOW
@@ -200,69 +185,43 @@ void main() async {
     // refresh requests racing each other (which would invalidate a
     // single-use refresh token on the backend).
     if (AuthService().isLoggedIn && AuthService().isTokenNearlyExpired) {
-      debugPrint('[BOOT] Access token expired — refreshing before runApp()...');
       try {
         final newToken = await AuthService().performRefresh(
           ApiClient().dio,
         );
         if (newToken != null) {
-          debugPrint('[BOOT] Token refreshed successfully.');
         } else {
-          debugPrint('[BOOT] Refresh returned null — user will be asked to log in.');
           await AuthService().clearSession(navigate: false);
         }
       } catch (e) {
-        debugPrint('[BOOT] Startup refresh failed: $e — continuing without valid token.');
         // Keep session; interceptor will retry on the first real API call.
       }
     }
     // ─────────────────────────────────────────────────────────────────────
-
-    debugPrint('[BOOT] Initializing NotificationService (background)...');
     try {
       await NotificationService().initialize();
     } catch (e) {
-      debugPrint('[BOOT] NotificationService initialization failed: $e');
     }
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     }
-    debugPrint('[BOOT] NotificationService initialization triggered.');
-    
-    debugPrint('[BOOT] Initializing LockScreenWidgetManager...');
     try {
       await LockScreenWidgetManager.instance.initialize();
     } catch (e) {
-      debugPrint('[BOOT] LockScreenWidgetManager initialization failed: $e');
     }
-
-    debugPrint('[BOOT] LocationService pre-fetch removed for rationale modal.');
-
-    debugPrint('[BOOT] Loading active order state...');
     if (AuthService().isLoggedIn) {
       await ActiveOrderState.instance.loadFromPrefs();
       await ActiveOrderState.instance.hydrateActiveOrdersFromApi();
     } else {
       ActiveOrderState.instance.resetForUserSession();
     }
-    debugPrint('[BOOT] Active order state loaded.');
-
-    debugPrint('[BOOT] Syncing cart...');
     CartManager.instance.syncWithApi();
-    debugPrint('[BOOT] Cart sync triggered.');
-
-    debugPrint('[BOOT] Checking onboarding status...');
     hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
-    debugPrint('[BOOT] Onboarding status loaded: $hasSeenOnboarding');
-
-    debugPrint('[BOOT] Prefetching Splash banner...');
     try {
       await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
     } catch (e) {
-      debugPrint('[BOOT] Splash banner prefetch timed out/failed: $e');
     }
   } catch (e, stackTrace) {
-    debugPrint('[BOOT] Critical error during initialization: $e\n$stackTrace');
   }
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -286,13 +245,10 @@ void main() async {
   PaintingBinding.instance.imageCache.maximumSize = 200;                   // up to 200 decoded images
   PaintingBinding.instance.imageCache.maximumSizeBytes = 150 * 1024 * 1024; // 150 MB
   // ─────────────────────────────────────────────────────────────────────────
-
-  debugPrint('[BOOT] Calling runApp()...');
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   if (!kIsWeb) {
     unawaited(PostLinkListener.instance.start());
   }
-  debugPrint('[BOOT] runApp() called.');
 }
 
 

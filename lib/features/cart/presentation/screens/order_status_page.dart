@@ -33,7 +33,6 @@ import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/pickup_order_qr_card.dart';
-import '../widgets/looping_gif.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
@@ -127,7 +126,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       if (url.isEmpty) return;
       setState(() => _orderWaitingImageUrl = url);
     } catch (e) {
-      debugPrint('Order waiting banner fetch failed: $e');
     }
   }
 
@@ -289,7 +287,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     // Safety check for scheme
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasScheme) {
-      debugPrint(' [OrderStatus] Invalid URL (missing scheme): $url');
       if (mounted) setState(() => _webViewError = true);
       return;
     }
@@ -583,7 +580,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     final delivery = state.deliveryFee ?? widget.deliveryFee;
     final showFlexibleDeliveryFee = state.isFlexibleDelivery && _currentStatus >= 3;
     
-    if (showFlexibleDeliveryFee && delivery != null && delivery > 0 && !_hasShownDeliveryFeeModal) {
+    if (showFlexibleDeliveryFee && delivery > 0 && !_hasShownDeliveryFeeModal) {
       _hasShownDeliveryFeeModal = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showDeliveryFeeModal(delivery);
@@ -849,7 +846,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             );
                           }
                         } catch (e) {
-                          debugPrint('Failed to launch tracking URL: $e');
                           try {
                             await launchUrl(
                               uri,
@@ -1627,7 +1623,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showFlexibleDeliveryFee && delivery != null && delivery > 0) ...[
+            if (showFlexibleDeliveryFee && delivery > 0) ...[
               GestureDetector(
                 onTap: () => _showDeliveryFeeModal(delivery),
                 child: Container(

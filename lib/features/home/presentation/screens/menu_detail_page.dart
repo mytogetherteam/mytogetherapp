@@ -977,6 +977,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         if (!await GuestAuthGuard.requireAccount(context)) {
                           return;
                         }
+                        if (!mounted) return;
                         if (_isTogglingFavorite) return;
                         _isTogglingFavorite = true;
 
@@ -1412,24 +1413,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         constraints: const BoxConstraints(),
         icon: Icon(icon, color: iconColor, size: 20),
         onPressed: onPressed,
-      ),
-    );
-  }
-
-  Widget _buildTag(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1), // Light pink/branded
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(
-          color: AppColors.primary,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }

@@ -100,6 +100,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   void _onLanguageChanged() {
     if (mounted) {
+      if (LocaleController.instance.language.code == 'th' && _currentIndex == 3) {
+        _currentIndex = 0;
+        NavigationController.instance.currentIndex.value = 0;
+      }
       setState(() {});
     }
   }
@@ -367,15 +371,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     height: barBodyHeight,
                     badgeText: _socialVisitCount < 3 ? 'NEW' : null,
                   ),
-                  _buildNavItem(
-                    3,
-                    PhosphorIcons.newspaper,
-                    PhosphorIcons.newspaperFill,
-                    context.tr('nav.news'),
-                    inactiveColor: inactiveColor,
-                    socialMode: isSocial,
-                    height: barBodyHeight,
-                  ),
+                  if (LocaleController.instance.language.code != 'th')
+                    _buildNavItem(
+                      3,
+                      PhosphorIcons.newspaper,
+                      PhosphorIcons.newspaperFill,
+                      context.tr('nav.news'),
+                      inactiveColor: inactiveColor,
+                      socialMode: isSocial,
+                      height: barBodyHeight,
+                    ),
                   _buildNavItem(
                     4,
                     PhosphorIcons.user,

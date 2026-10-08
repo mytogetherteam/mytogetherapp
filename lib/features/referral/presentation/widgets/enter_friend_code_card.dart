@@ -6,6 +6,7 @@ import '../../data/referral_model.dart';
 import '../../data/referral_service.dart';
 import 'edit_promote_code_dialog.dart';
 import 'referral_reward_celebration_sheet.dart';
+import '../../../../core/localization/app_translations.dart';
 
 class EnterFriendCodeCard extends StatefulWidget {
   final ClaimedReferralInfo? claimedReferral;
@@ -41,7 +42,7 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
     if (code.isEmpty) return;
 
     if (code.length < 3) {
-      setState(() => _errorMessage = 'Code must be at least 3 characters');
+      setState(() => _errorMessage = context.tr('referral.error_length'));
       return;
     }
 
@@ -131,7 +132,7 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Text(
-          'Referral codes can only be entered within 7 days of joining, and before your first order.',
+          context.tr('referral.cannot_claim_desc'),
           style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
         ),
       );
@@ -171,10 +172,10 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Have a Friend\'s Referral Code?',
-                  style: TextStyle(
+                  context.tr('referral.have_friend_code'),
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -186,8 +187,8 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
           const SizedBox(height: 8),
           Text(
             widget.isProgramActive
-                ? 'Enter their code within 7 days of joining, and before your first order. The welcome coupon can be used only by people it was granted to.'
-                : 'The referral program is paused. A code entered now is not saved. You can apply one within 7 days of joining, before your first order, once rewards are on.',
+                ? context.tr('referral.friend_code_desc_active')
+                : context.tr('referral.friend_code_desc_inactive'),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,
@@ -260,9 +261,9 @@ class _EnterFriendCodeCardState extends State<EnterFriendCodeCard> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Apply',
-                            style: TextStyle(
+                        : Text(
+                            context.tr('common.apply'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,

@@ -129,19 +129,16 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
   }
 
   Future<void> _makeCall(String phoneNumber) async {
-    debugPrint('Attempting to call: $phoneNumber');
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
-        debugPrint('Could not launch $launchUri');
         if (mounted) {
           AppDialog.showToast(context, context.tr('news.dialer_failed'), isError: true);
         }
       }
     } catch (e) {
-      debugPrint('Error launching call: $e');
     }
   }
 

@@ -43,7 +43,6 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
           )
           .timeout(const Duration(seconds: 5));
     } catch (e) {
-      debugPrint('PopularBrandsSection: API error: $e');
       return [];
     }
   }

@@ -44,9 +44,11 @@ class LockScreenWidgetManager {
           appGroupId:
               'group.com.mytogetherorg.mytogether', // Update with actual group ID if needed
         );
-        await _liveActivitiesPlugin.endAllActivities();
+        final activities = await _liveActivitiesPlugin.getAllActivitiesIds();
+        if (activities.isNotEmpty) {
+          _currentLiveActivityId = activities.first;
+        }
       } catch (e) {
-        debugPrint('Live Activities init failed: $e');
       }
     } else if (_isAndroid) {
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -135,7 +137,6 @@ class LockScreenWidgetManager {
               data['shopLogoPath'] = _lastLogoFile;
             }
           } catch (e) {
-            debugPrint('Failed to download logo for live activity: $e');
           }
         }
       }
@@ -153,7 +154,6 @@ class LockScreenWidgetManager {
           );
         }
       } catch (e) {
-        debugPrint('Live Activities update failed: $e');
       }
     } else if (_isAndroid) {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =

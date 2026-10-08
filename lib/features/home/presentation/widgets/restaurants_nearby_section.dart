@@ -60,7 +60,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
           )
           .timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint('RestaurantsNearbySection: API error or timeout: $e');
       return [];
     }
   }
@@ -114,9 +113,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
 
         // If empty or error — show nothing (no hardcoded fallback)
         if (allRestaurants.isEmpty) {
-          debugPrint(
-            'RestaurantsNearbySection: No data from API, hiding section.',
-          );
           return const SizedBox.shrink();
         }
 
