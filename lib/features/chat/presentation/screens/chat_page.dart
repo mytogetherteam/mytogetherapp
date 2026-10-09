@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,6 +28,8 @@ import 'package:mytogetherapp/features/chat/presentation/chat_ui_tokens.dart';
 import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import 'package:mytogetherapp/features/call/data/call_session.dart';
+import 'package:mytogetherapp/features/social/post_share_link.dart';
+import 'package:mytogetherapp/features/social/presentation/screens/shared_post_page.dart';
 import 'package:mytogetherapp/app.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -757,14 +760,9 @@ class _ChatPageState extends State<ChatPage>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(ctx);
-                  final uri = Uri.parse(
-                    url.startsWith('http') ? url : 'https://$url',
-                  );
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
+                  _openMessageLink(url);
                 },
               ),
             if (message.isMe && message.kind == ChatMessageKind.text)
@@ -1065,6 +1063,29 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 
+  Future<void> _openMessageLink(String raw) async {
+    var value = raw.trim();
+    while (value.isNotEmpty && '.,);'.contains(value[value.length - 1])) {
+      value = value.substring(0, value.length - 1);
+    }
+    final withScheme = value.startsWith('http://') || value.startsWith('https://')
+        ? value
+        : 'https://$value';
+    final uri = Uri.tryParse(withScheme);
+    if (uri == null) return;
+    final postId = postIdFromShareLink(uri);
+    if (postId != null) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => SharedPostPage(postId: postId)),
+      );
+      return;
+    }
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
   Widget _buildBubble(BuildContext context, ChatMessage message) {
     if (message.isDeleted) {
       return Center(
@@ -1196,24 +1217,26 @@ class _ChatPageState extends State<ChatPage>
                       if (displayText.trim().isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
-                          child: Text(
-                            displayText,
+                          child: _ChatLinkText(
+                            text: displayText,
                             style: ChatUiTokens.messageBody(
                               color: isMine
                                   ? Colors.white
                                   : ChatUiTokens.textPrimary,
                             ),
+                            onOpen: _openMessageLink,
                           ),
                         ),
                     ],
                   )
-                : Text(
-                    displayText,
+                : _ChatLinkText(
+                    text: displayText,
                     style: ChatUiTokens.messageBody(
                       color: isMine
                           ? Colors.white
                           : ChatUiTokens.textPrimary,
                     ),
+                    onOpen: _openMessageLink,
                   ),
           ),
 
@@ -1249,6 +1272,7 @@ class _ChatPageState extends State<ChatPage>
                     backgroundColor: Colors.white,
                     errorWidget: const SizedBox.shrink(),
                     borderRadius: 12,
+                    onTap: () => _openMessageLink(firstUrl),
                   ),
                 );
               },
@@ -1417,5 +1441,97 @@ class _ChatPageState extends State<ChatPage>
       ],
       ),
     );
+  }
+}
+
+class _ChatLinkText extends StatefulWidget {
+  const _ChatLinkText({
+    required this.text,
+    required this.style,
+    required this.onOpen,
+  });
+
+  final String text;
+  final TextStyle style;
+  final ValueChanged<String> onOpen;
+
+  @override
+  State<_ChatLinkText> createState() => _ChatLinkTextState();
+}
+
+class _ChatLinkTextState extends State<_ChatLinkText> {
+  static final _urlPattern = RegExp(
+    r'https?:\/\/[^\s<>]+',
+    caseSensitive: false,
+  );
+
+  final List<TapGestureRecognizer> _recognizers = [];
+  List<InlineSpan> _spans = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _rebuild();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChatLinkText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) _rebuild();
+  }
+
+  @override
+  void dispose() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
+
+  void _rebuild() {
+    final previous = List<TapGestureRecognizer>.of(_recognizers);
+    _recognizers.clear();
+    if (previous.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final recognizer in previous) {
+          recognizer.dispose();
+        }
+      });
+    }
+    final spans = <InlineSpan>[];
+    var cursor = 0;
+    for (final match in _urlPattern.allMatches(widget.text)) {
+      if (match.start > cursor) {
+        spans.add(TextSpan(text: widget.text.substring(cursor, match.start)));
+      }
+      final raw = match.group(0)!;
+      final trimmed = raw.replaceFirst(RegExp(r'[.,);]+$'), '');
+      final tail = raw.substring(trimmed.length);
+      final recognizer = TapGestureRecognizer()
+        ..onTap = () => widget.onOpen(trimmed);
+      _recognizers.add(recognizer);
+      spans.add(
+        TextSpan(
+          text: trimmed,
+          recognizer: recognizer,
+          style: TextStyle(
+            decoration: TextDecoration.underline,
+            decorationColor: widget.style.color,
+          ),
+        ),
+      );
+      if (tail.isNotEmpty) spans.add(TextSpan(text: tail));
+      cursor = match.end;
+    }
+    if (cursor < widget.text.length) {
+      spans.add(TextSpan(text: widget.text.substring(cursor)));
+    }
+    _spans = spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_spans.isEmpty) return Text(widget.text, style: widget.style);
+    return Text.rich(TextSpan(style: widget.style, children: _spans));
   }
 }

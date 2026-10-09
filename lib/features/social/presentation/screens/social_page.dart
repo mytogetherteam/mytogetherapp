@@ -386,12 +386,16 @@ class OwnPostsPreviewPage extends StatefulWidget {
   final int nextPage;
   final bool hasMore;
 
+  /// When set, further pages come from here instead of the signed-in user's posts.
+  final Future<SocialPostsFeedPage> Function(int page)? loadPage;
+
   const OwnPostsPreviewPage({
     super.key,
     required this.posts,
     required this.initialIndex,
     this.nextPage = 2,
     this.hasMore = false,
+    this.loadPage,
   });
 
   @override
@@ -427,7 +431,9 @@ class _OwnPostsPreviewPageState extends State<OwnPostsPreviewPage> {
     if (!_hasMore || _loadingMore) return;
     _loadingMore = true;
     try {
-      final result = await SocialPostsRepository.instance.fetchMine(page: _nextPage);
+      final result = widget.loadPage != null
+          ? await widget.loadPage!(_nextPage)
+          : await SocialPostsRepository.instance.fetchMine(page: _nextPage);
       if (!mounted) return;
       setState(() {
         final seen = _posts.map((post) => post.id).toSet();

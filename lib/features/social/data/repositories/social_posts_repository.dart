@@ -49,6 +49,24 @@ class SocialPostsRepository {
     );
   }
 
+  Future<SocialPostsFeedPage> fetchByShop(
+    int shopId, {
+    int page = 1,
+    int size = 18,
+  }) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: {'page': page, 'size': size, 'shopId': shopId},
+    );
+    final body = response.data;
+    return SocialPostsFeedPage(
+      items: ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson),
+      totalElements: ApiResponseUtils.parseTotalElements(body),
+      totalPages: ApiResponseUtils.parseLastPage(body),
+      page: page,
+    );
+  }
+
   Future<SocialPostsFeedPage> fetchMine({int page = 1, int size = 18}) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/posts/mine',

@@ -11,6 +11,7 @@ import '../widgets/image_skeleton_loader.dart';
 import '../widgets/restaurant_open_status.dart';
 import '../widgets/my_together_verified_badge.dart';
 import '../widgets/shop_myday_viewer.dart';
+import '../widgets/shop_posts_section.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/restaurant_data.dart';
 import '../../data/models/shop_dto.dart';
@@ -286,6 +287,8 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
+                  if (int.tryParse(restaurant.id) case final shopId?)
+                    ShopPostsSection(shopId: shopId),
                   _buildSectionCard(
                     icon: 'assets/images/detail_direction.png',
                     title: context.tr('restaurant.address_title'),
