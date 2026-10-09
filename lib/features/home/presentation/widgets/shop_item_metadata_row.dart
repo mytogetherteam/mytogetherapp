@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/utils/delivery_fee_estimate.dart';
 
 class ShopItemMetadataRow extends StatelessWidget {
   final double? rating;
@@ -100,6 +102,7 @@ class ShopItemMetadataRow extends StatelessWidget {
 
     // 4. Delivery Fee (hide empty/zero — API often returns "0" for menu items)
     if (showDeliveryFee && _hasMeaningfulDeliveryFee(deliveryFee)) {
+      final feeLabel = _localizedDeliveryFee(context, deliveryFee!);
       elements.add(
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -108,7 +111,7 @@ class ShopItemMetadataRow extends StatelessWidget {
             Icon(Icons.delivery_dining_outlined, color: const Color(0xFF10B981), size: iconSize + 2),
             const SizedBox(width: 4),
             Text(
-              deliveryFee!,
+              feeLabel,
               style: GoogleFonts.poppins(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w500,
@@ -116,7 +119,7 @@ class ShopItemMetadataRow extends StatelessWidget {
                 height: 1.0,
               ),
             ),
-            if (originalDeliveryFee != null && originalDeliveryFee!.isNotEmpty && originalDeliveryFee != deliveryFee) ...[
+            if (originalDeliveryFee != null && originalDeliveryFee!.isNotEmpty && originalDeliveryFee != feeLabel) ...[
               const SizedBox(width: 4),
               Text(
                 originalDeliveryFee!,
@@ -153,6 +156,15 @@ class ShopItemMetadataRow extends StatelessWidget {
         ]
       ],
     );
+  }
+
+  /// Free labels are stored in whichever language was active when the shop
+  /// loaded. Resolve them again so a language switch updates the card.
+  static String _localizedDeliveryFee(BuildContext context, String fee) {
+    if (DeliveryFeeEstimate.isFreeLabel(fee)) {
+      return context.tr('common.free');
+    }
+    return fee;
   }
 
   /// Returns false for null, blank, or zero-valued fees (e.g. "0", "฿0", "Free" is kept).

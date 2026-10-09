@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:flutter/services.dart';
 import '../../../cart/data/cart_manager.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/delivery_fee_estimate.dart';
 import '../../../cart/presentation/screens/order_summary_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -1358,7 +1359,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               ),
                                             ),
                                             Text(
-                                              _currentRestaurant!.deliveryFee!,
+                                              DeliveryFeeEstimate.isFreeLabel(
+                                                      _currentRestaurant!
+                                                          .deliveryFee)
+                                                  ? context.tr('common.free')
+                                                  : _currentRestaurant!
+                                                      .deliveryFee!,
                                               style: GoogleFonts.poppins(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w500,
