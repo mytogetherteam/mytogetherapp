@@ -947,6 +947,12 @@ class AppTranslations {
     'lost.badge_lost': 'LOST',
     'lost.badge_found': 'FOUND',
     'lost.description': 'Description',
+    'lost.hint_lost':
+        'A photo, color, brand, and where it went missing help others spot it.',
+    'lost.hint_found':
+        'A photo, color, brand, and where you found it help the owner spot it.',
+    'lost.hint_privacy':
+        'Don\'t post passwords, card, ID, or account numbers, or a photo that shows them.',
     'lost.location_name': 'Location name',
     'lost.phone_number': 'Phone number',
     'lost.photos_count': 'Photos ({count}/10)',
@@ -2234,6 +2240,12 @@ class AppTranslations {
     'lost.badge_lost': 'ပျောက်ဆုံး',
     'lost.badge_found': 'တွေ့ရှိ',
     'lost.description': 'ဖော်ပြချက်',
+    'lost.hint_lost':
+        'ဓာတ်ပုံ၊ အရောင်၊ အမှတ်တံဆိပ်၊ ပျောက်တဲ့နေရာ ရေးပါ။ မှတ်မိဖို့ ပိုလွယ်ပါတယ်။',
+    'lost.hint_found':
+        'ဓာတ်ပုံ၊ အရောင်၊ အမှတ်တံဆိပ်၊ တွေ့တဲ့နေရာ ရေးပါ။ ပိုင်ရှင် မှတ်မိဖို့ ပိုလွယ်ပါတယ်။',
+    'lost.hint_privacy':
+        'စကားဝှက်၊ ကတ်၊ မှတ်ပုံတင်၊ အကောင့်နံပါတ်နဲ့ အဲဒါတွေပါတဲ့ဓာတ်ပုံ မတင်ပါနဲ့။',
     'lost.location_name': 'တည်နေရာအမည်',
     'lost.phone_number': 'ဖုန်းနံပါတ်',
     'lost.photos_count': 'ဓာတ်ပုံများ ({count}/10)',
@@ -3520,6 +3532,12 @@ class AppTranslations {
     'lost.badge_lost': 'ของหาย',
     'lost.badge_found': 'พบของ',
     'lost.description': 'รายละเอียด',
+    'lost.hint_lost':
+        'ใส่รูป สี ยี่ห้อ และจุดที่หาย จะช่วยให้คนอื่นจำได้',
+    'lost.hint_found':
+        'ใส่รูป สี ยี่ห้อ และจุดที่เจอ จะช่วยให้เจ้าของจำได้',
+    'lost.hint_privacy':
+        'อย่าโพสต์รหัสผ่าน เลขบัตร เลขบัตรประชาชน เลขบัญชี หรือรูปที่เห็นข้อมูลพวกนั้น',
     'lost.location_name': 'ชื่อสถานที่',
     'lost.phone_number': 'เบอร์โทรศัพท์',
     'lost.photos_count': 'รูปภาพ ({count}/10)',

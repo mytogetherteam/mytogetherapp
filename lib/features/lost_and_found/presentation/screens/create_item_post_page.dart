@@ -505,6 +505,24 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
                 return null;
               },
             ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr(_type == 'LOST' ? 'lost.hint_lost' : 'lost.hint_found'),
+              style: GoogleFonts.notoSansMyanmar(
+                fontSize: 12,
+                height: 1.35,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              context.tr('lost.hint_privacy'),
+              style: GoogleFonts.notoSansMyanmar(
+                fontSize: 12,
+                height: 1.35,
+                color: Colors.grey[600],
+              ),
+            ),
             if (_existingPhotos.isNotEmpty || _photos.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
