@@ -20,6 +20,10 @@ class FirebaseErrorHandler {
           return context.tr('firebase.network_error');
         case 'user-disabled':
           return context.tr('firebase.user_disabled');
+        case 'quota-exceeded':
+          return context.tr('firebase.quota_exceeded');
+        case 'operation-not-allowed':
+          return context.tr('firebase.operation_not_allowed');
         default:
           return error.message ?? context.tr('firebase.unknown_error');
       }

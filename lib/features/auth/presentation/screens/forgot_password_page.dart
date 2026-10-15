@@ -67,6 +67,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           await _verifyWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          debugPrint('❌ [FirebaseAuth] verificationFailed: code=${e.code}, message=${e.message}');
           if (!mounted) return;
           final msg = FirebaseErrorHandler.getMessage(context, e);
           AppDialog.showToast(context, msg, isError: true);

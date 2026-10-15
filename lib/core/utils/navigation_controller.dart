@@ -15,6 +15,13 @@ class NavigationController {
   /// Each tab page listens to this and scrolls to top + refreshes its data.
   final ValueNotifier<int?> tabScrollToTopRequest = ValueNotifier(null);
 
+  /// Fires when the user double-clicks or requests a refresh on the social tab.
+  final ValueNotifier<int> socialRefreshRequest = ValueNotifier(0);
+
+  void triggerSocialRefresh() {
+    socialRefreshRequest.value++;
+  }
+
   void goToTab(int index) {
     // Re-assign even when already on [index] so listeners still run after
     // navigation pops back to an existing [MainNavigationScreen].

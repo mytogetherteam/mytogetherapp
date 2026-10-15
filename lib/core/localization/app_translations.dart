@@ -181,9 +181,23 @@ class AppTranslations {
     'social.hidden': 'Hidden',
     'social.post_unavailable': 'This post is unavailable.',
     'social.report': 'Report',
+    'social.creator_profile': 'Profile',
+    'social.follow': 'Follow',
+    'social.following': 'Following',
+    'social.visit_shop': 'Visit Shop',
+    'social.go_to_restaurant': 'Go to Restaurant',
+    'social.list_view': 'List',
+    'social.grid_view': 'Grid',
+    'social.posts_count': 'Posts',
+    'social.likes_count': 'Likes',
+    'social.viewers_count': 'Viewers',
+    'social.share_profile': 'Share Profile',
+    'social.no_posts_creator': 'No posts yet',
     'profile.edit_profile': 'Edit Profile',
     'profile.order_history': 'Order History',
     'profile.order_history_sub': 'Completed and cancelled orders',
+    'profile.my_posts': 'My Posts',
+    'profile.my_posts_sub': 'View and manage your shared posts',
     'profile.saved_items': 'Saved Items',
     'profile.saved_items_sub': 'Your wishlist of foods, restaurants, places and posts',    'profile.saved_coupons': 'Saved Coupons',
     'profile.saved_coupons_sub': 'Coupons you saved from promotions',
@@ -1289,6 +1303,10 @@ class AppTranslations {
         'The OTP code has expired. Please request a new one.',
     'firebase.network_error': 'Network error. Please check your connection.',
     'firebase.user_disabled': 'This account has been disabled.',
+    'firebase.quota_exceeded':
+        'SMS verification quota exceeded. Please try again later or tomorrow.',
+    'firebase.operation_not_allowed':
+        'Phone authentication is not enabled. Please contact support.',
     'firebase.unknown_error': 'An unknown error occurred. Please try again.',
 
     // Permissions
@@ -1482,11 +1500,25 @@ class AppTranslations {
     'social.my_posts_load_failed': 'ပို့စ်များ ဖွင့်၍မရပါ။',
     'social.hidden': 'ဖျောက်ထားသည်',
     'social.post_unavailable': 'ဒီပို့စ်ကို ဖွင့်မရပါ။',
+    'social.creator_profile': 'ပရိုဖိုင်',
+    'social.follow': 'Follow',
+    'social.following': 'Following',
+    'social.visit_shop': 'ဆိုင်သို့ သွားမည်',
+    'social.go_to_restaurant': 'စားသောက်ဆိုင်သို့ သွားမည်',
+    'social.list_view': 'စာရင်းပုံစံ',
+    'social.grid_view': 'ဇယားကွက်ပုံစံ',
+    'social.posts_count': 'ပို့စ်များ',
+    'social.likes_count': 'သဘောကျမှုများ',
+    'social.viewers_count': 'ကြည့်ရှုသူများ',
+    'social.share_profile': 'ပရိုဖိုင် မျှဝေမည်',
+    'social.no_posts_creator': 'ပို့စ်များ မရှိသေးပါ',
 
     // Profile page
     'profile.edit_profile': 'ပရိုဖိုင်ပြင်ဆင်ရန်',
     'profile.order_history': 'အော်ဒါမှတ်တမ်း',
     'profile.order_history_sub': 'အရင်မှာခဲ့တဲ့ အော်ဒါများ',
+    'profile.my_posts': 'ကျွန်ုပ်၏ ပို့စ်များ',
+    'profile.my_posts_sub': 'မိမိ တင်ထားသော ပို့စ်များကို ကြည့်ရှုစီမံရန်',
     'profile.saved_items': 'သိမ်းထားတာတွေ',
     'profile.saved_items_sub': 'ဘော်ဒါနှစ်သက်သော အစားအစာ၊ ဆိုင်၊ နေရာနှင့် ပို့စ်များ',    'profile.saved_coupons': 'သိမ်းထားသော ကူပွန်များ',
     'profile.saved_coupons_sub': 'ပရိုမိုးရှင်းမှ သိမ်းထားသော ကူပွန်များ',
@@ -2590,6 +2622,10 @@ class AppTranslations {
         'အင်တာနက်လိုင်း မကောင်းထင်တယ်။ ပြန်စစ်ကြည့်ပါအုံးနော် 😶‍🌫️',
     'firebase.user_disabled':
         'ဒီအကောင့်ကို ပိတ်ထားပါတယ်။ ဘာမဟုတ်တာလုပ်ထားလဲပြော 😡',
+    'firebase.quota_exceeded':
+        'SMS ပို့နိုင်သည့် အကြိမ်အရေအတွက် ကုန်ဆုံးသွားပါပြီ။ ခဏစောင့်ပြီးမှ (သို့မဟုတ် မနက်ဖြန်မှ) ပြန်လည်ကြိုးစားပေးပါနော်။',
+    'firebase.operation_not_allowed':
+        'ဖုန်းနံပါတ်ဖြင့် အကောင့်ဖွင့်ခြင်းကို ခွင့်မပြုထားသေးပါ။',
     'firebase.unknown_error': 'ဟ ဘာထဖြစ်လဲမသိဘူး။ ထပ်လုပ်ကြည့်ပေးပါ။',
 
     // Permissions
@@ -2780,11 +2816,25 @@ class AppTranslations {
     'social.my_posts_load_failed': 'โหลดโพสต์ไม่สำเร็จ',
     'social.hidden': 'ซ่อนอยู่',
     'social.post_unavailable': 'โพสต์นี้ไม่พร้อมใช้งาน',
+    'social.creator_profile': 'โปรไฟล์',
+    'social.follow': 'ติดตาม',
+    'social.following': 'กำลังติดตาม',
+    'social.visit_shop': 'ไปที่ร้านค้า',
+    'social.go_to_restaurant': 'ไปที่ร้านอาหาร',
+    'social.list_view': 'แบบรายการ',
+    'social.grid_view': 'แบบตาราง',
+    'social.posts_count': 'โพสต์',
+    'social.likes_count': 'ถูกใจ',
+    'social.viewers_count': 'ผู้รับชม',
+    'social.share_profile': 'แชร์โปรไฟล์',
+    'social.no_posts_creator': 'ยังไม่มีโพสต์จากผู้ใช้นี้',
 
     // Profile page
     'profile.edit_profile': 'แก้ไขโปรไฟล์',
     'profile.order_history': 'ประวัติคำสั่งซื้อ',
     'profile.order_history_sub': 'คำสั่งซื้อที่เสร็จสิ้นและยกเลิก',
+    'profile.my_posts': 'โพสต์ของฉัน',
+    'profile.my_posts_sub': 'ดูและจัดการโพสต์ที่คุณแชร์',
     'profile.saved_items': 'รายการที่บันทึก',
     'profile.saved_items_sub': 'รายการโปรดอาหาร ร้านค้า สถานที่ และโพสต์ของคุณ',    'profile.saved_coupons': 'คูปองที่บันทึก',
     'profile.saved_coupons_sub': 'คูปองที่คุณบันทึกจากโปรโมชัน',
@@ -3869,6 +3919,10 @@ class AppTranslations {
     'firebase.network_error':
         'ข้อผิดพลาดของเครือข่าย โปรดตรวจสอบการเชื่อมต่อของคุณ',
     'firebase.user_disabled': 'บัญชีนี้ถูกปิดใช้งาน',
+    'firebase.quota_exceeded':
+        'เกินโควต้าการส่ง SMS แล้ว โปรดลองอีกครั้งในภายหลัง',
+    'firebase.operation_not_allowed':
+        'ระบบยังไม่เปิดให้เข้าสู่ระบบด้วยหมายเลขโทรศัพท์',
     'firebase.unknown_error': 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ โปรดลองอีกครั้ง',
 
     // Permissions

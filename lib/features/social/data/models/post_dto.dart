@@ -135,6 +135,7 @@ class SocialPostDto {
   final SocialPostAuthorDto author;
   int likeCount;
   int commentCount;
+  int viewCount;
   bool likedByMe;
   bool savedByMe;
 
@@ -147,6 +148,7 @@ class SocialPostDto {
     required this.author,
     required this.likeCount,
     required this.commentCount,
+    this.viewCount = 0,
     required this.likedByMe,
     this.savedByMe = false,
   });
@@ -180,6 +182,7 @@ class SocialPostDto {
       ),
       likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       likedByMe: json['likedByMe'] == true,
       savedByMe: json['savedByMe'] == true,
     );

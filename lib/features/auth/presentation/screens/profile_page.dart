@@ -433,7 +433,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 imageUrl: user?.avatarUrl == null
                     ? null
                     : _getImageUrl(user!.avatarUrl),
-                onOpenPosts: () => MyPostsPage.open(context),
                 onEditProfile: () async {
                   await Navigator.push(
                     context,
@@ -446,36 +445,36 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
         const SizedBox(height: 60),
-        Text(
-          user?.fullName ?? user?.username ?? context.tr('common.user_name'),
-          style: GoogleFonts.poppins(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditProfilePage()),
+            );
+            if (mounted) setState(() {});
+          },
+          child: Column(
+            children: [
+              Text(
+                user?.fullName ?? user?.username ?? context.tr('common.user_name'),
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                user?.email ?? 'email@example.com',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
         ),
-        Text(
-          user?.email ?? 'email@example.com',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
-        TextButton(
-          onPressed: () => MyPostsPage.open(context),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            context.tr('social.my_posts'),
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
-          ),
-        ),
+        const SizedBox(height: 16),
         _buildOptionTile(
           icon: PhosphorIcons.gearSix,
           title: context.tr('profile.account_settings'),
@@ -487,6 +486,12 @@ class _ProfilePageState extends State<ProfilePage> {
             );
             if (mounted) setState(() {});
           },
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.squaresFour,
+          title: context.tr('profile.my_posts'),
+          subtitle: context.tr('profile.my_posts_sub'),
+          onTap: () => MyPostsPage.open(context),
         ),
         _buildOptionTile(
           icon: PhosphorIcons.heart,
@@ -845,27 +850,26 @@ class _ReferralGlowBarState extends State<_ReferralGlowBar>
 
 class _ProfilePostsAvatar extends StatelessWidget {
   final String? imageUrl;
-  final VoidCallback onOpenPosts;
   final VoidCallback onEditProfile;
 
   const _ProfilePostsAvatar({
     required this.imageUrl,
-    required this.onOpenPosts,
     required this.onEditProfile,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasPhoto = imageUrl != null && imageUrl!.isNotEmpty;
-    return SizedBox(
-      width: 108,
-      height: 108,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          GestureDetector(
-            onTap: onOpenPosts,
-            child: Container(
+    return GestureDetector(
+      onTap: onEditProfile,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 108,
+        height: 108,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
               padding: const EdgeInsets.all(4),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -886,12 +890,9 @@ class _ProfilePostsAvatar extends StatelessWidget {
                       ),
               ),
             ),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: GestureDetector(
-              onTap: onEditProfile,
+            Positioned(
+              right: 0,
+              bottom: 0,
               child: Container(
                 width: 32,
                 height: 32,
@@ -907,8 +908,8 @@ class _ProfilePostsAvatar extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

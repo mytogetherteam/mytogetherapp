@@ -98,7 +98,11 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
 
     try {
       if (source == ImageSource.gallery) {
-        final picked = await _picker.pickMultiImage(imageQuality: 85);
+        final picked = await _picker.pickMultiImage(
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 80,
+        );
         for (final file in picked) {
           if (_totalPhotoCount >= 10) break;
           // Let the user crop each photo; skip any they back out of.
@@ -109,7 +113,9 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
       } else {
         final picked = await _picker.pickImage(
           source: source,
-          imageQuality: 85,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 80,
         );
         if (picked != null && _totalPhotoCount < 10) {
           final cropped = await ImageCropHelper.crop(picked);

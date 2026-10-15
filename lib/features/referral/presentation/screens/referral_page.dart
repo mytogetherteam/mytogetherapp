@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/referral_model.dart';
@@ -171,7 +172,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                     backgroundColor:
                                         AppColors.primary.withValues(alpha: 0.1),
                                     backgroundImage: friend.profileUrl != null
-                                        ? NetworkImage(friend.profileUrl!)
+                                        ? CachedNetworkImageProvider(friend.profileUrl!)
                                         : null,
                                     child: friend.profileUrl == null
                                         ? Text(

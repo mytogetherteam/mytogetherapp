@@ -27,12 +27,9 @@ class GooglePlacesClient {
     if (query.trim().isEmpty) return [];
 
     try {
-      final results = await Future.wait([
-        _autocomplete(query, lat: lat, lon: lon),
-        _textSearch(query, lat: lat, lon: lon),
-      ]);
-      final merged = _mergeByPlaceId([...results[0], ...results[1]]);
-      if (merged.isNotEmpty) return merged;
+      // Use Autocomplete only — avoid expensive Text Search ($32/1k requests)
+      final results = await _autocomplete(query, lat: lat, lon: lon);
+      if (results.isNotEmpty) return results;
       return _geocodeSearch(query, lat: lat, lon: lon);
     } catch (e) {
       return [];

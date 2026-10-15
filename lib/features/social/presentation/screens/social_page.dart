@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
-import 'package:mytogetherapp/core/config/env_config.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -23,7 +21,7 @@ import '../widgets/social_feed_status_view.dart';
 import '../widgets/social_media_pager.dart';
 import '../widgets/social_media_view.dart';
 import 'create_social_post_page.dart';
-import 'my_posts_page.dart';
+import 'tiktok_profile_page.dart';
 
 /// Full-screen vertical social feed (For You from API).
 class SocialPage extends StatefulWidget {
@@ -45,6 +43,8 @@ class _SocialPageState extends State<SocialPage> {
   bool _loadingMore = false;
   String? _error;
   final Map<int, VideoPlayerController> _videoControllers = {};
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
@@ -52,6 +52,9 @@ class _SocialPageState extends State<SocialPage> {
     _pageController = PageController();
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
+    );
+    NavigationController.instance.socialRefreshRequest.addListener(
+      _onSocialRefreshRequested,
     );
     SocialPostsRepository.feedRevision.addListener(_onMineChanged);
     _loadInitial();
@@ -62,20 +65,45 @@ class _SocialPageState extends State<SocialPage> {
     _loadInitial();
   }
 
+  void _onSocialRefreshRequested() {
+    if (!mounted) return;
+    _refreshFeed();
+  }
+
   void _onScrollToTopRequested() {
     if (NavigationController.instance.tabScrollToTopRequest.value != 2) return;
     if (!mounted || !_pageController.hasClients) return;
-    _pageController.animateToPage(
-      0,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
-    );
+    if (_currentPage == 0) {
+      _refreshFeed();
+    } else {
+      _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  Future<void> _refreshFeed() async {
+    if (!mounted) return;
+    AppHaptics.buttonTap();
+    if (_pageController.hasClients && _currentPage != 0) {
+      await _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    _refreshIndicatorKey.currentState?.show();
   }
 
   @override
   void dispose() {
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
+    );
+    NavigationController.instance.socialRefreshRequest.removeListener(
+      _onSocialRefreshRequested,
     );
     SocialPostsRepository.feedRevision.removeListener(_onMineChanged);
     _pageController.dispose();
@@ -86,11 +114,9 @@ class _SocialPageState extends State<SocialPage> {
   }
 
   void _managePreload(int currentIndex) {
+    // Only buffer the currently active video to minimize S3 egress bandwidth
     final toKeep = {
-      currentIndex - 1,
       currentIndex,
-      currentIndex + 1,
-      currentIndex + 2
     };
 
     _videoControllers.removeWhere((index, controller) {
@@ -127,11 +153,13 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
-  Future<void> _loadInitial() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadInitial({bool isPullToRefresh = false}) async {
+    if (_posts.isEmpty && !isPullToRefresh) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final page = await SocialPostsRepository.instance.fetchFeed(page: 1);
       if (!mounted) return;
@@ -143,13 +171,19 @@ class _SocialPageState extends State<SocialPage> {
         _totalPages = page.totalPages;
         _loading = false;
         _currentPage = 0;
+        _error = null;
       });
+      if (_pageController.hasClients && (_pageController.page ?? 0) != 0) {
+        _pageController.jumpToPage(0);
+      }
       _managePreload(0);
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = context.tr('social.load_failed');
+        if (_posts.isEmpty) {
+          _error = context.tr('social.load_failed');
+        }
       });
     }
   }
@@ -214,27 +248,47 @@ class _SocialPageState extends State<SocialPage> {
                     children: [
                       // ── Top Left Logo ────────────────────────────────────────
                       Positioned(
-                        left: 0,
+                        left: 4,
                         top: 0,
                         bottom: 0,
-                        child: Center(child: _MyPostsAvatarButton()),
+                        child: Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/images/app_icon_small.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       ),
                       // Centre title
                       Center(
-                        child: Text(
-                          context.tr('social.for_you'),
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 8,
-                                offset: Offset(0, 1),
+                        child: GestureDetector(
+                          onDoubleTap: _refreshFeed,
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: Text(
+                              context.tr('social.for_you'),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -291,16 +345,16 @@ class _SocialPageState extends State<SocialPage> {
   }
 
   Widget _buildForYouBody() {
-    if (_loading) {
+    if (_loading && _posts.isEmpty) {
       return SocialFeedStatusView.loading();
     }
-    if (_error != null) {
+    if (_error != null && _posts.isEmpty) {
       return SocialFeedStatusView(
         icon: PhosphorIcons.warningCircle,
         title: context.tr('social.load_failed'),
         subtitle: context.tr('social.load_failed_sub'),
         actionLabel: context.tr('social.retry'),
-        onAction: _loadInitial,
+        onAction: () => _loadInitial(),
         showPreviewSlots: false,
       );
     }
@@ -312,7 +366,7 @@ class _SocialPageState extends State<SocialPage> {
         actionLabel: context.tr('social.create_post'),
         onAction: _openCreate,
         secondaryActionLabel: context.tr('social.retry'),
-        onSecondaryAction: _loadInitial,
+        onSecondaryAction: () => _loadInitial(),
       );
     }
 
@@ -320,21 +374,38 @@ class _SocialPageState extends State<SocialPage> {
       valueListenable: NavigationController.instance.currentIndex,
       builder: (context, currentIndex, child) {
         final isTabActive = currentIndex == 2; // Social tab index is 2
-        return PageView.builder(
-          controller: _pageController,
-          scrollDirection: Axis.vertical,
-          allowImplicitScrolling: true,
-          itemCount: _posts.length,
-          onPageChanged: (index) {
-            setState(() => _currentPage = index);
-            _managePreload(index);
-            _loadMoreIfNeeded(index);
+        final topPadding = MediaQuery.of(context).padding.top;
+        return RefreshIndicator(
+          key: _refreshIndicatorKey,
+          color: AppColors.primary,
+          backgroundColor: const Color(0xFF222228),
+          displacement: 70,
+          edgeOffset: topPadding + 10,
+          onRefresh: () => _loadInitial(isPullToRefresh: true),
+          notificationPredicate: (notification) {
+            return notification.depth == 0 && _currentPage == 0;
           },
-          itemBuilder: (context, index) => _SocialFeedItem(
-            post: _posts[index],
-            isActive: isTabActive && index == _currentPage,
-            preloadedController: _videoControllers[index],
-            onDeleted: () => _loadInitial(),
+          child: PageView.builder(
+            controller: _pageController,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(
+                parent: PageScrollPhysics(),
+              ),
+            ),
+            scrollDirection: Axis.vertical,
+            allowImplicitScrolling: true,
+            itemCount: _posts.length,
+            onPageChanged: (index) {
+              setState(() => _currentPage = index);
+              _managePreload(index);
+              _loadMoreIfNeeded(index);
+            },
+            itemBuilder: (context, index) => _SocialFeedItem(
+              post: _posts[index],
+              isActive: isTabActive && index == _currentPage,
+              preloadedController: _videoControllers[index],
+              onDeleted: () => _loadInitial(),
+            ),
           ),
         );
       },
@@ -574,6 +645,14 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   late PageController _horizontalController;
   final GlobalKey _likeKey = GlobalKey();
   final List<_HeartBurst> _bursts = [];
+  bool _viewRecorded = false;
+
+  void _recordViewIfNeeded() {
+    if (widget.isActive && !_viewRecorded) {
+      _viewRecorded = true;
+      SocialPostsRepository.instance.recordView(widget.post.id);
+    }
+  }
 
   @override
   void initState() {
@@ -584,6 +663,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     _commentCount = widget.post.commentCount;
     _saved = widget.post.savedByMe;
     WishlistRepository.instance.addListener(_onWishlistChanged);
+    _recordViewIfNeeded();
   }
 
   void _onWishlistChanged() {
@@ -608,10 +688,12 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
       _saved = widget.post.savedByMe;
       _captionExpanded = false;
       _mediaIndex = 0;
+      _viewRecorded = false;
       if (_horizontalController.hasClients) {
         _horizontalController.jumpToPage(0);
       }
     }
+    _recordViewIfNeeded();
   }
 
   @override
@@ -755,27 +837,6 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     }
   }
 
-  String _postShareUrl() {
-    final origin = EnvConfig.isStaging
-        ? 'http://localhost:3001'
-        : 'https://api.mytogether.org';
-    return '$origin/p/${widget.post.id}';
-  }
-
-  Future<void> _sharePost() async {
-    AppHaptics.buttonTap();
-    final author = widget.post.author.displayName.trim();
-    final caption = widget.post.caption.trim();
-    final text = [
-      if (author.isNotEmpty) author,
-      if (caption.isNotEmpty) caption,
-      _postShareUrl(),
-    ].join('\n');
-    try {
-      await SharePlus.instance.share(ShareParams(text: text));
-    } catch (_) {}
-  }
-
   Future<void> _openComments() async {
     if (!await GuestAuthGuard.requireAccount(context)) return;
     if (!mounted) return;
@@ -825,14 +886,6 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _toggleSave();
-                  },
-                ),
-                _MoreTile(
-                  icon: PhosphorIcons.paperPlaneTilt,
-                  label: context.tr('social.share'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _sharePost();
                   },
                 ),
                 if (_isOwnPost)
@@ -1012,6 +1065,19 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     );
   }
 
+  void _openCreatorProfile() async {
+    AppHaptics.buttonTap();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TikTokProfilePage(
+          author: widget.post.author,
+          initialPost: widget.post,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = widget.post.media;
@@ -1124,6 +1190,8 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                   _CreatorAvatar(
                     avatarUrl: widget.post.author.avatarUrl,
                     authorName: widget.post.author.displayName,
+                    authorType: widget.post.author.type,
+                    onTap: _openCreatorProfile,
                   ),
                   const SizedBox(height: 20),
                   _LikeRailButton(
@@ -1138,12 +1206,6 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                     icon: PhosphorIcons.chatCircleDotsFill,
                     label: _formatCount(_commentCount),
                     onTap: _openComments,
-                  ),
-                  const SizedBox(height: 14),
-                  _RailAction(
-                    icon: PhosphorIcons.paperPlaneTiltFill,
-                    label: context.tr('social.share'),
-                    onTap: _sharePost,
                   ),
                   const SizedBox(height: 14),
                   _RailAction(
@@ -1174,14 +1236,18 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.post.author.handle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: _openCreatorProfile,
+                    behavior: HitTestBehavior.opaque,
+                    child: Text(
+                      widget.post.author.handle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   if (widget.post.caption.isNotEmpty) ...[
@@ -1621,16 +1687,126 @@ class _TextOnlyBackdrop extends StatelessWidget {
 class _CreatorAvatar extends StatelessWidget {
   final String? avatarUrl;
   final String authorName;
+  final SocialAuthorType authorType;
+  final VoidCallback? onTap;
 
   const _CreatorAvatar({
     this.avatarUrl,
     required this.authorName,
+    this.authorType = SocialAuthorType.user,
+    this.onTap,
   });
 
+  /// Curated luxury gradient palette for personal accounts
+  static const List<List<Color>> _avatarGradients = [
+    [Color(0xFFFF5E62), Color(0xFFFF9966)], // Sunset Coral
+    [Color(0xFF8E2DE2), Color(0xFF4A00E0)], // Deep Violet
+    [Color(0xFF00C6FF), Color(0xFF0072FF)], // Electric Ocean
+    [Color(0xFFF857A6), Color(0xFFFF5858)], // Neon Rose
+    [Color(0xFF11998E), Color(0xFF38EF7D)], // Mint Emerald
+    [Color(0xFFFF8008), Color(0xFFFFC837)], // Warm Amber
+    [Color(0xFF654EA3), Color(0xFFEAAFC8)], // Lavender Bloom
+    [Color(0xFF1D976C), Color(0xFF93F9B9)], // Lush Jade
+    [Color(0xFFFC5C7D), Color(0xFF6A82FB)], // Velvet Twilight
+    [Color(0xFF2193B0), Color(0xFF6DD5ED)], // Arctic Blue
+    [Color(0xFFDA22FF), Color(0xFF9733EE)], // Cyber Magenta
+    [Color(0xFFFA709A), Color(0xFFFEE140)], // Peach Sunrise
+  ];
+
+  static LinearGradient _getGradientForName(String name) {
+    if (name.isEmpty) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+      );
+    }
+    int hash = 0;
+    for (final unit in name.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7FFFFFFF;
+    }
+    final colors = _avatarGradients[hash % _avatarGradients.length];
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: colors,
+    );
+  }
+
+  static String _extractInitials(String rawName) {
+    final clean = rawName.replaceAll(RegExp(r'^[@\s\-_.]+'), '').trim();
+    if (clean.isEmpty) return 'U';
+
+    final words = clean.split(RegExp(r'[\s\-_\.]+')).where((w) => w.isNotEmpty).toList();
+    if (words.length >= 2) {
+      final f = words[0].characters.first.toUpperCase();
+      final s = words[1].characters.first.toUpperCase();
+      if (RegExp(r'^[A-Z0-9]').hasMatch(f) && RegExp(r'^[A-Z0-9]').hasMatch(s)) {
+        return '$f$s';
+      }
+      return f;
+    }
+
+    return clean.characters.first.toUpperCase();
+  }
+
+  Widget _buildUserInitialAvatar() {
+    final initials = _extractInitials(authorName);
+    final gradient = _getGradientForName(authorName);
+    final isTwoLetters = initials.length > 1;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Glass specular depth overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: 0.28),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.18),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
+          // Centered crisp typography
+          Center(
+            child: Text(
+              initials,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: isTwoLetters ? 15 : 19,
+                fontWeight: FontWeight.w700,
+                letterSpacing: isTwoLetters ? -0.5 : 0,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDefaultAvatar() {
-    if (authorName.toLowerCase().contains('super admin')) {
+    final isSuperAdmin = authorType == SocialAuthorType.admin ||
+        authorName.toLowerCase().contains('super admin');
+    if (isSuperAdmin) {
       return Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: AppColors.primaryGradient,
         ),
         child: Image.asset(
@@ -1646,28 +1822,40 @@ class _CreatorAvatar extends StatelessWidget {
         ),
       );
     }
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-      ),
-      child: Center(
-        child: Image.asset(
-          'assets/images/logo_3d.png',
-          cacheWidth: 100,
-          fit: BoxFit.cover,
+
+    if (authorType == SocialAuthorType.shop) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.primaryGradient,
         ),
-      ),
-    );
+        child: Center(
+          child: Image.asset(
+            'assets/images/logo_3d.png',
+            cacheWidth: 100,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+
+    return _buildUserInitialAvatar();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final avatar = Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ClipOval(
         child: avatarUrl != null && avatarUrl!.isNotEmpty
@@ -1679,6 +1867,14 @@ class _CreatorAvatar extends StatelessWidget {
             : _buildDefaultAvatar(),
       ),
     );
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: avatar,
+      );
+    }
+    return avatar;
   }
 }
 
@@ -1724,66 +1920,6 @@ class _RailAction extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MyPostsAvatarButton extends StatelessWidget {
-  const _MyPostsAvatarButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final raw = AuthService().currentUser?.avatarUrl;
-    final url = raw == null || raw.isEmpty
-        ? ''
-        : (raw.startsWith('http') ? raw : '${ApiClient.baseUrl}/$raw');
-    return Semantics(
-      button: true,
-      label: context.tr('social.my_posts'),
-      child: GestureDetector(
-        onTap: () => MyPostsPage.open(context),
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                  color: Colors.black45,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: url.isEmpty
-                    ? const Icon(PhosphorIcons.user, color: Colors.white, size: 20)
-                    : CachedNetworkImage(imageUrl: url, fit: BoxFit.cover),
-              ),
-              Positioned(
-                right: -2,
-                bottom: -2,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black54),
-                  ),
-                  child: const Icon(
-                    PhosphorIcons.squaresFour,
-                    size: 10,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,6 +1,11 @@
 import 'package:flutter/foundation.dart';
 
 class EnvConfig {
+  static const String cdnUrl = String.fromEnvironment(
+    'CDN_URL',
+    defaultValue: '',
+  );
+
   static const String appEnv = String.fromEnvironment(
     'APP_ENV',
     defaultValue: 'production',
