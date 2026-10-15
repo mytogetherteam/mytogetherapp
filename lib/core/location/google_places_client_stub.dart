@@ -9,10 +9,15 @@ class GooglePlacesClient {
     String query, {
     double? lat,
     double? lon,
+    String? sessionToken,
   }) async =>
       [];
 
-  Future<PlaceResult?> getPlaceDetails(PlaceResult place) async => place;
+  Future<PlaceResult?> getPlaceDetails(
+    PlaceResult place, {
+    String? sessionToken,
+  }) async =>
+      place;
 
   Future<PlaceResult?> nearbySearch(double lat, double lon) async => null;
 

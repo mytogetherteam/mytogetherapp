@@ -196,15 +196,48 @@ class LocationSearchService {
 
   final GooglePlacesClient _client = GooglePlacesClient.instance;
 
-  /// Forward geocode: search using Autocomplete + Text Search, then Geocoding fallback.
+  String? _sessionToken;
+
+  /// Generates a RFC 4122 v4 UUID for Google Places API session bundling
+  static String _generateSessionToken() {
+    final random = Random.secure();
+    final values = List<int>.generate(16, (i) => random.nextInt(256));
+    values[6] = (values[6] & 0x0f) | 0x40;
+    values[8] = (values[8] & 0x3f) | 0x80;
+    final buffer = StringBuffer();
+    for (var i = 0; i < 16; i++) {
+      if (i == 4 || i == 6 || i == 8 || i == 10) {
+        buffer.write('-');
+      }
+      buffer.write(values[i].toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
+  /// Start or retrieve active session token
+  String _getOrCreateSessionToken() {
+    return _sessionToken ??= _generateSessionToken();
+  }
+
+  /// Reset session token once a place is selected or search is cleared
+  void resetSession() {
+    _sessionToken = null;
+  }
+
+  /// Forward geocode: search using Autocomplete (with session token), then Geocoding fallback.
   Future<List<PlaceResult>> searchPlaces(String query, {double? lat, double? lon}) {
     if (!GoogleMapsConfig.placesSearchEnabled) return Future.value([]);
-    return _client.searchPlaces(query, lat: lat, lon: lon);
+    final token = _getOrCreateSessionToken();
+    return _client.searchPlaces(query, lat: lat, lon: lon, sessionToken: token);
   }
 
   /// Pre-fetches the details (including lat/lon) for a specific place_id if it's missing them.
-  Future<PlaceResult?> getPlaceDetails(PlaceResult place) {
-    return _client.getPlaceDetails(place);
+  /// Passes the active session token to bundle with autocomplete, then terminates the session.
+  Future<PlaceResult?> getPlaceDetails(PlaceResult place) async {
+    final token = _sessionToken;
+    final result = await _client.getPlaceDetails(place, sessionToken: token);
+    resetSession();
+    return result;
   }
 
   Future<PlaceResult?> nearbySearch(double lat, double lon) async {
@@ -243,36 +276,19 @@ class LocationSearchService {
   }
 
   Future<PlaceResult?> _reverseGeocodeGoogleFirst(double lat, double lon) async {
-    try {
-      // 1. Try to snap to a nearby POI (within 30m) like Grab does
-      final nearby = await nearbySearch(lat, lon).timeout(const Duration(seconds: 4));
-      if (nearby != null && nearby.name.trim().isNotEmpty) {
-        return nearby;
-      }
-    } catch (_) {}
-
+    // 1. Call Google Reverse Geocoding directly (/geocode/json)
+    // Avoid calling expensive /place/nearbysearch/json ($32/1k) on every map pin drop.
+    // Geocoding API already resolves buildings, premises, and formatted addresses.
     try {
       final google = await _client
           .reverseGeocode(lat, lon)
           .timeout(const Duration(seconds: 4));
       if (google != null && google.displayName.trim().isNotEmpty) {
-        final type = google.type ?? '';
-        if (google.placeId.isNotEmpty &&
-            (type.contains('establishment') ||
-                type.contains('point_of_interest') ||
-                type.contains('premise') ||
-                type.contains('building'))) {
-          // If it's a POI, fetch the true name using Place Details
-          // Zero lat/lon to force getPlaceDetails to actually fetch.
-          final details = await getPlaceDetails(google.copyWith(lat: 0, lon: 0));
-          if (details != null && details.name.trim().isNotEmpty) {
-            return google.copyWith(name: details.name);
-          }
-        }
         return google;
       }
     } catch (_) {}
 
+    // 2. Free OpenStreetMap fallback
     try {
       return await NominatimGeocoder.reverseGeocode(lat, lon)
           .timeout(const Duration(seconds: 6));

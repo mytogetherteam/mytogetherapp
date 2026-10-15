@@ -243,6 +243,8 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Future<void> _handleGoogleSignIn() async {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isGoogleLoading || _isLoading) return;
     if (!_agreedToTerms) {
       HapticFeedback.heavyImpact();
@@ -266,6 +268,9 @@ class _RegisterPageState extends State<RegisterPage>
         idToken: google.idToken,
       );
       if (!mounted) return;
+
+      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
 
       if (result.isNewUser) {
         Navigator.of(context).push(
@@ -379,9 +384,9 @@ class _RegisterPageState extends State<RegisterPage>
                             offset: Offset(_shakeAnimation.value, 0),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: _termsError ? Colors.red.withOpacity(0.05) : Colors.transparent,
+                                color: _termsError ? Colors.red.withValues(alpha: 0.05) : Colors.transparent,
                                 border: Border.all(
-                                  color: _termsError ? Colors.red.withOpacity(0.5) : Colors.transparent,
+                                  color: _termsError ? Colors.red.withValues(alpha: 0.5) : Colors.transparent,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),

@@ -81,8 +81,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       );
     };
 
-    // Request permissions after first frame.
+    // Ensure any soft keyboard from auth/onboarding is closed, then request permissions.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
       _checkAndRequestPermissions();
     });
   }

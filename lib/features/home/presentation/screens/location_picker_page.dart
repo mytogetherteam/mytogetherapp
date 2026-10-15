@@ -160,6 +160,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _searchDebounce?.cancel();
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
+      LocationSearchService.instance.resetSession();
       setState(() {
         _searchResults = [];
         _isSearching = false;

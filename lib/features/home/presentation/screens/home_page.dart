@@ -72,6 +72,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _promoController = PageController(initialPage: 10000);
     _loadJobVisitCount();
 
+    // Dismiss any leftover keyboard from auth/onboarding
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+
     // Forcefully remove splash screen after 3 seconds to prevent getting stuck
     Future.delayed(const Duration(seconds: 3), () {
       FlutterNativeSplash.remove();

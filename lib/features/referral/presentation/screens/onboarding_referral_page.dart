@@ -43,6 +43,8 @@ class _OnboardingReferralPageState extends State<OnboardingReferralPage> {
   }
 
   void _navigateToHome() {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 

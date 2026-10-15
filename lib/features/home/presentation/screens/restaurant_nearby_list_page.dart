@@ -19,7 +19,6 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_map_theme.dart';
-import '../../../../core/config/google_maps_config.dart';
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/presentation/utils/paginated_list_controller.dart';
 import '../../../../core/presentation/widgets/pagination_list_footer.dart';
@@ -65,7 +64,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   int _mapFetchEpoch = 0;
 
   late final Dio _dio;
-  String get _googleMapsApiKey => GoogleMapsConfig.apiKey;
 
   @override
   void initState() {
@@ -323,70 +321,96 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       ),
     );
 
-    // Using Google Maps Directions API
-    final url = 'https://maps.googleapis.com/maps/api/directions/json';
+    // Use OSRM for free routing (same engine as order tracking)
+    final url =
+        'https://router.project-osrm.org/route/v1/driving/${startLoc.longitude},${startLoc.latitude};${selected.longitude},${selected.latitude}?geometries=geojson';
 
     try {
       final response = await _dio
-          .get(
-            url,
-            queryParameters: {
-              'origin': '${startLoc.latitude},${startLoc.longitude}',
-              'destination': '${selected.latitude},${selected.longitude}',
-              'key': _googleMapsApiKey,
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+          .get(url)
+          .timeout(const Duration(seconds: 6));
+
+      List<LatLng> finalPoints = [];
 
       if (response.statusCode == 200 &&
           response.data['routes'] != null &&
-          response.data['routes'].isNotEmpty) {
-        final String encodedPolyline =
-            response.data['routes'][0]['overview_polyline']['points'];
-        final List<LatLng> finalPoints = _decodePolyline(encodedPolyline);
-
-        if (mounted) {
-          // Build tight bounds including start and end
-          final swLat = min(startLoc.latitude, selected.latitude!);
-          final swLon = min(startLoc.longitude, selected.longitude!);
-          final neLat = max(startLoc.latitude, selected.latitude!);
-          final neLon = max(startLoc.longitude, selected.longitude!);
-          final bounds = LatLngBounds(
-            southwest: LatLng(swLat, swLon),
-            northeast: LatLng(neLat, neLon),
-          );
-          _routeBounds = bounds;
-
-          setState(() {
-            _polylines = {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                points: finalPoints,
-                color: AppColors.primary,
-                width: 5,
-                jointType: JointType.round,
-                endCap: Cap.roundCap,
-                startCap: Cap.roundCap,
-              ),
-            };
-            _isRouting = false;
-          });
-
-          // Fit camera to show both endpoints.
-          // Map padding will automatically handle the bottom sheet offset.
-          controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80.0));
-        }
+          (response.data['routes'] as List).isNotEmpty) {
+        final route = response.data['routes'][0];
+        final List coords = route['geometry']['coordinates'];
+        finalPoints = coords
+            .map<LatLng>((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+            .toList();
       } else {
+        finalPoints = [
+          LatLng(startLoc.latitude, startLoc.longitude),
+          LatLng(selected.latitude!, selected.longitude!),
+        ];
+      }
+
+      if (mounted && finalPoints.isNotEmpty) {
+        // Build tight bounds including start and end
+        final swLat = min(startLoc.latitude, selected.latitude!);
+        final swLon = min(startLoc.longitude, selected.longitude!);
+        final neLat = max(startLoc.latitude, selected.latitude!);
+        final neLon = max(startLoc.longitude, selected.longitude!);
+        final bounds = LatLngBounds(
+          southwest: LatLng(swLat, swLon),
+          northeast: LatLng(neLat, neLon),
+        );
+        _routeBounds = bounds;
+
         setState(() {
+          _polylines = {
+            Polyline(
+              polylineId: const PolylineId('route'),
+              points: finalPoints,
+              color: AppColors.primary,
+              width: 5,
+              jointType: JointType.round,
+              endCap: Cap.roundCap,
+              startCap: Cap.roundCap,
+            ),
+          };
           _isRouting = false;
         });
-        _launchExternalMaps(startLoc.latitude, startLoc.longitude, selected.latitude!, selected.longitude!);
+
+        // Fit camera to show both endpoints.
+        // Map padding will automatically handle the bottom sheet offset.
+        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80.0));
       }
     } catch (e) {
-      setState(() {
-        _isRouting = false;
-      });
-      _launchExternalMaps(startLoc.latitude, startLoc.longitude, selected.latitude!, selected.longitude!);
+      if (mounted) {
+        final fallbackPoints = [
+          LatLng(startLoc.latitude, startLoc.longitude),
+          LatLng(selected.latitude!, selected.longitude!),
+        ];
+        final swLat = min(startLoc.latitude, selected.latitude!);
+        final swLon = min(startLoc.longitude, selected.longitude!);
+        final neLat = max(startLoc.latitude, selected.latitude!);
+        final neLon = max(startLoc.longitude, selected.longitude!);
+        final bounds = LatLngBounds(
+          southwest: LatLng(swLat, swLon),
+          northeast: LatLng(neLat, neLon),
+        );
+        _routeBounds = bounds;
+
+        setState(() {
+          _polylines = {
+            Polyline(
+              polylineId: const PolylineId('route'),
+              points: fallbackPoints,
+              color: AppColors.primary,
+              width: 5,
+              jointType: JointType.round,
+              endCap: Cap.roundCap,
+              startCap: Cap.roundCap,
+            ),
+          };
+          _isRouting = false;
+        });
+        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80.0));
+        _launchExternalMaps(startLoc.latitude, startLoc.longitude, selected.latitude!, selected.longitude!);
+      }
     }
   }
 
@@ -426,35 +450,6 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         );
       }
     });
-  }
-
-  /// Decodes a Google Maps encoded polyline string into a list of LatLng points.
-  static List<LatLng> _decodePolyline(String encoded) {
-    final List<LatLng> points = [];
-    int index = 0;
-    int lat = 0;
-    int lng = 0;
-    while (index < encoded.length) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      final int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      final int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-      points.add(LatLng(lat / 1e5, lng / 1e5));
-    }
-    return points;
   }
 
   /// Creates a custom branded map pin with a fork/spoon icon and restaurant name.

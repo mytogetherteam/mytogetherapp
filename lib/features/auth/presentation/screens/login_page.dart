@@ -102,6 +102,8 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _handleGoogleSignIn() async {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isGoogleLoading || _isLoading) return;
     setState(() => _isGoogleLoading = true);
     try {
@@ -124,6 +126,9 @@ class _LoginPageState extends State<LoginPage>
         );
         return;
       }
+
+      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),

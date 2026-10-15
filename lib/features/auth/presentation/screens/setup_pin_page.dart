@@ -137,6 +137,8 @@ class _SetupPinPageState extends State<SetupPinPage>
       );
 
       if (!mounted) return;
+      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
       // Registration successful, show welcome referral page with skip
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const OnboardingReferralPage()),
