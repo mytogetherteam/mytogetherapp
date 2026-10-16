@@ -99,6 +99,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
     });
   }
 
+  // ignore: unused_element
   Widget _buildNoImagePlaceholder(BuildContext context, {bool isLogo = false}) {
     return Container(
       color: Colors.grey[100],

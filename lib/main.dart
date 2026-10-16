@@ -221,7 +221,8 @@ void main() async {
       await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
     } catch (e) {
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
+    debugPrint('Startup initialization error: $e');
   }
 
   SystemChrome.setSystemUIOverlayStyle(

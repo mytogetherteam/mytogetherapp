@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 import '../restaurant_data.dart';
 import '../models/banner_image_dto.dart';

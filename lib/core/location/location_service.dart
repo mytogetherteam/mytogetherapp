@@ -53,7 +53,7 @@ class LocationService {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled()
           .timeout(Duration(seconds: kIsWeb ? 5 : 4));
       if (!serviceEnabled) {
-        return _useFallback(LocationUnavailableReason.serviceDisabled);
+        return await _useFallback(LocationUnavailableReason.serviceDisabled);
       }
 
       var permission = await Geolocator.checkPermission()
@@ -63,14 +63,14 @@ class LocationService {
           permission = await Geolocator.requestPermission()
               .timeout(Duration(seconds: kIsWeb ? 10 : 8));
         } else {
-          return _useFallback(LocationUnavailableReason.permissionDenied);
+          return await _useFallback(LocationUnavailableReason.permissionDenied);
         }
       }
       if (permission == LocationPermission.denied) {
-        return _useFallback(LocationUnavailableReason.permissionDenied);
+        return await _useFallback(LocationUnavailableReason.permissionDenied);
       }
       if (permission == LocationPermission.deniedForever) {
-        return _useFallback(LocationUnavailableReason.permissionDeniedForever);
+        return await _useFallback(LocationUnavailableReason.permissionDeniedForever);
       }
 
       if (!forceRefresh && !kIsWeb) {

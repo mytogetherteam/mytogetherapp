@@ -5,7 +5,6 @@ import "package:mytogetherapp/core/location/location_service.dart";
 import "package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart";
 import "package:mytogetherapp/core/presentation/widgets/app_dialog.dart";
 import "package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart";
-import "package:mytogetherapp/core/theme/app_colors.dart";
 import "package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart";
 import "package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart";
 import "../widgets/place_card.dart";
@@ -13,6 +12,7 @@ import "../../data/models/place_dto.dart";
 import "../../data/repositories/places_repository.dart";
 import "place_detail_page.dart";
 
+// ignore: unused_element
 class _ActivityFilterItem {
   final String key;
   final String labelKey;
@@ -27,6 +27,7 @@ class _ActivityFilterItem {
   });
 }
 
+// ignore: unused_element
 const List<_ActivityFilterItem> _activityFilters = [
   _ActivityFilterItem(key: "ALL", labelKey: "place.filter_all", defaultLabel: "All", icon: "✨"),
   _ActivityFilterItem(key: "BADMINTON", labelKey: "place.activity_badminton", defaultLabel: "Badminton", icon: "🏸"),
@@ -124,6 +125,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
     await _pagination.refresh();
   }
 
+  // ignore: unused_element
   void _onSelectActivity(String key) {
     if (_selectedActivity == key) return;
     setState(() {

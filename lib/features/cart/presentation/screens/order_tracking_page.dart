@@ -70,7 +70,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   List<LatLng> _routePoints = [];
+  // ignore: unused_field
   bool _isRouting = false;
+  // ignore: unused_field
   bool _showMap = false;
   StreamSubscription<Position>? _positionStreamSubscription;
 
@@ -128,6 +130,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     return url.isNotEmpty ? url : null;
   }
 
+  // ignore: unused_element
   String? get _foodImageUrl {
     if (widget.store.items.isNotEmpty) {
       for (final item in widget.store.items) {
@@ -211,7 +214,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   StreamSubscription? _orderSubscription;
   Timer? _statusPollTimer;
   int? _lastReconciledOrderStatus;
+  // ignore: unused_field
   Set<Marker> _markers = {};
+  // ignore: unused_field
   Set<Polyline> _polylines = {};
   BitmapDescriptor? _homeIcon;
   BitmapDescriptor? _shopIcon;
@@ -1293,10 +1298,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   @override
   Widget build(BuildContext context) {
-
-
-    final screenH = MediaQuery.of(context).size.height;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -2035,7 +2036,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             duration: const Duration(milliseconds: 600),
                             child: CachedNetworkImage(
                               key: ValueKey(centerUrl),
-                              imageUrl: centerUrl ?? '',
+                              imageUrl: centerUrl,
                               width: 180,
                               height: 180,
                               fit: BoxFit.cover,

@@ -352,7 +352,6 @@ class WebSocketService {
           // ── MENU_ITEM_UPDATE (Real-time Menu synchronization) ─────────────
           if (messageType == 'MENU_ITEM_UPDATE') {
             final shopId = raw['shopId'];
-            final itemId = raw['itemId'];
             if (shopId != null) {
               final id = int.tryParse(shopId.toString());
               if (id != null) {
@@ -415,8 +414,6 @@ class WebSocketService {
                         ?.toString();
               }
             }
-
-            final displayStatus = (status ?? 'UNKNOWN').toUpperCase();
 
             ActiveOrderState.instance.updateFromSocket(orderRaw);
             _orderUpdateController.add(orderRaw);

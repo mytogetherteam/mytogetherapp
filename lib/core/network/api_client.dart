@@ -105,7 +105,6 @@ class ApiClient {
     }
 
     var start = 0;
-    var part = 1;
     while (start < truncated.length) {
       final end = _safeSubstringEnd(
         truncated,
@@ -113,7 +112,6 @@ class ApiClient {
         start + chunkSize,
       );
       start = end;
-      part++;
     }
   }
 

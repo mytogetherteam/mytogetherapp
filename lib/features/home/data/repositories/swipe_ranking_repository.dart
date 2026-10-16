@@ -1,6 +1,5 @@
 import '../../../../core/network/api_client.dart';
 import '../models/shop_feed_item_dto.dart';
-import 'package:flutter/foundation.dart';
 
 class SwipeRankingRepository {
   static final SwipeRankingRepository instance = SwipeRankingRepository._();

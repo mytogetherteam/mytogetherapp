@@ -345,7 +345,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    App.routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      App.routeObserver.subscribe(this, route);
+    }
   }
 
   Future<void> _handleRefresh({bool silent = false}) async {

@@ -5,7 +5,6 @@ import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
-import 'package:mytogetherapp/core/config/env_config.dart';
 import '../../data/models/announcement_model.dart';
 
 /// Full-bleed announcement detail, styled after the early-access reference:

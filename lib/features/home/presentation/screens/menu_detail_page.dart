@@ -974,6 +974,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ? PhosphorIcons.heartFill
                           : PhosphorIcons.heart,
                       onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         if (!await GuestAuthGuard.requireAccount(context)) {
                           return;
                         }
@@ -984,7 +985,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         setState(() {
                           _isFavorite = !_isFavorite;
                         });
-                        final messenger = ScaffoldMessenger.of(context);
                         final savedNow = _isFavorite;
                         try {
                           await RestaurantRepository.instance

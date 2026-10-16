@@ -35,7 +35,7 @@ class GooglePlacesClient {
         sessionToken: sessionToken,
       );
       if (results.isNotEmpty) return results;
-      return _geocodeSearch(query, lat: lat, lon: lon);
+      return await _geocodeSearch(query, lat: lat, lon: lon);
     } catch (_) {
       return [];
     }

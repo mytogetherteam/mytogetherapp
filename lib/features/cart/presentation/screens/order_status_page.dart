@@ -80,6 +80,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   StreamSubscription? _orderSubscription;
 
   /// Remote Order-position banner (waiting/cooking visual). Null = use asset GIF.
+  // ignore: unused_field
   String? _orderWaitingImageUrl;
 
   @override
@@ -592,7 +593,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     if (showFlexibleDeliveryFee && adjustedTotalAmount != null) {
       final payNowWithoutDelivery = state.resolvedPayNowTotal(fallbackDeliveryFee: 0);
       if ((adjustedTotalAmount - payNowWithoutDelivery).abs() < 0.01) {
-        adjustedTotalAmount += (delivery ?? 0.0);
+        adjustedTotalAmount += delivery;
         backendTotalAdjusted = true;
       }
     }
@@ -1908,6 +1909,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
+  // ignore: unused_element
   Widget _buildSmallCircleButton(IconData icon, {VoidCallback? onTap}) {
     final button = Container(
       padding: const EdgeInsets.all(8),

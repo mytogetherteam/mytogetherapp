@@ -455,7 +455,7 @@ class _ChatPageState extends State<ChatPage>
       widget.orderId,
       text,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     setState(() {
       _isSending = false;
@@ -497,7 +497,7 @@ class _ChatPageState extends State<ChatPage>
       durationSeconds: result.durationSeconds,
     );
     await ChatVoiceRecorder.deleteFile(result.path);
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     setState(() {
       _isSending = false;
@@ -543,7 +543,7 @@ class _ChatPageState extends State<ChatPage>
     if (!mounted || picked == null) return;
 
     final image = await PickedImage.fromXFile(picked);
-    if (!context.mounted) return;
+    if (!mounted) return;
     if (image.isVideo || !image.mimeType.startsWith('image/')) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('chat.video_not_allowed'))),
@@ -571,7 +571,7 @@ class _ChatPageState extends State<ChatPage>
       widget.orderId,
       image,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     setState(() {
       _isSending = false;
@@ -1109,7 +1109,7 @@ class _ChatPageState extends State<ChatPage>
                 shopImageUrl: widget.avatarUrl,
                 orderId: widget.orderId,
               );
-              if (!context.mounted) return;
+              if (!mounted) return;
               if (success) {
                 Navigator.push(
                   context,

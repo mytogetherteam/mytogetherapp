@@ -174,9 +174,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       final currentStore = (currentStoreIdx != -1)
           ? CartManager.instance.stores[currentStoreIdx]
           : widget.store;
-      final totalStorePrice = (currentStoreIdx != -1)
-          ? CartManager.instance.getStoreTotal(currentStore.nameKey)
-          : widget.store.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toInt();
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _selectedCoupon == null) {
@@ -716,7 +713,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       // [_orderPlacementInFlight], which must not run before ensureCanPlaceNewOrder().
       ActiveOrderState.instance.beginOrderPlacement();
 
-      if (!context.mounted) return;
+      if (!mounted) return;
       final nav = Navigator.of(context);
       final foodTotal =
           CartManager.instance.getStoreTotal(widget.store.nameKey);
@@ -870,7 +867,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         displayTaxAmount: backendDisplayTax,
         taxEnable: orderTaxEnable,
         paymentMethod:
-            _selectedPaymentType?.displayName ?? (context.mounted ? context.tr('cart.payment') : 'Payment'),
+            _selectedPaymentType?.displayName ?? (mounted ? context.tr('cart.payment') : 'Payment'),
         paymentMethodId: selectedMethodId,
         paymentMethodImageUrl: selectedMethodImage,
         items: List.from(storeItems),

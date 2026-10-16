@@ -43,8 +43,6 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
       final shops = await RestaurantRepository.instance.getShopsWithActiveMyDays(
         size: 30,
       ).timeout(const Duration(seconds: 10));
-      for (var shop in shops) {
-      }
 
       return shops;
     } catch (e) {

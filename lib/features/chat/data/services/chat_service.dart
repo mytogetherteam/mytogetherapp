@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -116,7 +115,7 @@ class ChatService {
         );
       }
       return null;
-    } on DioException catch (e) {
+    } on DioException {
       return null;
     } catch (e) {
       return null;
@@ -168,7 +167,7 @@ class ChatService {
         );
       }
       return null;
-    } on DioException catch (e) {
+    } on DioException {
       return null;
     } catch (e) {
       return null;
