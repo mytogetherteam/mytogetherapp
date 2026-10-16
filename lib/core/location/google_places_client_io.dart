@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 import '../config/google_maps_config.dart';
 import 'location_search_service.dart';
@@ -23,44 +22,40 @@ class GooglePlacesClient {
     String query, {
     double? lat,
     double? lon,
+    String? sessionToken,
   }) async {
     if (query.trim().isEmpty) return [];
 
     try {
-      final results = await Future.wait([
-        _autocomplete(query, lat: lat, lon: lon),
-        _textSearch(query, lat: lat, lon: lon),
-      ]);
-      final merged = _mergeByPlaceId([...results[0], ...results[1]]);
-      if (merged.isNotEmpty) return merged;
+      // Use Autocomplete only — avoid expensive Text Search ($32/1k requests)
+      final results = await _autocomplete(
+        query,
+        lat: lat,
+        lon: lon,
+        sessionToken: sessionToken,
+      );
+      if (results.isNotEmpty) return results;
       return _geocodeSearch(query, lat: lat, lon: lon);
-    } catch (e) {
+    } catch (_) {
       return [];
     }
-  }
-
-  List<PlaceResult> _mergeByPlaceId(List<PlaceResult> places) {
-    final seen = <String>{};
-    final merged = <PlaceResult>[];
-    for (final place in places) {
-      if (place.placeId.isEmpty) continue;
-      if (seen.add(place.placeId)) {
-        merged.add(place);
-      }
-    }
-    return merged;
   }
 
   Future<List<PlaceResult>> _autocomplete(
     String query, {
     double? lat,
     double? lon,
+    String? sessionToken,
   }) async {
     final params = <String, dynamic>{
       'input': query,
       'key': _apiKey,
       'language': 'en',
     };
+
+    if (sessionToken != null && sessionToken.isNotEmpty) {
+      params['sessiontoken'] = sessionToken;
+    }
 
     if (lat != null && lon != null) {
       params['location'] = '$lat,$lon';
@@ -113,48 +108,6 @@ class GooglePlacesClient {
     return null;
   }
 
-  Future<List<PlaceResult>> _textSearch(
-    String query, {
-    double? lat,
-    double? lon,
-  }) async {
-    try {
-      final params = <String, dynamic>{
-        'query': query,
-        'key': _apiKey,
-        'language': 'en',
-        'region': 'th',
-      };
-
-      if (lat != null && lon != null) {
-        params['location'] = '$lat,$lon';
-        params['radius'] = 50000;
-      }
-
-      final response =
-          await _dio.get('/place/textsearch/json', queryParameters: params);
-      final status = response.data['status']?.toString() ?? '';
-
-      if (status == 'OK') {
-        final results = response.data['results'] as List<dynamic>? ?? [];
-        return results
-            .take(20)
-            .map(
-              (e) => PlaceResult.fromGoogleTextSearch(
-                e as Map<String, dynamic>,
-                userLat: lat,
-                userLon: lon,
-              ),
-            )
-            .toList();
-      }
-
-      if (status == 'ZERO_RESULTS') return [];
-    } catch (e) {
-    }
-    return [];
-  }
-
   Future<List<PlaceResult>> _geocodeSearch(
     String query, {
     double? lat,
@@ -186,20 +139,30 @@ class GooglePlacesClient {
             )
             .toList();
       }
-    } catch (e) {
+    } catch (_) {
+      // Ignored: fallback to empty list
     }
     return [];
   }
 
-  Future<PlaceResult?> getPlaceDetails(PlaceResult place) async {
+  Future<PlaceResult?> getPlaceDetails(
+    PlaceResult place, {
+    String? sessionToken,
+  }) async {
     if (place.lat != 0 && place.lon != 0) return place;
 
     try {
-      final response = await _dio.get('/place/details/json', queryParameters: {
+      final params = <String, dynamic>{
         'place_id': place.placeId,
         'key': _apiKey,
         'fields': 'geometry,name,formatted_address,type',
-      });
+      };
+      if (sessionToken != null && sessionToken.isNotEmpty) {
+        params['sessiontoken'] = sessionToken;
+      }
+
+      final response =
+          await _dio.get('/place/details/json', queryParameters: params);
 
       if (response.statusCode == 200 && response.data['status'] == 'OK') {
         final result = response.data['result'] as Map<String, dynamic>;
@@ -219,7 +182,9 @@ class GooglePlacesClient {
           distanceKm: place.distanceKm,
         );
       }
-    } catch (_) {}
+    } catch (_) {
+      // Ignored: return original place
+    }
     return place;
   }
 
@@ -254,10 +219,9 @@ class GooglePlacesClient {
             userLon: lon,
           );
         }
-      } else {
       }
       return null;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }

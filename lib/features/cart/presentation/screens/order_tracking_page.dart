@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
 import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +39,15 @@ import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import '../../../call/data/call_session.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
+
+class _OrderAdSlide {
+  final String imageUrl;
+  final String? videoUrl;
+
+  const _OrderAdSlide({required this.imageUrl, this.videoUrl});
+
+  bool get hasVideo => videoUrl != null && videoUrl!.isNotEmpty;
+}
 
 class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
@@ -83,7 +93,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   int _currentImageIndex = 0;
   Timer? _slideshowTimer;
-  List<String> _slideImages = [];
+  List<_OrderAdSlide> _adSlides = [];
+  VideoPlayerController? _adVideo;
+  int _adVideoGeneration = 0;
+  bool _adVideoReady = false;
+  bool _adVideoCompletionHandled = false;
+  final Set<VideoPlayerController> _disposedAdVideos = {};
 
   int _currentMenuItemImageIndex = 0;
   Timer? _menuItemSlideshowTimer;
@@ -273,14 +288,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         timer.cancel();
         return;
       }
-      setState(() {
-        if (_adSecondsRemaining > 0) {
-          _adSecondsRemaining--;
-        } else {
-          _showAdScreen = false;
-          timer.cancel();
-        }
-      });
+      if (_adSecondsRemaining > 0) {
+        setState(() => _adSecondsRemaining--);
+        return;
+      }
+      timer.cancel();
+      _endAdScreen();
     });
 
     // Solid idle trailing animation
@@ -538,6 +551,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _idleSequenceTimer?.cancel();
     _waitingHintTimer?.cancel();
     _slideshowTimer?.cancel();
+    _releaseAdVideo();
     _positionStreamSubscription?.cancel();
     _orderSubscription?.cancel();
     _mapController?.dispose();
@@ -554,16 +568,134 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     if (urls.isEmpty && _restaurantLogoUrl != null) {
       urls.add(_restaurantLogoUrl!);
     }
-    _slideImages = urls.toList();
-
-    if (_slideImages.length > 1) {
-      _slideshowTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() => _currentImageIndex++);
-      });
-    }
+    _adSlides = urls.map((url) => _OrderAdSlide(imageUrl: url)).toList();
+    _currentImageIndex = 0;
 
     // Prefer admin "Order Waiting" banners as the confirming-screen hero.
     _fetchOrderWaitingBanner();
+    _startAdSlide();
+  }
+
+  _OrderAdSlide? get _currentAdSlide {
+    if (_adSlides.isEmpty) return null;
+    return _adSlides[_currentImageIndex % _adSlides.length];
+  }
+
+  void _endAdScreen() {
+    _adTimer?.cancel();
+    _slideshowTimer?.cancel();
+    if (!mounted) {
+      _releaseAdVideo();
+      return;
+    }
+    setState(() => _showAdScreen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _releaseAdVideo();
+    });
+  }
+
+  void _startAdSlide() {
+    _slideshowTimer?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_showAdScreen) return;
+      unawaited(_syncAdVideo());
+      _scheduleAdAdvance();
+    });
+  }
+
+  void _scheduleAdAdvance({bool force = false}) {
+    _slideshowTimer?.cancel();
+    if (!_showAdScreen || _adSlides.length <= 1) return;
+    final slide = _currentAdSlide;
+    if (!force && slide != null && slide.hasVideo) return;
+    _slideshowTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted || !_showAdScreen) return;
+      _advanceAdSlide();
+    });
+  }
+
+  void _advanceAdSlide() {
+    if (!mounted || !_showAdScreen || _adSlides.length <= 1) return;
+    setState(() {
+      _currentImageIndex = (_currentImageIndex + 1) % _adSlides.length;
+      _adVideoReady = false;
+    });
+    _startAdSlide();
+  }
+
+  void _releaseAdVideo() {
+    _adVideoGeneration++;
+    _adVideoReady = false;
+    _adVideoCompletionHandled = true;
+    final controller = _adVideo;
+    _adVideo = null;
+    unawaited(_disposeAdVideo(controller));
+  }
+
+  Future<void> _disposeAdVideo(VideoPlayerController? controller) async {
+    if (controller == null || _disposedAdVideos.contains(controller)) return;
+    _disposedAdVideos.add(controller);
+    controller.removeListener(_onAdVideoTick);
+    await controller.dispose();
+  }
+
+  Future<void> _syncAdVideo() async {
+    final generation = ++_adVideoGeneration;
+    final previous = _adVideo;
+    _adVideo = null;
+    _adVideoReady = false;
+    _adVideoCompletionHandled = false;
+    await _disposeAdVideo(previous);
+    if (!mounted || generation != _adVideoGeneration || !_showAdScreen) return;
+
+    final url = _currentAdSlide?.videoUrl;
+    if (url == null || url.isEmpty) return;
+
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(url),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
+    _adVideo = controller;
+    try {
+      await controller.initialize();
+      if (!mounted || generation != _adVideoGeneration || !_showAdScreen) {
+        await _disposeAdVideo(controller);
+        if (identical(_adVideo, controller)) _adVideo = null;
+        return;
+      }
+      await controller.setLooping(false);
+      await controller.setVolume(0);
+      controller.addListener(_onAdVideoTick);
+      await controller.play();
+      if (!mounted || generation != _adVideoGeneration) return;
+      setState(() => _adVideoReady = true);
+    } catch (_) {
+      await _disposeAdVideo(controller);
+      if (identical(_adVideo, controller)) _adVideo = null;
+      if (!mounted || generation != _adVideoGeneration || !_showAdScreen) return;
+      if (_adSlides.length > 1) _scheduleAdAdvance(force: true);
+    }
+  }
+
+  void _onAdVideoTick() {
+    final controller = _adVideo;
+    if (controller == null ||
+        _adVideoCompletionHandled ||
+        !_showAdScreen ||
+        !controller.value.isInitialized) {
+      return;
+    }
+    final duration = controller.value.duration;
+    if (duration == Duration.zero) return;
+    final ended =
+        controller.value.position >= duration - const Duration(milliseconds: 200);
+    if (!ended) return;
+    _adVideoCompletionHandled = true;
+    if (_adSlides.length <= 1) return;
+    Future.microtask(() {
+      if (!mounted || !_showAdScreen) return;
+      _advanceAdSlide();
+    });
   }
 
   Future<void> _fetchOrderWaitingBanner() async {
@@ -572,23 +704,31 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         position: 'Order',
       );
       if (!mounted || banners.isEmpty) return;
-      final orderUrls = banners
-          .map((b) => b.imageUrl)
-          .where((url) => url.isNotEmpty)
-          .toList();
-      if (orderUrls.isEmpty) return;
+      final slides = <_OrderAdSlide>[];
+      for (final banner in banners) {
+        final imageUrl = banner.imageUrl;
+        final videoUrl = banner.videoUrl;
+        if (imageUrl.isEmpty && (videoUrl == null || videoUrl.isEmpty)) {
+          continue;
+        }
+        slides.add(
+          _OrderAdSlide(
+            imageUrl: imageUrl,
+            videoUrl: videoUrl != null && videoUrl.isNotEmpty ? videoUrl : null,
+          ),
+        );
+      }
+      if (slides.isEmpty) return;
 
       _slideshowTimer?.cancel();
       setState(() {
-        _slideImages = orderUrls;
+        _adSlides = slides;
         _currentImageIndex = 0;
+        _adVideoReady = false;
       });
-      if (_slideImages.length > 1) {
-        _slideshowTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-          if (mounted) setState(() => _currentImageIndex++);
-        });
-      }
-    } catch (e) {
+      _startAdSlide();
+    } catch (_) {
+      // Keep the food-photo slideshow when banners cannot be loaded.
     }
   }
 
@@ -1201,12 +1341,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               top: MediaQuery.of(context).padding.top + 10,
               right: 16,
               child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showAdScreen = false;
-                    _adTimer?.cancel();
-                  });
-                },
+                onTap: _endAdScreen,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -1965,7 +2100,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   Widget _buildShopImageBackground() {
-    if (_slideImages.isEmpty) {
+    if (_adSlides.isEmpty) {
       return Container(
         color: const Color(0xFF1E293B),
         child: Center(
@@ -2008,10 +2143,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       );
     }
 
-    final currentUrl = _slideImages[_currentImageIndex % _slideImages.length];
     final topSafe = MediaQuery.of(context).padding.top;
-    final slideCount = _slideImages.length;
+    final slideCount = _adSlides.length;
     final activeIndex = _currentImageIndex % slideCount;
+    final activeSlide = _adSlides[activeIndex];
+    final adVideo = _adVideo;
+    final videoSize = adVideo?.value.size;
 
     return Container(
       color: Colors.black,
@@ -2019,20 +2156,44 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         fit: StackFit.expand,
         children: [
           // Full-bleed ad slideshow (Grab-style, no radar / no inset card)
-          ..._slideImages.asMap().entries.map((entry) {
-            final isActive = entry.value == currentUrl;
+          ..._adSlides.asMap().entries.map((entry) {
+            final isActive = entry.key == activeIndex;
+            final imageUrl = entry.value.imageUrl;
             return AnimatedOpacity(
               opacity: isActive ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 600),
               curve: Curves.easeInOut,
-              child: CachedNetworkImage(
-                imageUrl: entry.value,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
+              child: imageUrl.isEmpty
+                  ? const ColoredBox(color: Colors.black)
+                  : CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
             );
           }),
+          if (_adVideoReady &&
+              adVideo != null &&
+              videoSize != null &&
+              activeSlide.hasVideo &&
+              adVideo.value.isInitialized &&
+              videoSize.width > 0 &&
+              videoSize.height > 0)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ClipRect(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: videoSize.width,
+                      height: videoSize.height,
+                      child: VideoPlayer(adVideo),
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           // Soft top scrim for controls readability
           Positioned(

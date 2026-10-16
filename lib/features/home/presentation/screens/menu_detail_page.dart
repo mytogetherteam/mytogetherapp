@@ -808,51 +808,46 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFEAEFF5,
-                            ), // New background color
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: TextField(
-                            controller: _instructionsController,
-                            focusNode: _instructionsFocusNode,
-                            maxLines: 4,
-                            minLines: 3,
-                            maxLength: 200,
-                            maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) =>
-                                _instructionsFocusNode.unfocus(),
-                            onTapOutside: (_) =>
-                                _instructionsFocusNode.unfocus(),
-                            scrollPadding: EdgeInsets.only(
-                              bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                        TextField(
+                          controller: _instructionsController,
+                          focusNode: _instructionsFocusNode,
+                          minLines: 2,
+                          maxLines: 4,
+                          maxLength: 200,
+                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                          textInputAction: TextInputAction.newline,
+                          keyboardType: TextInputType.multiline,
+                          onTapOutside: (_) => _instructionsFocusNode.unfocus(),
+                          scrollPadding: const EdgeInsets.only(bottom: 140),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFEAEFF5),
+                            hintText: context.tr('menu.special_instructions_hint'),
+                            hintStyle: GoogleFonts.poppins(
+                              color: Colors.grey[500],
+                              fontSize: 14,
                             ),
-                            buildCounter:
-                                (
-                                  context, {
-                                  required currentLength,
-                                  required isFocused,
-                                  maxLength,
-                                }) => null,
-                            decoration: InputDecoration(
-                              hintText:
-                                  context.tr('menu.special_instructions_hint'),
-                              hintStyle: GoogleFonts.poppins(
-                                color: Colors.grey[500],
-                                fontSize: 14,
-                              ),
-                              border: InputBorder.none,
-                              counterText: '',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                            style: GoogleFonts.poppins(fontSize: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            counterText: '',
+                          ),
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            height: 1.4,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -865,9 +860,6 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               fontSize: 12,
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          height: MediaQuery.viewInsetsOf(context).bottom + 24,
                         ),
                         const SizedBox(height: 32),
 

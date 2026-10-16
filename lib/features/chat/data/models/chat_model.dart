@@ -1,6 +1,7 @@
 /// Models mirroring the backend `user/chat` contract.
 library;
 
+import 'call_chat_payload.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 
@@ -145,6 +146,8 @@ class ChatMessage {
 
   /// True when the message was sent by the current customer app user.
   bool get isMe => senderType == ChatSenderType.user;
+
+  bool get isSystem => senderType == ChatSenderType.system;
 
   bool get isEdited => editedAt != null && !isDeleted;
 
@@ -312,7 +315,17 @@ class ChatConversation {
       if (hasVoice) return '🎤 Voice message';
       return '📷 Photo';
     }
-    return (message['content'] as String?)?.trim() ?? '';
+    final content = (message['content'] as String?)?.trim() ?? '';
+    if (content.startsWith(kCallChatPrefix)) {
+      final payload = CallChatPayload.tryParse(content);
+      if (payload != null) {
+        if (payload.event == CallChatEvent.ended) {
+          return '📞 Call ended (${CallChatPayload.formatDuration(payload.durationSec)})';
+        }
+        return '📞 Missed call';
+      }
+    }
+    return content;
   }
 
   factory ChatConversation.fromJson(Map<String, dynamic> json) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -294,10 +295,12 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
             ),
             child: widget.shopImageUrl != null
                 ? ClipOval(
-                    child: Image.network(
-                      widget.shopImageUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: widget.shopImageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _shopInitial(),
+                      memCacheWidth: 200,
+                      placeholder: (_, _) => _shopInitial(),
+                      errorWidget: (_, _, _) => _shopInitial(),
                     ),
                   )
                 : _shopInitial(),

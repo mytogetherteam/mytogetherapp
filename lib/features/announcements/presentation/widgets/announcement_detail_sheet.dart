@@ -1,3 +1,4 @@
+import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
@@ -180,17 +181,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
   }
 
   String _getFullImageUrl(String url) {
-    if (url.startsWith('http')) return url;
-    
-    // The backend currently returns relative paths for announcements but stores them in S3
-    if (url.startsWith('announcements/')) {
-      return 'https://my-together-moonlight201.s3.ap-southeast-1.amazonaws.com/$url';
-    }
-
-    String baseUrl = EnvConfig.apiBaseUrl;
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-    if (!url.startsWith('/')) url = '/$url';
-    return '$baseUrl$url';
+    return FileUrlUtil.resolve(url);
   }
 }
 

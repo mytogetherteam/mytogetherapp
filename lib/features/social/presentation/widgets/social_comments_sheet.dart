@@ -128,11 +128,17 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final available = media.size.height - keyboard - media.padding.top - 12;
+    final preferred = media.size.height * 0.68;
+    final height = available < preferred
+        ? available.clamp(0.0, preferred)
+        : preferred;
     return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
+      padding: EdgeInsets.only(bottom: keyboard),
       child: Container(
-        height: MediaQuery.sizeOf(context).height * 0.68,
+        height: height,
         decoration: const BoxDecoration(
           color: Color(0xFF121212),
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -218,13 +224,13 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.4),
+              backgroundColor: Colors.transparent,
               backgroundImage: (c.author.avatarUrl?.isNotEmpty == true)
                   ? CachedNetworkImageProvider(c.author.avatarUrl!)
                   : null,
               child: (c.author.avatarUrl?.isNotEmpty == true)
                   ? null
-                  : const Icon(PhosphorIcons.user, size: 16, color: Colors.white),
+                  : _buildCommentAvatarFallback(c.author),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -323,4 +329,70 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
       ),
     );
   }
+
+  Widget _buildCommentAvatarFallback(SocialPostAuthorDto author) {
+    if (author.type == SocialAuthorType.admin ||
+        author.displayName.toLowerCase().contains('super admin')) {
+      return Image.asset(
+        'assets/images/super_admin.png',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(PhosphorIcons.shieldCheck, size: 16, color: Colors.white),
+      );
+    }
+    if (author.type == SocialAuthorType.shop) {
+      return Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: AppColors.primaryGradient,
+        ),
+        alignment: Alignment.center,
+        child: const Icon(PhosphorIcons.storefront, size: 16, color: Colors.white),
+      );
+    }
+    final clean =
+        author.displayName.replaceAll(RegExp(r'^[@\s\-_.]+'), '').trim();
+    final initial = clean.isNotEmpty ? clean.characters.first.toUpperCase() : 'U';
+
+    int hash = 0;
+    for (final unit in author.displayName.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7FFFFFFF;
+    }
+    const gradients = [
+      [Color(0xFFFF5E62), Color(0xFFFF9966)],
+      [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+      [Color(0xFF00C6FF), Color(0xFF0072FF)],
+      [Color(0xFFF857A6), Color(0xFFFF5858)],
+      [Color(0xFF11998E), Color(0xFF38EF7D)],
+      [Color(0xFFFF8008), Color(0xFFFFC837)],
+      [Color(0xFF654EA3), Color(0xFFEAAFC8)],
+      [Color(0xFF1D976C), Color(0xFF93F9B9)],
+      [Color(0xFFFC5C7D), Color(0xFF6A82FB)],
+      [Color(0xFF2193B0), Color(0xFF6DD5ED)],
+      [Color(0xFFDA22FF), Color(0xFF9733EE)],
+      [Color(0xFFFA709A), Color(0xFFFEE140)],
+    ];
+    final colors = gradients[hash % gradients.length];
+
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }
+

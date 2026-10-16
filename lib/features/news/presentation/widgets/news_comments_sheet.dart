@@ -366,11 +366,17 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final available = media.size.height - keyboard - media.padding.top - 12;
+    final preferred = media.size.height * 0.72;
+    final height = available < preferred
+        ? available.clamp(0.0, preferred)
+        : preferred;
     return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
+      padding: EdgeInsets.only(bottom: keyboard),
       child: Container(
-        height: MediaQuery.sizeOf(context).height * 0.72,
+        height: height,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

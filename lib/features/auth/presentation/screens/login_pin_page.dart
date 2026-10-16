@@ -87,6 +87,8 @@ class _LoginPinPageState extends State<LoginPinPage>
         pin: _pin,
       );
       if (!mounted) return;
+      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
       // Login successful, go to home
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } catch (e) {

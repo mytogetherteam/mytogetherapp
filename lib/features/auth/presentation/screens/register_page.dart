@@ -152,6 +152,7 @@ class _RegisterPageState extends State<RegisterPage>
           await _verifyWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          debugPrint('❌ [FirebaseAuth] verificationFailed: code=${e.code}, message=${e.message}');
           if (!mounted) return;
           final msg = FirebaseErrorHandler.getMessage(context, e);
           AppDialog.showToast(context, msg, isError: true);
@@ -242,6 +243,8 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Future<void> _handleGoogleSignIn() async {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isGoogleLoading || _isLoading) return;
     if (!_agreedToTerms) {
       HapticFeedback.heavyImpact();
@@ -257,7 +260,7 @@ class _RegisterPageState extends State<RegisterPage>
 
     setState(() => _isGoogleLoading = true);
     try {
-      final google = await GoogleAuthHelper.signIn();
+      final google = await GoogleAuthHelper.signIn(requestPhone: true);
       if (google == null) return;
       if (!mounted) return;
 
@@ -266,6 +269,9 @@ class _RegisterPageState extends State<RegisterPage>
       );
       if (!mounted) return;
 
+      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
+
       if (result.isNewUser) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -273,6 +279,7 @@ class _RegisterPageState extends State<RegisterPage>
               idToken: google.idToken,
               name: result.name ?? google.name ?? _fullNameController.text.trim(),
               email: result.email ?? google.email ?? _emailController.text.trim(),
+              googleAccessToken: google.accessToken,
             ),
           ),
         );
@@ -377,9 +384,9 @@ class _RegisterPageState extends State<RegisterPage>
                             offset: Offset(_shakeAnimation.value, 0),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: _termsError ? Colors.red.withOpacity(0.05) : Colors.transparent,
+                                color: _termsError ? Colors.red.withValues(alpha: 0.05) : Colors.transparent,
                                 border: Border.all(
-                                  color: _termsError ? Colors.red.withOpacity(0.5) : Colors.transparent,
+                                  color: _termsError ? Colors.red.withValues(alpha: 0.5) : Colors.transparent,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),

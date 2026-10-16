@@ -3,6 +3,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
+import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
@@ -64,7 +65,9 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackbar(e.toString());
+        _showErrorSnackbar(
+          userFacingError(e, fallback: context.tr('firebase.unknown_error')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../data/models/shop_feed_item_dto.dart';
@@ -482,10 +483,14 @@ class _FoodThumbImage extends StatelessWidget {
         child: const Icon(Icons.fastfood_rounded, color: Colors.white38, size: 28),
       );
     }
-    return Image.network(
-      imageUrl,
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(
+      memCacheWidth: 200,
+      placeholder: (_, _) => Container(
+        color: Colors.white.withValues(alpha: 0.05),
+      ),
+      errorWidget: (_, _, _) => Container(
         color: Colors.white.withValues(alpha: 0.05),
         child: const Icon(Icons.fastfood_rounded, color: Colors.white38, size: 28),
       ),

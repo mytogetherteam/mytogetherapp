@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -16,6 +17,10 @@ class MapPickerAddressPanel extends StatelessWidget {
   final String? addressError;
   final VoidCallback onConfirm;
   final VoidCallback onAddressChanged;
+  final bool askForPhone;
+  final TextEditingController? phoneController;
+  final String? phoneError;
+  final VoidCallback? onPhoneChanged;
 
   const MapPickerAddressPanel({
     super.key,
@@ -27,6 +32,10 @@ class MapPickerAddressPanel extends StatelessWidget {
     this.addressError,
     required this.onConfirm,
     required this.onAddressChanged,
+    this.askForPhone = false,
+    this.phoneController,
+    this.phoneError,
+    this.onPhoneChanged,
   });
 
   @override
@@ -36,14 +45,10 @@ class MapPickerAddressPanel extends StatelessWidget {
         !isMapMoving &&
         !isSaving &&
         trimmed.isNotEmpty;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        24 + MediaQuery.of(context).viewInsets.bottom,
-      ),
+      // The location page scaffold already lifts this panel above the keyboard.
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -54,7 +59,18 @@ class MapPickerAddressPanel extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cap = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : MediaQuery.sizeOf(context).height;
+          // Leave the map visible, and scroll so Confirm stays reachable.
+          final maxHeight = cap > 280 ? cap * 0.58 : cap;
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottomInset),
+              child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -137,6 +153,95 @@ class MapPickerAddressPanel extends StatelessWidget {
               ),
             ),
           ],
+          if (askForPhone && phoneController != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              context.tr('location.delivery_phone'),
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: phoneController,
+              onChanged: (_) => onPhoneChanged?.call(),
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              maxLength: 9,
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              decoration: InputDecoration(
+                counterText: '',
+                hintText: context.tr('location.delivery_phone_hint'),
+                filled: true,
+                fillColor: const Color(0xFFF1F5F9),
+                prefixIcon: SizedBox(
+                  width: 78,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        PhosphorIcons.phone,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '+66',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 78,
+                  maxWidth: 78,
+                  minHeight: 48,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: phoneError != null
+                        ? Colors.red.shade300
+                        : Colors.transparent,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: phoneError != null
+                        ? Colors.red.shade400
+                        : AppColors.primary.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+              ),
+            ),
+            if (phoneError != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                phoneError!,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.red.shade600,
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 16),
           PrimaryGradientButton(
             onPressed: canConfirm ? onConfirm : null,
@@ -151,6 +256,10 @@ class MapPickerAddressPanel extends StatelessWidget {
             ),
           ),
         ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -81,8 +81,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       );
     };
 
-    // Request permissions after first frame.
+    // Ensure any soft keyboard from auth/onboarding is closed, then request permissions.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
       _checkAndRequestPermissions();
     });
   }
@@ -232,6 +233,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.dispose();
   }
 
+  DateTime? _lastSocialTapTime;
+
   void _onTabTapped(int index) {
     // Fire iOS 3D-touch-style haptic on every bottom nav icon tap
     AppHaptics.buttonTap();
@@ -244,13 +247,38 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
 
     if (index == _currentIndex) {
-      // Same tab tapped again â†’ scroll to top + refresh that tab's content
-      NavigationController.instance.triggerScrollToTop(index);
+      if (index == 2) {
+        final now = DateTime.now();
+        final isDoubleTap = _lastSocialTapTime != null &&
+            now.difference(_lastSocialTapTime!) < const Duration(milliseconds: 550);
+        _lastSocialTapTime = now;
+
+        if (isDoubleTap) {
+          // Double-click on Social tab -> refresh feed
+          NavigationController.instance.triggerSocialRefresh();
+        } else {
+          // Single tap on active Social tab -> scroll to top + refresh
+          NavigationController.instance.triggerScrollToTop(index);
+        }
+      } else {
+        // Same tab tapped again -> scroll to top + refresh that tab's content
+        NavigationController.instance.triggerScrollToTop(index);
+      }
     } else {
+      if (index == 2) {
+        _lastSocialTapTime = DateTime.now();
+      }
       setState(() {
         _currentIndex = index;
         NavigationController.instance.currentIndex.value = index;
       });
+    }
+  }
+
+  void _onTabDoubleTapped(int index) {
+    if (index == 2) {
+      AppHaptics.buttonTap();
+      NavigationController.instance.triggerSocialRefresh();
     }
   }
 
@@ -425,6 +453,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => _onTabTapped(index),
+        onDoubleTap: () => _onTabDoubleTapped(index),
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
           height: height,

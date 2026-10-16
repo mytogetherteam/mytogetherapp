@@ -16,7 +16,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
-import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
@@ -72,6 +71,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
     _loadJobVisitCount();
+
+    // Dismiss any leftover keyboard from auth/onboarding
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
 
     // Forcefully remove splash screen after 3 seconds to prevent getting stuck
     Future.delayed(const Duration(seconds: 3), () {
@@ -395,7 +399,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
       child: Scaffold(
         backgroundColor: Colors.white, // White background
-        floatingActionButton: const StyledCartFab(),
         body: Stack(
           children: [
             // Fixed Header (Title & Background)

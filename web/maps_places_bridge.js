@@ -1,5 +1,7 @@
 // Google Maps Places bridge for Flutter web (avoids REST CORS).
 (function () {
+  var activeSessionToken = null;
+
   function waitForGoogleMaps(maxAttempts, intervalMs) {
     return new Promise(function (resolve, reject) {
       var attempts = 0;
@@ -22,6 +24,25 @@
       }
       check();
     });
+  }
+
+  function getOrCreateSessionToken() {
+    if (
+      !activeSessionToken &&
+      window.google &&
+      window.google.maps &&
+      window.google.maps.places &&
+      window.google.maps.places.AutocompleteSessionToken
+    ) {
+      activeSessionToken = new google.maps.places.AutocompleteSessionToken();
+    }
+    return activeSessionToken;
+  }
+
+  function consumeSessionToken() {
+    var token = activeSessionToken;
+    activeSessionToken = null;
+    return token;
   }
 
   function predictionToPlace(prediction) {
@@ -91,27 +112,6 @@
     };
   }
 
-  function textSearchResultToPlace(result) {
-    var location = result.geometry && result.geometry.location;
-    var lat =
-      location && typeof location.lat === 'function'
-        ? location.lat()
-        : location && location.lat;
-    var lon =
-      location && typeof location.lng === 'function'
-        ? location.lng()
-        : location && location.lng;
-
-    return {
-      placeId: result.place_id || '',
-      name: result.name || '',
-      displayName: result.formatted_address || result.name || '',
-      lat: lat || 0,
-      lon: lon || 0,
-      type: result.types && result.types.length ? result.types[0] : null,
-    };
-  }
-
   function detailsResultToPlace(result) {
     var location = result.geometry && result.geometry.location;
     var lat =
@@ -133,24 +133,16 @@
     };
   }
 
-  function mergeByPlaceId(items) {
-    var seen = {};
-    var merged = [];
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      if (!item.placeId || seen[item.placeId]) continue;
-      seen[item.placeId] = true;
-      merged.push(item);
-    }
-    return merged;
-  }
-
   function runAutocomplete(query, lat, lon) {
     return waitForGoogleMaps(100, 100).then(function () {
       var autocomplete = new google.maps.places.AutocompleteService();
       var request = {
         input: query,
       };
+      var token = getOrCreateSessionToken();
+      if (token) {
+        request.sessionToken = token;
+      }
       if (lat != null && lon != null && !isNaN(lat) && !isNaN(lon)) {
         request.location = new google.maps.LatLng(lat, lon);
         request.radius = 50000;
@@ -166,35 +158,6 @@
             return;
           }
           resolve(predictions.map(predictionToPlace));
-        });
-      });
-    });
-  }
-
-  function runTextSearch(query, lat, lon) {
-    return waitForGoogleMaps(100, 100).then(function () {
-      var div = document.createElement('div');
-      var service = new google.maps.places.PlacesService(div);
-      var request = {
-        query: query,
-        region: 'th',
-        language: 'en',
-      };
-      if (lat != null && lon != null && !isNaN(lat) && !isNaN(lon)) {
-        request.location = new google.maps.LatLng(lat, lon);
-        request.radius = 50000;
-      }
-
-      return new Promise(function (resolve) {
-        service.textSearch(request, function (results, status) {
-          if (
-            status !== google.maps.places.PlacesServiceStatus.OK ||
-            !results
-          ) {
-            resolve([]);
-            return;
-          }
-          resolve(results.slice(0, 20).map(textSearchResultToPlace));
         });
       });
     });
@@ -234,28 +197,23 @@
       var latNum = lat != null ? Number(lat) : null;
       var lonNum = lon != null ? Number(lon) : null;
 
+      // Autocomplete only — avoids expensive Text Search ($32/1k requests)
       return runAutocomplete(trimmed, latNum, lonNum)
         .catch(function (err) {
           console.error('MapsPlacesBridge autocomplete failed:', err);
           return [];
         })
         .then(function (autoResults) {
-          return runTextSearch(trimmed, latNum, lonNum)
+          if (autoResults && autoResults.length) {
+            return JSON.stringify(autoResults);
+          }
+          return runGeocodeSearch(trimmed, latNum, lonNum)
             .catch(function (err) {
-              console.error('MapsPlacesBridge textSearch failed:', err);
+              console.error('MapsPlacesBridge geocode failed:', err);
               return [];
             })
-            .then(function (textResults) {
-              var merged = mergeByPlaceId(autoResults.concat(textResults));
-              if (merged.length) return JSON.stringify(merged);
-              return runGeocodeSearch(trimmed, latNum, lonNum)
-                .catch(function (err) {
-                  console.error('MapsPlacesBridge geocode failed:', err);
-                  return [];
-                })
-                .then(function (geocodeResults) {
-                  return JSON.stringify(geocodeResults);
-                });
+            .then(function (geocodeResults) {
+              return JSON.stringify(geocodeResults || []);
             });
         });
     },
@@ -268,11 +226,17 @@
         var service = new google.maps.places.PlacesService(div);
 
         return new Promise(function (resolve) {
+          var detailsReq = {
+            placeId: placeId,
+            fields: ['geometry', 'name', 'formatted_address', 'types'],
+          };
+          var token = consumeSessionToken();
+          if (token) {
+            detailsReq.sessionToken = token;
+          }
+
           service.getDetails(
-            {
-              placeId: placeId,
-              fields: ['geometry', 'name', 'formatted_address', 'types'],
-            },
+            detailsReq,
             function (result, status) {
               if (
                 status !== google.maps.places.PlacesServiceStatus.OK ||

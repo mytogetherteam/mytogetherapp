@@ -9,6 +9,7 @@ class BannerImageDto {
   final String? descriptionMm;
   final String? descriptionTh;
   final String imageUrl;
+  final String? videoUrl;
   final String? link;
   final String position;
   final String status;
@@ -23,6 +24,7 @@ class BannerImageDto {
     this.descriptionMm,
     this.descriptionTh,
     required this.imageUrl,
+    this.videoUrl,
     this.link,
     required this.position,
     required this.status,
@@ -35,6 +37,7 @@ class BannerImageDto {
   factory BannerImageDto.fromJson(Map<String, dynamic> json) {
     final rawImage =
         json['imageUrl']?.toString() ?? json['image']?.toString() ?? '';
+    final rawVideo = json['videoUrl']?.toString() ?? json['video']?.toString();
     return BannerImageDto(
       id: (json['id'] as num).toInt(),
       nameEn: json['nameEn']?.toString(),
@@ -44,6 +47,9 @@ class BannerImageDto {
       descriptionMm: json['descriptionMm']?.toString(),
       descriptionTh: json['descriptionTh']?.toString(),
       imageUrl: resolveMediaUrl(rawImage),
+      videoUrl: rawVideo == null || rawVideo.isEmpty
+          ? null
+          : resolveMediaUrl(rawVideo),
       link: json['link']?.toString(),
       position: json['position']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
@@ -61,6 +67,7 @@ class BannerImageDto {
       'descriptionMm': descriptionMm,
       'descriptionTh': descriptionTh,
       'imageUrl': imageUrl,
+      'videoUrl': videoUrl,
       'link': link,
       'position': position,
       'status': status,

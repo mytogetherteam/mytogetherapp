@@ -77,10 +77,17 @@ class AuthRepository {
     required String pin,
     String? name,
     String? email,
+    String? googleAccessToken,
   }) async {
     try {
       final response = await _dataSource.register(
-        RegisterRequest(idToken: idToken, pin: pin, name: name, email: email),
+        RegisterRequest(
+          idToken: idToken,
+          pin: pin,
+          name: name,
+          email: email,
+          googleAccessToken: googleAccessToken,
+        ),
       );
       
       AuthService().updateAccessToken(response.token);

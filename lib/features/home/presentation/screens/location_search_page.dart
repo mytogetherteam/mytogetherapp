@@ -151,6 +151,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
+      LocationSearchService.instance.resetSession();
       setState(() {
         _searchResults = [];
         _isSearching = false;

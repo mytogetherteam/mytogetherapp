@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
+import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/features/home/data/models/shop_dto.dart';
+import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
 
 /// Full-screen Messenger/Instagram-style MyDay photo viewer.
 class ShopMyDayViewer extends StatefulWidget {
@@ -106,6 +108,24 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
     if (!_paused) return;
     _paused = false;
     _progress.forward();
+  }
+
+  Future<void> _openRestaurant() async {
+    final shopId = widget.stories[_index].shopId;
+    if (shopId <= 0) return;
+    AppHaptics.buttonTap();
+    final wasPaused = _paused;
+    _pause();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RestaurantDetailPage(
+          id: shopId.toString(),
+          name: widget.shopName,
+          logoPath: widget.shopLogoUrl,
+        ),
+      ),
+    );
+    if (mounted && !wasPaused) _resume();
   }
 
   String _relativeTime(DateTime createdAt) {
@@ -240,74 +260,92 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.5),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: resolveMediaUrl(widget.shopLogoUrl).isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl:
-                                      resolveMediaUrl(widget.shopLogoUrl),
-                                  fit: BoxFit.cover,
-                                  fadeInDuration: Duration.zero,
-                                  fadeOutDuration: Duration.zero,
-                                  errorWidget: (_, _, _) => Container(
-                                    color: AppColors.primary,
-                                    child: Center(
-                                      child: Text(
-                                        widget.shopName.isNotEmpty
-                                            ? widget.shopName[0].toUpperCase()
-                                            : '?',
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _openRestaurant,
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: resolveMediaUrl(widget.shopLogoUrl)
+                                          .isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: resolveMediaUrl(
+                                            widget.shopLogoUrl,
+                                          ),
+                                          fit: BoxFit.cover,
+                                          fadeInDuration: Duration.zero,
+                                          fadeOutDuration: Duration.zero,
+                                          errorWidget: (_, _, _) => Container(
+                                            color: AppColors.primary,
+                                            child: Center(
+                                              child: Text(
+                                                widget.shopName.isNotEmpty
+                                                    ? widget.shopName[0]
+                                                        .toUpperCase()
+                                                    : '?',
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: AppColors.primary,
+                                          child: Center(
+                                            child: Text(
+                                              widget.shopName.isNotEmpty
+                                                  ? widget.shopName[0]
+                                                      .toUpperCase()
+                                                  : '?',
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.shopName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.poppins(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
+                                          fontSize: 14,
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                )
-                              : Container(
-                                  color: AppColors.primary,
-                                  child: Center(
-                                    child: Text(
-                                      widget.shopName.isNotEmpty
-                                          ? widget.shopName[0].toUpperCase()
-                                          : '?',
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
+                                      Text(
+                                        _relativeTime(story.createdAt),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.shopName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                _relativeTime(story.createdAt),
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         IconButton(

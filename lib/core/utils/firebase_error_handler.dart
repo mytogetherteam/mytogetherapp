@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../localization/app_translations.dart';
+import '../network/dio_error_message.dart';
 
 class FirebaseErrorHandler {
   static String getMessage(BuildContext context, dynamic error) {
@@ -19,12 +20,18 @@ class FirebaseErrorHandler {
           return context.tr('firebase.network_error');
         case 'user-disabled':
           return context.tr('firebase.user_disabled');
+        case 'quota-exceeded':
+          return context.tr('firebase.quota_exceeded');
+        case 'operation-not-allowed':
+          return context.tr('firebase.operation_not_allowed');
         default:
           return error.message ?? context.tr('firebase.unknown_error');
       }
     }
     
-    // For non-Firebase errors or string exceptions
-    return error.toString();
+    return userFacingError(
+      error,
+      fallback: context.tr('firebase.unknown_error'),
+    );
   }
 }

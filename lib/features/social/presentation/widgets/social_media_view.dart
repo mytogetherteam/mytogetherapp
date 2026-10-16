@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -90,7 +91,8 @@ class _SocialMediaViewState extends State<SocialMediaView>
       if (widget.preloadedController != null) {
         widget.preloadedController!.addListener(_onControllerUpdate);
         _syncPlayback();
-      } else {
+      } else if (widget.isActive) {
+        // Only initialize video if active; prevents offscreen items from draining S3 bandwidth
         _initVideo();
       }
     }
@@ -112,11 +114,26 @@ class _SocialMediaViewState extends State<SocialMediaView>
       _disposeLocalVideo();
       _initFailed = false;
       _userPaused = false;
-      if (widget.media.isVideo && widget.preloadedController == null) {
-        _initVideo();
+      if (widget.media.isVideo) {
+        if (widget.preloadedController != null) {
+          widget.preloadedController!.addListener(_onControllerUpdate);
+          _syncPlayback();
+        } else if (widget.isActive) {
+          _initVideo();
+        }
       }
       return;
     }
+
+    if (widget.media.isVideo && widget.preloadedController == null) {
+      if (widget.isActive && _localController == null && !_initFailed) {
+        _initVideo();
+      } else if (!widget.isActive && _localController != null) {
+        // Dispose local controller when offscreen to save bandwidth and memory
+        _disposeLocalVideo();
+      }
+    }
+
     _syncPlayback();
   }
 
@@ -414,20 +431,42 @@ class _SocialMediaViewState extends State<SocialMediaView>
   }
 
   Widget _buildImage(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      fadeInDuration: const Duration(milliseconds: 200),
-      placeholder: (context, url) => const ColoredBox(
-        color: Color(0xFF1A1020),
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white54,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Ambient blurred backdrop so non-9:16 images blend seamlessly
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Transform.scale(
+            scale: 1.15,
+            child: CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.cover,
+              fadeInDuration: Duration.zero,
+              errorWidget: (context, url, error) => const SizedBox.shrink(),
+            ),
           ),
         ),
-      ),
-      errorWidget: (context, url, error) => _errorFallback(),
+        // Dark scrim overlay for high contrast and sleek aesthetic
+        ColoredBox(
+          color: Colors.black.withValues(alpha: 0.55),
+        ),
+        // Sharp foreground image showing real aspect ratio without cropping
+        Center(
+          child: CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.contain,
+            fadeInDuration: const Duration(milliseconds: 200),
+            placeholder: (context, url) => const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white54,
+              ),
+            ),
+            errorWidget: (context, url, error) => _errorFallback(),
+          ),
+        ),
+      ],
     );
   }
 

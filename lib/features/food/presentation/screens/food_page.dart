@@ -9,7 +9,6 @@ import 'package:mytogetherapp/features/home/presentation/widgets/food_header.dar
 import 'package:mytogetherapp/features/home/data/repositories/restaurant_repository.dart';
 import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_quick_access_section.dart';
-import 'package:mytogetherapp/features/cart/presentation/widgets/styled_cart_fab.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/food_restaurants_section.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/trending_shops_section.dart';
@@ -158,7 +157,6 @@ class _FoodPageState extends State<FoodPage> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Colors.white,
-        floatingActionButton: const StyledCartFab(),
         body: Stack(
           children: [
             RefreshIndicator(

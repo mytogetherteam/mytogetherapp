@@ -51,14 +51,20 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
       switch (action) {
         case _PickAction.gallery:
           final files = await _picker.pickMultiImage(
-            imageQuality: 85,
+            maxWidth: 1200,
+            maxHeight: 1200,
+            imageQuality: 80,
             limit: remaining,
           );
           picked.addAll(files.take(remaining));
           break;
         case _PickAction.cameraPhoto:
           final file = await _picker.pickImage(
-              source: ImageSource.camera, imageQuality: 85);
+            source: ImageSource.camera,
+            maxWidth: 1200,
+            maxHeight: 1200,
+            imageQuality: 80,
+          );
           if (file != null) {
             final cropped = await ImageCropHelper.crop(file);
             if (cropped != null) picked.add(cropped);

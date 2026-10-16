@@ -113,7 +113,7 @@ class CallSession {
   // ──────────────────────────────────────────────
 
   /// User initiates a call to [shopId]. Returns false if call fails to start.
-  Future<bool> initiateCall({required int shopId, required String shopName, String? shopImageUrl}) async {
+  Future<bool> initiateCall({required int shopId, required String shopName, String? shopImageUrl, int? orderId}) async {
     if (state.value != CallState.idle) return false;
 
     var micStatus = await Permission.microphone.status;
@@ -132,6 +132,7 @@ class CallSession {
     try {
       final resp = await _dio.post(
         '/api/call/initiate/$shopId',
+        data: orderId != null ? {'orderId': orderId} : null,
       );
       _currentCallId = resp.data['data']['callId'] as String?;
       if (_currentCallId == null) {

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
@@ -24,11 +25,126 @@ class SocialPostsRepository {
   static final SocialPostsRepository instance = SocialPostsRepository._();
   SocialPostsRepository._();
 
+  /// Bumps when the signed-in user publishes or deletes a post.
+  /// For You stays mounted under the other tabs, so it listens and reloads.
+  static final feedRevision = ValueNotifier<int>(0);
+
+  static void markFeedChanged() {
+    feedRevision.value++;
+  }
+
   final Dio _dio = ApiClient().dio;
 
   Future<SocialPostsFeedPage> fetchFeed({int page = 1, int size = 10}) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: {'page': page, 'size': size},
+    );
+    final body = response.data;
+    return SocialPostsFeedPage(
+      items: ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson),
+      totalElements: ApiResponseUtils.parseTotalElements(body),
+      totalPages: ApiResponseUtils.parseLastPage(body),
+      page: page,
+    );
+  }
+
+  Future<SocialPostsFeedPage> fetchByShop(
+    int shopId, {
+    int page = 1,
+    int size = 18,
+  }) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: {'page': page, 'size': size, 'shopId': shopId},
+    );
+    final body = response.data;
+    return SocialPostsFeedPage(
+      items: ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson),
+      totalElements: ApiResponseUtils.parseTotalElements(body),
+      totalPages: ApiResponseUtils.parseLastPage(body),
+      page: page,
+    );
+  }
+
+  Future<SocialPostsFeedPage> fetchByUser(
+    int userId, {
+    int page = 1,
+    int size = 18,
+  }) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: {'page': page, 'size': size, 'userId': userId},
+    );
+    final body = response.data;
+    return SocialPostsFeedPage(
+      items: ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson),
+      totalElements: ApiResponseUtils.parseTotalElements(body),
+      totalPages: ApiResponseUtils.parseLastPage(body),
+      page: page,
+    );
+  }
+
+  Future<SocialPostsFeedPage> fetchByAuthor({
+    required SocialAuthorType type,
+    required int id,
+    int page = 1,
+    int size = 18,
+  }) async {
+    // Request up to 100 posts for creator profile so total likes and views are complete
+    const querySize = 100;
+    final Map<String, dynamic> query = {'page': page, 'size': querySize};
+    switch (type) {
+      case SocialAuthorType.user:
+        query['userId'] = id;
+        break;
+      case SocialAuthorType.shop:
+        query['shopId'] = id;
+        break;
+      case SocialAuthorType.admin:
+        if (id > 0) query['adminId'] = id;
+        break;
+    }
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts',
+      queryParameters: query,
+    );
+    final body = response.data;
+    final rawItems =
+        ApiResponseUtils.parseContentPage(body, SocialPostDto.fromJson);
+
+    // Strictly match the author so mixed feed posts are never leaked
+    final items = rawItems.where((p) {
+      if (type == SocialAuthorType.admin) {
+        return p.author.type == SocialAuthorType.admin &&
+            (id <= 0 || p.author.id == id);
+      } else if (type == SocialAuthorType.user) {
+        return p.author.type == SocialAuthorType.user && p.author.id == id;
+      } else if (type == SocialAuthorType.shop) {
+        return p.author.type == SocialAuthorType.shop && p.author.id == id;
+      }
+      return true;
+    }).toList();
+
+    final backendTotal = ApiResponseUtils.parseTotalElements(body);
+    final totalElements = (type == SocialAuthorType.admin)
+        ? items.length
+        : (backendTotal > 0 ? backendTotal : items.length);
+    final totalPages = (type == SocialAuthorType.admin)
+        ? 1
+        : ApiResponseUtils.parseLastPage(body);
+
+    return SocialPostsFeedPage(
+      items: items,
+      totalElements: totalElements,
+      totalPages: totalPages,
+      page: page,
+    );
+  }
+
+  Future<SocialPostsFeedPage> fetchMine({int page = 1, int size = 18}) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/posts/mine',
       queryParameters: {'page': page, 'size': size},
     );
     final body = response.data;
@@ -91,6 +207,12 @@ class SocialPostsRepository {
     }
   }
 
+  Future<void> recordView(int id) async {
+    try {
+      await _dio.post('${ApiClient.apiPrefix}/user/posts/$id/view');
+    } catch (_) {}
+  }
+
   Future<({bool liked, int likeCount})> toggleLike(int id) async {
     final response =
         await _dio.post('${ApiClient.apiPrefix}/user/posts/$id/like');
@@ -143,6 +265,10 @@ class SocialPostsRepository {
       response.data,
       SocialPostCommentDto.fromJson,
     );
+  }
+
+  Future<void> deletePost(int id) async {
+    await _dio.delete('${ApiClient.apiPrefix}/user/posts/$id');
   }
 
   Future<void> deleteComment(int postId, int commentId) async {

@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:js_interop';
 
-import 'package:flutter/foundation.dart';
-
 import 'location_search_service.dart';
 
 @JS('MapsPlacesBridge.searchPlaces')
@@ -34,6 +32,7 @@ class GooglePlacesClient {
     String query, {
     double? lat,
     double? lon,
+    String? sessionToken,
   }) async {
     if (query.trim().isEmpty) return [];
 
@@ -42,12 +41,15 @@ class GooglePlacesClient {
         _jsSearchPlaces(query.toJS, lat?.toJS, lon?.toJS),
       );
       return _parsePlaceList(json);
-    } catch (e, stack) {
+    } catch (_) {
       return [];
     }
   }
 
-  Future<PlaceResult?> getPlaceDetails(PlaceResult place) async {
+  Future<PlaceResult?> getPlaceDetails(
+    PlaceResult place, {
+    String? sessionToken,
+  }) async {
     if (place.lat != 0 && place.lon != 0) return place;
     if (place.placeId.isEmpty) return place;
 
@@ -61,7 +63,7 @@ class GooglePlacesClient {
       );
       if (json == 'null') return place;
       return _parsePlace(json) ?? place;
-    } catch (e, stack) {
+    } catch (_) {
       return place;
     }
   }
@@ -73,7 +75,7 @@ class GooglePlacesClient {
       );
       if (json == 'null') return null;
       return _parsePlace(json);
-    } catch (e, stack) {
+    } catch (_) {
       return null;
     }
   }

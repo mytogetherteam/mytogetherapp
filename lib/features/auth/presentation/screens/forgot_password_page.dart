@@ -67,6 +67,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           await _verifyWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          debugPrint('❌ [FirebaseAuth] verificationFailed: code=${e.code}, message=${e.message}');
           if (!mounted) return;
           final msg = FirebaseErrorHandler.getMessage(context, e);
           AppDialog.showToast(context, msg, isError: true);
@@ -86,7 +87,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
       setState(() => _isLoading = false);
     }
   }
@@ -112,7 +117,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
-      AppDialog.showToast(context, e.toString(), isError: true);
+      AppDialog.showToast(
+        context,
+        FirebaseErrorHandler.getMessage(context, e),
+        isError: true,
+      );
       setState(() => _isLoading = false);
     }
   }
