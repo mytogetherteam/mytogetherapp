@@ -6,6 +6,7 @@ import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
+import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
 import 'package:mytogetherapp/features/reviews/data/models/order_review_dto.dart';
 import 'package:mytogetherapp/features/reviews/data/repositories/order_review_repository.dart';
 import 'package:mytogetherapp/features/reviews/presentation/screens/write_review_page.dart';
@@ -24,6 +25,7 @@ import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
 import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
+import 'package:mytogetherapp/features/order/presentation/screens/order_history_detail_page.dart';
 
 class OrderHistoryCard extends StatefulWidget {
   final OrderHistoryDto order;
@@ -141,9 +143,18 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildTopRow(context),
-                const SizedBox(height: 16),
-                _buildMiddleRow(),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _openDetails,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTopRow(context),
+                      const SizedBox(height: 16),
+                      _buildMiddleRow(),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _buildBottomRow(context),
               ],
@@ -213,14 +224,21 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text(
-          widget.order.displayStatusLabel,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: labelColor,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 132),
+          child: Text(
+            widget.order.displayStatusLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: labelColor,
+            ),
           ),
         ),
+        const Icon(Icons.chevron_right, color: Colors.black38, size: 20),
       ],
     );
   }
@@ -245,7 +263,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             const SizedBox(height: 4),
             Text(
               context.trArgs('orders.items_count', {
-                'count': '${widget.order.items.length}',
+                'count': '${widget.order.itemCount}',
               }),
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
             ),
@@ -257,17 +275,17 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
 
   List<Widget> _buildThumbnails() {
     List<Widget> thumbs = [];
-    int maxDisplayCount = 3;
-    bool hasOverflow = widget.order.items.length > maxDisplayCount;
+    const maxDisplayCount = 3;
+    final photos = widget.order.items;
+    final shown = photos.length < maxDisplayCount
+        ? photos.length
+        : maxDisplayCount;
+    final dishCount = widget.order.itemCount;
+    final hasOverflow = dishCount > shown;
 
-    for (
-      int i = 0;
-      i < (hasOverflow ? maxDisplayCount : widget.order.items.length);
-      i++
-    ) {
-      bool isLast = i == widget.order.items.length - 1;
-      bool isThird = i == maxDisplayCount - 1;
-      final item = widget.order.items[i];
+    for (int i = 0; i < shown; i++) {
+      final isLast = i == shown - 1;
+      final item = photos[i];
 
       Widget img = Container(
         width: 60,
@@ -280,7 +298,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         ),
       );
 
-      if (hasOverflow && isThird) {
+      if (hasOverflow && isLast) {
         thumbs.add(
           Stack(
             children: [
@@ -294,7 +312,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                 ),
                 child: Center(
                   child: Text(
-                    '+${widget.order.items.length - maxDisplayCount}', // +X overlay
+                    '+${dishCount - shown}',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -469,6 +487,14 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
     );
   }
 
+  void _openDetails() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OrderHistoryDetailPage(order: widget.order),
+      ),
+    );
+  }
+
   Future<void> _openChat() async {
     if (!await GuestAuthGuard.requireAccount(context) || !mounted) return;
 
@@ -516,13 +542,36 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
   /// cart API, then opens the cart so the user can proceed to checkout.
   Future<void> _reorder() async {
     if (_isReordering) return;
+    setState(() => _isReordering = true);
 
     final shopId = widget.order.shopId;
-    final reorderable = widget.order.items
-        .where((i) => i.menuItemId != null)
-        .toList();
+    final orderId = int.tryParse(widget.order.id);
+    late final List<OrderHistoryItemDto> reorderable;
+    if (orderId == null) {
+      reorderable = widget.order.items
+          .where((i) => i.menuItemId != null)
+          .toList();
+    } else {
+      try {
+        final loaded = await OrderRepository().getAllOrderItems(
+          orderId: orderId,
+        );
+        reorderable = loaded.where((i) => i.menuItemId != null).toList();
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _isReordering = false);
+        AppDialog.showToast(
+          context,
+          context.tr('orders.reorder_failed'),
+          isError: true,
+        );
+        return;
+      }
+    }
 
     if (reorderable.isEmpty) {
+      if (!mounted) return;
+      setState(() => _isReordering = false);
       AppDialog.showToast(
         context,
         context.tr('orders.reorder_failed'),
@@ -530,8 +579,6 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       );
       return;
     }
-
-    setState(() => _isReordering = true);
 
     var added = 0;
     var failed = 0;
@@ -544,6 +591,10 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             menuItemId: item.menuItemId!,
             quantity: item.quantity,
             shopId: shopId,
+            variantId: item.variantId,
+            additionalVariantIds: item.additionalVariantIds,
+            optionIds: item.optionIds,
+            specialInstructions: item.specialInstructions,
           ),
         );
         added++;

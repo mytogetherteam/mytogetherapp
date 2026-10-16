@@ -62,6 +62,11 @@ class FoodMenuItemCard extends StatefulWidget {
   /// When true, skips the per-card closed/delivery status line (restaurant
   /// detail page shows one strip + hint instead).
   final bool suppressOrderStatusLine;
+  /// Last order's size, extras, options, and note. Used by Order Again.
+  final int? reorderVariantId;
+  final List<int>? reorderAdditionalVariantIds;
+  final List<int>? reorderOptionIds;
+  final String? reorderInstructions;
 
   const FoodMenuItemCard({
     super.key,
@@ -95,6 +100,10 @@ class FoodMenuItemCard extends StatefulWidget {
     this.restaurantStatus = 'Open',
     this.orderAvailability,
     this.suppressOrderStatusLine = false,
+    this.reorderVariantId,
+    this.reorderAdditionalVariantIds,
+    this.reorderOptionIds,
+    this.reorderInstructions,
   });
 
   @override
@@ -248,6 +257,11 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                               displayPrice: widget.displayPrice,
                               description: '',
                               isFavorite: widget.isFavorite,
+                              initialVariantId: widget.reorderVariantId,
+                              initialAdditionalVariantIds:
+                                  widget.reorderAdditionalVariantIds,
+                              initialOptionIds: widget.reorderOptionIds,
+                              initialInstructions: widget.reorderInstructions,
                             ),
                           ),
                         );

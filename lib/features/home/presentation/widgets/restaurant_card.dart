@@ -11,7 +11,9 @@ import 'order_unavailability_ui.dart';
 import 'my_together_verified_badge.dart';
 import '../../data/models/shop_dto.dart' show OperatingHourDto;
 import '../../data/restaurant_order_availability.dart';
+import '../../data/ordered_before_store.dart';
 import '../../data/shop_order_state_cache.dart';
+import 'ordered_before_label.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../wishlist/data/repositories/wishlist_repository.dart';
@@ -90,9 +92,13 @@ class RestaurantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     ShopOrderStateCache.instance.ensureListening();
+    OrderedBeforeStore.instance.ensureLoaded();
 
     return ListenableBuilder(
-      listenable: ShopOrderStateCache.instance,
+      listenable: Listenable.merge([
+        ShopOrderStateCache.instance,
+        OrderedBeforeStore.instance,
+      ]),
       builder: (context, _) {
         final parsedShopId = int.tryParse(shopId ?? '') ?? 0;
         final availability = parsedShopId > 0
@@ -107,15 +113,18 @@ class RestaurantCard extends StatelessWidget {
                 operatingHours: operatingHours,
                 status: status,
               );
-        return _buildCard(context, availability);
+        final orderedBefore = parsedShopId > 0 &&
+            OrderedBeforeStore.instance.contains(parsedShopId);
+        return _buildCard(context, availability, orderedBefore: orderedBefore);
       },
     );
   }
 
   Widget _buildCard(
     BuildContext context,
-    RestaurantOrderAvailability availability,
-  ) {
+    RestaurantOrderAvailability availability, {
+    required bool orderedBefore,
+  }) {
     final blockedLine = availability.cardStatusLine(context);
     final isBlocked = availability.isBlocked;
     final shouldDimImage = availability.shouldDimImage;
@@ -214,6 +223,10 @@ class RestaurantCard extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
+                if (orderedBefore) ...[
+                  const SizedBox(height: 6),
+                  const OrderedBeforeLabel(),
+                ],
 
                 if (showStatusLine)
                   OrderBlockedStatusLine(
@@ -230,9 +243,10 @@ class RestaurantCard extends StatelessWidget {
                     reviewCount: reviewCount,
                     // Since distance is a string here ('5.0 km'), we will just parse it
                     distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
-                    deliveryTime: deliveryTime,
-                    deliveryFee: deliveryFee,
-                    originalDeliveryFee: originalDeliveryFee,
+                    deliveryTime: deliveryEnabled ? deliveryTime : null,
+                    deliveryFee: deliveryEnabled ? deliveryFee : null,
+                    originalDeliveryFee:
+                        deliveryEnabled ? originalDeliveryFee : null,
                   ),
                 ),
               ],

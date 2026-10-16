@@ -266,7 +266,8 @@ class ShopListItemDto {
           ? (json['longitude'] as num).toDouble()
           : null,
       imageUrls: imageUrls,
-      freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryActive: json['deliveryEnabled'] != false &&
+          json['freeDeliveryActive'] == true,
       freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
       displayDeliveryFee: _parseDeliveryFee(json),
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
@@ -278,6 +279,7 @@ class ShopListItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    if (json['deliveryEnabled'] == false) return null;
     if (json['freeDeliveryActive'] == true) {
       return LocaleController.instance.tr('common.free');
     }
@@ -602,7 +604,8 @@ class ShopDetailDto {
           .map((e) => ShopMyDayDto.fromJson(e.cast<String, dynamic>()))
           .where((d) => d.imageUrl.isNotEmpty && d.isActive)
           .toList(),
-      freeDeliveryActive: json['freeDeliveryActive'] == true,
+      freeDeliveryActive: json['deliveryEnabled'] != false &&
+          json['freeDeliveryActive'] == true,
       freeDeliveryOptOutOfGlobal: json['freeDeliveryOptOutOfGlobal'] == true,
       displayDeliveryFee: ShopListItemDto._parseDeliveryFee(json),
     );

@@ -12,6 +12,13 @@ class OrderHistoryPageResult {
   const OrderHistoryPageResult({required this.items, required this.hasMore});
 }
 
+class OrderItemPageResult {
+  final List<OrderHistoryItemDto> items;
+  final bool hasMore;
+
+  const OrderItemPageResult({required this.items, required this.hasMore});
+}
+
 /// Talks to the new backend's user-orders endpoint.
 /// Backend route: `GET /api/user/orders` (UserOrdersController.findAll).
 /// Response shape: `{ success, message, data: [...], meta: { page, size, total, ... } }`.
@@ -65,12 +72,14 @@ class OrderRepository {
     int? shopId,
     int page = 1,
     int size = 50,
+    bool summary = false,
   }) {
     return _fetchOrderHistoryPage(
       statuses: statuses,
       shopId: shopId,
       page: page,
       size: size,
+      summary: summary,
     );
   }
 
@@ -96,11 +105,13 @@ class OrderRepository {
     int? shopId,
     int page = 1,
     int size = 50,
+    bool summary = false,
   }) async {
     final queryParams = <String, dynamic>{
       'page': page,
       'size': size,
     };
+    if (summary) queryParams['summary'] = '1';
     if (statuses != null && statuses.isNotEmpty) {
       queryParams['status'] = statuses.join(',');
     }
@@ -142,6 +153,67 @@ class OrderRepository {
       requestOptions: response.requestOptions,
       response: response,
       message: 'GET /user/orders failed with status ${response.statusCode}',
+    );
+  }
+
+  /// Every dish on one order, a page at a time. Stops after [maxPages].
+  Future<List<OrderHistoryItemDto>> getAllOrderItems({
+    required int orderId,
+    int pageSize = 20,
+    int maxPages = 5,
+  }) async {
+    final all = <OrderHistoryItemDto>[];
+    for (var page = 1; page <= maxPages; page++) {
+      final result = await getOrderItemsPage(
+        orderId: orderId,
+        page: page,
+        size: pageSize,
+      );
+      all.addAll(result.items);
+      if (!result.hasMore || result.items.isEmpty) break;
+    }
+    return all;
+  }
+
+  /// One page of dishes for a single order. The history list does not use this.
+  Future<OrderItemPageResult> getOrderItemsPage({
+    required int orderId,
+    int page = 1,
+    int size = 10,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '${ApiClient.apiPrefix}/user/orders/$orderId/items',
+      queryParameters: {'page': page, 'size': size},
+      options: Options(
+        extra: {
+          '@dio_cache_interceptor@': CacheOptions(
+            store: MemCacheStore(),
+            policy: CachePolicy.noCache,
+          ),
+        },
+      ),
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      final body = response.data;
+      final rawData = body is Map ? body['data'] : body;
+      final List<dynamic> list = rawData is List ? rawData : <dynamic>[];
+      final items = list
+          .map((e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final paged = PagedApiResult.fromBody(
+        body: body,
+        page: page,
+        pageSize: size,
+        items: items,
+      );
+      return OrderItemPageResult(items: paged.items, hasMore: paged.hasMore);
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      message: 'GET /user/orders/$orderId/items failed',
     );
   }
 

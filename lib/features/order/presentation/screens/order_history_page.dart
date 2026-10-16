@@ -67,6 +67,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           shopId: widget.shopId,
           page: page,
           size: _pageSize,
+          summary: true,
         );
         return PaginatedPage(items: batch.items, hasMore: batch.hasMore);
       },
@@ -375,7 +376,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
       builder: (context, _) {
         final bottomInset = ActiveOrderState.instance.hasActiveOrder
             ? 128.0
-            : 8.0;
+            : 16.0 + MediaQuery.paddingOf(context).bottom;
         return RefreshIndicator(
           onRefresh: pagination.refresh,
           color: AppColors.primary,

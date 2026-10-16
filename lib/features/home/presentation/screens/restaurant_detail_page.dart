@@ -5,6 +5,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:flutter/services.dart';
 import '../../../cart/data/cart_manager.dart';
+import '../../../cart/data/models/cart_dto.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/delivery_fee_estimate.dart';
 import '../../../cart/presentation/screens/order_summary_page.dart';
@@ -15,7 +16,12 @@ import '../widgets/image_skeleton_loader.dart';
 import '../../data/repositories/restaurant_repository.dart';
 import '../../../wishlist/data/repositories/wishlist_repository.dart';
 import '../../../wishlist/presentation/screens/wishlist_page.dart';
+import '../../data/ordered_before_store.dart';
+import '../../../food/data/order_again.dart';
 import '../../data/restaurant_data.dart';
+import '../widgets/ordered_before_label.dart';
+import '../widgets/last_order_strip.dart';
+import 'menu_detail_page.dart';
 import '../../data/models/menu_item_dto.dart';
 import '../../data/models/menu_category_dto.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
@@ -123,6 +129,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   bool _isMenuLoading = false;
   static const int _pageSize = 20;
   final Map<int, bool> _localFavorites = {};
+  List<LastOrderDish> _lastOrder = const [];
+  Set<int>? _orderableLastOrderIds;
+  bool _addingAllLastOrder = false;
+  int? _addingLastOrderIndex;
   final GlobalKey _targetMenuKey = GlobalKey();
   int _promotionCount = 0;
   bool _hasScrolledToTarget = false;
@@ -133,6 +143,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     super.initState();
     _targetMenuItemId = widget.targetMenuItemId;
     _scrollController.addListener(_onScroll);
+    _loadPastChoices();
 
     // Sync cart with backend to show correct basket bar
     CartManager.instance.syncWithApi();
@@ -615,6 +626,139 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       });
       await completer.future;
     }
+  }
+
+  Future<void> _loadPastChoices() async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    final dishes = await loadLastOrderDishes(shopId);
+    final orderable = await loadOrderableMenuItemIds(
+      shopId,
+      dishes.map((dish) => dish.menuItemId).toList(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _lastOrder = dishes;
+      _orderableLastOrderIds = orderable;
+    });
+  }
+
+  bool _lastOrderDishRemoved(LastOrderDish dish) {
+    final live = _liveMenuItem(dish.menuItemId);
+    if (live != null && !live.isAvailable) return true;
+    final orderable = _orderableLastOrderIds;
+    if (orderable == null) return false;
+    return !orderable.contains(dish.menuItemId);
+  }
+
+  ShopFeedItemDto? _liveMenuItem(int menuItemId) {
+    for (final item in _menuItems) {
+      if (item.id == menuItemId) return item;
+    }
+    return null;
+  }
+
+  Future<void> _addLastOrderLine(LastOrderDish dish, {int? quantity}) async {
+    final shopId = int.tryParse(widget.id) ?? 0;
+    final live = _liveMenuItem(dish.menuItemId);
+    final restaurant = _currentRestaurant;
+    await CartManager.instance.addMenuItem(
+      request: AddToCartRequest(
+        menuItemId: dish.menuItemId,
+        quantity: quantity ?? dish.quantity,
+        shopId: shopId,
+        variantId: dish.choice.variantId,
+        additionalVariantIds: dish.choice.additionalVariantIds.isEmpty
+            ? null
+            : dish.choice.additionalVariantIds,
+        optionIds:
+            dish.choice.optionIds.isEmpty ? null : dish.choice.optionIds,
+        specialInstructions: dish.choice.instructions,
+      ),
+      unitPrice: live?.price ?? dish.price,
+      itemNameEn: live?.nameEn ?? dish.nameEn ?? dish.name,
+      itemNameMm: live?.nameMm ?? dish.nameMm,
+      itemNameTh: live?.nameTh ?? dish.nameTh,
+      shopNameEn: restaurant?.nameEn ?? restaurant?.name ?? '',
+      shopNameMm: restaurant?.nameMm,
+      shopNameTh: restaurant?.nameTh,
+      imageUrl: live?.imageUrl ?? dish.imageUrl,
+      currency: live?.currency,
+    );
+  }
+
+  Future<void> _addOneLastOrder(int index) async {
+    if (_addingAllLastOrder || _addingLastOrderIndex != null) return;
+    if (index < 0 || index >= _lastOrder.length) return;
+    if (_lastOrderDishRemoved(_lastOrder[index])) return;
+    setState(() => _addingLastOrderIndex = index);
+    try {
+      await _addLastOrderLine(_lastOrder[index], quantity: 1);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('food.add_to_basket_failed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _addingLastOrderIndex = null);
+    }
+  }
+
+  Future<void> _addAllLastOrder() async {
+    if (_addingAllLastOrder || _addingLastOrderIndex != null) return;
+    setState(() => _addingAllLastOrder = true);
+    var failed = false;
+    var skipped = 0;
+    var added = 0;
+    for (final dish in _lastOrder) {
+      if (_lastOrderDishRemoved(dish)) {
+        skipped++;
+        continue;
+      }
+      try {
+        await _addLastOrderLine(dish);
+        added++;
+      } catch (_) {
+        failed = true;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _addingAllLastOrder = false);
+    final message = skipped > 0 && added > 0
+        ? context.tr('orders.reorder_some_unavailable')
+        : failed
+            ? context.tr('food.add_to_basket_failed')
+            : null;
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  void _openLastOrderDish(int index) {
+    if (index < 0 || index >= _lastOrder.length) return;
+    if (_lastOrderDishRemoved(_lastOrder[index])) return;
+    final dish = _lastOrder[index];
+    final live = _liveMenuItem(dish.menuItemId);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MenuDetailPage(
+          id: dish.menuItemId.toString(),
+          restaurantId: widget.id,
+          title: dish.name,
+          price: live?.price ?? dish.price,
+          imagePath: live?.imageUrl ?? dish.imageUrl,
+          restaurantName: _currentRestaurant?.name ?? '',
+          currency: live?.currency ?? '฿',
+          displayPrice: live?.displayPrice,
+          initialVariantId: dish.choice.variantId,
+          initialAdditionalVariantIds: dish.choice.additionalVariantIds,
+          initialOptionIds: dish.choice.optionIds,
+          initialInstructions: dish.choice.instructions,
+        ),
+      ),
+    );
   }
 
   Future<void> _fetchMenu({bool isInitial = false, bool silent = false}) async {
@@ -1260,6 +1404,26 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           color: Colors.black,
                                         ),
                                       ),
+                                      ListenableBuilder(
+                                        listenable: OrderedBeforeStore.instance,
+                                        builder: (context, _) {
+                                          OrderedBeforeStore.instance
+                                              .ensureLoaded();
+                                          final shopId = int.tryParse(
+                                                _currentRestaurant?.id ?? '',
+                                              ) ??
+                                              0;
+                                          if (shopId <= 0 ||
+                                              !OrderedBeforeStore.instance
+                                                  .contains(shopId)) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return const Padding(
+                                            padding: EdgeInsets.only(top: 6),
+                                            child: OrderedBeforeLabel(),
+                                          );
+                                        },
+                                      ),
                                       Wrap(
                                         crossAxisAlignment:
                                             WrapCrossAlignment.center,
@@ -1315,28 +1479,33 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                               color: Colors.grey[700],
                                             ),
                                           ),
-                                          Text(
-                                            '  •  ',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
+                                          if (_currentRestaurant?.deliveryEnabled !=
+                                              false) ...[
+                                            Text(
+                                              '  •  ',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
                                             ),
-                                          ),
-                                          Icon(
-                                            PhosphorIcons.clock,
-                                            size: 16,
-                                            color: Colors.grey[700],
-                                          ),
-                                          Text(
-                                            _currentRestaurant?.deliveryTime ??
-                                                '',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
+                                            Icon(
+                                              PhosphorIcons.clock,
+                                              size: 16,
                                               color: Colors.grey[700],
                                             ),
-                                          ),
-                                          if (_currentRestaurant
-                                                  ?.freeDeliveryActive ==
-                                              true) ...[
+                                            Text(
+                                              _currentRestaurant?.deliveryTime ??
+                                                  '',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey[700],
+                                              ),
+                                            ),
+                                          ],
+                                          if (_currentRestaurant?.deliveryEnabled !=
+                                                  false &&
+                                              _currentRestaurant
+                                                      ?.freeDeliveryActive ==
+                                                  true) ...[
                                             Text(
                                               '  •  ',
                                               style: TextStyle(
@@ -1351,10 +1520,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                 color: const Color(0xFF10B981),
                                               ),
                                             ),
-                                          ] else if ((_currentRestaurant
-                                                      ?.deliveryFee ??
-                                                  '')
-                                              .isNotEmpty) ...[
+                                          ] else if (_currentRestaurant?.deliveryEnabled !=
+                                                  false &&
+                                              (_currentRestaurant?.deliveryFee ??
+                                                      '')
+                                                  .isNotEmpty) ...[
                                             Text(
                                               '  •  ',
                                               style: TextStyle(
@@ -1837,19 +2007,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   /// menu category (ordered by the categories endpoint), with the items of
   /// each category in a grid beneath its header.
   List<Widget> _buildMenuSlivers(BuildContext context) {
-    if (_menuItems.isEmpty) {
-      if (_isMenuLoading) return const [];
-      return [
-        SliverPadding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
-          sliver: SliverToBoxAdapter(child: _buildAllEmptyCard()),
-        ),
-      ];
-    }
-
-    final groups = _buildCategoryGroups();
     final slivers = <Widget>[];
-
     if (_orderAvailability?.isBlocked ?? false) {
       slivers.add(
         SliverToBoxAdapter(
@@ -1868,6 +2026,36 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         ),
       );
     }
+    if (_lastOrder.isNotEmpty) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: LastOrderStrip(
+            dishes: _lastOrder,
+            liveItem: _liveMenuItem,
+            orderableIds: _orderableLastOrderIds,
+            canAdd: !(_orderAvailability?.isBlocked ?? false),
+            addingAll: _addingAllLastOrder,
+            addingIndex: _addingLastOrderIndex,
+            onAddAll: _addAllLastOrder,
+            onAdd: _addOneLastOrder,
+            onOpen: _openLastOrderDish,
+          ),
+        ),
+      );
+    }
+
+    if (_menuItems.isEmpty) {
+      if (_isMenuLoading) return slivers;
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+          sliver: SliverToBoxAdapter(child: _buildAllEmptyCard()),
+        ),
+      );
+      return slivers;
+    }
+
+    final groups = _buildCategoryGroups();
 
     for (final group in groups) {
       if (group.title != null && group.title!.isNotEmpty) {

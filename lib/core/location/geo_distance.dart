@@ -6,8 +6,7 @@ class GeoDistance {
 
   static const String defaultDeliveryEta = '20-30 min';
 
-  /// Show a confirm dialog when delivery distance exceeds this (km).
-  /// GrabFood long-distance is typically up to ~10 km.
+  /// Fallback confirm-dialog distance until the admin range is loaded.
   static const double distanceConfirmThresholdKm = 6.0;
 
   /// Delivery ETA label from straight-line distance (matches feed DTOs).

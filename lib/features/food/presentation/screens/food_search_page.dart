@@ -19,7 +19,9 @@ import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_
 import 'package:mytogetherapp/features/home/presentation/screens/menu_detail_page.dart';
 import 'package:mytogetherapp/features/home/presentation/screens/restaurant_detail_page.dart';
 import 'package:mytogetherapp/features/home/data/restaurant_order_availability.dart';
+import 'package:mytogetherapp/features/home/data/ordered_before_store.dart';
 import 'package:mytogetherapp/features/home/data/shop_order_state_cache.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/ordered_before_label.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/order_unavailability_ui.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
@@ -1654,9 +1656,13 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     final logo = _imageUrl(shop.bannerImageUrl ?? shop.logoUrl);
 
     ShopOrderStateCache.instance.ensureListening();
+    OrderedBeforeStore.instance.ensureLoaded();
 
     return ListenableBuilder(
-      listenable: ShopOrderStateCache.instance,
+      listenable: Listenable.merge([
+        ShopOrderStateCache.instance,
+        OrderedBeforeStore.instance,
+      ]),
       builder: (context, _) {
         final availability =
             ShopOrderStateCache.instance.availabilityForShopIdOrDefault(
@@ -1720,6 +1726,10 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                                 color: Colors.black87,
                               ),
                             ),
+                            if (OrderedBeforeStore.instance.contains(shop.id)) ...[
+                              const SizedBox(height: 6),
+                              const OrderedBeforeLabel(),
+                            ],
                             const SizedBox(height: 2),
                             Row(
                               children: [

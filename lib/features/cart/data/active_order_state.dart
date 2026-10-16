@@ -17,6 +17,7 @@ import '../presentation/utils/revise_reason_parser.dart';
 import '../../../core/utils/order_tax.dart';
 import 'order_shop_coupon_info.dart';
 import '../../../core/auth/auth_service.dart';
+import '../../home/data/ordered_before_store.dart';
 import '../../../core/auth/order_ownership.dart';
 
 /// Result of [ActiveOrderState.ensureCanPlaceNewOrder].
@@ -1825,6 +1826,10 @@ class ActiveOrderState extends ChangeNotifier {
       case 'DELIVERED':
       case 'PICKED_UP':
         item.orderStatus = 4;
+        final finishedShopId = int.tryParse(item.shopId ?? '') ?? 0;
+        if (finishedShopId > 0) {
+          OrderedBeforeStore.instance.remember(finishedShopId);
+        }
         break;
       case 'CANCELED':
       case 'CANCELLED':

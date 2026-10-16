@@ -656,6 +656,40 @@ class RestaurantRepository {
     return NewUserFreeDeliveryOffer.instance.applies && !optedOut;
   }
 
+  String? _deliveryFeeLabel({
+    required bool deliveryEnabled,
+    required bool optedOut,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return null;
+    if (_newUserFreeForShop(optedOut) || promoActive) {
+      return LocaleController.instance.tr('common.free');
+    }
+    return displayFee;
+  }
+
+  bool _shopPromoFree({
+    required bool deliveryEnabled,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return false;
+    return promoActive || DeliveryFeeEstimate.isFreeLabel(displayFee);
+  }
+
+  bool _freeDeliveryActive({
+    required bool deliveryEnabled,
+    required bool optedOut,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return false;
+    return _newUserFreeForShop(optedOut) ||
+        promoActive ||
+        DeliveryFeeEstimate.isFreeLabel(displayFee);
+  }
+
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {
     double? distanceKmOverride,
@@ -682,27 +716,36 @@ class RestaurantRepository {
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: _deliveryTimeForShop(
-        dto: dto,
-        distanceKmOverride: distanceKmOverride,
+      deliveryTime: dto.deliveryEnabled
+          ? _deliveryTimeForShop(
+              dto: dto,
+              distanceKmOverride: distanceKmOverride,
+            )
+          : '',
+      deliveryFee: _deliveryFeeLabel(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
       ),
-      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
-          ? LocaleController.instance.tr('common.free')
-          : dto.displayDeliveryFee ??
-              (dto.freeDeliveryActive
-                  ? LocaleController.instance.tr('common.free')
-                  : null),
-      originalDeliveryFee: dto.originalDeliveryFee,
+      originalDeliveryFee:
+          dto.deliveryEnabled ? dto.originalDeliveryFee : null,
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
-      shopPromoFreeDelivery: dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
-          dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
+      shopPromoFreeDelivery: _shopPromoFree(
+        deliveryEnabled: dto.deliveryEnabled,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      freeDeliveryActive: _freeDeliveryActive(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
@@ -738,30 +781,38 @@ class RestaurantRepository {
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: () {
-        final resolvedKm = distanceKmOverride ??
-            (dto.distance > 0 ? dto.distance : null);
-        if (resolvedKm != null && resolvedKm > 0) {
-          return GeoDistance.deliveryEtaFromKm(resolvedKm);
-        }
-        return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
-      }(),
+      deliveryTime: dto.deliveryEnabled
+          ? () {
+              final resolvedKm = distanceKmOverride ??
+                  (dto.distance > 0 ? dto.distance : null);
+              if (resolvedKm != null && resolvedKm > 0) {
+                return GeoDistance.deliveryEtaFromKm(resolvedKm);
+              }
+              return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
+            }()
+          : '',
       status: dto.isOpen ? 'Open' : 'Closed',
       deliveryEnabled: dto.deliveryEnabled,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
-      shopPromoFreeDelivery: dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
-          dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
-          ? LocaleController.instance.tr('common.free')
-          : dto.displayDeliveryFee ??
-              (dto.freeDeliveryActive
-                  ? LocaleController.instance.tr('common.free')
-                  : null),
+      shopPromoFreeDelivery: _shopPromoFree(
+        deliveryEnabled: dto.deliveryEnabled,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      freeDeliveryActive: _freeDeliveryActive(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      deliveryFee: _deliveryFeeLabel(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),

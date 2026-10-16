@@ -173,7 +173,8 @@ class TrendingItemDto {
       distanceKm: distanceKm,
       estimatedTime:
           json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
-      deliveryFee: _parseDeliveryFee(json),
+      deliveryFee:
+          orderState.deliveryEnabled ? _parseDeliveryFee(json) : null,
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       isAvailable: json['isAvailable'] as bool? ?? true,
       publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
@@ -203,6 +204,9 @@ class TrendingItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    final shop = json['shop'];
+    if (json['deliveryEnabled'] == false) return null;
+    if (shop is Map && shop['deliveryEnabled'] == false) return null;
     if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
     if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
     if (json['deliveryFee'] != null) return json['deliveryFee'] as String;

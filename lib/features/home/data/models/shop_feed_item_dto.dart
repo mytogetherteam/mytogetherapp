@@ -153,7 +153,8 @@ class ShopFeedItemDto {
       displayPrice: json['displayPrice'] as String?,
       distanceKm: distanceKm,
       estimatedTime: json['estimatedTime']?.toString() ?? json['shopEstimatedTime']?.toString(),
-      deliveryFee: _parseDeliveryFee(json),
+      deliveryFee:
+          orderState.deliveryEnabled ? _parseDeliveryFee(json) : null,
       originalDeliveryFee: _parseOriginalDeliveryFee(json),
       isAvailable: json['isAvailable'] as bool? ?? true,
       publishStatus: json['publishStatus'] as String? ?? 'PUBLISHED',
@@ -171,6 +172,10 @@ class ShopFeedItemDto {
     final shopMap = json['shop'] is Map
         ? Map<String, dynamic>.from(json['shop'] as Map)
         : null;
+    if (json['deliveryEnabled'] == false ||
+        shopMap?['deliveryEnabled'] == false) {
+      return null;
+    }
     if (json['freeDeliveryActive'] == true ||
         shopMap?['freeDeliveryActive'] == true) {
       return 'Free';
