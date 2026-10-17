@@ -473,7 +473,8 @@ class _FoodSearchPageState extends State<FoodSearchPage>
       final s = dto.shop;
       ShopOrderStateCache.instance.rememberParts(
         s.id,
-        deliveryEnabled: s.deliveryEnabled,
+        deliveryEnabled:
+            s.deliveryEnabledKnown ? s.deliveryEnabled : null,
         operatingHours: s.operatingHours,
         status: s.isOpen ? 'Open' : 'Closed',
       );

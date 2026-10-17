@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../screens/restaurant_detail_page.dart';
 import 'food_list_item_card.dart';
 import 'food_menu_item_card.dart';
@@ -49,7 +50,18 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
   @override
   void initState() {
     super.initState();
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _future = _fetch();
+  }
+
+  void _onShopOrderState() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
+    super.dispose();
   }
 
   @override
@@ -71,13 +83,20 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
         radiusKm: widget.radiusKm,
       );
 
+  bool _offersDelivery(ShopFeedItemDto item) {
+    return ShopOrderStateCache.instance.offersDelivery(
+      item.shopId,
+      fallback: item.deliveryEnabled,
+    );
+  }
+
   List<ShopFeedItemDto> _filtered(List<ShopFeedItemDto> items) {
     if (!widget.showOrderingFilter) return items;
     return items
         .where(
           (item) => _filter == RestaurantOrderingFilter.delivery
-              ? item.deliveryEnabled
-              : !item.deliveryEnabled,
+              ? _offersDelivery(item)
+              : !_offersDelivery(item),
         )
         .toList();
   }

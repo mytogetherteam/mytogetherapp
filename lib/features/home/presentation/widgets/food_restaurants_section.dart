@@ -8,6 +8,7 @@ import 'restaurant_ordering_filter_chips.dart';
 import '../screens/restaurant_detail_page.dart';
 import '../screens/all_restaurants_page.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../features/auth/data/repositories/user_location_repository.dart';
 import '../../../../core/location/location_refresh_mixin.dart';
@@ -28,7 +29,18 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
   @override
   void initState() {
     super.initState();
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _reloadRestaurants();
+  }
+
+  void _onShopOrderState() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
+    super.dispose();
   }
 
   @override

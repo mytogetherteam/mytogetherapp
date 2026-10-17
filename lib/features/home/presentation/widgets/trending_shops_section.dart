@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../screens/food_collection_list_page.dart';
 import '../screens/restaurant_detail_page.dart';
@@ -30,7 +31,18 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
   @override
   void initState() {
     super.initState();
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _future = _load();
+  }
+
+  void _onShopOrderState() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
+    super.dispose();
   }
 
   Future<List<Restaurant>> _load() async {

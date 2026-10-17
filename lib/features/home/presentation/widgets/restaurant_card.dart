@@ -243,10 +243,13 @@ class RestaurantCard extends StatelessWidget {
                     reviewCount: reviewCount,
                     // Since distance is a string here ('5.0 km'), we will just parse it
                     distanceKm: double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')),
-                    deliveryTime: deliveryEnabled ? deliveryTime : null,
-                    deliveryFee: deliveryEnabled ? deliveryFee : null,
-                    originalDeliveryFee:
-                        deliveryEnabled ? originalDeliveryFee : null,
+                    deliveryTime:
+                        availability.deliveryEnabled ? deliveryTime : null,
+                    deliveryFee:
+                        availability.deliveryEnabled ? deliveryFee : null,
+                    originalDeliveryFee: availability.deliveryEnabled
+                        ? originalDeliveryFee
+                        : null,
                   ),
                 ),
               ],

@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
@@ -60,6 +61,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
   bool _showMap = false;
   double _currentZoom = 14.0;
   double _selectedRadius = 5.0;
+  List<Restaurant> _loadedMapRestaurants = [];
   List<Restaurant> _mapRestaurants = [];
   int _mapFetchEpoch = 0;
 
@@ -80,6 +82,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_listScrollController);
     _pagination.loadInitial();
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _loadMapRestaurants();
     _initLocationService();
     UserLocationRepository.instance.addListener(_onActiveLocationChanged);
@@ -113,7 +116,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
         visitOnly: _visitOnly,
       );
       if (!mounted || epoch != _mapFetchEpoch) return;
-      setState(() => _mapRestaurants = restaurants);
+      final visible = _visibleMapRestaurants(restaurants);
+      setState(() {
+        _loadedMapRestaurants = restaurants;
+        _mapRestaurants = visible;
+      });
       _updateMarkers(_mapRestaurants);
       if (!_didInitialCamera && restaurants.isNotEmpty) {
         _didInitialCamera = true;
@@ -815,8 +822,26 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
     }
   }
 
+  List<Restaurant> _visibleMapRestaurants(List<Restaurant> restaurants) {
+    return RestaurantRepository.applyOrderingFilter(
+      restaurants,
+      deliveryOnly: !_visitOnly,
+      visitOnly: _visitOnly,
+    );
+  }
+
+  void _onShopOrderState() {
+    if (!mounted) return;
+    final next = _visibleMapRestaurants(_loadedMapRestaurants);
+    final changed = next.length != _mapRestaurants.length ||
+        next.any((restaurant) => !_mapRestaurants.any((old) => old.id == restaurant.id));
+    setState(() => _mapRestaurants = next);
+    if (changed) _updateMarkers(_mapRestaurants);
+  }
+
   @override
   void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
     UserLocationRepository.instance.removeListener(_onActiveLocationChanged);
     _positionStreamSubscription?.cancel();
     _pagination
@@ -850,7 +875,11 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       );
     }
 
-    final restaurants = _pagination.items;
+    final restaurants = RestaurantRepository.applyOrderingFilter(
+      _pagination.items,
+      deliveryOnly: !_visitOnly,
+      visitOnly: _visitOnly,
+    );
     if (restaurants.isEmpty) {
       return Center(
         child: Text(

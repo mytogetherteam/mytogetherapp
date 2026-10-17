@@ -118,6 +118,8 @@ class ShopListItemDto {
   final String? address;
   final bool isOpen;
   final bool deliveryEnabled;
+  /// False when the payload omitted `deliveryEnabled` and [deliveryEnabled] is the default.
+  final bool deliveryEnabledKnown;
   final bool isVerified;
   final List<OperatingHourDto> operatingHours;
   final String? _estimatedTime;
@@ -190,6 +192,7 @@ class ShopListItemDto {
     this.address,
     required this.isOpen,
     this.deliveryEnabled = true,
+    this.deliveryEnabledKnown = false,
     this.isVerified = false,
     this.operatingHours = const [],
     String? estimatedTime,
@@ -252,7 +255,10 @@ class ShopListItemDto {
       distance: (json['distanceKm'] ?? json['distance'] ?? 0.0).toDouble(),
       address: json['address']?.toString(),
       isOpen: json['isOpen'] ?? false,
-      deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      deliveryEnabled: json['deliveryEnabled'] is bool
+          ? json['deliveryEnabled'] as bool
+          : true,
+      deliveryEnabledKnown: json['deliveryEnabled'] is bool,
       isVerified: json['isVerified'] as bool? ?? false,
       operatingHours: (json['operatingHours'] as List? ?? [])
           .map((e) => OperatingHourDto.fromJson(e))
@@ -422,6 +428,8 @@ class ShopDetailDto {
   final String? _estimatedTime;
   final bool isOpen;
   final bool deliveryEnabled;
+  /// False when the payload omitted `deliveryEnabled` and [deliveryEnabled] is the default.
+  final bool deliveryEnabledKnown;
   final bool taxEnable;
   final bool isVerified;
   final bool freeDeliveryActive;
@@ -504,6 +512,7 @@ class ShopDetailDto {
     String? estimatedTime,
     required this.isOpen,
     this.deliveryEnabled = true,
+    this.deliveryEnabledKnown = false,
     this.taxEnable = true,
     this.isVerified = false,
     this.address,
@@ -560,7 +569,10 @@ class ShopDetailDto {
       distance: (json['distance'] ?? 0.0).toDouble(),
       estimatedTime: json['estimatedTime']?.toString(),
       isOpen: json['isOpen'] ?? false,
-      deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      deliveryEnabled: json['deliveryEnabled'] is bool
+          ? json['deliveryEnabled'] as bool
+          : true,
+      deliveryEnabledKnown: json['deliveryEnabled'] is bool,
       taxEnable: json['taxEnable'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
       address: json['address']?.toString(),

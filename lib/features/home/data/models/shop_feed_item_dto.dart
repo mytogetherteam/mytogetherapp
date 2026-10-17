@@ -117,7 +117,7 @@ class ShopFeedItemDto {
       ShopOrderStateCache.instance.ensureListening();
       ShopOrderStateCache.instance.rememberParts(
         shopId,
-        deliveryEnabled: orderState.deliveryEnabled,
+        deliveryEnabled: orderState.knownDeliveryEnabled,
         operatingHours: orderState.operatingHours,
         status: orderState.status,
       );

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../home/data/models/shop_dto.dart';
@@ -18,6 +19,16 @@ class SearchRepository {
   SearchRepository._internal();
 
   final ApiClient _apiClient = ApiClient();
+
+  /// Shop delivery/open state must not sit in the 7-day response cache.
+  Options get _freshShopOptions => Options(
+        extra: {
+          '@dio_cache_interceptor@': CacheOptions(
+            store: MemCacheStore(),
+            policy: CachePolicy.refresh,
+          ),
+        },
+      );
 
   bool get _isLoggedIn => AuthService().isLoggedIn;
 
@@ -49,6 +60,7 @@ class SearchRepository {
         'size': size,
         ...?filters?.toQueryParameters(),
       },
+      options: _freshShopOptions,
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
@@ -67,6 +79,7 @@ class SearchRepository {
         'size': size,
         'days': ?days,
       },
+      options: _freshShopOptions,
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
@@ -121,6 +134,7 @@ class SearchRepository {
         'page': page,
         'size': size,
       },
+      options: _freshShopOptions,
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
@@ -179,6 +193,7 @@ class SearchRepository {
         'page': page,
         'size': size,
       },
+      options: _freshShopOptions,
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
@@ -201,6 +216,7 @@ class SearchRepository {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'categoryId': ?categoryId,
       },
+      options: _freshShopOptions,
     );
     return SearchPageResult.fromJson(response.data as Map<String, dynamic>);
   }
@@ -218,6 +234,7 @@ class SearchRepository {
   Future<Map<String, dynamic>?> getShopProfileRawById(int id) async {
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/shop-profile/$id',
+      options: _freshShopOptions,
     );
     final body = response.data;
     final shop = body is Map ? body['data'] : null;

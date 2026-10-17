@@ -11,6 +11,7 @@ import 'package:mytogetherapp/features/auth/data/repositories/user_location_repo
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
 import '../../data/models/nearby_shops_page_result.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
@@ -57,7 +58,12 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
       fetchPage: _fetchPage,
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_scrollController);
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _pagination.loadInitial();
+  }
+
+  void _onShopOrderState() {
+    if (mounted) setState(() {});
   }
 
   bool get _visitOnly =>
@@ -75,6 +81,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
 
   @override
   void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
     _pagination
       ..removeListener(_onPaginationChanged)
       ..dispose();
@@ -258,7 +265,11 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
   bool get _showPaginationFooter => _pagination.showFooter;
 
   Widget _buildList() {
-    final restaurants = _pagination.items;
+    final restaurants = RestaurantRepository.applyOrderingFilter(
+      _pagination.items,
+      deliveryOnly: !_visitOnly,
+      visitOnly: _visitOnly,
+    );
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),

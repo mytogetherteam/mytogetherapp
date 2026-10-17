@@ -102,14 +102,23 @@ class RestaurantRepository {
     }
   }
 
-  /// Keeps shops that currently offer delivery (`deliveryEnabled == true`).
-  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
-    return restaurants.where((r) => r.deliveryEnabled).toList();
+  /// Same delivery answer the restaurant card badge uses.
+  static bool offersDelivery(Restaurant restaurant) {
+    final shopId = int.tryParse(restaurant.id) ?? 0;
+    return ShopOrderStateCache.instance.offersDelivery(
+      shopId,
+      fallback: restaurant.deliveryEnabled,
+    );
   }
 
-  /// Keeps shops that are browse/Go & Eat (`deliveryEnabled == false`).
+  /// Keeps shops that currently offer delivery.
+  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
+    return restaurants.where(offersDelivery).toList();
+  }
+
+  /// Keeps shops that are browse/Go & Eat.
   static List<Restaurant> filterVisitOnly(List<Restaurant> restaurants) {
-    return restaurants.where((r) => !r.deliveryEnabled).toList();
+    return restaurants.where((r) => !offersDelivery(r)).toList();
   }
 
   static List<Restaurant> applyOrderingFilter(
@@ -733,6 +742,7 @@ class RestaurantRepository {
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabledKnown: dto.deliveryEnabledKnown,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
       shopPromoFreeDelivery: _shopPromoFree(
@@ -793,6 +803,7 @@ class RestaurantRepository {
           : '',
       status: dto.isOpen ? 'Open' : 'Closed',
       deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabledKnown: dto.deliveryEnabledKnown,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
@@ -858,11 +869,11 @@ class RestaurantRepository {
       final shopId = int.tryParse(restaurant.id);
       if (shopId == null || shopId <= 0) continue;
 
-      final hasCompleteSchedule =
+      final hoursComplete =
           restaurant.operatingHours.length >= 7 ||
           ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId);
 
-      if (hasCompleteSchedule) {
+      if (hoursComplete && restaurant.deliveryEnabledKnown) {
         ShopOrderStateCache.instance.rememberParts(
           shopId,
           deliveryEnabled: restaurant.deliveryEnabled,
@@ -874,8 +885,15 @@ class RestaurantRepository {
 
       final stored = await ShopStorage.getShop(shopId);
       if (stored != null) {
-        _applyShopProfileJsonToCache(shopId, stored);
-        if (ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId)) {
+        _applyShopProfileJsonToCache(
+          shopId,
+          stored,
+          deliveryEnabled: restaurant.deliveryEnabledKnown
+              ? restaurant.deliveryEnabled
+              : null,
+        );
+        if (restaurant.deliveryEnabledKnown &&
+            ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId)) {
           continue;
         }
       }
@@ -887,14 +905,28 @@ class RestaurantRepository {
         try {
           final dto = await SearchRepository.instance.getShopProfileById(shopId);
           if (dto == null) return;
-          ShopOrderStateCache.instance.replaceParts(
-            shopId,
-            deliveryEnabled: dto.deliveryEnabled,
-            operatingHours: dto.operatingHours,
-            status: dto.isOpen ? 'Open' : 'Closed',
-          );
+          _replaceOrderStateFromProfile(shopId, dto);
         } catch (_) {}
       }),
+    );
+  }
+
+  /// A profile that omits `deliveryEnabled` must not invent "delivery on".
+  void _replaceOrderStateFromProfile(int shopId, ShopListItemDto dto) {
+    final status = dto.isOpen ? 'Open' : 'Closed';
+    if (!dto.deliveryEnabledKnown) {
+      ShopOrderStateCache.instance.rememberParts(
+        shopId,
+        operatingHours: dto.operatingHours,
+        status: status,
+      );
+      return;
+    }
+    ShopOrderStateCache.instance.replaceParts(
+      shopId,
+      deliveryEnabled: dto.deliveryEnabled,
+      operatingHours: dto.operatingHours,
+      status: status,
     );
   }
 
@@ -910,12 +942,7 @@ class RestaurantRepository {
         try {
           final dto = await SearchRepository.instance.getShopProfileById(shopId);
           if (dto == null) return;
-          ShopOrderStateCache.instance.replaceParts(
-            shopId,
-            deliveryEnabled: dto.deliveryEnabled,
-            operatingHours: dto.operatingHours,
-            status: dto.isOpen ? 'Open' : 'Closed',
-          );
+          _replaceOrderStateFromProfile(shopId, dto);
           clearCache(shopId: shopId);
         } catch (_) {}
       }),
@@ -927,11 +954,15 @@ class RestaurantRepository {
     return Future.value(restaurants);
   }
 
-  void _applyShopProfileJsonToCache(int shopId, Map<String, dynamic> json) {
+  void _applyShopProfileJsonToCache(
+    int shopId,
+    Map<String, dynamic> json, {
+    bool? deliveryEnabled,
+  }) {
     final dto = ShopListItemDto.fromJson(json);
     ShopOrderStateCache.instance.rememberParts(
       shopId,
-      deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabled: deliveryEnabled,
       operatingHours: dto.operatingHours,
       status: dto.isOpen ? 'Open' : 'Closed',
     );
