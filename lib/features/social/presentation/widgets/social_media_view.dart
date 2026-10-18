@@ -6,6 +6,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../data/models/post_dto.dart';
+import '../social_playback.dart';
 
 /// Full-bleed image or looping video for one social feed page.
 /// Supports TikTok-style tap-to-play/pause with animated center icon,
@@ -38,9 +39,6 @@ class _SocialMediaViewState extends State<SocialMediaView>
   /// True when the user manually tapped to pause.
   /// Prevents auto-resume when the tab becomes active again.
   bool _userPaused = false;
-
-  /// True when audio is muted.
-  bool _muted = false;
 
   Timer? _tapTimer;
   DateTime? _lastTapUp;
@@ -87,6 +85,7 @@ class _SocialMediaViewState extends State<SocialMediaView>
       ),
     ]).animate(_iconAnimController);
 
+    SocialPlayback.muted.addListener(_onMuteChanged);
     if (widget.media.isVideo) {
       if (widget.preloadedController != null) {
         widget.preloadedController!.addListener(_onControllerUpdate);
@@ -99,6 +98,19 @@ class _SocialMediaViewState extends State<SocialMediaView>
   }
 
   void _onControllerUpdate() {
+    final c = _controller;
+    if (c != null &&
+        c.value.isInitialized &&
+        widget.isActive &&
+        !_userPaused &&
+        !c.value.isPlaying) {
+      _syncPlayback();
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _onMuteChanged() {
+    _syncPlayback();
     if (mounted) setState(() {});
   }
 
@@ -168,7 +180,7 @@ class _SocialMediaViewState extends State<SocialMediaView>
       if (c.value.isPlaying) c.pause();
     }
 
-    c.setVolume(_muted ? 0.0 : 1.0);
+    c.setVolume(SocialPlayback.muted.value ? 0.0 : 1.0);
   }
 
   void _disposeLocalVideo() {
@@ -273,16 +285,15 @@ class _SocialMediaViewState extends State<SocialMediaView>
     return true;
   }
 
-  /// Toggle mute/unmute.
+  /// Toggle mute/unmute. The choice is shared with the next video.
   void _toggleMute() {
-    final newMuted = !_muted;
-    setState(() => _muted = newMuted);
-    _controller?.setVolume(newMuted ? 0.0 : 1.0);
+    SocialPlayback.setMuted(!SocialPlayback.muted.value);
   }
 
   @override
   void dispose() {
     _tapTimer?.cancel();
+    SocialPlayback.muted.removeListener(_onMuteChanged);
     widget.preloadedController?.removeListener(_onControllerUpdate);
     _iconAnimController.dispose();
     _disposeLocalVideo();
@@ -354,22 +365,30 @@ class _SocialMediaViewState extends State<SocialMediaView>
               top: false,
               child: GestureDetector(
                 onTap: _toggleMute,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withValues(alpha: 0.4),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                    ],
-                  ),
-                  child: Icon(
-                    _muted
-                        ? PhosphorIcons.speakerSlashFill
-                        : PhosphorIcons.speakerHighFill,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    size: 16,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withValues(alpha: 0.4),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      SocialPlayback.muted.value
+                          ? PhosphorIcons.speakerSlashFill
+                          : PhosphorIcons.speakerHighFill,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      size: 16,
+                    ),
                   ),
                 ),
               ),

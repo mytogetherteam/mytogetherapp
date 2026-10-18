@@ -8,6 +8,7 @@ import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/features/social/data/models/post_dto.dart';
 import 'package:mytogetherapp/features/social/data/repositories/social_posts_repository.dart';
+import 'package:mytogetherapp/features/social/presentation/screens/tiktok_profile_page.dart';
 import 'view_all_icon_button.dart';
 
 /// Home teaser for Social — first N posts from the For You feed.
@@ -26,7 +27,26 @@ class _SocialForYouSectionState extends State<SocialForYouSection> {
   @override
   void initState() {
     super.initState();
+    SocialPostsRepository.followNotice.addListener(_onFollowNotice);
     _load();
+  }
+
+  @override
+  void dispose() {
+    SocialPostsRepository.followNotice.removeListener(_onFollowNotice);
+    super.dispose();
+  }
+
+  void _onFollowNotice() {
+    final notice = SocialPostsRepository.followNotice.value;
+    if (notice == null || !mounted) return;
+    setState(() {
+      for (final post in _posts) {
+        if (post.author.type == notice.type && post.author.id == notice.id) {
+          post.followedByMe = notice.following;
+        }
+      }
+    });
   }
 
   Future<void> _load() async {
@@ -235,18 +255,66 @@ class _SocialTeaserCard extends StatelessWidget {
                   ),
                 ),
               Positioned(
-                left: 10,
-                right: 10,
-                bottom: 10,
-                child: Text(
-                  post.author.handle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        AppHaptics.buttonTap();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                TikTokProfilePage(
+                                  author: post.author,
+                                  initialFollowing: post.followedByMe,
+                                ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white24,
+                        backgroundImage:
+                            (post.author.avatarUrl?.isNotEmpty == true)
+                                ? CachedNetworkImageProvider(
+                                    post.author.avatarUrl!,
+                                  )
+                                : null,
+                        child: (post.author.avatarUrl?.isNotEmpty == true)
+                            ? null
+                            : Text(
+                                post.author.displayName.isEmpty
+                                    ? 'U'
+                                    : post.author.displayName.characters.first
+                                        .toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        post.author.handle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

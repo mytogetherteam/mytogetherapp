@@ -4,6 +4,7 @@ import '../../../../core/media/picked_image.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/utils/api_response_utils.dart';
 import '../models/post_dto.dart';
+import '../models/social_reaction.dart';
 
 class SocialPostsFeedPage {
   final List<SocialPostDto> items;
@@ -21,6 +22,18 @@ class SocialPostsFeedPage {
 
 class ReportOwnPostException implements Exception {}
 
+class SocialFollowNotice {
+  final SocialAuthorType type;
+  final int id;
+  final bool following;
+
+  const SocialFollowNotice({
+    required this.type,
+    required this.id,
+    required this.following,
+  });
+}
+
 class SocialPostsRepository {
   static final SocialPostsRepository instance = SocialPostsRepository._();
   SocialPostsRepository._();
@@ -28,6 +41,30 @@ class SocialPostsRepository {
   /// Bumps when the signed-in user publishes or deletes a post.
   /// For You stays mounted under the other tabs, so it listens and reloads.
   static final feedRevision = ValueNotifier<int>(0);
+  static final reactionsRevision = ValueNotifier<int>(0);
+  /// The latest follow or unfollow, so a profile opened from Home
+  /// updates the video feed that is still open underneath.
+  static final followNotice = ValueNotifier<SocialFollowNotice?>(null);
+  List<SocialReaction> reactions = List<SocialReaction>.of(fallbackSocialReactions);
+
+  SocialReaction? reactionByKey(String? key) {
+    if (key == null || key.isEmpty) return null;
+    for (final item in reactions) {
+      if (item.key == key) return item;
+    }
+    for (final item in fallbackSocialReactions) {
+      if (item.key == key) return item;
+    }
+    return null;
+  }
+
+  Future<List<SocialReaction>> loadReactions() async {
+    try {
+      reactions = await fetchReactions();
+      reactionsRevision.value++;
+    } catch (_) {}
+    return reactions;
+  }
 
   static void markFeedChanged() {
     feedRevision.value++;
@@ -35,10 +72,18 @@ class SocialPostsRepository {
 
   final Dio _dio = ApiClient().dio;
 
-  Future<SocialPostsFeedPage> fetchFeed({int page = 1, int size = 10}) async {
+  Future<SocialPostsFeedPage> fetchFeed({
+    int page = 1,
+    int size = 10,
+    bool following = false,
+  }) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/posts',
-      queryParameters: {'page': page, 'size': size},
+      queryParameters: {
+        'page': page,
+        'size': size,
+        if (following) 'feed': 'following',
+      },
     );
     final body = response.data;
     return SocialPostsFeedPage(
@@ -213,17 +258,38 @@ class SocialPostsRepository {
     } catch (_) {}
   }
 
-  Future<({bool liked, int likeCount})> toggleLike(int id) async {
-    final response =
-        await _dio.post('${ApiClient.apiPrefix}/user/posts/$id/like');
+  Future<({bool liked, int likeCount, String? reactionKey})> toggleLike(
+    int id, {
+    String? reactionKey,
+  }) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/posts/$id/like',
+      data: reactionKey == null ? null : {'reactionKey': reactionKey},
+    );
     final data = ApiResponseUtils.unwrapData(response.data);
     if (data is Map) {
+      final key = data['reactionKey']?.toString();
       return (
         liked: data['liked'] == true,
         likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
+        reactionKey: key == null || key.isEmpty ? null : key,
       );
     }
-    return (liked: false, likeCount: 0);
+    return (liked: false, likeCount: 0, reactionKey: null);
+  }
+
+  Future<List<SocialReaction>> fetchReactions() async {
+    final response =
+        await _dio.get('${ApiClient.apiPrefix}/user/social/reactions');
+    final data = ApiResponseUtils.unwrapData(response.data);
+    if (data is! List) return fallbackSocialReactions;
+    final rows = data
+        .whereType<Map>()
+        .map((row) => SocialReaction.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+    if (rows.isEmpty) return fallbackSocialReactions;
+    rows.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return rows.take(7).toList();
   }
 
   Future<List<SocialPostCommentDto>> fetchComments(
@@ -241,10 +307,17 @@ class SocialPostsRepository {
     );
   }
 
-  Future<SocialPostCommentDto?> addComment(int postId, String content) async {
+  Future<SocialPostCommentDto?> addComment(
+    int postId,
+    String content, {
+    int? parentId,
+  }) async {
     final response = await _dio.post(
       '${ApiClient.apiPrefix}/user/posts/$postId/comments',
-      data: {'content': content},
+      data: {
+        'content': content,
+        if (parentId != null) 'parentId': parentId,
+      },
     );
     return ApiResponseUtils.parseDataObject(
       response.data,
@@ -275,5 +348,75 @@ class SocialPostsRepository {
     await _dio.delete(
       '${ApiClient.apiPrefix}/user/posts/$postId/comments/$commentId',
     );
+  }
+
+  Future<({bool liked, int likeCount})> toggleCommentLike(
+    int postId,
+    int commentId,
+  ) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/posts/$postId/comments/$commentId/like',
+    );
+    final data = ApiResponseUtils.unwrapData(response.data);
+    if (data is Map) {
+      return (
+        liked: data['liked'] == true,
+        likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
+      );
+    }
+    return (liked: false, likeCount: 0);
+  }
+
+  Future<({bool following, int followerCount})> followStatus({
+    int? userId,
+    int? shopId,
+  }) async {
+    final response = await _dio.get(
+      '${ApiClient.apiPrefix}/user/social/follow',
+      queryParameters: {
+        if (userId != null) 'userId': userId,
+        if (shopId != null) 'shopId': shopId,
+      },
+    );
+    return _readFollow(response.data);
+  }
+
+  Future<({bool following, int followerCount})> toggleFollow({
+    int? userId,
+    int? shopId,
+  }) async {
+    final response = await _dio.post(
+      '${ApiClient.apiPrefix}/user/social/follow',
+      data: {
+        if (userId != null) 'userId': userId,
+        if (shopId != null) 'shopId': shopId,
+      },
+    );
+    final result = _readFollow(response.data);
+    if (userId != null) {
+      followNotice.value = SocialFollowNotice(
+        type: SocialAuthorType.user,
+        id: userId,
+        following: result.following,
+      );
+    } else if (shopId != null) {
+      followNotice.value = SocialFollowNotice(
+        type: SocialAuthorType.shop,
+        id: shopId,
+        following: result.following,
+      );
+    }
+    return result;
+  }
+
+  ({bool following, int followerCount}) _readFollow(dynamic body) {
+    final data = ApiResponseUtils.unwrapData(body);
+    if (data is Map) {
+      return (
+        following: data['following'] == true,
+        followerCount: (data['followerCount'] as num?)?.toInt() ?? 0,
+      );
+    }
+    return (following: false, followerCount: 0);
   }
 }

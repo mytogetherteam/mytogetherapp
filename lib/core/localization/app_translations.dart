@@ -118,6 +118,14 @@ class AppTranslations {
 
     // Social feed
     'social.for_you': 'For You',
+    'social.followers': 'Followers',
+    'social.follow_failed': 'Could not update follow. Try again.',
+    'social.following_empty_title': 'No posts from people you follow',
+    'social.following_empty_sub':
+        'Follow people and shops, then their posts show up here.',
+    'social.reply': 'Reply',
+    'social.replying_to': 'Replying to',
+    'social.more_replies': 'more replies',
     'social.like': 'Like',
     'social.comment': 'Comment',
     'social.share': 'Share',
@@ -1451,6 +1459,14 @@ class AppTranslations {
 
     // Social feed
     'social.for_you': 'ဘော်ဒါတို့မျှဝေဖို့',
+    'social.followers': 'လိုက်ကြည့်သူ',
+    'social.follow_failed': 'လိုက်ကြည့်ခြင်း မအောင်မြင်ပါ။ ထပ်ကြိုးစားပါ။',
+    'social.following_empty_title': 'လိုက်ကြည့်ထားသူများ၏ ပို့စ်မရှိသေးပါ',
+    'social.following_empty_sub':
+        'လူများနှင့် ဆိုင်များကို လိုက်ကြည့်ပါ။ သူတို့၏ ပို့စ်များ ဤနေရာတွင် ပေါ်မည်။',
+    'social.reply': 'ပြန်စာ',
+    'social.replying_to': 'ပြန်စာပို့နေသည်',
+    'social.more_replies': 'ပြန်စာ ထပ်ရှိ',
     'social.like': 'ကြိုက်',
     'social.comment': 'မှတ်ချက်',
     'social.share': 'မျှဝေ',
@@ -1509,8 +1525,8 @@ class AppTranslations {
     'social.hidden': 'ဖျောက်ထားသည်',
     'social.post_unavailable': 'ဒီပို့စ်ကို ဖွင့်မရပါ။',
     'social.creator_profile': 'ပရိုဖိုင်',
-    'social.follow': 'Follow',
-    'social.following': 'Following',
+    'social.follow': 'လိုက်ကြည့်မည်',
+    'social.following': 'လိုက်ကြည့်ထား',
     'social.visit_shop': 'ဆိုင်သို့ သွားမည်',
     'social.go_to_restaurant': 'စားသောက်ဆိုင်သို့ သွားမည်',
     'social.list_view': 'စာရင်းပုံစံ',
@@ -2775,6 +2791,14 @@ class AppTranslations {
 
     // Social feed
     'social.for_you': 'สำหรับคุณ',
+    'social.followers': 'ผู้ติดตาม',
+    'social.follow_failed': 'ติดตามไม่สำเร็จ ลองอีกครั้ง',
+    'social.following_empty_title': 'ยังไม่มีโพสต์จากคนที่ติดตาม',
+    'social.following_empty_sub':
+        'ติดตามผู้คนและร้านค้า แล้วโพสต์ของพวกเขาจะมาอยู่ที่นี่',
+    'social.reply': 'ตอบกลับ',
+    'social.replying_to': 'กำลังตอบกลับ',
+    'social.more_replies': 'การตอบกลับเพิ่มเติม',
     'social.like': 'ถูกใจ',
     'social.comment': 'คอมเมนต์',
     'social.share': 'แชร์',

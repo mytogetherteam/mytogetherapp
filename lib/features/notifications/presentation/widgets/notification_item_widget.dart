@@ -102,6 +102,14 @@ class NotificationItemWidget extends StatelessWidget {
         iconData = Icons.notifications_none_outlined;
         iconColor = AppColors.primary; // Main pink for admin
         break;
+      case 'POST_LIKED':
+        iconData = Icons.favorite_border;
+        iconColor = AppColors.primary;
+        break;
+      case 'POST_COMMENTED':
+        iconData = Icons.chat_bubble_outline;
+        iconColor = AppColors.primary;
+        break;
       default:
         iconData = Icons.notifications_none_outlined;
         iconColor = Colors.grey;

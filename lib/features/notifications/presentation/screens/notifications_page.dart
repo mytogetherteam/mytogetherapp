@@ -9,6 +9,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/utils/paginated_list_controller.dart';
 import '../../../../core/presentation/widgets/pagination_list_footer.dart';
 import '../../../announcements/presentation/screens/announcements_page.dart';
+import '../../../social/presentation/screens/shared_post_page.dart';
 import '../../../announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -80,6 +81,15 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
 
     if (notification.isOrderNotification) {
       await navigateToOrderFromNotification(context, notification.referenceId!);
+      return;
+    }
+
+    if (notification.isSocialNotification) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SharedPostPage(postId: notification.referenceId!),
+        ),
+      );
     }
   }
 

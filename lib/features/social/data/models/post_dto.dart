@@ -137,7 +137,9 @@ class SocialPostDto {
   int commentCount;
   int viewCount;
   bool likedByMe;
+  String? myReaction;
   bool savedByMe;
+  bool followedByMe;
 
   SocialPostDto({
     required this.id,
@@ -150,7 +152,9 @@ class SocialPostDto {
     required this.commentCount,
     this.viewCount = 0,
     required this.likedByMe,
+    this.myReaction,
     this.savedByMe = false,
+    this.followedByMe = false,
   });
 
   SocialPostMediaDto? get primaryMedia =>
@@ -184,7 +188,9 @@ class SocialPostDto {
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       likedByMe: json['likedByMe'] == true,
+      myReaction: json['myReaction']?.toString(),
       savedByMe: json['savedByMe'] == true,
+      followedByMe: json['followedByMe'] == true,
     );
   }
 }
@@ -193,9 +199,14 @@ class SocialPostCommentDto {
   final int id;
   final int? userId;
   final int? shopId;
+  final int? parentId;
   final String content;
   final DateTime createdAt;
   final SocialPostAuthorDto author;
+  int likeCount;
+  bool likedByMe;
+  int replyCount;
+  final List<SocialPostCommentDto> replies;
 
   SocialPostCommentDto({
     required this.id,
@@ -204,7 +215,12 @@ class SocialPostCommentDto {
     required this.content,
     required this.createdAt,
     required this.author,
-  });
+    this.parentId,
+    this.likeCount = 0,
+    this.likedByMe = false,
+    this.replyCount = 0,
+    List<SocialPostCommentDto>? replies,
+  }) : replies = replies ?? [];
 
   String get timeAgo => formatRelativeTime(createdAt);
 
@@ -228,14 +244,28 @@ class SocialPostCommentDto {
       };
     }
 
+    final repliesRaw = json['replies'];
+    final replies = repliesRaw is List
+        ? repliesRaw
+            .whereType<Map>()
+            .map((e) =>
+                SocialPostCommentDto.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
+        : <SocialPostCommentDto>[];
+
     return SocialPostCommentDto(
       id: (json['id'] as num).toInt(),
       userId: (json['userId'] as num?)?.toInt(),
       shopId: (json['shopId'] as num?)?.toInt(),
+      parentId: (json['parentId'] as num?)?.toInt(),
       content: json['content']?.toString() ?? '',
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       author: SocialPostAuthorDto.fromJson(authorJson),
+      likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
+      likedByMe: json['likedByMe'] == true,
+      replyCount: (json['replyCount'] as num?)?.toInt() ?? replies.length,
+      replies: replies,
     );
   }
 }
