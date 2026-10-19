@@ -103,14 +103,23 @@ class RestaurantRepository {
     }
   }
 
-  /// Keeps shops that currently offer delivery (`deliveryEnabled == true`).
-  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
-    return restaurants.where((r) => r.deliveryEnabled).toList();
+  /// Same delivery answer the restaurant card badge uses.
+  static bool offersDelivery(Restaurant restaurant) {
+    final shopId = int.tryParse(restaurant.id) ?? 0;
+    return ShopOrderStateCache.instance.offersDelivery(
+      shopId,
+      fallback: restaurant.deliveryEnabled,
+    );
   }
 
-  /// Keeps shops that are browse/Go & Eat (`deliveryEnabled == false`).
+  /// Keeps shops that currently offer delivery.
+  static List<Restaurant> filterDeliveryEnabled(List<Restaurant> restaurants) {
+    return restaurants.where(offersDelivery).toList();
+  }
+
+  /// Keeps shops that are browse/Go & Eat.
   static List<Restaurant> filterVisitOnly(List<Restaurant> restaurants) {
-    return restaurants.where((r) => !r.deliveryEnabled).toList();
+    return restaurants.where((r) => !offersDelivery(r)).toList();
   }
 
   static List<Restaurant> applyOrderingFilter(
@@ -657,6 +666,40 @@ class RestaurantRepository {
     return NewUserFreeDeliveryOffer.instance.applies && !optedOut;
   }
 
+  String? _deliveryFeeLabel({
+    required bool deliveryEnabled,
+    required bool optedOut,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return null;
+    if (_newUserFreeForShop(optedOut) || promoActive) {
+      return LocaleController.instance.tr('common.free');
+    }
+    return displayFee;
+  }
+
+  bool _shopPromoFree({
+    required bool deliveryEnabled,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return false;
+    return promoActive || DeliveryFeeEstimate.isFreeLabel(displayFee);
+  }
+
+  bool _freeDeliveryActive({
+    required bool deliveryEnabled,
+    required bool optedOut,
+    required bool promoActive,
+    required String? displayFee,
+  }) {
+    if (!deliveryEnabled) return false;
+    return _newUserFreeForShop(optedOut) ||
+        promoActive ||
+        DeliveryFeeEstimate.isFreeLabel(displayFee);
+  }
+
   Restaurant _mapShopDtoToDomain(
     ShopListItemDto dto, {
     double? distanceKmOverride,
@@ -683,27 +726,37 @@ class RestaurantRepository {
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: _deliveryTimeForShop(
-        dto: dto,
-        distanceKmOverride: distanceKmOverride,
+      deliveryTime: dto.deliveryEnabled
+          ? _deliveryTimeForShop(
+              dto: dto,
+              distanceKmOverride: distanceKmOverride,
+            )
+          : '',
+      deliveryFee: _deliveryFeeLabel(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
       ),
-      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
-          ? LocaleController.instance.tr('common.free')
-          : dto.displayDeliveryFee ??
-              (dto.freeDeliveryActive
-                  ? LocaleController.instance.tr('common.free')
-                  : null),
-      originalDeliveryFee: dto.originalDeliveryFee,
+      originalDeliveryFee:
+          dto.deliveryEnabled ? dto.originalDeliveryFee : null,
       status: dto.isOpen ? 'Open' : 'Closed',
       operatingHours: dto.operatingHours,
       deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabledKnown: dto.deliveryEnabledKnown,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
-      shopPromoFreeDelivery: dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
-          dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
+      shopPromoFreeDelivery: _shopPromoFree(
+        deliveryEnabled: dto.deliveryEnabled,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      freeDeliveryActive: _freeDeliveryActive(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.imageUrls.map((url) => _getImageUrl(url)).toList(),
@@ -739,30 +792,39 @@ class RestaurantRepository {
             ? dto.logoUrl!
             : '',
       ),
-      deliveryTime: () {
-        final resolvedKm = distanceKmOverride ??
-            (dto.distance > 0 ? dto.distance : null);
-        if (resolvedKm != null && resolvedKm > 0) {
-          return GeoDistance.deliveryEtaFromKm(resolvedKm);
-        }
-        return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
-      }(),
+      deliveryTime: dto.deliveryEnabled
+          ? () {
+              final resolvedKm = distanceKmOverride ??
+                  (dto.distance > 0 ? dto.distance : null);
+              if (resolvedKm != null && resolvedKm > 0) {
+                return GeoDistance.deliveryEtaFromKm(resolvedKm);
+              }
+              return dto.estimatedTime ?? GeoDistance.defaultDeliveryEta;
+            }()
+          : '',
       status: dto.isOpen ? 'Open' : 'Closed',
       deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabledKnown: dto.deliveryEnabledKnown,
       taxEnable: dto.taxEnable,
       isVerified: dto.isVerified,
       freeDeliveryOptOutOfGlobal: dto.freeDeliveryOptOutOfGlobal,
-      shopPromoFreeDelivery: dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      freeDeliveryActive: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal) ||
-          dto.freeDeliveryActive ||
-          DeliveryFeeEstimate.isFreeLabel(dto.displayDeliveryFee),
-      deliveryFee: _newUserFreeForShop(dto.freeDeliveryOptOutOfGlobal)
-          ? LocaleController.instance.tr('common.free')
-          : dto.displayDeliveryFee ??
-              (dto.freeDeliveryActive
-                  ? LocaleController.instance.tr('common.free')
-                  : null),
+      shopPromoFreeDelivery: _shopPromoFree(
+        deliveryEnabled: dto.deliveryEnabled,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      freeDeliveryActive: _freeDeliveryActive(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
+      deliveryFee: _deliveryFeeLabel(
+        deliveryEnabled: dto.deliveryEnabled,
+        optedOut: dto.freeDeliveryOptOutOfGlobal,
+        promoActive: dto.freeDeliveryActive,
+        displayFee: dto.displayDeliveryFee,
+      ),
       latitude: dto.latitude,
       longitude: dto.longitude,
       imageUrls: dto.photos.map((url) => _getImageUrl(url)).toList(),
@@ -808,11 +870,11 @@ class RestaurantRepository {
       final shopId = int.tryParse(restaurant.id);
       if (shopId == null || shopId <= 0) continue;
 
-      final hasCompleteSchedule =
+      final hoursComplete =
           restaurant.operatingHours.length >= 7 ||
           ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId);
 
-      if (hasCompleteSchedule) {
+      if (hoursComplete && restaurant.deliveryEnabledKnown) {
         ShopOrderStateCache.instance.rememberParts(
           shopId,
           deliveryEnabled: restaurant.deliveryEnabled,
@@ -824,8 +886,15 @@ class RestaurantRepository {
 
       final stored = await ShopStorage.getShop(shopId);
       if (stored != null) {
-        _applyShopProfileJsonToCache(shopId, stored);
-        if (ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId)) {
+        _applyShopProfileJsonToCache(
+          shopId,
+          stored,
+          deliveryEnabled: restaurant.deliveryEnabledKnown
+              ? restaurant.deliveryEnabled
+              : null,
+        );
+        if (restaurant.deliveryEnabledKnown &&
+            ShopOrderStateCache.instance.hasCompleteOperatingHours(shopId)) {
           continue;
         }
       }
@@ -837,16 +906,30 @@ class RestaurantRepository {
         try {
           final dto = await SearchRepository.instance.getShopProfileById(shopId);
           if (dto == null) return;
-          ShopOrderStateCache.instance.replaceParts(
-            shopId,
-            deliveryEnabled: dto.deliveryEnabled,
-            operatingHours: dto.operatingHours,
-            status: dto.isOpen ? 'Open' : 'Closed',
-          );
+          _replaceOrderStateFromProfile(shopId, dto);
         } catch (e) {
           if (kDebugMode) debugPrint('restaurant_repository.dart: ignored error: $e');
         }
       }),
+    );
+  }
+
+  /// A profile that omits `deliveryEnabled` must not invent "delivery on".
+  void _replaceOrderStateFromProfile(int shopId, ShopListItemDto dto) {
+    final status = dto.isOpen ? 'Open' : 'Closed';
+    if (!dto.deliveryEnabledKnown) {
+      ShopOrderStateCache.instance.rememberParts(
+        shopId,
+        operatingHours: dto.operatingHours,
+        status: status,
+      );
+      return;
+    }
+    ShopOrderStateCache.instance.replaceParts(
+      shopId,
+      deliveryEnabled: dto.deliveryEnabled,
+      operatingHours: dto.operatingHours,
+      status: status,
     );
   }
 
@@ -862,12 +945,7 @@ class RestaurantRepository {
         try {
           final dto = await SearchRepository.instance.getShopProfileById(shopId);
           if (dto == null) return;
-          ShopOrderStateCache.instance.replaceParts(
-            shopId,
-            deliveryEnabled: dto.deliveryEnabled,
-            operatingHours: dto.operatingHours,
-            status: dto.isOpen ? 'Open' : 'Closed',
-          );
+          _replaceOrderStateFromProfile(shopId, dto);
           clearCache(shopId: shopId);
         } catch (e) {
           if (kDebugMode) debugPrint('restaurant_repository.dart: ignored error: $e');
@@ -881,11 +959,15 @@ class RestaurantRepository {
     return Future.value(restaurants);
   }
 
-  void _applyShopProfileJsonToCache(int shopId, Map<String, dynamic> json) {
+  void _applyShopProfileJsonToCache(
+    int shopId,
+    Map<String, dynamic> json, {
+    bool? deliveryEnabled,
+  }) {
     final dto = ShopListItemDto.fromJson(json);
     ShopOrderStateCache.instance.rememberParts(
       shopId,
-      deliveryEnabled: dto.deliveryEnabled,
+      deliveryEnabled: deliveryEnabled,
       operatingHours: dto.operatingHours,
       status: dto.isOpen ? 'Open' : 'Closed',
     );

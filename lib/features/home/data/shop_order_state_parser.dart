@@ -3,15 +3,19 @@ import 'models/shop_dto.dart' show OperatingHourDto;
 /// Shop-level order eligibility fields extracted from a menu-item or shop JSON
 /// payload (flat or nested under `shop`).
 class ShopOrderStateFields {
-  final bool deliveryEnabled;
+  /// Null when the payload did not include `deliveryEnabled`.
+  final bool? knownDeliveryEnabled;
   final bool isOpen;
   final List<OperatingHourDto> operatingHours;
 
   const ShopOrderStateFields({
-    this.deliveryEnabled = true,
+    this.knownDeliveryEnabled,
     this.isOpen = true,
     this.operatingHours = const [],
   });
+
+  /// Missing `deliveryEnabled` still counts as delivery for older payloads.
+  bool get deliveryEnabled => knownDeliveryEnabled ?? true;
 
   String get status => isOpen ? 'Open' : 'Closed';
 
@@ -65,7 +69,7 @@ class ShopOrderStateFields {
     }
 
     return ShopOrderStateFields(
-      deliveryEnabled: readBoolKey('deliveryEnabled') ?? true,
+      knownDeliveryEnabled: readBoolKey('deliveryEnabled'),
       isOpen: readBoolKey('shopIsOpen') ?? readBoolKey('isOpen') ?? true,
       operatingHours: readHours(),
     );

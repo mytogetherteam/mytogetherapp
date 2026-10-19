@@ -78,6 +78,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _forcedAddressFlowOpen = false;
   double _draftDistanceKm = 0.0;
   double _draftDeliveryFee = 0.0;
+  /// Fallback until GET /delivery-range returns. 30 km and farther is blocked.
+  bool _deliveryLimitEnabled = false;
+  double _maxDeliveryKm = 30;
+  double _farWarningKm = GeoDistance.distanceConfirmThresholdKm;
   /// Grab-style free delivery — set from cache ASAP, then confirmed by shop API.
   bool _freeDeliveryActive = false;
 
@@ -85,6 +89,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   void initState() {
     super.initState();
     _loadPrimaryLocation();
+    _loadDeliveryRange();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureDeliveryAddressIfNeeded();
       if (!GuestAuthGuard.isGuest) {
@@ -277,24 +282,69 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     setState(() => _selectedCoupon = chosen);
   }
 
-  /// Warns when delivery is farther than [GeoDistance.distanceConfirmThresholdKm].
-  /// Shop may still accept — user can continue after confirming.
+  bool _usableDeliveryCoord(double? lat, double? lon) {
+    if (lat == null || lon == null) return false;
+    if (lat == 0 || lon == 0) return false;
+    return lat.abs() <= 90 && lon.abs() <= 180;
+  }
+
+  /// Straight-line kilometers. This is the same ruler as the admin limits.
+  double? get _straightLineDeliveryKm {
+    if (!_isDelivery) return null;
+    final userLat = _primaryLocation?.latitude;
+    final userLon = _primaryLocation?.longitude;
+    final shopLat = _restaurant?.latitude;
+    final shopLon = _restaurant?.longitude;
+    if (!_usableDeliveryCoord(userLat, userLon) ||
+        !_usableDeliveryCoord(shopLat, shopLon)) {
+      return null;
+    }
+    return GeoDistance.haversineKm(userLat!, userLon!, shopLat!, shopLon!);
+  }
+
+  bool get _isOutOfDeliveryRange {
+    if (!_deliveryLimitEnabled) return false;
+    final km = _straightLineDeliveryKm;
+    return km != null && km >= _maxDeliveryKm;
+  }
+
+  String _formatKm(double km) {
+    final rounded = (km * 10).round() / 10;
+    if (rounded == rounded.roundToDouble()) return rounded.toStringAsFixed(0);
+    return rounded.toStringAsFixed(1);
+  }
+
+  Future<void> _loadDeliveryRange() async {
+    try {
+      final response = await ApiClient().dio.get(
+        '${ApiClient.apiPrefix}/delivery-range',
+      );
+      final body = response.data;
+      final data = body is Map && body['data'] is Map
+          ? Map<String, dynamic>.from(body['data'] as Map)
+          : (body is Map ? Map<String, dynamic>.from(body) : null);
+      final maxKm = (data?['maxDeliveryKm'] as num?)?.toDouble();
+      final warnKm = (data?['farWarningKm'] as num?)?.toDouble();
+      if (!mounted) return;
+      setState(() {
+        _deliveryLimitEnabled = data?['enabled'] == true;
+        if (maxKm != null && maxKm > 0) _maxDeliveryKm = maxKm;
+        if (warnKm != null && warnKm > 0 && warnKm < _maxDeliveryKm) {
+          _farWarningKm = warnKm;
+        }
+      });
+    } catch (_) {
+      // Blocking stays off when the setting cannot be loaded.
+    }
+  }
+
+  /// Warns when delivery is farther than the admin warning distance.
+  /// The customer can continue until the maximum range.
   Future<bool> _confirmFarDeliveryIfNeeded() async {
     if (!_isDelivery) return true;
-    final loc = _primaryLocation;
-    final shop = _restaurant;
-    final userLat = loc?.latitude;
-    final userLon = loc?.longitude;
-    final shopLat = shop?.latitude;
-    final shopLon = shop?.longitude;
-    if (userLat == null ||
-        userLon == null ||
-        shopLat == null ||
-        shopLon == null) {
-      return true;
-    }
-    final km = GeoDistance.haversineKm(userLat, userLon, shopLat, shopLon);
-    if (km <= GeoDistance.distanceConfirmThresholdKm) return true;
+    if (_isOutOfDeliveryRange) return false;
+    final km = _straightLineDeliveryKm;
+    if (km == null || km <= _farWarningKm) return true;
 
     if (!mounted) return false;
     final distanceStr = km.toStringAsFixed(1);
@@ -302,7 +352,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       context: context,
       child: _FarDeliveryModal(
         distanceStr: distanceStr,
-        limitStr: GeoDistance.distanceConfirmThresholdKm.toStringAsFixed(0),
+        limitStr: _formatKm(_farWarningKm),
       ),
     );
     return result == true;
@@ -674,6 +724,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       await GuestAuthGuard.requireAccount(context);
       return;
     }
+
+    if (_isOutOfDeliveryRange) return;
 
     setState(() {
       _isProcessing = true;
@@ -1767,6 +1819,53 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ),
                         ),
                       ],
+                      if (_isOutOfDeliveryRange) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFECACA)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  PhosphorIconsFill.warning,
+                                  color: Color(0xFFB91C1C),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    context.trArgs(
+                                      'order.out_of_delivery_range',
+                                      {
+                                        'distance': _formatKm(
+                                          _straightLineDeliveryKm!,
+                                        ),
+                                        'limit': _formatKm(_maxDeliveryKm),
+                                      },
+                                    ),
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFFB91C1C),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       // Notice to check before order and delivery fee estimate
                       Container(
                         width: double.infinity,
@@ -1837,7 +1936,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         _isProcessing ||
                                         _isVerifyingOrderEligibility ||
                                         hasOngoingOrder ||
-                                        isShopClosed)
+                                        isShopClosed ||
+                                        _isOutOfDeliveryRange)
                                     ? null
                                     : _onPlaceOrderPressed,
                                 isLoading: _isPlacingOrder,

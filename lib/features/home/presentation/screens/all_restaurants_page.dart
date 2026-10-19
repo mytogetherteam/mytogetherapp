@@ -10,6 +10,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../widgets/restaurant_card.dart';
 import '../widgets/nearby_restaurant_list_item_skeleton.dart';
 import '../../data/repositories/restaurant_repository.dart';
+import '../../data/shop_order_state_cache.dart';
 import '../../data/restaurant_data.dart' show Restaurant;
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/location/location_service.dart';
@@ -45,7 +46,12 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
       fetchPage: _fetchShops,
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_scrollController);
+    ShopOrderStateCache.instance.addListener(_onShopOrderState);
     _pagination.loadInitial();
+  }
+
+  void _onShopOrderState() {
+    if (mounted) setState(() {});
   }
 
   void _onPaginationChanged() {
@@ -54,6 +60,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
 
   @override
   void dispose() {
+    ShopOrderStateCache.instance.removeListener(_onShopOrderState);
     _pagination
       ..removeListener(_onPaginationChanged)
       ..dispose();
@@ -145,7 +152,11 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final restaurants = _pagination.items;
+    final restaurants = RestaurantRepository.applyOrderingFilter(
+      _pagination.items,
+      deliveryOnly: !widget.visitOnly,
+      visitOnly: widget.visitOnly,
+    );
     final isLoading = _pagination.isInitialLoading;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,

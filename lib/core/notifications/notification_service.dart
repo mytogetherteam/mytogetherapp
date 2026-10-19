@@ -15,6 +15,7 @@ import '../../features/announcements/data/models/announcement_model.dart';
 import '../../features/announcements/presentation/announcement_presenter.dart';
 import '../../features/cart/data/active_order_state.dart';
 import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
+import 'package:mytogetherapp/features/social/presentation/screens/shared_post_page.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -516,6 +517,19 @@ class NotificationService {
       } catch (e) {
         if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
       }
+    }
+
+    final subType = data['subType']?.toString().toUpperCase();
+    final postId = int.tryParse(data['postId']?.toString() ?? '');
+    if (message != null &&
+        postId != null &&
+        (subType == 'POST_LIKED' || subType == 'POST_COMMENTED')) {
+      _navigateWhenReady((nav) {
+        nav.push(
+          MaterialPageRoute(builder: (_) => SharedPostPage(postId: postId)),
+        );
+      });
+      return;
     }
 
     if (message != null && _isOrderNotification(data)) {

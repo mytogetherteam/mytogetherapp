@@ -31,12 +31,8 @@ class ShopOrderStateCache extends ChangeNotifier {
     if (shopId == null) return;
 
     final existing = _entries[shopId];
-    var deliveryEnabled = existing?.deliveryEnabled ?? true;
     var status = existing?.status ?? 'Open';
 
-    if (event.containsKey('deliveryEnabled')) {
-      deliveryEnabled = event['deliveryEnabled'] == true;
-    }
     if (event.containsKey('isOpen')) {
       status = event['isOpen'] == true ? 'Open' : 'Closed';
     }
@@ -44,7 +40,9 @@ class ShopOrderStateCache extends ChangeNotifier {
     final operatingHours = existing?.operatingHours ?? const [];
     rememberParts(
       shopId,
-      deliveryEnabled: deliveryEnabled,
+      deliveryEnabled: event.containsKey('deliveryEnabled')
+          ? event['deliveryEnabled'] == true
+          : null,
       operatingHours: operatingHours,
       status: _statusFromHoursOrFallback(operatingHours, status),
     );
@@ -53,15 +51,19 @@ class ShopOrderStateCache extends ChangeNotifier {
   void remember(Restaurant restaurant) {
     rememberParts(
       int.tryParse(restaurant.id) ?? 0,
-      deliveryEnabled: restaurant.deliveryEnabled,
+      deliveryEnabled: restaurant.deliveryEnabledKnown
+          ? restaurant.deliveryEnabled
+          : null,
       operatingHours: restaurant.operatingHours,
       status: restaurant.status,
     );
   }
 
+  /// [deliveryEnabled] null leaves the cached toggle unchanged. A non-null
+  /// value is the latest explicit one and replaces a previous true or false.
   void rememberParts(
     int shopId, {
-    required bool deliveryEnabled,
+    bool? deliveryEnabled,
     required List<OperatingHourDto> operatingHours,
     required String status,
   }) {
@@ -71,9 +73,9 @@ class ShopOrderStateCache extends ChangeNotifier {
       existing?.operatingHours ?? const [],
       operatingHours,
     );
-    final mergedDelivery = !deliveryEnabled
-        ? false
-        : (existing?.deliveryEnabled ?? deliveryEnabled);
+    final deliveryKnown =
+        deliveryEnabled != null || (existing?.deliveryKnown ?? false);
+    final mergedDelivery = deliveryEnabled ?? existing?.deliveryEnabled ?? true;
     final mergedStatus = _statusFromHoursOrFallback(
       mergedHours,
       status.isNotEmpty ? status : (existing?.status ?? 'Open'),
@@ -81,6 +83,7 @@ class ShopOrderStateCache extends ChangeNotifier {
 
     _entries[shopId] = _ShopOrderEntry(
       deliveryEnabled: mergedDelivery,
+      deliveryKnown: deliveryKnown,
       operatingHours: mergedHours,
       status: mergedStatus,
     );
@@ -98,10 +101,22 @@ class ShopOrderStateCache extends ChangeNotifier {
     if (shopId <= 0) return;
     _entries[shopId] = _ShopOrderEntry(
       deliveryEnabled: deliveryEnabled,
+      deliveryKnown: true,
       operatingHours: operatingHours,
       status: _statusFromHoursOrFallback(operatingHours, status),
     );
     notifyListeners();
+  }
+
+  /// True when a payload has explicitly set this shop's delivery toggle.
+  bool deliveryIsKnown(int shopId) => _entries[shopId]?.deliveryKnown ?? false;
+
+  /// Delivery toggle the cards should use. A known cache value wins over
+  /// [fallback]; an unknown shop keeps [fallback].
+  bool offersDelivery(int shopId, {required bool fallback}) {
+    final entry = shopId > 0 ? _entries[shopId] : null;
+    if (entry != null && entry.deliveryKnown) return entry.deliveryEnabled;
+    return fallback;
   }
 
   bool hasCompleteOperatingHours(int shopId) {
@@ -128,7 +143,9 @@ class ShopOrderStateCache extends ChangeNotifier {
       entry?.operatingHours ?? const [],
       operatingHours,
     );
-    final mergedDelivery = entry?.deliveryEnabled ?? deliveryEnabled;
+    final mergedDelivery = (entry != null && entry.deliveryKnown)
+        ? entry.deliveryEnabled
+        : deliveryEnabled;
     final mergedStatus = _statusFromHoursOrFallback(
       mergedHours,
       entry?.status ?? status,
@@ -170,11 +187,14 @@ class ShopOrderStateCache extends ChangeNotifier {
 
 class _ShopOrderEntry {
   final bool deliveryEnabled;
+  /// False when this entry was stored for hours/status only.
+  final bool deliveryKnown;
   final List<OperatingHourDto> operatingHours;
   final String status;
 
   const _ShopOrderEntry({
     required this.deliveryEnabled,
+    required this.deliveryKnown,
     required this.operatingHours,
     required this.status,
   });

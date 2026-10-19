@@ -13,9 +13,11 @@ import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import '../../data/models/post_dto.dart';
+import '../../data/models/social_reaction.dart';
 import '../../data/repositories/social_posts_repository.dart';
 import 'package:video_player/video_player.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
+import '../social_playback.dart';
 import '../widgets/social_comments_sheet.dart';
 import '../widgets/social_feed_status_view.dart';
 import '../widgets/social_media_pager.dart';
@@ -35,6 +37,9 @@ class _SocialPageState extends State<SocialPage> {
   late final PageController _pageController;
 
   int _currentPage = 0;
+  int _playbackPage = 0;
+  double? _lastScrollPage;
+  bool _following = false;
 
   final List<SocialPostDto> _posts = [];
   int _nextPage = 1;
@@ -50,6 +55,9 @@ class _SocialPageState extends State<SocialPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _pageController.addListener(_onFeedScroll);
+    SocialPlayback.ensureLoaded();
+    SocialPostsRepository.instance.loadReactions();
     NavigationController.instance.tabScrollToTopRequest.addListener(
       _onScrollToTopRequested,
     );
@@ -57,12 +65,25 @@ class _SocialPageState extends State<SocialPage> {
       _onSocialRefreshRequested,
     );
     SocialPostsRepository.feedRevision.addListener(_onMineChanged);
+    SocialPostsRepository.followNotice.addListener(_onFollowNotice);
     _loadInitial();
   }
 
   void _onMineChanged() {
     if (!mounted) return;
     _loadInitial();
+  }
+
+  void _onFollowNotice() {
+    final notice = SocialPostsRepository.followNotice.value;
+    if (notice == null || !mounted) return;
+    setState(() {
+      for (final post in _posts) {
+        if (post.author.type == notice.type && post.author.id == notice.id) {
+          post.followedByMe = notice.following;
+        }
+      }
+    });
   }
 
   void _onSocialRefreshRequested() {
@@ -106,6 +127,8 @@ class _SocialPageState extends State<SocialPage> {
       _onSocialRefreshRequested,
     );
     SocialPostsRepository.feedRevision.removeListener(_onMineChanged);
+    SocialPostsRepository.followNotice.removeListener(_onFollowNotice);
+    _pageController.removeListener(_onFeedScroll);
     _pageController.dispose();
     for (var controller in _videoControllers.values) {
       controller.dispose();
@@ -113,10 +136,38 @@ class _SocialPageState extends State<SocialPage> {
     super.dispose();
   }
 
+  /// The video being swiped toward starts once 18% of that swipe is done,
+  /// in either direction, so it is already moving when the page settles.
+  void _onFeedScroll() {
+    if (!_pageController.hasClients || _posts.isEmpty) return;
+    final page = _pageController.page;
+    if (page == null) return;
+    final previous = _lastScrollPage ?? page;
+    _lastScrollPage = page;
+    final movingForward = page >= previous;
+    final lower = page.floor();
+    final fraction = page - lower;
+    final last = _posts.length - 1;
+    var target = lower;
+    if (movingForward) {
+      if (fraction >= 0.18 && lower + 1 <= last) target = lower + 1;
+    } else if (fraction <= 0.82) {
+      target = lower;
+    } else if (lower + 1 <= last) {
+      target = lower + 1;
+    }
+    if (target < 0) target = 0;
+    if (target > last) target = last;
+    if (target == _playbackPage) return;
+    setState(() => _playbackPage = target);
+    _managePreload(target);
+  }
+
   void _managePreload(int currentIndex) {
-    // Only buffer the currently active video to minimize S3 egress bandwidth
     final toKeep = {
+      currentIndex - 1,
       currentIndex,
+      currentIndex + 1,
     };
 
     _videoControllers.removeWhere((index, controller) {
@@ -139,6 +190,7 @@ class _SocialPageState extends State<SocialPage> {
               _videoControllers[i] = controller;
               controller.initialize().then((_) {
                 controller.setLooping(true);
+                controller.setVolume(SocialPlayback.muted.value ? 0 : 1);
               }).catchError((_) {});
             }
           } else {
@@ -161,7 +213,10 @@ class _SocialPageState extends State<SocialPage> {
       });
     }
     try {
-      final page = await SocialPostsRepository.instance.fetchFeed(page: 1);
+      final page = await SocialPostsRepository.instance.fetchFeed(
+        page: 1,
+        following: _following,
+      );
       if (!mounted) return;
       setState(() {
         _posts
@@ -171,6 +226,8 @@ class _SocialPageState extends State<SocialPage> {
         _totalPages = page.totalPages;
         _loading = false;
         _currentPage = 0;
+        _playbackPage = 0;
+        _lastScrollPage = 0;
         _error = null;
       });
       if (_pageController.hasClients && (_pageController.page ?? 0) != 0) {
@@ -193,8 +250,10 @@ class _SocialPageState extends State<SocialPage> {
     if (index < _posts.length - 2) return;
     setState(() => _loadingMore = true);
     try {
-      final page =
-          await SocialPostsRepository.instance.fetchFeed(page: _nextPage);
+      final page = await SocialPostsRepository.instance.fetchFeed(
+        page: _nextPage,
+        following: _following,
+      );
       if (!mounted) return;
       setState(() {
         _posts.addAll(page.items);
@@ -207,6 +266,103 @@ class _SocialPageState extends State<SocialPage> {
       if (!mounted) return;
       setState(() => _loadingMore = false);
     }
+  }
+
+  Future<void> _setFeed(bool following) async {
+    if (_following == following) {
+      _refreshFeed();
+      return;
+    }
+    if (following && !await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+    final oldControllers = Map<int, VideoPlayerController>.of(_videoControllers);
+    _videoControllers.clear();
+    setState(() {
+      _following = following;
+      _posts.clear();
+      _loading = true;
+      _error = null;
+      _currentPage = 0;
+      _playbackPage = 0;
+      _lastScrollPage = 0;
+      _nextPage = 1;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in oldControllers.values) {
+        controller.dispose();
+      }
+    });
+    await _loadInitial();
+  }
+
+  void _onFollowChanged(SocialPostAuthorDto author, bool following) {
+    if (!mounted) return;
+    setState(() {
+      for (final post in _posts) {
+        if (post.author.type == author.type && post.author.id == author.id) {
+          post.followedByMe = following;
+        }
+      }
+    });
+  }
+
+  Widget _buildFeedSwitcher() {
+    return Row(
+      children: [
+        Expanded(
+          child: _feedTab(
+            label: context.tr('social.for_you'),
+            selected: !_following,
+            onTap: () => _setFeed(false),
+          ),
+        ),
+        Expanded(
+          child: _feedTab(
+            label: context.tr('social.following'),
+            selected: _following,
+            onTap: () => _setFeed(true),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _feedTab({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      onDoubleTap: selected ? _refreshFeed : null,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: AppFonts.poppins(
+              color: selected ? Colors.white : Colors.white60,
+              fontSize: selected ? 17 : 15,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              shadows: const [
+                Shadow(
+                  color: Colors.black54,
+                  blurRadius: 8,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openCreate() async {
@@ -244,89 +400,58 @@ class _SocialPageState extends State<SocialPage> {
                 padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
                 child: SizedBox(
                   height: 44,
-                  child: Stack(
+                  child: Row(
                     children: [
-                      // ── Top Left Logo ────────────────────────────────────────
-                      Positioned(
-                        left: 4,
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              'assets/images/app_icon_small.png',
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/app_icon_small.png',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
                         ),
                       ),
-                      // Centre title
-                      Center(
-                        child: GestureDetector(
-                          onDoubleTap: _refreshFeed,
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              context.tr('social.for_you'),
-                              textAlign: TextAlign.center,
-                              style: AppFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 8,
-                                    offset: Offset(0, 1),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildFeedSwitcher()),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: _openCreate,
+                        behavior: HitTestBehavior.opaque,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    PhosphorIcons.plusBold,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    context.tr('social.create_post'),
+                                    style: AppFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // ── "+ Post" button top-right ──────────────────────
-                      Positioned(
-                        right: 0,
-                        top: 5,
-                        bottom: 5,
-                        child: GestureDetector(
-                          onTap: _openCreate,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    const Icon(PhosphorIcons.plusBold,
-                                        size: 14, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      context.tr('social.create_post'),
-                                      style: AppFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
                           ),
@@ -361,10 +486,18 @@ class _SocialPageState extends State<SocialPage> {
     if (_posts.isEmpty) {
       return SocialFeedStatusView(
         icon: PhosphorIcons.playFill,
-        title: context.tr('social.empty_feed_title'),
-        subtitle: context.tr('social.empty_feed_sub'),
-        actionLabel: context.tr('social.create_post'),
-        onAction: _openCreate,
+        title: context.tr(
+          _following
+              ? 'social.following_empty_title'
+              : 'social.empty_feed_title',
+        ),
+        subtitle: context.tr(
+          _following ? 'social.following_empty_sub' : 'social.empty_feed_sub',
+        ),
+        actionLabel: context.tr(
+          _following ? 'social.for_you' : 'social.create_post',
+        ),
+        onAction: _following ? () => _setFeed(false) : _openCreate,
         secondaryActionLabel: context.tr('social.retry'),
         onSecondaryAction: () => _loadInitial(),
       );
@@ -396,15 +529,19 @@ class _SocialPageState extends State<SocialPage> {
             allowImplicitScrolling: true,
             itemCount: _posts.length,
             onPageChanged: (index) {
-              setState(() => _currentPage = index);
+              setState(() {
+                _currentPage = index;
+                _playbackPage = index;
+              });
               _managePreload(index);
               _loadMoreIfNeeded(index);
             },
             itemBuilder: (context, index) => _SocialFeedItem(
               post: _posts[index],
-              isActive: isTabActive && index == _currentPage,
+              isActive: isTabActive && index == _playbackPage,
               preloadedController: _videoControllers[index],
               onDeleted: () => _loadInitial(),
+              onFollowChanged: _onFollowChanged,
             ),
           ),
         );
@@ -607,6 +744,8 @@ class _OwnPostsPreviewPageState extends State<OwnPostsPreviewPage> {
 
 class _SocialFeedItem extends StatefulWidget {
   final SocialPostDto post;
+  final void Function(SocialPostAuthorDto author, bool following)?
+      onFollowChanged;
   final bool isActive;
   final VideoPlayerController? preloadedController;
   final VoidCallback? onDeleted;
@@ -617,6 +756,7 @@ class _SocialFeedItem extends StatefulWidget {
     required this.isActive,
     this.preloadedController,
     this.onDeleted,
+    this.onFollowChanged,
   });
 
   @override
@@ -625,6 +765,7 @@ class _SocialFeedItem extends StatefulWidget {
 
 class _SocialFeedItemState extends State<_SocialFeedItem> {
   late bool _liked;
+  String? _myReaction;
   late int _likeCount;
   late int _commentCount;
   late bool _saved;
@@ -632,6 +773,16 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   bool _liking = false;
   bool _reporting = false;
   bool _deleting = false;
+
+  bool _followingAuthor = false;
+  bool _followBusy = false;
+
+  bool get _canFollow {
+    final author = widget.post.author;
+    if (author.type == SocialAuthorType.admin || author.id <= 0) return false;
+    final me = AuthService().currentUser?.id;
+    return !(author.type == SocialAuthorType.user && me != null && me == author.id);
+  }
 
   bool get _isOwnPost {
     final me = AuthService().currentUser?.id;
@@ -646,6 +797,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   final GlobalKey _likeKey = GlobalKey();
   final List<_HeartBurst> _bursts = [];
   bool _viewRecorded = false;
+  OverlayEntry? _reactionEntry;
 
   void _recordViewIfNeeded() {
     if (widget.isActive && !_viewRecorded) {
@@ -659,11 +811,19 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     super.initState();
     _horizontalController = PageController();
     _liked = widget.post.likedByMe;
+    _myReaction = widget.post.myReaction ??
+        (widget.post.likedByMe ? 'like' : null);
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
     _saved = widget.post.savedByMe;
+    _followingAuthor = widget.post.followedByMe;
     WishlistRepository.instance.addListener(_onWishlistChanged);
+    SocialPostsRepository.reactionsRevision.addListener(_onReactionsChanged);
     _recordViewIfNeeded();
+  }
+
+  void _onReactionsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onWishlistChanged() {
@@ -678,27 +838,75 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     });
   }
 
+  void _closeReactionRow() {
+    _reactionEntry?.remove();
+    _reactionEntry = null;
+  }
+
   @override
   void didUpdateWidget(covariant _SocialFeedItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.isActive || oldWidget.post.id != widget.post.id) {
+      _closeReactionRow();
+    }
     if (oldWidget.post.id != widget.post.id) {
       _liked = widget.post.likedByMe;
+      _myReaction = widget.post.myReaction ??
+          (widget.post.likedByMe ? 'like' : null);
       _likeCount = widget.post.likeCount;
       _commentCount = widget.post.commentCount;
       _saved = widget.post.savedByMe;
+      _followingAuthor = widget.post.followedByMe;
       _captionExpanded = false;
       _mediaIndex = 0;
       _viewRecorded = false;
       if (_horizontalController.hasClients) {
         _horizontalController.jumpToPage(0);
       }
+    } else if (_followingAuthor != widget.post.followedByMe) {
+      _followingAuthor = widget.post.followedByMe;
     }
     _recordViewIfNeeded();
+  }
+
+  Future<void> _toggleFollow() async {
+    if (_followBusy || !_canFollow) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    if (!mounted) return;
+    AppHaptics.buttonTap();
+    final author = widget.post.author;
+    final previous = _followingAuthor;
+    setState(() {
+      _followBusy = true;
+      _followingAuthor = !previous;
+    });
+    widget.post.followedByMe = !previous;
+    try {
+      final result = await SocialPostsRepository.instance.toggleFollow(
+        userId: author.type == SocialAuthorType.user ? author.id : null,
+        shopId: author.type == SocialAuthorType.shop ? author.id : null,
+      );
+      if (!mounted) return;
+      setState(() => _followingAuthor = result.following);
+      widget.post.followedByMe = result.following;
+      widget.onFollowChanged?.call(author, result.following);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _followingAuthor = previous);
+      widget.post.followedByMe = previous;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('social.follow_failed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _followBusy = false);
+    }
   }
 
   @override
   void dispose() {
     WishlistRepository.instance.removeListener(_onWishlistChanged);
+    SocialPostsRepository.reactionsRevision.removeListener(_onReactionsChanged);
+    _closeReactionRow();
     _horizontalController.dispose();
     super.dispose();
   }
@@ -714,48 +922,158 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
   }
 
   Future<void> _toggleLike({bool burstAtButton = false}) async {
-    if (_liking) return;
+    await _applyReaction(null, burstAtButton: burstAtButton);
+  }
+
+  /// A null request toggles the current reaction off, or adds Like.
+  /// The same key as the current reaction also removes it.
+  Future<void> _applyReaction(String? requested, {bool burstAtButton = false}) async {
+    if (_liking) {
+      _closeReactionRow();
+      return;
+    }
+    _closeReactionRow();
     _liking = true;
     try {
-      await _toggleLikeBody(burstAtButton: burstAtButton);
+      if (!await GuestAuthGuard.requireAccount(context)) return;
+      if (!mounted) return;
+      AppHaptics.buttonTap();
+
+      final current = _myReaction;
+      final bool removing;
+      final String requestKey;
+      if (requested == null) {
+        removing = current != null;
+        requestKey = current ?? 'like';
+      } else if (requested == current) {
+        removing = true;
+        requestKey = requested;
+      } else {
+        removing = false;
+        requestKey = requested;
+      }
+
+      final previousLiked = _liked;
+      final previousCount = _likeCount;
+      final previousReaction = _myReaction;
+      final nextReaction = removing ? null : requestKey;
+      setState(() {
+        _myReaction = nextReaction;
+        _liked = nextReaction != null;
+        final delta = (_liked ? 1 : 0) - (previousLiked ? 1 : 0);
+        final next = _likeCount + delta;
+        _likeCount = next < 0 ? 0 : next;
+      });
+      if (_liked && !previousLiked && burstAtButton) {
+        _showHeart(_buttonCenter() ?? _feedCenter());
+      }
+
+      try {
+        final result = await SocialPostsRepository.instance.toggleLike(
+          widget.post.id,
+          reactionKey: requestKey,
+        );
+        if (!mounted) return;
+        setState(() {
+          _liked = result.liked;
+          _likeCount = result.likeCount;
+          _myReaction = result.liked ? (result.reactionKey ?? requestKey) : null;
+          widget.post.likedByMe = _liked;
+          widget.post.likeCount = _likeCount;
+          widget.post.myReaction = _myReaction;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _liked = previousLiked;
+          _likeCount = previousCount;
+          _myReaction = previousReaction;
+        });
+      }
     } finally {
       _liking = false;
     }
   }
 
-  Future<void> _toggleLikeBody({required bool burstAtButton}) async {
-    if (!await GuestAuthGuard.requireAccount(context)) return;
-    if (!mounted) return;
-    AppHaptics.buttonTap();
-
-    final previousLiked = _liked;
-    final previousCount = _likeCount;
-    setState(() {
-      _liked = !_liked;
-      final next = _likeCount + (_liked ? 1 : -1);
-      _likeCount = next < 0 ? 0 : next;
-    });
-    if (_liked && burstAtButton) {
-      _showHeart(_buttonCenter() ?? _feedCenter());
-    }
-
-    try {
-      final result =
-          await SocialPostsRepository.instance.toggleLike(widget.post.id);
-      if (!mounted) return;
-      setState(() {
-        _liked = result.liked;
-        _likeCount = result.likeCount;
-        widget.post.likedByMe = result.liked;
-        widget.post.likeCount = result.likeCount;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _liked = previousLiked;
-        _likeCount = previousCount;
-      });
-    }
+  Future<void> _openReactionRow() async {
+    final reactions = await SocialPostsRepository.instance.loadReactions();
+    if (!mounted || reactions.isEmpty) return;
+    final box = _likeKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final overlay = Overlay.of(context);
+    final origin = box.localToGlobal(Offset.zero);
+    _closeReactionRow();
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) {
+        final media = MediaQuery.of(overlayContext);
+        final width = media.size.width;
+        final slot = ((width - 24) / reactions.length).clamp(34.0, 46.0);
+        final pillWidth = reactions.length * slot + 12;
+        var left = origin.dx + box.size.width - pillWidth;
+        if (left < 8) left = 8;
+        if (left + pillWidth > width - 8) left = width - 8 - pillWidth;
+        final top = origin.dy - 62;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  entry.remove();
+                  _reactionEntry = null;
+                },
+                behavior: HitTestBehavior.translucent,
+              ),
+            ),
+            Positioned(
+              left: left,
+              top: top < media.padding.top + 8 ? media.padding.top + 8 : top,
+              width: pillWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF22A2A2E),
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      for (final reaction in reactions)
+                        SizedBox(
+                          width: slot,
+                          height: 52,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              entry.remove();
+                              _reactionEntry = null;
+                              _applyReaction(reaction.key, burstAtButton: true);
+                            },
+                            child: Center(
+                              child: _ReactionFace(reaction: reaction, size: 36),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    _reactionEntry = entry;
+    overlay.insert(entry);
   }
 
   void _handleDoubleTapLike({bool showHeart = false}) {
@@ -845,6 +1163,21 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     final updatedCount = await showSocialCommentsSheet(
       context: context,
       post: widget.post,
+      onAuthorTap: (author) {
+        final sameAuthor = author.type == widget.post.author.type &&
+            author.id == widget.post.author.id;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TikTokProfilePage(
+              author: author,
+              initialFollowing: sameAuthor && widget.post.followedByMe,
+              onFollowChanged: (following) {
+                widget.onFollowChanged?.call(author, following);
+              },
+            ),
+          ),
+        );
+      },
     );
     if (!mounted) return;
     setState(() {
@@ -1072,6 +1405,10 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         builder: (_) => TikTokProfilePage(
           author: widget.post.author,
           initialPost: widget.post,
+          initialFollowing: widget.post.followedByMe,
+          onFollowChanged: (following) {
+            widget.onFollowChanged?.call(widget.post.author, following);
+          },
         ),
       ),
     );
@@ -1159,6 +1496,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(media.length, (i) {
                   return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       _horizontalController.animateToPage(
                         i,
@@ -1166,13 +1504,19 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                         curve: Curves.easeInOut,
                       );
                     },
-                    child: Container(
-                      width: i == _mediaIndex ? 16 : 6,
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(3),
-                        color: i == _mediaIndex ? Colors.white : Colors.white38,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 10,
+                      ),
+                      child: Container(
+                        width: i == _mediaIndex ? 16 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color:
+                              i == _mediaIndex ? Colors.white : Colors.white38,
+                        ),
                       ),
                     ),
                   );
@@ -1198,8 +1542,11 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                     key: _likeKey,
                     postId: widget.post.id,
                     liked: _liked,
+                    reaction: SocialPostsRepository.instance
+                        .reactionByKey(_myReaction),
                     label: _formatCount(_likeCount),
                     onTap: () => _toggleLike(burstAtButton: true),
+                    onLongPress: _openReactionRow,
                   ),
                   const SizedBox(height: 14),
                   _RailAction(
@@ -1236,19 +1583,49 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: _openCreatorProfile,
-                    behavior: HitTestBehavior.opaque,
-                    child: Text(
-                      widget.post.author.handle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: _openCreatorProfile,
+                          behavior: HitTestBehavior.opaque,
+                          child: Text(
+                            widget.post.author.handle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (_canFollow) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: _followBusy ? null : _toggleFollow,
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
+                            child: Text(
+                              context.tr(
+                                _followingAuthor
+                                    ? 'social.following'
+                                    : 'social.follow',
+                              ),
+                              style: AppFonts.poppins(
+                                color: _followingAuthor
+                                    ? Colors.white70
+                                    : AppColors.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   if (widget.post.caption.isNotEmpty) ...[
                     const SizedBox(height: 6),
@@ -1324,6 +1701,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
           overflow: TextOverflow.ellipsis,
         );
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () => setState(() => _captionExpanded = !_captionExpanded),
           child: _captionExpanded
               ? Column(
@@ -1508,15 +1886,19 @@ class _BurstHeartState extends State<_BurstHeart>
 class _LikeRailButton extends StatefulWidget {
   final int postId;
   final bool liked;
+  final SocialReaction? reaction;
   final String label;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const _LikeRailButton({
     super.key,
     required this.postId,
     required this.liked,
+    required this.reaction,
     required this.label,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
@@ -1573,23 +1955,26 @@ class _LikeRailButtonState extends State<_LikeRailButton>
     final color = widget.liked ? const Color(0xFFFF2D55) : Colors.white;
     return GestureDetector(
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Column(
         children: [
           ScaleTransition(
             scale: _scale,
-            child: Icon(
-              PhosphorIcons.heartFill,
-              color: color,
-              size: 34,
-              shadows: const [
-                Shadow(
-                  color: Colors.black54,
-                  blurRadius: 6,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
+            child: widget.reaction == null
+                ? Icon(
+                    PhosphorIcons.heartFill,
+                    color: color,
+                    size: 34,
+                    shadows: const [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 6,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  )
+                : _ReactionFace(reaction: widget.reaction!, size: 34),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1609,6 +1994,34 @@ class _LikeRailButtonState extends State<_LikeRailButton>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ReactionFace extends StatelessWidget {
+  final SocialReaction reaction;
+  final double size;
+
+  const _ReactionFace({required this.reaction, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = reaction.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Text(
+          reaction.emoji,
+          style: TextStyle(fontSize: size * 0.8, height: 1),
+        ),
+      );
+    }
+    return Text(
+      reaction.emoji,
+      style: TextStyle(fontSize: size * 0.82, height: 1),
     );
   }
 }

@@ -91,6 +91,14 @@ const Map<String, String> kEnTranslations = {
 
   // Social feed
   'social.for_you': 'For You',
+  'social.followers': 'Followers',
+  'social.follow_failed': 'Could not update follow. Try again.',
+  'social.following_empty_title': 'No posts from people you follow',
+  'social.following_empty_sub':
+      'Follow people and shops, then their posts show up here.',
+  'social.reply': 'Reply',
+  'social.replying_to': 'Replying to',
+  'social.more_replies': 'more replies',
   'social.like': 'Like',
   'social.comment': 'Comment',
   'social.share': 'Share',
@@ -247,6 +255,11 @@ const Map<String, String> kEnTranslations = {
   'home.lost_items_nearby': 'Lost Items Nearby',
   'home.trending_news': 'Trending News',
   'home.recent_updates': 'Recent Updates',
+  'food.order_again': 'Order again',
+  'food.last_order': 'Your last order',
+  'food.add_all_to_basket': 'Add all to basket',
+  'food.add_to_basket_failed': 'Couldn\'t add to basket',
+  'food.no_longer_available': 'No longer available',
   'home.view_menu': 'View Menu',
   'home.direction': 'Direction',
   'home.order_now': 'ORDER NOW',
@@ -617,6 +630,8 @@ const Map<String, String> kEnTranslations = {
   'order.far_delivery_message':
       'Distance is {distance} km. High delivery fee expected and shop may decline. Proceed?',
   'order.far_delivery_continue': 'Continue order',
+  'order.out_of_delivery_range':
+      'This address is {distance} km away, outside the {limit} km delivery range.',
   'coupon.apply_hint': 'Tap to choose a coupon',
   'coupon.discounts_title': 'Early Bird Deals',
   'coupon.coupons_title': 'Coupons',
@@ -867,6 +882,7 @@ const Map<String, String> kEnTranslations = {
   'restaurant.no_menu_sub': 'This restaurant has no menu items right now.',
   'restaurant.overview': 'Overview',
   'restaurant.verified_tooltip': 'Verified by MyTogether',
+  'restaurant.ordered_before': 'Ordered before',
   'restaurant.reviews': 'Reviews',
   'restaurant.sign_in_save': 'Please sign in to save restaurants.',
   'announcement.dismiss_failed': 'Failed to dismiss announcement',

@@ -33,17 +33,24 @@ class NotificationModel {
       type = 'CHAT';
     } else if (mainType == 'ESCALATION') {
       type = 'SYSTEM';
+    } else if (mainType == 'SOCIAL') {
+      type = subType ?? 'SOCIAL';
     } else {
       type = json['type']?.toString() ?? subType ?? 'GENERAL';
     }
 
     final dynamic dataField = json['data'];
-    final int? referenceId = _parseReferenceId(
+    final dataMap = dataField is Map
+        ? Map<String, dynamic>.from(dataField)
+        : null;
+    int? referenceId = _parseReferenceId(
       json['orderId'] ?? json['referenceId'] ??
-          (dataField is Map
-              ? (dataField['orderId'] ?? dataField['referenceId'])
-              : null),
+          dataMap?['orderId'] ??
+          dataMap?['referenceId'],
     );
+    if (mainType == 'SOCIAL') {
+      referenceId = _parseReferenceId(dataMap?['postId']) ?? referenceId;
+    }
 
     final sentAtRaw = json['createdAt'] ?? json['sentAt'];
     final readAtRaw = json['readAt'];
@@ -76,6 +83,10 @@ class NotificationModel {
 
   bool get isOrderNotification =>
       type == 'ORDER_STATUS' && referenceId != null;
+
+  bool get isSocialNotification =>
+      (type == 'POST_LIKED' || type == 'POST_COMMENTED') &&
+      referenceId != null;
 
   /// Shop chat messages (`mainType: CHAT`, `subType: NEW_MESSAGE`).
   bool get isChatNotification =>

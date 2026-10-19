@@ -122,6 +122,9 @@ class MenuItemDto {
   }
 
   static String? _parseDeliveryFee(Map<String, dynamic> json) {
+    final shop = json['shop'];
+    if (json['deliveryEnabled'] == false) return null;
+    if (shop is Map && shop['deliveryEnabled'] == false) return null;
     if (json['displayBaseDeliveryFee'] != null) return json['displayBaseDeliveryFee'] as String;
     if (json['displayDeliveryFee'] != null) return json['displayDeliveryFee'] as String;
     return null;

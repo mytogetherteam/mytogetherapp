@@ -47,6 +47,9 @@ class OrderHistoryDto {
   final String? shopImageUrl;
   final int? shopId;
   final List<OrderHistoryItemDto> items;
+
+  /// Number of dishes on the order. The list only includes a few photos.
+  final int itemCount;
   final double? deliveryFee;
   final String? displayDeliveryFee;
   final double? itemPrice;
@@ -55,12 +58,15 @@ class OrderHistoryDto {
   final String? orderType;
   final String? orderDeliveryType;
   final int? waitingTimeMinutes;
+  final double? discountAmount;
   final double? transactionDiscount;
   final String? displayTransactionDiscount;
   final bool isFreeDelivery;
   final bool? taxEnable;
   final OrderReviewDto? orderReview;
   final bool hasChatConversation;
+  final String? paymentMethodName;
+  final String? paymentMethodIconUrl;
 
   OrderHistoryDto({
     required this.id,
@@ -79,6 +85,7 @@ class OrderHistoryDto {
     this.shopImageUrl,
     this.shopId,
     required this.items,
+    this.itemCount = 0,
     this.deliveryFee,
     this.displayDeliveryFee,
     this.itemPrice,
@@ -87,12 +94,15 @@ class OrderHistoryDto {
     this.orderType,
     this.orderDeliveryType,
     this.waitingTimeMinutes,
+    this.discountAmount,
     this.transactionDiscount,
     this.displayTransactionDiscount,
     this.isFreeDelivery = false,
     this.taxEnable,
     this.orderReview,
     this.hasChatConversation = false,
+    this.paymentMethodName,
+    this.paymentMethodIconUrl,
   }) : _shopName = shopName;
 
   bool get isPickupFulfillment {
@@ -168,6 +178,13 @@ class OrderHistoryDto {
         (json['ongoing'] as bool?) ??
         !terminalStatuses.contains(status.toUpperCase());
 
+    final parsedItems = (json['items'] as List<dynamic>?)
+            ?.map(
+              (e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList() ??
+        <OrderHistoryItemDto>[];
+
     return OrderHistoryDto(
       id: json['id'].toString(),
       lastOrderNo: json['lastOrderNo']?.toString(),
@@ -184,13 +201,8 @@ class OrderHistoryDto {
       shopNameTh: json['shopNameTh'] as String? ?? shop?['nameTh'] as String?,
       shopImageUrl: shopImageUrl,
       shopId: (json['shopId'] as int?) ?? (shop?['id'] as int?),
-      items:
-          (json['items'] as List<dynamic>?)
-              ?.map(
-                (e) => OrderHistoryItemDto.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
+      items: parsedItems,
+      itemCount: (json['itemCount'] as num?)?.toInt() ?? parsedItems.length,
       deliveryFee: (json['deliveryFee'] as num?)?.toDouble(),
       displayDeliveryFee: json['displayDeliveryFee'] as String?,
       itemPrice: (json['itemPrice'] as num?)?.toDouble(),
@@ -199,6 +211,7 @@ class OrderHistoryDto {
       orderType: json['orderType'] as String?,
       orderDeliveryType: json['orderDeliveryType'] as String?,
       waitingTimeMinutes: (json['waitingTimeMinutes'] as num?)?.toInt(),
+      discountAmount: (json['discountAmount'] as num?)?.toDouble(),
       transactionDiscount: (json['transactionDiscount'] as num?)?.toDouble(),
       displayTransactionDiscount: json['displayTransactionDiscount'] as String?,
       isFreeDelivery: json['isFreeDelivery'] == true ||
@@ -208,7 +221,21 @@ class OrderHistoryDto {
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,
       hasChatConversation: json['hasChatConversation'] == true,
+      paymentMethodName: _paymentName(json['paymentMethod']),
+      paymentMethodIconUrl: _paymentIcon(json['paymentMethod']),
     );
+  }
+
+  static String? _paymentName(dynamic raw) {
+    if (raw is! Map) return null;
+    final name = raw['name']?.toString().trim();
+    return name == null || name.isEmpty ? null : name;
+  }
+
+  static String? _paymentIcon(dynamic raw) {
+    if (raw is! Map) return null;
+    final resolved = FileUrlUtil.resolve(raw['iconUrl']);
+    return resolved.isEmpty ? null : resolved;
   }
 
   static bool? _resolveTaxEnable(
@@ -240,6 +267,7 @@ class OrderHistoryDto {
 }
 
 class OrderHistoryItemDto {
+  final int? id;
   final int? menuItemId;
   final String _menuItemName;
   final String? menuItemNameEn;
@@ -249,6 +277,16 @@ class OrderHistoryItemDto {
   final double price;
   final int quantity;
   final String? displayPrice;
+  final int? variantId;
+  final List<int> additionalVariantIds;
+  final List<int> optionIds;
+  final String? specialInstructions;
+  final String? variantNameEn;
+  final String? variantNameMm;
+  final String? variantNameTh;
+  final String? optionNameEn;
+  final String? optionNameMm;
+  final String? optionNameTh;
 
   String get menuItemName {
     final value = LocaleController.instance.localizedOr(
@@ -260,7 +298,32 @@ class OrderHistoryItemDto {
     return value.isEmpty ? 'Item' : value;
   }
 
+  /// Size and add-ons saved on the order, in the current language.
+  String? get choiceLabel {
+    String? localized(String? en, String? mm, String? th) {
+      final value = LocaleController.instance.localizedOr(
+        en ?? '',
+        en: en,
+        mm: mm,
+        th: th,
+      );
+      return value.isEmpty ? null : value;
+    }
+
+    final parts = <String>[
+      if (localized(variantNameEn, variantNameMm, variantNameTh) != null)
+        localized(variantNameEn, variantNameMm, variantNameTh)!,
+      if (localized(optionNameEn, optionNameMm, optionNameTh) != null)
+        localized(optionNameEn, optionNameMm, optionNameTh)!,
+    ];
+    if (parts.isEmpty) return null;
+    return parts.join(' · ');
+  }
+
+  double get lineTotal => price * quantity;
+
   OrderHistoryItemDto({
+    this.id,
     this.menuItemId,
     required String menuItemName,
     this.menuItemNameEn,
@@ -270,7 +333,22 @@ class OrderHistoryItemDto {
     required this.price,
     required this.quantity,
     this.displayPrice,
+    this.variantId,
+    this.additionalVariantIds = const [],
+    this.optionIds = const [],
+    this.specialInstructions,
+    this.variantNameEn,
+    this.variantNameMm,
+    this.variantNameTh,
+    this.optionNameEn,
+    this.optionNameMm,
+    this.optionNameTh,
   }) : _menuItemName = menuItemName;
+
+  static List<int> _intList(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw.map((value) => int.tryParse(value.toString()) ?? 0).where((id) => id > 0).toList();
+  }
 
   factory OrderHistoryItemDto.fromJson(Map<String, dynamic> json) {
     // New backend (mapUserOrderListItem) uses: nameEn / nameMm / imageUrl.
@@ -281,6 +359,7 @@ class OrderHistoryItemDto {
         (json['menuItemImageUrl'] as String?) ?? (json['imageUrl'] as String?);
     final resolvedImage = FileUrlUtil.resolve(rawImage);
     return OrderHistoryItemDto(
+      id: (json['id'] as num?)?.toInt(),
       menuItemId: json['menuItemId'] as int?,
       menuItemName: menuItemNameEn ?? 'Item',
       menuItemNameEn: menuItemNameEn,
@@ -292,6 +371,16 @@ class OrderHistoryItemDto {
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,
       displayPrice: json['displayPrice'] as String?,
+      variantId: (json['variantId'] as num?)?.toInt(),
+      additionalVariantIds: _intList(json['additionalVariantIds']),
+      optionIds: _intList(json['optionIds']),
+      specialInstructions: json['specialInstructions']?.toString(),
+      variantNameEn: json['variantNameEn'] as String?,
+      variantNameMm: json['variantNameMm'] as String?,
+      variantNameTh: json['variantNameTh'] as String?,
+      optionNameEn: json['optionNameEn'] as String?,
+      optionNameMm: json['optionNameMm'] as String?,
+      optionNameTh: json['optionNameTh'] as String?,
     );
   }
 }

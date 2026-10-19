@@ -52,6 +52,9 @@ class Restaurant {
   /// Whether the merchant has delivery enabled (myshop toggle).
   final bool deliveryEnabled;
 
+  /// True when [deliveryEnabled] came from the payload, not the default.
+  final bool deliveryEnabledKnown;
+
   /// Whether the shop charges order tax (admin toggle; default true).
   final bool taxEnable;
 
@@ -118,6 +121,7 @@ class Restaurant {
     this.googleMapsLink,
     this.operatingHours = const [],
     this.deliveryEnabled = true,
+    this.deliveryEnabledKnown = false,
     this.taxEnable = true,
     this.isVerified = false,
     this.hasParking = false,
@@ -225,6 +229,9 @@ class Restaurant {
       googleMapsLink: googleMapsLink ?? this.googleMapsLink,
       operatingHours: operatingHours ?? this.operatingHours,
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
+      deliveryEnabledKnown: deliveryEnabled != null
+          ? true
+          : deliveryEnabledKnown,
       taxEnable: taxEnable ?? this.taxEnable,
       isVerified: isVerified ?? this.isVerified,
       hasParking: hasParking ?? this.hasParking,

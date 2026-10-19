@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
+import '../../../../core/auth/auth_service.dart';
+import '../../../../core/auth/guest_auth_guard.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
@@ -19,11 +21,15 @@ import 'social_page.dart';
 class TikTokProfilePage extends StatefulWidget {
   final SocialPostAuthorDto author;
   final SocialPostDto? initialPost;
+  final bool initialFollowing;
+  final void Function(bool following)? onFollowChanged;
 
   const TikTokProfilePage({
     super.key,
     required this.author,
     this.initialPost,
+    this.initialFollowing = false,
+    this.onFollowChanged,
   });
 
   @override
@@ -42,13 +48,74 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
   int _totalLikes = 0;
   int _totalViews = 0;
   int _generation = 0;
+  late bool _followed;
+  int _followerCount = 0;
+  bool _followBusy = false;
+  int _followEpoch = 0;
 
   bool get _isShop => widget.author.type == SocialAuthorType.shop;
   bool get _isAdmin => widget.author.type == SocialAuthorType.admin;
+  bool get _canFollow {
+    if (_isAdmin || widget.author.id <= 0) return false;
+    final me = AuthService().currentUser?.id;
+    return !(widget.author.type == SocialAuthorType.user &&
+        me != null &&
+        me == widget.author.id);
+  }
+
+  Future<void> _loadFollow() async {
+    if (!_canFollow && _isAdmin) return;
+    if (widget.author.id <= 0) return;
+    if (widget.author.type == SocialAuthorType.admin) return;
+    final epoch = _followEpoch;
+    try {
+      final status = await SocialPostsRepository.instance.followStatus(
+        userId: widget.author.type == SocialAuthorType.user
+            ? widget.author.id
+            : null,
+        shopId: _isShop ? widget.author.id : null,
+      );
+      if (!mounted || epoch != _followEpoch) return;
+      setState(() {
+        _followed = status.following;
+        _followerCount = status.followerCount;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFollow() async {
+    if (_followBusy || !_canFollow) return;
+    if (!await GuestAuthGuard.requireAccount(context)) return;
+    _followEpoch += 1;
+    setState(() => _followBusy = true);
+    try {
+      final result = await SocialPostsRepository.instance.toggleFollow(
+        userId: widget.author.type == SocialAuthorType.user
+            ? widget.author.id
+            : null,
+        shopId: _isShop ? widget.author.id : null,
+      );
+      if (!mounted) return;
+      setState(() {
+        _followed = result.following;
+        _followerCount = result.followerCount;
+      });
+      widget.onFollowChanged?.call(result.following);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('social.follow_failed'))),
+      );
+      await _loadFollow();
+    } finally {
+      if (mounted) setState(() => _followBusy = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _followed = widget.initialFollowing;
     if (widget.initialPost != null && _isMatchingAuthor(widget.initialPost!)) {
       _totalElements = 1;
       _totalLikes = widget.initialPost!.likeCount;
@@ -56,6 +123,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
     }
     _scrollController.addListener(_onScroll);
     _loadPosts(reset: true);
+    _loadFollow();
   }
 
   @override
@@ -398,6 +466,44 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
               ),
             ),
           ],
+          if (!_isAdmin && widget.author.id > 0) ...[
+            const SizedBox(height: 14),
+            Text(
+              '$_followerCount ${context.tr('social.followers')}',
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (_canFollow) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 180,
+                height: 44,
+                child: FilledButton(
+                  onPressed: _followBusy ? null : _toggleFollow,
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        _followed ? Colors.white12 : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    context.tr(
+                      _followed ? 'social.following' : 'social.follow',
+                    ),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 18),
           // Stats Row (real posts count, real likes, and real viewers)
           Row(
@@ -692,6 +798,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
             final isVideo = media?.isVideo ?? false;
 
             return GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => _openPreview(index),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),

@@ -338,7 +338,9 @@ class _WishlistPageState extends State<WishlistPage>
             imagePath: shop?.bannerImageUrl ?? '',
             logoPath: shop?.logoUrl,
             isVerified: shop?.isVerified ?? false,
-            deliveryFee: shop?.freeDeliveryActive == true
+            deliveryEnabled: shop?.deliveryEnabled ?? true,
+            deliveryFee: shop?.deliveryEnabled != false &&
+                    shop?.freeDeliveryActive == true
                 ? context.tr('common.free')
                 : null,
             isFavorite: true,

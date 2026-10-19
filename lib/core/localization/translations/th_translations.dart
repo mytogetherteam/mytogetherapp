@@ -90,6 +90,14 @@ const Map<String, String> kThTranslations = {
 
   // Social feed
   'social.for_you': 'สำหรับคุณ',
+  'social.followers': 'ผู้ติดตาม',
+  'social.follow_failed': 'ติดตามไม่สำเร็จ ลองอีกครั้ง',
+  'social.following_empty_title': 'ยังไม่มีโพสต์จากคนที่ติดตาม',
+  'social.following_empty_sub':
+      'ติดตามผู้คนและร้านค้า แล้วโพสต์ของพวกเขาจะมาอยู่ที่นี่',
+  'social.reply': 'ตอบกลับ',
+  'social.replying_to': 'กำลังตอบกลับ',
+  'social.more_replies': 'การตอบกลับเพิ่มเติม',
   'social.like': 'ถูกใจ',
   'social.comment': 'คอมเมนต์',
   'social.share': 'แชร์',
@@ -242,6 +250,11 @@ const Map<String, String> kThTranslations = {
   'home.lost_items_nearby': 'ของหายใกล้เคียง',
   'home.trending_news': 'ข่าวกำลังมาแรง',
   'home.recent_updates': 'อัพเดตล่าสุด',
+  'food.order_again': 'สั่งอีกครั้ง',
+  'food.last_order': 'ออเดอร์ล่าสุด',
+  'food.add_all_to_basket': 'เพิ่มทั้งหมดลงตะกร้า',
+  'food.add_to_basket_failed': 'เพิ่มลงตะกร้าไม่สำเร็จ',
+  'food.no_longer_available': 'ไม่มีจำหน่ายแล้ว',
   'home.view_menu': 'ดูเมนู',
   'home.direction': 'เส้นทาง',
   'home.order_now': 'สั่งเลย',
@@ -605,6 +618,8 @@ const Map<String, String> kThTranslations = {
   'order.far_delivery_message':
       'ระยะทาง {distance} กม. ค่าส่งอาจแพงและร้านอาจปฏิเสธ ดำเนินการต่อไหม?',
   'order.far_delivery_continue': 'สั่งต่อ',
+  'order.out_of_delivery_range':
+      'ที่อยู่นี้อยู่ห่าง {distance} กม. ซึ่งเกินระยะจัดส่ง {limit} กม.',
   'coupon.apply_hint': 'แตะเพื่อเลือกคูปอง',
   'coupon.discounts_title': 'ดีลมาก่อนได้ก่อน',
   'coupon.coupons_title': 'คูปอง',
@@ -849,6 +864,7 @@ const Map<String, String> kThTranslations = {
   'restaurant.no_menu_sub': 'ร้านนี้ยังไม่มีเมนูในขณะนี้',
   'restaurant.overview': 'ภาพรวม',
   'restaurant.verified_tooltip': 'ยืนยันโดย MyTogether',
+  'restaurant.ordered_before': 'เคยสั่งแล้ว',
   'restaurant.reviews': 'รีวิว',
   'restaurant.sign_in_save': 'กรุณาเข้าสู่ระบบเพื่อบันทึกร้านอาหาร',
   'announcement.dismiss_failed': 'ปิดประกาศไม่สำเร็จ',

@@ -171,6 +171,7 @@ class WishlistShopRef {
   final int? ratingCount;
   final bool isOpen;
   final bool isVerified;
+  final bool deliveryEnabled;
   final bool freeDeliveryActive;
 
   WishlistShopRef({
@@ -187,6 +188,7 @@ class WishlistShopRef {
     this.ratingCount,
     this.isOpen = true,
     this.isVerified = false,
+    this.deliveryEnabled = true,
     this.freeDeliveryActive = false,
   });
 
@@ -223,7 +225,9 @@ class WishlistShopRef {
       ratingCount: (json['ratingCount'] as num?)?.toInt(),
       isOpen: json['isOpen'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
-      freeDeliveryActive: json['freeDeliveryActive'] == true,
+      deliveryEnabled: json['deliveryEnabled'] as bool? ?? true,
+      freeDeliveryActive: json['deliveryEnabled'] != false &&
+          json['freeDeliveryActive'] == true,
     );
   }
 }
