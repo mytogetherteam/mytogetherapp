@@ -470,7 +470,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
             const SizedBox(height: 14),
             Text(
               '$_followerCount ${context.tr('social.followers')}',
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.white70,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -495,7 +495,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                     context.tr(
                       _followed ? 'social.following' : 'social.follow',
                     ),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
