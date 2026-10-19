@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
@@ -161,10 +161,10 @@ class _JobsListPageState extends State<JobsListPage> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
-                        style: GoogleFonts.poppins(fontSize: 14),
+                        style: AppFonts.poppins(fontSize: 14),
                         decoration: InputDecoration(
                           hintText: context.tr('jobs.search_hint'),
-                          hintStyle: GoogleFonts.poppins(
+                          hintStyle: AppFonts.poppins(
                             fontSize: 14,
                             color: Colors.grey.shade400,
                           ),
@@ -272,7 +272,7 @@ class _JobsListPageState extends State<JobsListPage> {
                       const SizedBox(height: 12),
                       Text(
                         context.tr('jobs.empty'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 15,
                           color: Colors.grey.shade600,
                         ),
@@ -357,7 +357,7 @@ class _FilterChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             color: selected ? Colors.white : Colors.black87,

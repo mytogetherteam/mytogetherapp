@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/shop_myday_viewer.dart';
@@ -89,7 +89,7 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 context.tr('home.recent_updates'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -149,7 +149,7 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
             fit: StackFit.expand,
             children: [
               // Story Background Image
-              CachedNetworkImage(
+              CachedNetworkImage(memCacheWidth: 1080, 
                 imageUrl: storyImg,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(color: Colors.grey[300]),
@@ -202,7 +202,7 @@ class _AllShopMyDaysSectionState extends State<AllShopMyDaysSection> with Locati
                 right: 8,
                 child: Text(
                   shop.name,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

@@ -26,6 +26,7 @@ class NotificationService {
     try {
       _fcm ??= FirebaseMessaging.instance;
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
     return _fcm!; 
   }
@@ -77,6 +78,7 @@ class NotificationService {
               _handleNotificationClick(message);
               return;
             } catch (e) {
+              if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
             }
           }
           _handleNotificationClick(null);
@@ -176,7 +178,9 @@ class NotificationService {
             if (!OrderOwnership.isForeignOrder(rawOrder)) {
               ActiveOrderState.instance.updateFromSocket({'type': 'ORDER_UPDATE', 'order': rawOrder});
             }
-          } catch (_) {}
+          } catch (e) {
+            if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
+          }
         } else if (refId != null) {
           final id = refId.toString();
           if (ActiveOrderState.instance.orderId == id) {
@@ -240,6 +244,7 @@ class NotificationService {
         }
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
 
     // Register token if already logged in
@@ -254,6 +259,7 @@ class NotificationService {
         }
       });
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
 
     _isInitialized = true;
@@ -271,6 +277,7 @@ class NotificationService {
         sound: true,
       );
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
   }
 
@@ -295,6 +302,7 @@ class NotificationService {
         _registeredFcmToken = null;
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
   }
 
@@ -320,6 +328,7 @@ class NotificationService {
       );
       _registeredFcmToken = token;
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
   }
 
@@ -406,6 +415,7 @@ class NotificationService {
     try {
       await _localNotifications.cancelAll();
     } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
     }
   }
 
@@ -503,7 +513,9 @@ class NotificationService {
           });
           return;
         }
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
+      }
     }
 
     if (message != null && _isOrderNotification(data)) {

@@ -65,6 +65,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       }
     }
   } catch (e) {
+    if (kDebugMode) debugPrint('main.dart: ignored error: $e');
   }
 
   await NotificationService().initialize();
@@ -141,21 +142,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await NotificationService().showLocalNotification(message);
 }
 
-void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-
-  // Check for Jailbroken/Rooted devices and kill app if compromised
-  await SecurityCheck.ensureDeviceIsSecure();
-
-  bool hasSeenOnboarding = false;
-
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
+Future<void> _loadDotEnv() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
+    debugPrint('dotenv load failed: $e');
   }
+}
 
+Future<void> _initFirebase() async {
   try {
     if (kIsWeb) {
       await Firebase.initializeApp(
@@ -173,11 +168,47 @@ void main() async {
       await Firebase.initializeApp();
     }
   } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
+}
+
+/// Fetches the remote splash banner, giving up after 6 seconds.
+Future<void> _prefetchSplash() async {
+  try {
+    await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
+  } catch (e) {
+    debugPrint('Splash prefetch skipped: $e');
+  }
+}
+
+void main() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Check for Jailbroken/Rooted devices and kill app if compromised
+  await SecurityCheck.ensureDeviceIsSecure();
+
+  bool hasSeenOnboarding = false;
+
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // dotenv and Firebase are independent on mobile, so load them together.
+  // Web builds read Firebase options from dotenv, so they stay sequential.
+  if (kIsWeb) {
+    await _loadDotEnv();
+    await _initFirebase();
+  } else {
+    await Future.wait([_loadDotEnv(), _initFirebase()]);
   }
 
   try {
-    await LocaleController.instance.initialize();
-    await AuthService().initialize();
+    // Locale, auth session and onboarding flag don't depend on each other.
+    await Future.wait([
+      LocaleController.instance.initialize(),
+      AuthService().initialize(),
+      OnboardingPrefs.hasSeenOnboarding().then((seen) {
+        hasSeenOnboarding = seen;
+      }),
+    ]);
 
     // ── Next-day startup refresh ──────────────────────────────────────────
     // If the stored access token is already expired at launch, refresh it NOW
@@ -189,18 +220,24 @@ void main() async {
         final newToken = await AuthService().performRefresh(
           ApiClient().dio,
         );
-        if (newToken != null) {
-        } else {
+        if (newToken == null) {
           await AuthService().clearSession(navigate: false);
         }
       } catch (e) {
         // Keep session; interceptor will retry on the first real API call.
+        debugPrint('Startup token refresh failed: $e');
       }
     }
     // ─────────────────────────────────────────────────────────────────────
+
+    // The remote splash banner only needs the session to be ready, so fetch it
+    // while notifications and orders initialise.
+    final splashFuture = _prefetchSplash();
+
     try {
       await NotificationService().initialize();
     } catch (e) {
+      debugPrint('NotificationService init failed: $e');
     }
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -208,6 +245,7 @@ void main() async {
     try {
       await LockScreenWidgetManager.instance.initialize();
     } catch (e) {
+      debugPrint('LockScreenWidgetManager init failed: $e');
     }
     if (AuthService().isLoggedIn) {
       await ActiveOrderState.instance.loadFromPrefs();
@@ -216,11 +254,7 @@ void main() async {
       ActiveOrderState.instance.resetForUserSession();
     }
     CartManager.instance.syncWithApi();
-    hasSeenOnboarding = await OnboardingPrefs.hasSeenOnboarding();
-    try {
-      await BrandedSplash.prefetch().timeout(const Duration(seconds: 6));
-    } catch (e) {
-    }
+    await splashFuture;
   } catch (e) {
     debugPrint('Startup initialization error: $e');
   }
@@ -241,10 +275,12 @@ void main() async {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   // ── Image cache optimisation ─────────────────────────────────────────────
-  // Increase the Flutter in-memory image cache from the tiny default (100 images /
-  // 100 MB) so scrolling lists don't constantly evict and re-download images.
-  PaintingBinding.instance.imageCache.maximumSize = 200;                   // up to 200 decoded images
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 150 * 1024 * 1024; // 150 MB
+  // Larger than Flutter's tiny default (100 images / 100 MB) so scrolling lists
+  // don't constantly evict images, but capped at 100 MB so low-RAM devices
+  // are not pushed into OOM. Network images also use memCacheWidth to keep
+  // each decoded entry small.
+  PaintingBinding.instance.imageCache.maximumSize = 150;                   // up to 150 decoded images
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024; // 100 MB
   // ─────────────────────────────────────────────────────────────────────────
   runApp(App(hasSeenOnboarding: hasSeenOnboarding));
   if (!kIsWeb) {

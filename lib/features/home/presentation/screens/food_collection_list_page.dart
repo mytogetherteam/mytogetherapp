@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -211,7 +211,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
             Expanded(
               child: Text(
                 context.tr('food.search_hint'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.grey[400],
                   fontSize: 13,
                 ),
@@ -237,7 +237,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
               const SizedBox(width: 8),
               Text(
                 _title,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Colors.black87,
@@ -344,7 +344,7 @@ class _FoodCollectionListPageState extends State<FoodCollectionListPage> {
                       ? 'restaurants.empty_visit_only'
                       : 'restaurants.empty_delivery',
                 ),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.grey[500],
                   fontSize: 16,
                   fontWeight: FontWeight.w500,

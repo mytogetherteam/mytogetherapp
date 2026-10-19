@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/animated_dots_text.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -758,7 +758,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             userLoc = LatLng(last.latitude, last.longitude);
             if (mounted) setState(() => _currentLocation = userLoc);
           }
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('order_tracking_page.dart: ignored error: $e');
+        }
       }
 
       // Start continuous updates in background
@@ -960,7 +962,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final TextPainter namePainter = TextPainter(
       text: TextSpan(
         text: name,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: Colors.white,
@@ -1354,7 +1356,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                     children: [
                       Text(
                         'Skip',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1382,7 +1384,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           ),
                           Text(
                             '$_adSecondsRemaining',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -1450,7 +1452,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                             context.tr(
                               'order_tracking.awaiting_confirmation',
                             ),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF1E293B),
@@ -1462,7 +1464,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               baseText: context.tr(
                                 'order_tracking.restaurant_reviewing',
                               ),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.grey[600],
                                 height: 1.4,
@@ -1575,7 +1577,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             const SizedBox(width: 10),
                                             Text(
                                               context.tr('order_confirm.chat'),
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w500,
                                                 color: const Color(0xFF64748B),
@@ -1703,7 +1705,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                       ? 'order_tracking.taking_longer'
                                                       : 'order_tracking.usually_takes',
                                                 ),
-                                                style: GoogleFonts.poppins(
+                                                style: AppFonts.poppins(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w500,
                                                   color: const Color(0xFF64748B),
@@ -1730,7 +1732,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                             ),
                                             child: Text(
                                               context.tr('order_tracking.cancel_order'),
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
                                                 color: const Color(0xFF64748B),
@@ -1858,12 +1860,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+          style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
         ),
         if (isGradientValue)
           GradientText(
             value,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -1872,7 +1874,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         else
           Text(
             value,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: valueColor ?? Colors.black,
@@ -1924,7 +1926,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 isPickup
                     ? context.tr('order_status.pickup_fee')
                     : context.tr('cart.est_delivery_fee'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14, 
                   fontWeight: FontWeight.w500,
                   color: AppColors.primary,
@@ -1936,7 +1938,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           ),
           Text(
             feeValue,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.primary,
@@ -2034,7 +2036,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           borderRadius: BorderRadius.circular(32),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 600),
-                            child: CachedNetworkImage(
+                            child: CachedNetworkImage(memCacheWidth: 540, 
                               key: ValueKey(centerUrl),
                               imageUrl: centerUrl,
                               width: 180,
@@ -2051,7 +2053,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
                       _restaurantName,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -2084,7 +2086,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         opacity: _timePulsingController.value,
                         child: GradientText(
                           timeStr,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
@@ -2128,7 +2130,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   _restaurantName,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -2166,7 +2168,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               curve: Curves.easeInOut,
               child: imageUrl.isEmpty
                   ? const ColoredBox(color: Colors.black)
-                  : CachedNetworkImage(
+                  : CachedNetworkImage(memCacheWidth: 1080, 
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
@@ -2284,7 +2286,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 Flexible(
                   child: Text(
                     _restaurantName,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -2333,7 +2335,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               const SizedBox(height: 20),
               Text(
                 context.tr('order_tracking.cancel_title'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -2341,7 +2343,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               const SizedBox(height: 8),
               Text(
                 context.tr('order_tracking.cancel_confirm'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   color: Colors.grey[600],
                 ),
@@ -2362,7 +2364,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       ),
                       child: Text(
                         context.tr('order_tracking.keep_order'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
@@ -2433,7 +2435,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       isLoading: _showCancelLoading,
                       child: Text(
                         context.tr('order_tracking.cancel_order'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),

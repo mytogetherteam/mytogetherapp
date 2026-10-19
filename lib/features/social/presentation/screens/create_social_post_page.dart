@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/localization/app_translations.dart';
@@ -145,7 +145,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
           ),
           title: Text(
             context.tr('social.create_post'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontWeight: FontWeight.w700,
               fontSize: 17,
               color: Colors.white,
@@ -180,7 +180,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
                         ),
                         child: Text(
                           context.tr('social.publish'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
                             color: _canPublish ? Colors.white : Colors.white54,
@@ -206,19 +206,19 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
                       maxLines: null,
                       minLines: 4,
                       maxLength: 5000,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 18,
                         height: 1.45,
                       ),
                       decoration: InputDecoration(
                         hintText: context.tr('social.caption_hint'),
-                        hintStyle: GoogleFonts.poppins(
+                        hintStyle: AppFonts.poppins(
                           color: Colors.white38,
                           fontSize: 18,
                         ),
                         border: InputBorder.none,
-                        counterStyle: GoogleFonts.poppins(
+                        counterStyle: AppFonts.poppins(
                           color: Colors.white30,
                           fontSize: 12,
                         ),
@@ -324,7 +324,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
                   children: [
                     Text(
                       context.tr('social.add_media'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

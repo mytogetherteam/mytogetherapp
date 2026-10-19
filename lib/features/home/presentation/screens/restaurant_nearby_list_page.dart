@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -470,7 +470,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
 
     final textSpan = TextSpan(
       text: nameStr,
-      style: GoogleFonts.poppins(
+      style: AppFonts.poppins(
         fontSize: fontSize,
         fontWeight: FontWeight.w700,
         color: Colors.white,
@@ -855,7 +855,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
       return Center(
         child: Text(
           context.tr('nearby.no_nearby'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.grey,
             fontSize: 14,
           ),
@@ -953,7 +953,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
               const SizedBox(height: 24),
               Text(
                 'Select Distance Range',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -971,7 +971,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                           title: Text(
                             '${radius.toInt()} KM',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 16,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                               color: isSelected ? AppColors.primary : Colors.black87,
@@ -1121,7 +1121,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                             const SizedBox(width: 8),
                             Text(
                               'Up to ${_selectedRadius.toInt()} KM',
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.black87,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1193,7 +1193,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                 const SizedBox(width: 8),
                                 Text(
                                   'Explore',
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: AppColors.primary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -1244,7 +1244,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                                       : (_polylines.isNotEmpty
                                             ? context.tr('nearby.see_full_route')
                                             : context.tr('nearby.show_me_the_way')),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: _isRouting
                                         ? AppColors.primary
                                         : Colors.white,
@@ -1299,7 +1299,7 @@ class _RestaurantNearbyListPageState extends State<RestaurantNearbyListPage> {
                     ),
                     child: Text(
                       context.tr('home.restaurants_nearby'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,

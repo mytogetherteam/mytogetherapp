@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../auth/guest_auth_guard.dart';
@@ -46,7 +46,7 @@ class GuestAccountRequiredSection extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -57,7 +57,7 @@ class GuestAccountRequiredSection extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   color: Colors.grey.shade600,
                   height: 1.4,
@@ -71,7 +71,7 @@ class GuestAccountRequiredSection extends StatelessWidget {
                 onPressed: () => GuestAuthGuard.requireAccount(context),
                 child: Text(
                   context.tr('guest.create_or_login'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -137,7 +137,7 @@ class GuestAuthBanner extends StatelessWidget {
                 Expanded(
                   child: Text(
                     context.tr('guest.sign_in_prompt'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,

@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/locale_controller.dart';
@@ -159,14 +159,18 @@ class CartManager extends ChangeNotifier {
       final encoded = json.encode(carts.map((c) => c.toJson()).toList());
       await prefs.setString(_cacheKey, encoded);
       await prefs.setInt(_cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('cart_manager.dart: ignored error: $e');
+    }
   }
 
   Future<void> invalidateCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_cacheTimestampKey);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('cart_manager.dart: ignored error: $e');
+    }
   }
 
   Future<void> syncWithApi() async {
@@ -268,7 +272,9 @@ class CartManager extends ChangeNotifier {
       try {
         final carts = await CartRepository.instance.getAllCarts();
         await _cacheCart(carts);
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('cart_manager.dart: ignored error: $e');
+      }
       return dto;
     }
 
@@ -818,7 +824,9 @@ class CartManager extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_cacheKey);
       await prefs.remove(_cacheTimestampKey);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('cart_manager.dart: ignored error: $e');
+    }
     await _loadGuestCart();
   }
 

@@ -1,9 +1,9 @@
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import "dart:async";
 import "package:mytogetherapp/core/localization/app_translations.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:mytogetherapp/core/theme/app_colors.dart";
-import "package:google_fonts/google_fonts.dart";
 import "package:phosphoricons_flutter/phosphoricons_flutter.dart";
 import "package:cached_network_image/cached_network_image.dart";
 import "package:auto_size_text/auto_size_text.dart";
@@ -310,7 +310,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 ),
                 label: Text(
                   context.tr("place.btn_call"),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -337,7 +337,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 ),
                 label: Text(
                   context.tr("place.btn_website"),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF2563EB),
@@ -366,7 +366,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
         children: [
           Text(
             context.tr("place.section_activities"),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1D1D1F),
@@ -396,7 +396,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                     const SizedBox(width: 6),
                     Text(
                       _formatKey(act),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,
@@ -422,7 +422,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             children: [
               Text(
                 context.tr("place.section_pricing"),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1D1D1F),
@@ -467,7 +467,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                 Flexible(
                                   child: Text(
                                     plan.title,
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF1F2937),
@@ -488,7 +488,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                     ),
                                     child: Text(
                                       context.tr("place.badge_popular"),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFFB45309),
@@ -502,7 +502,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                           const SizedBox(width: 12),
                           Text(
                             plan.formattedPrice,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
@@ -520,7 +520,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                             const SizedBox(width: 4),
                             Text(
                               plan.timeSlot!,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.grey[600],
                               ),
@@ -532,7 +532,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                         const SizedBox(height: 3),
                         Text(
                           plan.note!,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11.5,
                             fontStyle: FontStyle.italic,
                             color: Colors.grey[500],
@@ -558,7 +558,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
         children: [
           Text(
             context.tr("place.section_amenities"),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1D1D1F),
@@ -588,7 +588,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                     const SizedBox(width: 6),
                     Text(
                       _formatKey(amenity),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF374151),
@@ -678,7 +678,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                     child: child,
                                   );
                                 },
-                                child: CachedNetworkImage(
+                                child: CachedNetworkImage(memCacheWidth: 1080, 
                                   fadeInDuration: Duration.zero,
                                   fadeOutDuration: Duration.zero,
                                   key: ValueKey(_allImages[_currentImageIndex]),
@@ -760,7 +760,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       ),
                                       child: Text(
                                         widget.place.displayDescription,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 15,
                                           color: Colors.grey[600],
                                           height: 1.6,
@@ -798,7 +798,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       ),
                                       child: Text(
                                         context.tr("place.photo_gallery"),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.black,
@@ -955,7 +955,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                               widget.place.displayTitle,
                               maxLines: 2,
                               minFontSize: 16,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF1D1D1F),
@@ -977,7 +977,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                     widget.place.locationName,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                       color: const Color(
@@ -1000,7 +1000,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                   const SizedBox(width: 4),
                                   Text(
                                     widget.place.formattedHours,
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                       color: Colors.green[600],
@@ -1057,7 +1057,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                           widget.place.displayTitle,
                           maxLines: 1,
                           minFontSize: 14,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -1144,7 +1144,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                             const SizedBox(width: 8),
                             Text(
                               context.tr("place.view_on_map"),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
@@ -23,7 +23,7 @@ class AccountSettingsPage extends StatelessWidget {
         ),
         title: Text(
           context.tr('profile.account_settings'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: const Color(0xFF1E293B),
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -80,7 +80,7 @@ class AccountSettingsPage extends StatelessWidget {
           leading: GradientIcon(icon: icon),
           title: Text(
             title,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
@@ -89,7 +89,7 @@ class AccountSettingsPage extends StatelessWidget {
           subtitle: subtitle != null
               ? Text(
                   subtitle,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey[500],
                   ),
@@ -124,7 +124,7 @@ class AccountSettingsPage extends StatelessWidget {
             ),
             title: Text(
               context.tr('profile.delete_account'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Colors.red.shade600,
@@ -132,7 +132,7 @@ class AccountSettingsPage extends StatelessWidget {
             ),
             subtitle: Text(
               context.tr('profile.delete_account_sub'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 color: Colors.red.shade400,
               ),

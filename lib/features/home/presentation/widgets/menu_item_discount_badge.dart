@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Corner badge label for a discounted menu item.
@@ -54,7 +54,7 @@ class MenuItemDiscountBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.w700,

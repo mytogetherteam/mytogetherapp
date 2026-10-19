@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -196,7 +196,7 @@ class _FoodCategoriesSectionState extends State<FoodCategoriesSection> {
                                       const SizedBox(height: 8),
                                       Text(
                                         category.displayName,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
                                           color: Colors.grey[800],

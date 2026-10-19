@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -120,7 +121,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         lat = pos.latitude;
         lon = pos.longitude;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('location_picker_page.dart: ignored error: $e');
+    }
 
     if (lat == null || lon == null) {
       try {
@@ -473,7 +476,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 children: [
                   Text(
                     context.tr('location.forced_setup_title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -482,7 +485,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   const SizedBox(height: 4),
                   Text(
                     context.tr('location.forced_setup_subtitle'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey.shade700,
                       height: 1.4,
@@ -637,13 +640,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         setState(() => _showSearchResults = true);
                       }
                     },
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: Colors.black87,
                     ),
                     decoration: InputDecoration(
                       hintText: context.tr('location.search_hint'),
-                      hintStyle: GoogleFonts.poppins(
+                      hintStyle: AppFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey.shade400,
                       ),
@@ -713,7 +716,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         child: Center(
           child: Text(
             context.tr('location.no_results'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.grey.shade500,
             ),
@@ -748,7 +751,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           ),
           title: Text(
             place.name,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -757,7 +760,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           ),
           subtitle: Text(
             place.displayName,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               color: Colors.grey.shade500,
             ),

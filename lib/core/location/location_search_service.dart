@@ -261,7 +261,9 @@ class LocationSearchService {
       if (nominatim != null && nominatim.displayName.trim().isNotEmpty) {
         return nominatim;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
+    }
 
     try {
       final google = await _client
@@ -270,7 +272,9 @@ class LocationSearchService {
       if (google != null && google.displayName.trim().isNotEmpty) {
         return google;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
+    }
 
     return null;
   }
@@ -286,7 +290,9 @@ class LocationSearchService {
       if (google != null && google.displayName.trim().isNotEmpty) {
         return google;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
+    }
 
     // 2. Free OpenStreetMap fallback
     try {

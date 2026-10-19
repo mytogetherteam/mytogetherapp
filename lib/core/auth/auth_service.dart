@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
@@ -95,7 +96,9 @@ class AuthService {
       try {
         final Map<String, dynamic> decodedProfile = json.decode(profileJson);
         _currentUser = UserModel.fromJson(decodedProfile);
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('auth_service.dart: ignored error: $e');
+      }
     }
 
     _initialized = true;
@@ -242,7 +245,9 @@ class AuthService {
             try {
               final userModel = UserModel.fromJson(data);
               await updateCurrentUser(userModel);
-            } catch (_) {}
+            } catch (e) {
+              if (kDebugMode) debugPrint('auth_service.dart: ignored error: $e');
+            }
           } else {
             newToken = null;
           }

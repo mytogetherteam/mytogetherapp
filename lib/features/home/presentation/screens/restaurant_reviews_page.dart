@@ -1,9 +1,10 @@
 ﻿import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
@@ -100,7 +101,9 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
           _reviewsFuture = Future.value(reviews);
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('restaurant_reviews_page.dart: ignored error: $e');
+    }
   }
 
   void _loadData() {
@@ -165,7 +168,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                   const SizedBox(width: 8),
                   Text(
                     context.tr('review.write_title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
@@ -186,7 +189,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
         ),
         title: Text(
           context.tr('restaurant.reviews'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: const Color(0xFF1E293B),
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -220,7 +223,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                   children: [
                     Text(
                       context.tr('review.customer_ratings'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1E293B),
@@ -262,7 +265,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
               children: [
                 Text(
                   summary.averageRating.toStringAsFixed(1),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 42,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
@@ -271,7 +274,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                 const SizedBox(width: 12),
                 Text(
                   context.tr('review.out_of_5'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E293B),
@@ -296,7 +299,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
             Text(
               context.trArgs('review.ratings_count',
                   {'count': '${summary.totalCount}'}),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 color: const Color(0xFF64748B),
                 fontWeight: FontWeight.w500,
@@ -328,7 +331,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
             width: 50,
             child: Text(
               context.trArgs('review.stars_count', {'count': '$stars'}),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFF64748B),
@@ -353,7 +356,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
             child: Text(
               '$percentInt% ($count)',
               textAlign: TextAlign.right,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFF64748B),
@@ -384,7 +387,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   context.tr('review.recent'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
@@ -431,7 +434,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
             Text(
               context.tr('review.empty_title'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF1E293B),
@@ -441,7 +444,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
             Text(
               context.tr('review.empty_sub'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 14,
                 color: const Color(0xFF94A3B8),
                 fontWeight: FontWeight.w500,
@@ -511,7 +514,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
               Expanded(
                 child: Text(
                   review.userName,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
@@ -562,7 +565,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
               const SizedBox(width: 12),
               Text(
                 _getTimeAgo(review.createdAt),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   color: const Color(0xFF94A3B8),
                   fontWeight: FontWeight.w500,
@@ -573,7 +576,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
           const SizedBox(height: 12),
           Text(
             review.comment ?? context.tr('review.no_comment'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: const Color(0xFF475569),
               height: 1.6,
@@ -651,7 +654,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                   gradient: AppColors.primaryGradient,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
@@ -662,7 +665,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
               if (review.shopRepliedAt != null)
                 Text(
                   _getTimeAgo(review.shopRepliedAt!),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     color: const Color(0xFF94A3B8),
                     fontWeight: FontWeight.w500,
@@ -673,7 +676,7 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
           const SizedBox(height: 8),
           Text(
             review.shopReply!.trim(),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13.5,
               color: const Color(0xFF475569),
               height: 1.55,
@@ -693,26 +696,26 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.tr('news.report_post') != 'news.report_post' ? context.tr('news.report_post') : 'Report Review', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
-        content: Text(context.tr('news.report_confirm') != 'news.report_confirm' ? context.tr('news.report_confirm') : 'Are you sure you want to report this content?', style: GoogleFonts.poppins(fontSize: 14)),
+        title: Text(context.tr('news.report_post') != 'news.report_post' ? context.tr('news.report_post') : 'Report Review', style: AppFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Text(context.tr('news.report_confirm') != 'news.report_confirm' ? context.tr('news.report_confirm') : 'Are you sure you want to report this content?', style: AppFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: AppFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(context.tr('news.reported_success') != 'news.reported_success' ? context.tr('news.reported_success') : 'Reported successfully.', style: GoogleFonts.poppins(color: Colors.white)),
+                  content: Text(context.tr('news.reported_success') != 'news.reported_success' ? context.tr('news.reported_success') : 'Reported successfully.', style: AppFonts.poppins(color: Colors.white)),
                   backgroundColor: AppColors.primary,
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            child: Text(context.tr('news.report_action') != 'news.report_action' ? context.tr('news.report_action') : 'Report', style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.report_action') != 'news.report_action' ? context.tr('news.report_action') : 'Report', style: AppFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -723,13 +726,13 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.tr('news.block_user') != 'news.block_user' ? context.tr('news.block_user') : 'Block User', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
-        content: Text(context.tr('news.block_confirm') != 'news.block_confirm' ? context.tr('news.block_confirm') : 'Are you sure you want to block this user? You will no longer see their posts.', style: GoogleFonts.poppins(fontSize: 14)),
+        title: Text(context.tr('news.block_user') != 'news.block_user' ? context.tr('news.block_user') : 'Block User', style: AppFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+        content: Text(context.tr('news.block_confirm') != 'news.block_confirm' ? context.tr('news.block_confirm') : 'Are you sure you want to block this user? You will no longer see their posts.', style: AppFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: AppFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () async {
@@ -761,14 +764,14 @@ class _RestaurantReviewsPageState extends State<RestaurantReviewsPage>
                 SnackBar(
                   content: Text(
                     blockedMessage,
-                    style: GoogleFonts.poppins(color: Colors.white),
+                    style: AppFonts.poppins(color: Colors.white),
                   ),
                   backgroundColor: Colors.grey[800],
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            child: Text(context.tr('news.block_action') != 'news.block_action' ? context.tr('news.block_action') : 'Block', style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.block_action') != 'news.block_action' ? context.tr('news.block_action') : 'Block', style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

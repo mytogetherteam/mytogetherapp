@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 /// Clean outlined Google button used on login / register.
 class GoogleSignInButton extends StatelessWidget {
@@ -49,7 +49,7 @@ class GoogleSignInButton extends StatelessWidget {
                     child: Text(
                       label,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF1F1F1F),
@@ -132,7 +132,7 @@ class AuthOrDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: Colors.grey.shade500,

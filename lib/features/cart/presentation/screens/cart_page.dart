@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -53,7 +53,7 @@ class _CartPageState extends State<CartPage> {
             titleSpacing: 0,
             title: Text(
               context.tr('cart.title'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -69,7 +69,7 @@ class _CartPageState extends State<CartPage> {
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
                         context.tr('cart.select_shop'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
@@ -103,7 +103,7 @@ class _CartPageState extends State<CartPage> {
           const SizedBox(height: 16),
           Text(
             context.tr('cart.empty'),
-            style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
+            style: AppFonts.poppins(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -151,7 +151,7 @@ class _CartPageState extends State<CartPage> {
                 children: [
                   Text(
                     store.name,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -160,7 +160,7 @@ class _CartPageState extends State<CartPage> {
                   const SizedBox(height: 4),
                   Text(
                     '${context.trArgs(store.items.fold(0, (int sum, item) => sum + item.quantity) == 1 ? 'cart.item' : 'cart.items', {'count': store.items.fold(0, (int sum, item) => sum + item.quantity).toString()})}  •  ${context.tr('cart.from')} ${store.time}  •  ${store.distance}',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[600],
                     ),
@@ -171,7 +171,7 @@ class _CartPageState extends State<CartPage> {
                       children: [
                         Text(
                           context.tr('cart.closed_now'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 12,
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -182,7 +182,7 @@ class _CartPageState extends State<CartPage> {
                         const SizedBox(width: 8),
                         Text(
                           context.tr('cart.order_tomorrow'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[500],
                           ),
@@ -230,7 +230,7 @@ class _CartPageState extends State<CartPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(11),
-          child: CachedNetworkImage(
+          child: CachedNetworkImage(memCacheWidth: 180, 
             imageUrl: shopImage,
             fit: BoxFit.cover,
             width: 60,
@@ -272,7 +272,7 @@ class _CartPageState extends State<CartPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: CachedNetworkImage(
+                child: CachedNetworkImage(memCacheWidth: 150, 
                   imageUrl: displayImages[displayImages.length - 1 - index],
                   fit: BoxFit.cover,
                   width: 50,

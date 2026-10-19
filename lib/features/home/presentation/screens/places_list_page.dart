@@ -1,6 +1,6 @@
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import "package:flutter/material.dart";
 import "package:mytogetherapp/core/localization/app_translations.dart";
-import "package:google_fonts/google_fonts.dart";
 import "package:mytogetherapp/core/location/location_service.dart";
 import "package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart";
 import "package:mytogetherapp/core/presentation/widgets/app_dialog.dart";
@@ -180,7 +180,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
         ),
         title: Text(
           context.tr("place.nearby_places"),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: 18,

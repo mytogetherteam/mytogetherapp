@@ -76,6 +76,7 @@ class ChatVoicePlayerController {
     try {
       await _player.setAudioContext(_voicePlaybackAudioContext());
     } catch (e) {
+      if (kDebugMode) debugPrint('chat_voice_player.dart: ignored error: $e');
     }
     _posSub = _player.onPositionChanged.listen((value) {
       position.value = value;
@@ -153,6 +154,7 @@ class ChatVoicePlayerController {
     try {
       await _player.stop();
     } catch (e) {
+      if (kDebugMode) debugPrint('chat_voice_player.dart: ignored error: $e');
     }
     isPlaying.value = false;
     position.value = Duration.zero;

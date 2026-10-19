@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 class FoodQuickAccessSection extends StatelessWidget {
@@ -102,7 +102,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: Colors.black87,
@@ -114,7 +114,7 @@ class FoodQuickAccessSection extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       color: Colors.black54,
                       height: 1.2,

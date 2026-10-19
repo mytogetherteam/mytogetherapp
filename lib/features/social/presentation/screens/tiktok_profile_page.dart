@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../../core/localization/app_translations.dart';
@@ -223,7 +223,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
         ),
         title: Text(
           widget.author.handle,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -255,7 +255,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                     children: [
                       Text(
                         _error!,
-                        style: GoogleFonts.poppins(color: Colors.white70),
+                        style: AppFonts.poppins(color: Colors.white70),
                       ),
                       const SizedBox(height: 12),
                       FilledButton(
@@ -293,7 +293,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                         const SizedBox(height: 16),
                         Text(
                           context.tr('social.no_posts_creator'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -302,7 +302,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                         const SizedBox(height: 6),
                         Text(
                           'No videos or photos shared yet.',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white54,
                             fontSize: 13,
                           ),
@@ -350,7 +350,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                   widget.author.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -371,7 +371,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
           // Handle
           Text(
             widget.author.handle,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: Colors.white54,
@@ -390,7 +390,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
               ),
               child: Text(
                 'Shop Partner',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
@@ -580,7 +580,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
           Center(
             child: Text(
               initials,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.white,
                 fontSize: isTwoLetters ? 28 : 36,
                 fontWeight: FontWeight.w700,
@@ -605,7 +605,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
       children: [
         Text(
           count,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -614,7 +614,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Colors.white54,
@@ -659,7 +659,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
               const SizedBox(width: 8),
               Text(
                 context.tr('social.go_to_restaurant'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -709,7 +709,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                               maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 11,
                                 color: Colors.white70,
                               ),
@@ -785,7 +785,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                                 const SizedBox(width: 3),
                                 Text(
                                   _formatCount(post.viewCount),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
@@ -805,7 +805,7 @@ class _TikTokProfilePageState extends State<TikTokProfilePage> {
                                 const SizedBox(width: 3),
                                 Text(
                                   _formatCount(post.likeCount),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/home/data/new_user_free_delivery.dart';
@@ -67,7 +67,7 @@ class FirstOrderFreeDeliveryBanner extends StatelessWidget {
                     context.tr('delivery.first_order_free'),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 12,
                       height: 1.35,
                       fontWeight: FontWeight.w700,
@@ -90,7 +90,7 @@ class FirstOrderFreeDeliveryBanner extends StatelessWidget {
                       ),
                       child: Text(
                         context.tr('nav.food'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,

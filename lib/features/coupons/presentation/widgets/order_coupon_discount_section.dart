@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -60,7 +60,7 @@ class OrderCouponDiscountSection extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[600],
                 ),
@@ -69,7 +69,7 @@ class OrderCouponDiscountSection extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hint,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     color: const Color(0xFF94A3B8),
                   ),
@@ -81,7 +81,7 @@ class OrderCouponDiscountSection extends StatelessWidget {
         if (amount.isNotEmpty)
           Text(
             amount,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,

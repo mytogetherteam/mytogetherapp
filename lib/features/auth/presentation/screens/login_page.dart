@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -206,7 +206,7 @@ class _LoginPageState extends State<LoginPage>
                               // Welcome text
                               Text(
                                 context.tr('auth.welcome_back'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
@@ -215,7 +215,7 @@ class _LoginPageState extends State<LoginPage>
                               const SizedBox(height: 6),
                               Text(
                                 context.tr('auth.login_subtitle'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 14,
                                   color: Colors.grey[600],
                                 ),
@@ -243,7 +243,7 @@ class _LoginPageState extends State<LoginPage>
                                       const SizedBox(width: 8),
                                       Text(
                                         '+66',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
                                           color: Colors.black87,
@@ -299,7 +299,7 @@ class _LoginPageState extends State<LoginPage>
                                   children: [
                                     Text(
                                       context.tr('auth.no_account'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: Colors.grey[600],
                                         fontSize: 14,
                                       ),
@@ -315,7 +315,7 @@ class _LoginPageState extends State<LoginPage>
                                       },
                                       child: GradientText(
                                         context.tr('common.sign_up'),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -338,7 +338,7 @@ class _LoginPageState extends State<LoginPage>
                             final version = snapshot.data?.version ?? '0.0.1';
                             return Text(
                               'v$version',
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.grey.withValues(alpha: 0.5),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -361,7 +361,7 @@ class _LoginPageState extends State<LoginPage>
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: GoogleFonts.poppins(
+      style: AppFonts.poppins(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Colors.black87,
@@ -386,10 +386,10 @@ class _LoginPageState extends State<LoginPage>
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
-      style: GoogleFonts.poppins(fontSize: 15, color: Colors.black),
+      style: AppFonts.poppins(fontSize: 15, color: Colors.black),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
+        hintStyle: AppFonts.poppins(color: Colors.grey[400], fontSize: 14),
         prefixIcon:
             prefixWidget ??
             (icon != null
@@ -432,7 +432,7 @@ class _LoginPageState extends State<LoginPage>
       isLoading: _isLoading,
       child: Text(
         context.tr('auth.login'),
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,

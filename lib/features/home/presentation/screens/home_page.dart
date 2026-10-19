@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -28,6 +29,7 @@ import 'places_list_page.dart';
 import 'package:mytogetherapp/features/jobs/presentation/screens/jobs_list_page.dart';
 import 'package:mytogetherapp/features/cart/presentation/widgets/active_order_bar.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/features/coupons/presentation/widgets/coupon_rail_section.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
@@ -43,13 +45,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late PageController _bannerController;
   Timer? _bannerTimer;
-  int _currentBannerIndex = 0;
+  // Notifiers keep high-frequency UI changes (scroll, carousels, title swap)
+  // from rebuilding this entire ~1000 line page.
+  final ValueNotifier<int> _currentBannerIndex = ValueNotifier<int>(0);
 
   late PageController _promoController;
   Timer? _promoTimer;
-  int _currentPromoIndex = 0;
+  final ValueNotifier<int> _currentPromoIndex = ValueNotifier<int>(0);
   late ScrollController _scrollController;
-  double _headerOpacity = 0.0;
+  final ValueNotifier<double> _headerOpacity = ValueNotifier<double>(0.0);
 
   List<BannerImageDto> _topBanners = [];
   List<BannerImageDto> _bottomBanners = [];
@@ -59,7 +63,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _refreshKey = 0;
   DateTime? _lastResumeRefreshAt;
   Timer? _titleTimer;
-  bool _showThemeNameInAppBar = false;
+  final ValueNotifier<bool> _showThemeNameInAppBar = ValueNotifier<bool>(false);
   int _jobVisitCount = 0;
   bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
@@ -82,31 +86,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       FlutterNativeSplash.remove();
     });
 
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-      if (_bannerController.hasClients) {
-        _bannerController.nextPage(
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeIn,
-        );
-      }
-    });
-
-    _promoTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (_promoController.hasClients) {
-        _promoController.nextPage(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
-
-    _titleTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-      if (mounted && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) {
-        setState(() {
-          _showThemeNameInAppBar = !_showThemeNameInAppBar;
-        });
-      }
-    });
+    if (NavigationController.instance.currentIndex.value == 0) {
+      _startTimers();
+    }
+    NavigationController.instance.currentIndex.addListener(_onTabVisibilityChanged);
 
     NotificationRepository().getUnreadCount();
     AnnouncementRepository().getUnreadCount();
@@ -117,6 +100,53 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _onScrollToTopRequested,
     );
     NewUserFreeDeliveryOffer.instance.addListener(_onNewUserOfferChanged);
+  }
+
+  /// Starts the carousel / title timers (no-op if already running).
+  void _startTimers() {
+    _bannerTimer ??= Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (_bannerController.hasClients) {
+        _bannerController.nextPage(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeIn,
+        );
+      }
+    });
+
+    _promoTimer ??= Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      if (_promoController.hasClients) {
+        _promoController.nextPage(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+
+    _titleTimer ??= Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (mounted && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) {
+        _showThemeNameInAppBar.value = !_showThemeNameInAppBar.value;
+      }
+    });
+  }
+
+  void _stopTimers() {
+    _bannerTimer?.cancel();
+    _promoTimer?.cancel();
+    _titleTimer?.cancel();
+    _bannerTimer = null;
+    _promoTimer = null;
+    _titleTimer = null;
+  }
+
+  /// Home stays alive inside the tab IndexedStack, so only animate while the
+  /// Home tab is actually the selected one.
+  void _onTabVisibilityChanged() {
+    if (!mounted) return;
+    if (NavigationController.instance.currentIndex.value == 0) {
+      _startTimers();
+    } else {
+      _stopTimers();
+    }
   }
 
   void _onNewUserOfferChanged() {
@@ -135,7 +165,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           _jobVisitCount = prefs.getInt('job_tab_visit_count') ?? 0;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('home_page.dart: ignored error: $e');
+    }
   }
 
   void _onScrollToTopRequested() {
@@ -241,11 +273,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void _onScroll() {
     final double offset = _scrollController.offset;
     final double newOpacity = (offset / 80).clamp(0.0, 1.0);
-    if (newOpacity != _headerOpacity) {
-      setState(() {
-        _headerOpacity = newOpacity;
-      });
-    }
+    // ValueNotifier ignores equal values, so no extra rebuilds.
+    _headerOpacity.value = newOpacity;
   }
 
   @override
@@ -269,12 +298,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _bannerTimer?.cancel();
-    _promoTimer?.cancel();
-    _titleTimer?.cancel();
+    _stopTimers();
+    NavigationController.instance.currentIndex.removeListener(_onTabVisibilityChanged);
     _bannerController.dispose();
     _promoController.dispose();
     _scrollController.dispose();
+    _currentBannerIndex.dispose();
+    _currentPromoIndex.dispose();
+    _headerOpacity.dispose();
+    _showThemeNameInAppBar.dispose();
     NavigationController.instance.tabScrollToTopRequest.removeListener(
       _onScrollToTopRequested,
     );
@@ -314,7 +346,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: CachedNetworkImage(
+                    child: CachedNetworkImage(memCacheWidth: 1080, 
                       imageUrl: _getImageUrl(banner.image),
                       width: double.infinity,
                       fit: BoxFit.contain,
@@ -358,7 +390,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       children: [
                         Text(
                           banner.nameMm ?? banner.nameEn ?? context.tr('home.promotions'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
@@ -368,7 +400,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           const SizedBox(height: 10),
                           Text(
                             banner.descriptionMm ?? banner.descriptionEn ?? '',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               color: Colors.black54,
                               height: 1.6,
@@ -476,10 +508,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               controller: _bannerController,
                               onPageChanged: (index) {
                                 if (_topBanners.isEmpty) return;
-                                setState(() {
-                                  _currentBannerIndex =
-                                      index % _topBanners.length;
-                                });
+                                _currentBannerIndex.value =
+                                    index % _topBanners.length;
                               },
                               itemBuilder: (context, index) {
                                 if (_isLoadingBanners) {
@@ -514,6 +544,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   onTap: () => _showBannerModal(banner),
                                   child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                     imageUrl: _getImageUrl(image),
+                                    memCacheWidth: 1000,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) =>
                                         const ImageSkeletonLoader(showLogo: true),
@@ -536,23 +567,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       const SizedBox(height: 12),
                       // Dots Indicator
                       if (!_isLoadingBanners && _topBanners.isNotEmpty)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            _topBanners.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: _currentBannerIndex == index ? 20 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                gradient: _currentBannerIndex == index
-                                    ? AppColors.primaryGradient
-                                    : null,
-                                color: _currentBannerIndex != index
-                                    ? AppColors.primary.withValues(alpha: 0.2)
-                                    : null,
-                                borderRadius: BorderRadius.circular(4),
+                        ValueListenableBuilder<int>(
+                          valueListenable: _currentBannerIndex,
+                          builder: (context, currentIndex, _) => Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              _topBanners.length,
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: currentIndex == index ? 20 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  gradient: currentIndex == index
+                                      ? AppColors.primaryGradient
+                                      : null,
+                                  color: currentIndex != index
+                                      ? AppColors.primary.withValues(alpha: 0.2)
+                                      : null,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
                           ),
@@ -711,10 +745,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         controller: _promoController,
                                         onPageChanged: (index) {
                                           if (_bottomBanners.isEmpty) return;
-                                          setState(() {
-                                            _currentPromoIndex =
-                                                index % _bottomBanners.length;
-                                          });
+                                          _currentPromoIndex.value =
+                                              index % _bottomBanners.length;
                                         },
                                         itemBuilder: (context, index) {
                                           if (_isLoadingBanners) {
@@ -739,6 +771,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                             onTap: () => _showBannerModal(banner),
                                             child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                               imageUrl: _getImageUrl(banner.image),
+                                              memCacheWidth: 1000,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               placeholder: (context, url) =>
@@ -766,31 +799,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   // Dots Indicator for Second Banner
                                   if (!_isLoadingBanners &&
                                       _bottomBanners.isNotEmpty)
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: List.generate(
-                                        _bottomBanners.length,
-                                        (index) => AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          margin: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                          ),
-                                          width: _currentPromoIndex == index
-                                              ? 24
-                                              : 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            gradient: _currentPromoIndex == index
-                                                ? AppColors.primaryGradient
-                                                : null,
-                                            color: _currentPromoIndex != index
-                                                ? const Color(0xFFD1D1D1)
-                                                : null,
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                    ValueListenableBuilder<int>(
+                                      valueListenable: _currentPromoIndex,
+                                      builder: (context, currentIndex, _) => Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: List.generate(
+                                          _bottomBanners.length,
+                                          (index) => AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            margin: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                            ),
+                                            width: currentIndex == index
+                                                ? 24
+                                                : 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              gradient: currentIndex == index
+                                                  ? AppColors.primaryGradient
+                                                  : null,
+                                              color: currentIndex != index
+                                                  ? const Color(0xFFD1D1D1)
+                                                  : null,
+                                              borderRadius: BorderRadius.circular(
+                                                4,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -827,15 +863,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             LostItemsNearbySection(
                               key: ValueKey('lost_$_refreshKey'),
                             ),
-                            const SizedBox(height: 24),
-                            TrendingNewsSection(
-                              key: ValueKey('news_$_refreshKey'),
-                            ),
+                            // News is not offered for Thai users (the News tab is
+                            // hidden too), so skip the section and its API call.
+                            if (LocaleController.instance.language.code != 'th') ...[
+                              const SizedBox(height: 24),
+                              TrendingNewsSection(
+                                key: ValueKey('news_$_refreshKey'),
+                              ),
+                            ],
                             const SizedBox(height: 40),
                             Center(
                               child: Text(
                                 context.tr('food.end_of_list'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: Colors.grey.withValues(alpha: 0.5),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -857,10 +897,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               top: 0,
               left: 0,
               right: 0,
-              child: AnimatedContainer(
+              child: ValueListenableBuilder<double>(
+               valueListenable: _headerOpacity,
+               builder: (context, headerOpacity, _) => AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
                 decoration: BoxDecoration(
-                  boxShadow: _headerOpacity > 0.8
+                  boxShadow: headerOpacity > 0.8
                       ? [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -878,7 +920,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         left: 0,
                         right: 0,
                         child: Opacity(
-                          opacity: _headerOpacity,
+                          opacity: headerOpacity,
                           child: SizedBox(
                             width: MediaQuery.of(context).size.width,
                             height: MediaQuery.of(context).size.height,
@@ -925,7 +967,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     child: ShaderMask(
                                       shaderCallback: (bounds) =>
                                           AppColors.primaryGradient.createShader(bounds),
-                                      child: AnimatedSwitcher(
+                                      child: ValueListenableBuilder<bool>(
+                                       valueListenable: _showThemeNameInAppBar,
+                                       builder: (context, showThemeName, _) {
+                                        final hasTheme = _bgThemeName != null &&
+                                            _bgThemeName!.trim().isNotEmpty;
+                                        return AnimatedSwitcher(
                                         duration: const Duration(milliseconds: 800),
                                         transitionBuilder: (Widget child, Animation<double> animation) {
                                           return FadeTransition(
@@ -940,16 +987,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           );
                                         },
                                         child: Text(
-                                          _showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty
+                                          showThemeName && hasTheme
                                               ? _bgThemeName!
                                               : context.tr('home.brand_name'),
-                                          key: ValueKey<bool>(_showThemeNameInAppBar),
-                                          style: GoogleFonts.poppins(
+                                          key: ValueKey<bool>(showThemeName),
+                                          style: AppFonts.poppins(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: (_showThemeNameInAppBar && _bgThemeName != null && _bgThemeName!.trim().isNotEmpty) ? 14 : 22,
+                                            fontSize: (showThemeName && hasTheme) ? 14 : 22,
                                             color: Colors.white,
                                           ),
                                         ),
+                                      );
+                                       },
                                       ),
                                     ),
                                   ),
@@ -964,7 +1013,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-              ),
+              )),
             ),
             // Active Order Bar (Floating at bottom, home page only)
             Positioned(

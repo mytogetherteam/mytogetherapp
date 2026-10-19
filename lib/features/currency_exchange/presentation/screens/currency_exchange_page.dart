@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -215,7 +215,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(color: Colors.red),
+                        style: AppFonts.poppins(color: Colors.red),
                       ),
                       const SizedBox(height: 16),
                       PrimaryGradientButton(
@@ -259,7 +259,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         children: [
           Text(
             todayStr,
-            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+            style: AppFonts.poppins(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 10),
           Row(
@@ -267,7 +267,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             children: [
               Text(
                 context.tr('currency.welcome'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -294,7 +294,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                   const SizedBox(width: 8),
                   Text(
                     'MMK',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -335,7 +335,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                           const SizedBox(width: 8),
                           Text(
                             rate.currency,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -361,7 +361,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             Center(
               child: Text(
                 '${_selectedCurrency!.flagEmoji} 1 ${_selectedCurrency!.currency} = 🇲🇲 ${_formatRate(_currentRate)} MMK',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
@@ -372,7 +372,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
             Center(
               child: Text(
                 context.trArgs('currency.as_of', {'time': _timestamp}),
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                style: AppFonts.poppins(color: Colors.white70, fontSize: 12),
               ),
             ),
           ],
@@ -409,7 +409,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               ),
               child: Text(
                 context.trArgs('currency.mmk_to', {'currency': currencyCode}),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: _isBuy ? Colors.white : Colors.black87,
                   fontWeight: _isBuy ? FontWeight.bold : FontWeight.w500,
                   fontSize: 11,
@@ -434,7 +434,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               ),
               child: Text(
                 context.trArgs('currency.to_mmk', {'currency': currencyCode}),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: !_isBuy ? Colors.white : Colors.black87,
                   fontWeight: !_isBuy ? FontWeight.bold : FontWeight.w500,
                   fontSize: 11,
@@ -469,7 +469,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -477,9 +477,9 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400),
+                hintStyle: AppFonts.poppins(color: Colors.grey.shade400),
                 suffixText: suffixText,
-                suffixStyle: GoogleFonts.poppins(
+                suffixStyle: AppFonts.poppins(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade400,
                 ),
@@ -508,7 +508,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
         children: [
           Text(
             context.tr('currency.latest_rate'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -526,7 +526,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
               Expanded(
                 child: Text(
                   context.tr('currency.rates_disclaimer'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: Colors.red.shade700,
@@ -586,7 +586,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                 Expanded(
                   child: Text(
                     rate.currency,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -612,7 +612,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     children: [
                       Text(
                         'MMK→${rate.currency}',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 9,
                           color: Colors.orange.shade700,
                           fontWeight: FontWeight.w600,
@@ -639,7 +639,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     _formatRate(rate.buy),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -666,7 +666,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                     children: [
                       Text(
                         '${rate.currency}→MMK',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 9,
                           color: Colors.green.shade700,
                           fontWeight: FontWeight.w600,
@@ -693,7 +693,7 @@ class _CurrencyExchangePageState extends State<CurrencyExchangePage> {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     _formatRate(rate.sell),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,

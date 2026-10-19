@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/food_menu_item_card.dart';
 import '../widgets/food_menu_item_skeleton.dart';
@@ -218,7 +218,7 @@ class _TodayOverviewDetailPageState extends State<TodayOverviewDetailPage> {
       appBar: AppBar(
         title: Text(
           displayTitle,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontWeight: FontWeight.w600,
             color: Colors.black,
             fontSize: 18,

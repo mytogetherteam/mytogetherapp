@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_language.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -30,7 +30,7 @@ class _LanguagePageState extends State<LanguagePage> {
         ),
         title: Text(
           context.tr('language.title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -44,7 +44,7 @@ class _LanguagePageState extends State<LanguagePage> {
             padding: const EdgeInsets.only(left: 4, bottom: 12),
             child: Text(
               context.tr('language.subtitle'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[600],
               ),
@@ -87,7 +87,7 @@ class _LanguagePageState extends State<LanguagePage> {
           },
           title: Text(
             language.nativeName,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -95,7 +95,7 @@ class _LanguagePageState extends State<LanguagePage> {
           ),
           subtitle: Text(
             language.englishName,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               color: Colors.grey[500],
             ),

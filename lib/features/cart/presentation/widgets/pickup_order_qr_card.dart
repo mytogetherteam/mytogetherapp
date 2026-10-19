@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
@@ -46,7 +46,7 @@ class PickupOrderQrCard extends StatelessWidget {
         children: [
           Text(
             context.tr('order_status.pickup_qr_title'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -55,7 +55,7 @@ class PickupOrderQrCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             context.tr('order_status.pickup_qr_subtitle'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.grey[600],
             ),
@@ -93,7 +93,7 @@ class PickupOrderQrCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             _displayOrderNo,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.grey[700],

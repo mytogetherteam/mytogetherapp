@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../../core/auth/auth_service.dart';
@@ -76,7 +76,7 @@ class _SavedCouponsPageState extends State<SavedCouponsPage> {
         centerTitle: false,
         title: Text(
           context.tr('profile.saved_coupons'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontWeight: FontWeight.bold,
             fontSize: 22,
             color: Colors.black87,
@@ -143,7 +143,7 @@ class _SavedCouponsPageState extends State<SavedCouponsPage> {
                   Text(
                     context.tr('coupon.saved_empty_title'),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[700],
@@ -153,7 +153,7 @@ class _SavedCouponsPageState extends State<SavedCouponsPage> {
                   Text(
                     context.tr('coupon.saved_empty'),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[500],
                     ),
@@ -164,7 +164,7 @@ class _SavedCouponsPageState extends State<SavedCouponsPage> {
                     width: 220,
                     child: Text(
                       context.tr('coupon.browse_coupons'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,

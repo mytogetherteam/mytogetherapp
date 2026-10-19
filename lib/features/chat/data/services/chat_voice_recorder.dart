@@ -140,7 +140,9 @@ class ChatVoiceRecorder {
       try {
         final path = await _recorder.stop() ?? _path;
         await deleteFile(path);
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('chat_voice_recorder.dart: ignored error: $e');
+      }
     }
     await deleteFile(_path);
     _path = null;
@@ -156,7 +158,9 @@ class ChatVoiceRecorder {
     try {
       final file = File(path);
       if (await file.exists()) await file.delete();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('chat_voice_recorder.dart: ignored error: $e');
+    }
   }
 
   Future<void> dispose() async {

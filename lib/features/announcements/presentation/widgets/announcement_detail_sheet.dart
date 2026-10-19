@@ -2,7 +2,7 @@ import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import '../../data/models/announcement_model.dart';
@@ -76,7 +76,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
                           children: [
                             GradientText(
                               announcement.title,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                                 height: 1.25,
@@ -85,7 +85,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               _formatDate(announcement.createdAt),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.grey.shade500,
@@ -94,7 +94,7 @@ class AnnouncementDetailSheet extends StatelessWidget {
                             const SizedBox(height: 16),
                             Text(
                               announcement.message,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 15,
                                 height: 1.6,
                                 color: Colors.grey.shade800,

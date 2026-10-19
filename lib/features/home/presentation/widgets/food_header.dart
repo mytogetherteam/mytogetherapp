@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../auth/data/models/user_location_model.dart';
@@ -84,7 +85,9 @@ class _FoodHeaderState extends State<FoodHeader> {
         });
         return;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('food_header.dart: ignored error: $e');
+    }
 
     await _fallbackToCurrentLocation();
   }
@@ -210,7 +213,7 @@ class _FoodHeaderState extends State<FoodHeader> {
                                   Flexible(
                                     child: Text(
                                       _headerLabel(context),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,

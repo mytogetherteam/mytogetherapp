@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../localization/app_translations.dart';
 import 'primary_gradient_button.dart';
 
@@ -53,7 +53,7 @@ class PermissionRationaleModal extends StatelessWidget {
             Text(
               context.tr(titleKey),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
@@ -73,7 +73,7 @@ class PermissionRationaleModal extends StatelessWidget {
               },
               child: Text(
                 context.tr('permission.continue'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -95,7 +95,7 @@ class PermissionRationaleModal extends StatelessWidget {
         // Bold
         spans.add(TextSpan(
           text: parts[i],
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -106,7 +106,7 @@ class PermissionRationaleModal extends StatelessWidget {
         // Normal
         spans.add(TextSpan(
           text: parts[i],
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.normal,
             color: Colors.black87,

@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -163,7 +163,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
                       widget.post.commentCount <= 0
                           ? context.tr('social.comments_title')
                           : '${context.tr('social.comments_title')} · ${widget.post.commentCount}',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -208,7 +208,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
       return Center(
         child: Text(
           context.tr('social.no_comments'),
-          style: GoogleFonts.poppins(color: Colors.white54),
+          style: AppFonts.poppins(color: Colors.white54),
         ),
       );
     }
@@ -239,7 +239,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
                 children: [
                   Text(
                     c.author.displayName,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -248,7 +248,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
                   const SizedBox(height: 2),
                   Text(
                     c.content,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 13,
                       height: 1.35,
@@ -257,7 +257,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
                   const SizedBox(height: 4),
                   Text(
                     c.timeAgo,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white38,
                       fontSize: 11,
                     ),
@@ -292,10 +292,10 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                style: AppFonts.poppins(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: context.tr('social.add_comment'),
-                  hintStyle: GoogleFonts.poppins(color: Colors.white38),
+                  hintStyle: AppFonts.poppins(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.white10,
                   contentPadding:
@@ -386,7 +386,7 @@ class _SocialCommentsSheetState extends State<_SocialCommentsSheet> {
       alignment: Alignment.center,
       child: Text(
         initial,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w700,

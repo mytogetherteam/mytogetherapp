@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'view_all_icon_button.dart';
 import '../screens/food_collection_list_page.dart';
@@ -80,7 +80,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
                   children: [
                     Text(
                       widget.title ?? context.tr('home.popular_restaurants'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
                         color: Colors.black,
@@ -178,7 +178,7 @@ class _PopularBrandsSectionState extends State<PopularBrandsSection> {
               children: [
                 Text(
                   widget.title ?? context.tr('home.popular_restaurants'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.black,
@@ -290,7 +290,7 @@ class _BrandCardSquare extends StatelessWidget {
                       color: Colors.grey.shade400,
                       size: 28,
                     )
-                  : CachedNetworkImage(
+                  : CachedNetworkImage(memCacheWidth: 1080, 
                       imageUrl: imageUrl,
                       fit: BoxFit.contain,
                       errorWidget: (_, _, _) => Icon(
@@ -305,7 +305,7 @@ class _BrandCardSquare extends StatelessWidget {
           Expanded(
             child: Text(
               brand.name,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,

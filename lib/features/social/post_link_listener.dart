@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
@@ -25,7 +26,9 @@ class PostLinkListener {
     try {
       final initial = await appLinks.getInitialLink();
       if (initial != null) unawaited(_open(initial));
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('post_link_listener.dart: ignored error: $e');
+    }
     _subscription = appLinks.uriLinkStream.listen(
       (uri) => unawaited(_open(uri)),
       onError: (_) {},

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -207,7 +207,7 @@ class RestaurantCard extends StatelessWidget {
                   name: name,
                   isVerified: isVerified,
                   badgeSize: MyTogetherVerifiedBadge.cardSize,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -384,7 +384,7 @@ class RestaurantCard extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         initial,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: AppColors.primary,
@@ -409,7 +409,7 @@ class RestaurantCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               context.tr('common.no_image'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.grey[500],
                 fontSize: 10,
                 fontWeight: FontWeight.w500,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 /// Shared chat visual language for MyTogether (matched with MyShop).
 abstract final class ChatUiTokens {
@@ -29,39 +29,39 @@ abstract final class ChatUiTokens {
   static const Color composerFill = Color(0xFFF1F5F9);
   static const Color hairline = Color(0xFFE8ECF0);
 
-  static TextStyle messageBody({required Color color}) => GoogleFonts.poppins(
+  static TextStyle messageBody({required Color color}) => AppFonts.poppins(
         fontSize: messageBodySize,
         fontWeight: FontWeight.w400,
         height: 1.35,
         color: color,
       );
 
-  static TextStyle meta({Color color = textMuted}) => GoogleFonts.poppins(
+  static TextStyle meta({Color color = textMuted}) => AppFonts.poppins(
         fontSize: metaSize,
         fontWeight: FontWeight.w400,
         color: color,
       );
 
-  static TextStyle headerTitle({required Color color}) => GoogleFonts.poppins(
+  static TextStyle headerTitle({required Color color}) => AppFonts.poppins(
         fontSize: headerTitleSize,
         fontWeight: FontWeight.w600,
         color: color,
       );
 
   static TextStyle headerSubtitle({Color color = textMuted}) =>
-      GoogleFonts.poppins(
+      AppFonts.poppins(
         fontSize: headerSubtitleSize,
         fontWeight: FontWeight.w400,
         color: color,
       );
 
-  static TextStyle composer({Color? color}) => GoogleFonts.poppins(
+  static TextStyle composer({Color? color}) => AppFonts.poppins(
         fontSize: composerSize,
         fontWeight: FontWeight.w400,
         color: color,
       );
 
-  static TextStyle hint({Color color = textSecondary}) => GoogleFonts.poppins(
+  static TextStyle hint({Color color = textSecondary}) => AppFonts.poppins(
         fontSize: hintSize,
         fontWeight: FontWeight.w400,
         height: 1.35,

@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -145,14 +145,14 @@ class _MyPostsPageState extends State<MyPostsPage> {
         elevation: 0,
         title: Text(
           context.tr('social.my_posts'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          style: AppFonts.poppins(fontWeight: FontWeight.w700),
         ),
         actions: [
           TextButton(
             onPressed: _openCreate,
             child: Text(
               context.tr('social.new_post'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
               ),
@@ -167,7 +167,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_error!, style: GoogleFonts.poppins()),
+                      Text(_error!, style: AppFonts.poppins()),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => _load(reset: true),
@@ -185,7 +185,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                           children: [
                             Text(
                               context.tr('social.my_posts_empty'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),
@@ -194,7 +194,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                             Text(
                               context.tr('social.my_posts_empty_sub'),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(color: Colors.grey[700]),
+                              style: AppFonts.poppins(color: Colors.grey[700]),
                             ),
                             const SizedBox(height: 16),
                             FilledButton(
@@ -252,7 +252,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                             textAlign: TextAlign.center,
                             maxLines: 5,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: AppColors.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   ),
                   child: Text(
                     context.tr('social.hidden'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 10,
                     ),

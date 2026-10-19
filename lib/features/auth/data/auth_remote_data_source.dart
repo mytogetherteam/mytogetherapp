@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'models/auth_models.dart';
@@ -130,7 +131,9 @@ class AuthRemoteDataSource {
         '${ApiClient.apiPrefix}/user/auth/logout',
         data: {'refreshToken': token ?? ''},
       );
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('auth_remote_data_source.dart: ignored error: $e');
+    }
   }
 
   Future<void> deleteAccount({String? password}) async {

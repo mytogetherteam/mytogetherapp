@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/time_formatter.dart';
@@ -127,6 +128,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       if (url.isEmpty) return;
       setState(() => _orderWaitingImageUrl = url);
     } catch (e) {
+      if (kDebugMode) debugPrint('order_status_page.dart: ignored error: $e');
     }
   }
 
@@ -642,7 +644,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             Expanded(
               child: Text(
                 storeName,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Colors.black,
@@ -669,7 +671,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       ? Text(
                           _statusTitle(context),
                           key: ValueKey<int>(_currentStatus),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFFEF4444),
@@ -678,7 +680,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       : GradientText(
                           _statusTitle(context),
                           key: ValueKey<int>(_currentStatus),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -691,7 +693,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                     if (state.hasPrepTimeEstimate)
                       GradientText(
                         '${context.tr('order_status.est_waiting_time')}: ${_getFakeEstTime(state.estimatedTime!, state.orderId)}',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
@@ -701,7 +703,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         baseText: state.isPickupFulfillment
                             ? context.tr('order_status.preparing')
                             : context.tr('order_tracking.restaurant_reviewing'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 16,
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w600,
@@ -817,7 +819,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       const SizedBox(height: 12),
                                       Text(
                                         'Tracking view unavailable',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           color: Colors.grey[600],
                                           fontSize: 13,
                                         ),
@@ -852,7 +854,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               uri,
                               mode: LaunchMode.externalApplication,
                             );
-                          } catch (_) {}
+                          } catch (e) {
+                            if (kDebugMode) debugPrint('order_status_page.dart: ignored error: $e');
+                          }
                         }
                       },
                       child: Row(
@@ -869,7 +873,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                     'order_status.track_order_link')
                                 ? 'Track Order'
                                 : context.tr('order_status.track_order_link'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
@@ -907,7 +911,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
                           _statusDescription(context, storeName),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[800],
@@ -919,7 +923,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           if (state.riderProfileUrl != null &&
                               state.riderProfileUrl!.isNotEmpty)
                             ClipOval(
-                              child: CachedNetworkImage(
+                              child: CachedNetworkImage(memCacheWidth: 132, 
                                 fadeInDuration: Duration.zero,
                                 fadeOutDuration: Duration.zero,
                                 imageUrl: FileUrlUtil.resolve(
@@ -981,7 +985,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         : context.tr(
                                             'order_status.assigning_rider',
                                           ),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
                                       color: Colors
@@ -998,7 +1002,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                             .isNotEmpty) ...[
                                       Text(
                                         'Phone: ',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: Colors.black87,
@@ -1006,7 +1010,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       ),
                                       Text(
                                         state.riderPhone!,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           color: Colors.black54,
                                         ),
@@ -1020,7 +1024,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                             .isNotEmpty)
                                       Text(
                                         '  |  ',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           color: Colors.grey[300],
                                         ),
@@ -1031,7 +1035,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                             .isNotEmpty) ...[
                                       Text(
                                         'Vehicle No: ',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: Colors.black87,
@@ -1039,7 +1043,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       ),
                                       Text(
                                         state.riderVehicleNumber!,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 12,
                                           color: Colors.black54,
                                         ),
@@ -1100,7 +1104,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               child: Text(
                                 state.cancelReason ??
                                     context.tr('order_status.cancel_reason'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 13,
                                   color: const Color(0xFFB91C1C),
                                 ),
@@ -1142,7 +1146,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           children: [
                             Text(
                               context.tr('order_status.payment_method'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 14,
                                 color: Colors.grey[600],
                               ),
@@ -1157,7 +1161,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                 const SizedBox(width: 6),
                                 Text(
                                   context.tr('order_status.qr_promptpay'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1174,7 +1178,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               state.usesPayNowTotal
                                   ? context.tr('cart.total_pay_now')
                                   : context.tr('cart.total'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 14,
                                 color: Colors.grey[600],
                               ),
@@ -1184,7 +1188,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                 Text(
                                   (backendTotalAdjusted ? null : state.displayTotalAmount) ??
                                       total.toFormattedPrice(),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
@@ -1212,7 +1216,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         : context.tr(
                                             'order_status.waiting_payment',
                                           ),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color:
@@ -1255,7 +1259,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           const SizedBox(width: 8),
                           Text(
                             context.tr('order_status.view_summary'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[800],
@@ -1270,7 +1274,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               context.tr('order_status.no_items'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.grey,
                               ),
@@ -1321,7 +1325,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       children: [
                                         Text(
                                           '${item.quantity}x ${item.title}',
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             color: Colors.black,
@@ -1330,7 +1334,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         if (item.variantName != null)
                                           Text(
                                             item.variantName!,
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 12,
                                               color: Colors.grey[600],
                                             ),
@@ -1341,7 +1345,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   Text(
                                     (item.price * item.quantity)
                                         .toFormattedPrice(),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black,
@@ -1454,7 +1458,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         const SizedBox(width: 10),
                         Text(
                           context.tr('order_status.delivery_info'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1503,7 +1507,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                     children: [
                                       Text(
                                         context.tr('order_status.cancelled'),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.red,
@@ -1512,7 +1516,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       const SizedBox(height: 8),
                                       Text(
                                         state.cancelReason!,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 14,
                                           color: Colors.grey[600],
                                         ),
@@ -1530,7 +1534,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         children: [
                                           Text(
                                             storeName,
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -1543,7 +1547,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                                   .isNotEmpty)
                                             Text(
                                               state.restaurantAddress!,
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 12,
                                                 color: Colors.grey[500],
                                               ),
@@ -1567,7 +1571,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                                 : context.tr(
                                                     'food.my_location',
                                                   ),
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -1596,7 +1600,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 },
                 child: Text(
                   context.tr('order_status.order_again'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -1636,7 +1640,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                         children: [
                           Text(
                             context.tr('order_status.delivery_fee'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[700],
@@ -1648,7 +1652,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       ),
                       GradientText(
                         delivery.toFormattedPrice(),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -1687,7 +1691,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             const SizedBox(width: 12),
                             Text(
                               context.tr('order_confirm.chat'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF1E293B),
@@ -2040,7 +2044,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             color: isBold ? Colors.black : Colors.grey[600],
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
@@ -2048,7 +2052,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         ),
         Text(
           value,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             color: valueColor ?? Colors.black,
@@ -2112,7 +2116,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             const SizedBox(height: 16),
             Text(
               context.tr('order_status.delivery_fee'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[800],
@@ -2122,7 +2126,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             const SizedBox(height: 8),
             GradientText(
               delivery.toFormattedPrice(),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -2148,7 +2152,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 ),
                 child: Text(
                   'OK',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,

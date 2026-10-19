@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -89,7 +89,7 @@ class OrderStatusImageBadge extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   label,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
@@ -113,7 +113,7 @@ class OrderStatusImageBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.w600,
@@ -188,7 +188,7 @@ class RestaurantOrderStatusStrip extends StatelessWidget {
               Flexible(
                 child: Text(
                   message,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: fg,
@@ -274,7 +274,7 @@ class MenuItemOrderBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: fg,
@@ -369,7 +369,7 @@ class OrderUnavailableBottomSheet {
                     Text(
                       availability.bottomSheetTitle(ctx),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF111827),
@@ -380,7 +380,7 @@ class OrderUnavailableBottomSheet {
                     Text(
                       availability.bottomSheetBody(ctx),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                         color: Colors.grey.shade600,
@@ -414,7 +414,7 @@ class OrderUnavailableBottomSheet {
                               child: Text(
                                 ctx.tr('order.got_it'),
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -489,7 +489,7 @@ class OrderBlockedStatusLine extends StatelessWidget {
       padding: const EdgeInsets.only(top: 3, bottom: 1),
       child: Text(
         text,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: color,
@@ -531,7 +531,7 @@ class OrderBlockedMenuHint extends StatelessWidget {
       padding: const EdgeInsets.only(top: 2),
       child: Text(
         text,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 10,
           fontWeight: FontWeight.w500,
           color: color,

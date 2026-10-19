@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -187,7 +187,7 @@ class _VisaPageState extends State<VisaPage>
                   const SizedBox(width: 5),
                   Text(
                     '2026 Guide',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
@@ -268,7 +268,7 @@ class _VisaPageState extends State<VisaPage>
                           const SizedBox(width: 6),
                           Text(
                             'Thailand Immigration & Entry',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
@@ -284,7 +284,7 @@ class _VisaPageState extends State<VisaPage>
                       context.tr('visa.title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -304,7 +304,7 @@ class _VisaPageState extends State<VisaPage>
                       context.tr('visa.subtitle'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white.withValues(alpha: 0.88),
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
@@ -357,11 +357,11 @@ class _VisaPageState extends State<VisaPage>
         ),
         labelColor: Colors.white,
         unselectedLabelColor: const Color(0xFF64748B),
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: AppFonts.poppins(
           fontSize: 12.5,
           fontWeight: FontWeight.w700,
         ),
-        unselectedLabelStyle: GoogleFonts.poppins(
+        unselectedLabelStyle: AppFonts.poppins(
           fontSize: 12.5,
           fontWeight: FontWeight.w500,
         ),
@@ -461,7 +461,7 @@ class _VisaPageState extends State<VisaPage>
               Expanded(
                 child: Text(
                   category.title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
@@ -479,7 +479,7 @@ class _VisaPageState extends State<VisaPage>
                 ),
                 child: Text(
                   '${visas.length}',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF64748B),
@@ -525,7 +525,7 @@ class _VisaPageState extends State<VisaPage>
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1E293B),
@@ -547,7 +547,7 @@ class _VisaPageState extends State<VisaPage>
               icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 18),
               label: Text(
                 context.tr('common.retry'),
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                style: AppFonts.poppins(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -616,7 +616,7 @@ class _VisaCard extends StatelessWidget {
                       // Title
                       Text(
                         visa.displayTitle,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1E293B),
@@ -629,7 +629,7 @@ class _VisaCard extends StatelessWidget {
                           visa.displaySubtitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 12,
                             color: const Color(0xFF64748B),
                             height: 1.4,
@@ -716,7 +716,7 @@ class _VisaCard extends StatelessWidget {
           const SizedBox(width: 3.5),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
               color: color,
@@ -745,7 +745,7 @@ class _VisaCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: CachedNetworkImage(
+          child: CachedNetworkImage(memCacheWidth: 144, 
             imageUrl: iconUrl,
             width: 48,
             height: 48,

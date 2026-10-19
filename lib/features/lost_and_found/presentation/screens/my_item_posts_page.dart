@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
@@ -132,7 +132,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
           ),
           title: Text(
             context.tr('lost.my_posts'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Colors.black,
@@ -179,7 +179,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
                 Text(
                   context.tr('lost.my_posts_empty'),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
@@ -189,7 +189,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
                 Text(
                   context.tr('lost.my_posts_empty_sub'),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     color: Colors.grey[500],
                     height: 1.5,
@@ -201,7 +201,7 @@ class _MyItemPostsPageState extends State<MyItemPostsPage> {
                   width: 260,
                   child: Text(
                     context.tr('lost.my_posts_empty_cta'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -265,7 +265,7 @@ class _MyPostTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: thumb != null
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(memCacheWidth: 192, 
                     fadeInDuration: Duration.zero,
                     fadeOutDuration: Duration.zero,
                     imageUrl: thumb,
@@ -291,7 +291,7 @@ class _MyPostTile extends StatelessWidget {
                   ),
                   child: Text(
                     context.tr(isFound ? 'lost.badge_found' : 'lost.badge_lost'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: isFound ? Colors.green.shade700 : Colors.orange.shade800,
@@ -301,14 +301,14 @@ class _MyPostTile extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   post.description,
-                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+                  style: AppFonts.poppins(fontSize: 13, color: Colors.black87),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   post.timeAgo,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.black45,
                   ),

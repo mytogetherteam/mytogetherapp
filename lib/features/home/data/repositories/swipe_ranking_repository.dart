@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/shop_feed_item_dto.dart';
 
@@ -16,6 +17,7 @@ class SwipeRankingRepository {
         return data.map((json) => ShopFeedItemDto.fromJson(json)).toList();
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('swipe_ranking_repository.dart: ignored error: $e');
     }
     return [];
   }
@@ -31,6 +33,7 @@ class SwipeRankingRepository {
         return data.map((json) => ShopFeedItemDto.fromJson(json)).toList();
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('swipe_ranking_repository.dart: ignored error: $e');
     }
     return [];
   }
@@ -42,6 +45,7 @@ class SwipeRankingRepository {
         data: {'isLike': isLike},
       );
     } catch (e) {
+      if (kDebugMode) debugPrint('swipe_ranking_repository.dart: ignored error: $e');
     }
   }
 

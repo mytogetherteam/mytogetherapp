@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
@@ -112,7 +112,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
         ),
         title: Text(
           '${widget.currencyRate.flagEmoji} ${widget.currencyRate.currency} Details',
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -149,7 +149,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
         children: [
           Text(
             '7-Day History',
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -193,7 +193,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 13,
             color: Colors.grey.shade600,
             fontWeight: FontWeight.w500,
@@ -202,7 +202,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
         const SizedBox(height: 4),
         Text(
           _amountFormat.format(value),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: color,
@@ -232,7 +232,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
         children: [
           Text(
             'Convert',
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -268,7 +268,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       child: Center(
                         child: Text(
                           'MMK → ${widget.currencyRate.currency}',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontWeight: _isBuy ? FontWeight.w600 : FontWeight.w500,
                             color: _isBuy ? AppColors.primary : Colors.grey.shade600,
                             fontSize: 12,
@@ -298,7 +298,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       child: Center(
                         child: Text(
                           '${widget.currencyRate.currency} → MMK',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontWeight: !_isBuy ? FontWeight.w600 : FontWeight.w500,
                             color: !_isBuy ? AppColors.primary : Colors.grey.shade600,
                             fontSize: 12,
@@ -374,7 +374,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -393,7 +393,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
             child: TextField(
               controller: controller,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,

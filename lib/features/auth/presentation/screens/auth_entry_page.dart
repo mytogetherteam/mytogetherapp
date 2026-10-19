@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
@@ -98,7 +98,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                           Expanded(
                             child: Text(
                               context.tr('auth.easy_connect'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 38,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -218,7 +218,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                   },
                   child: Text(
                     context.tr('auth.register_account'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -250,7 +250,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                         alignment: Alignment.center,
                         child: GradientText(
                           context.tr('auth.login_account'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -284,7 +284,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                           const SizedBox(width: 8),
                           GradientText(
                             context.tr('language.title'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -338,7 +338,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     context.tr('language.title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -352,7 +352,7 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                     ),
                     title: Text(
                       lang.nativeName,
-                      style: GoogleFonts.poppins(fontSize: 16),
+                      style: AppFonts.poppins(fontSize: 16),
                     ),
                     trailing: LocaleController.instance.language == lang
                         ? Icon(Icons.check, color: AppColors.primary)
@@ -553,7 +553,7 @@ class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMix
                     children: [
                       Text(
                         widget.title,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: widget.textColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -561,7 +561,7 @@ class _FloatingPillState extends State<FloatingPill> with TickerProviderStateMix
                       ),
                       Text(
                         widget.subtitle,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: widget.textColor.withValues(alpha: 0.7),
                           fontSize: 9,
                           fontWeight: FontWeight.w500,

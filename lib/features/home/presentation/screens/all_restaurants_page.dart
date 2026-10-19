@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
@@ -179,7 +179,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
                   hintText: context.tr('restaurant.search_hint'),
-                  hintStyle: GoogleFonts.poppins(
+                  hintStyle: AppFonts.poppins(
                     color: Colors.grey[400],
                     fontSize: 13,
                   ),
@@ -204,7 +204,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 11),
                 ),
-                style: GoogleFonts.poppins(color: Colors.black, fontSize: 14),
+                style: AppFonts.poppins(color: Colors.black, fontSize: 14),
               ),
             ),
           ),
@@ -316,7 +316,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           const SizedBox(height: 16),
           Text(
             context.tr('restaurant.no_restaurants'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: Colors.grey[500],
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -325,7 +325,7 @@ class _AllRestaurantsPageState extends State<AllRestaurantsPage> {
           const SizedBox(height: 8),
           Text(
             context.tr('restaurant.adjust_filters'),
-            style: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
+            style: AppFonts.poppins(color: Colors.grey[400], fontSize: 14),
           ),
         ],
       ),

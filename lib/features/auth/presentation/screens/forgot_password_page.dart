@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -157,7 +157,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final defaultPinTheme = PinTheme(
       width: 52,
       height: 56,
-      textStyle: GoogleFonts.poppins(
+      textStyle: AppFonts.poppins(
         fontSize: 22,
         color: Colors.black,
         fontWeight: FontWeight.w600,
@@ -195,7 +195,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 context.tr('auth.forgot_passcode') != 'auth.forgot_passcode' 
                     ? context.tr('auth.forgot_passcode') 
                     : 'Forgot Passcode',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                 ),
@@ -203,7 +203,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               const SizedBox(height: 8),
               Text(
                 'We have sent a verification code to ${widget.phone}.',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[600],
                 ),
@@ -232,7 +232,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ? Text(
                           context.trArgs('auth.resend_in', {'seconds': '$_resendSecondsRemaining'}),
                           key: const ValueKey('countdown'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
@@ -246,7 +246,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           ),
                           child: Text(
                             context.tr('auth.resend_code'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.underline,
@@ -262,7 +262,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 isLoading: _isLoading,
                 child: Text(
                   'Verify & Continue',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,

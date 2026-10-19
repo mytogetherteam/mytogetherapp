@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -174,7 +175,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             child:
                 widget.order.shopImageUrl != null &&
                     widget.order.shopImageUrl!.isNotEmpty
-                ? CachedNetworkImage(
+                ? CachedNetworkImage(memCacheWidth: 1080, 
                     fadeInDuration: Duration.zero,
                     fadeOutDuration: Duration.zero,
                     imageUrl: _getImageUrl(widget.order.shopImageUrl),
@@ -204,7 +205,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         Expanded(
           child: Text(
             widget.order.shopName ?? context.tr('common.shop'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -215,7 +216,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         ),
         Text(
           widget.order.displayStatusLabel,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: labelColor,
@@ -237,7 +238,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             GradientText(
               widget.order.displayTotalAmount?.toFormattedPrice() ??
                   widget.order.totalAmount.toFormattedPrice(),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -247,7 +248,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
               context.trArgs('orders.items_count', {
                 'count': '${widget.order.items.length}',
               }),
-              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+              style: AppFonts.poppins(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -295,7 +296,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                 child: Center(
                   child: Text(
                     '+${widget.order.items.length - maxDisplayCount}', // +X overlay
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -320,7 +321,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       return MenuImagePlaceholder(title: item.menuItemName);
     }
 
-    return CachedNetworkImage(
+    return CachedNetworkImage(memCacheWidth: 180, 
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
       imageUrl: _getImageUrl(imageUrl),
@@ -348,7 +349,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
             ),
             child: Text(
               context.tr('orders.in_progress'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
                 color: primaryColor,
@@ -370,7 +371,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         children: [
           Text(
             widget.order.dateDisplay,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+            style: AppFonts.poppins(fontSize: 13, color: Colors.grey[500]),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -402,7 +403,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                       _chatActionLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -420,7 +421,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
                   borderRadius: BorderRadius.circular(12),
                   child: Text(
                     btnLabel,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       color: Colors.white,
@@ -444,7 +445,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         Flexible(
           child: Text(
             widget.order.dateDisplay,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+            style: AppFonts.poppins(fontSize: 13, color: Colors.grey[500]),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -458,7 +459,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
           borderRadius: BorderRadius.circular(12),
           child: Text(
             btnLabel,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontWeight: FontWeight.w600,
               fontSize: 13,
               color: Colors.white,
@@ -617,7 +618,9 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         if (fresh != null) {
           setState(() => _review = fresh);
         }
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('order_history_card.dart: ignored error: $e');
+      }
       widget.onReviewSubmitted?.call();
     }
   }
@@ -628,7 +631,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       children: [
         Text(
           context.tr('orders.how_was_order'),
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+          style: AppFonts.poppins(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(width: 12),
         Row(
@@ -662,7 +665,7 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
       children: [
         Text(
           context.trArgs('orders.my_rating', {'score': scoreLabel}),
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+          style: AppFonts.poppins(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(width: 8),
         Icon(Icons.star_rounded, size: 20, color: primaryColor),

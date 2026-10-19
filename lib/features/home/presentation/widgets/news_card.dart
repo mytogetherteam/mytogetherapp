@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
@@ -35,7 +35,7 @@ class NewsCard extends StatelessWidget {
             child: Builder(
               builder: (context) {
                 final imageSize = MediaQuery.of(context).size.width > 600 ? 160.0 : 110.0;
-                return CachedNetworkImage(
+                return CachedNetworkImage(memCacheWidth: (imageSize * 3).round(), 
                   imageUrl: imageUrl,
                   width: imageSize,
                   height: imageSize,
@@ -67,7 +67,7 @@ class NewsCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.black,
@@ -79,7 +79,7 @@ class NewsCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         description,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Colors.grey[600],
@@ -94,7 +94,7 @@ class NewsCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   '$source • $timeAgo',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: Colors.grey[500],

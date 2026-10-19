@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../theme/app_colors.dart';
 
@@ -39,7 +39,7 @@ class SearchBoxTrigger extends StatelessWidget {
         Expanded(
           child: Text(
             hintText,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: isGlassStyle ? Colors.white : contentColor,
               fontSize: 14,
             ),

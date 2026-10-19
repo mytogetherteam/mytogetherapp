@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -26,7 +26,7 @@ class ConfirmRemoveModal extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -52,7 +52,7 @@ class ConfirmRemoveModal extends StatelessWidget {
         const SizedBox(height: 24),
         Text(
           message,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             color: Colors.grey[700],
             height: 1.5,
@@ -77,7 +77,7 @@ class ConfirmRemoveModal extends StatelessWidget {
                   ),
                   child: Text(
                     context.tr('common.cancel'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -94,7 +94,7 @@ class ConfirmRemoveModal extends StatelessWidget {
                 },
                 child: Text(
                   confirmLabel ?? context.tr('common.remove'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,

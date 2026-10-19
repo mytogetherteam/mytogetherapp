@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -83,6 +84,7 @@ class _LoopingGifState extends State<LoopingGif> {
             loaded = Uint8List.fromList(data);
           }
         } catch (e) {
+          if (kDebugMode) debugPrint('looping_gif.dart: ignored error: $e');
         }
       }
 
@@ -109,6 +111,7 @@ class _LoopingGifState extends State<LoopingGif> {
         });
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('looping_gif.dart: ignored error: $e');
     }
   }
 

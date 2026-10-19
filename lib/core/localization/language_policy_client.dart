@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../network/api_client.dart';
@@ -32,7 +33,9 @@ class LanguagePolicyClient {
         enabled: data[app] == true,
         at: at is String ? at : null,
       );
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('language_policy_client.dart: ignored error: $e');
+    }
     return null;
   }
 }

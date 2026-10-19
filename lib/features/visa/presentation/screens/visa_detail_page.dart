@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -83,7 +84,9 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                 visa.linkUrl!.toLowerCase().contains('evisa'),
           );
         }
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('visa_detail_page.dart: ignored error: $e');
+      }
     }
     if (mounted) {
       setState(() => _isLoading = false);
@@ -239,7 +242,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                           _args.categoryTitle?.isNotEmpty == true
                               ? _args.categoryTitle!
                               : 'Thailand Official Visa',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -366,7 +369,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                           const SizedBox(width: 4),
                           Text(
                             'E-Visa Online Portal',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: const Color(0xFF059669),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -396,7 +399,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                           const SizedBox(width: 4),
                           Text(
                             'Official Bureau Service',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: const Color(0xFF2563EB),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -421,7 +424,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                     ),
                     child: Text(
                       '2026 Active',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: const Color(0xFF64748B),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -435,7 +438,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
               // Title
               Text(
                 _args.title,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF0F172A),
@@ -449,7 +452,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                 const SizedBox(height: 6),
                 Text(
                   _args.subtitle!,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF64748B),
@@ -537,7 +540,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                   const SizedBox(width: 10),
                   Text(
                     'Overview & Guidelines',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1E293B),
@@ -548,7 +551,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
               const SizedBox(height: 14),
               Text(
                 _args.description,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14.5,
                   color: const Color(0xFF334155),
                   height: 1.65,
@@ -600,7 +603,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                     children: [
                       Text(
                         context.tr('visa.online_appointment'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: Colors.white,
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
@@ -609,7 +612,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                       const SizedBox(height: 3),
                       Text(
                         context.tr('visa.online_appointment_sub'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 12.5,
                           height: 1.35,
@@ -663,7 +666,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                       Flexible(
                         child: Text(
                           context.tr('visa.official_website'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -695,7 +698,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
               ),
               label: Text(
                 'Copy Portal Address',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF64748B),
@@ -736,7 +739,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                   children: [
                     Text(
                       'Official Government Advisory',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF92400E),
@@ -745,7 +748,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
                     const SizedBox(height: 4),
                     Text(
                       'Visa regulations, requirements, and fees are subject to Thai Immigration Bureau policies. Always verify with official authorities before travel.',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         color: const Color(0xFFB45309),
                         height: 1.45,
@@ -800,7 +803,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF94A3B8),
@@ -811,7 +814,7 @@ class _VisaDetailPageState extends State<VisaDetailPage>
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1E293B),

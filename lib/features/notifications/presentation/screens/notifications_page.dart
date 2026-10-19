@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../widgets/notification_item_widget.dart';
@@ -181,7 +181,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         centerTitle: false,
         title: Text(
           context.tr('notification.title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -196,7 +196,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
           labelColor: Colors.white, // Handled by ShaderMask
           unselectedLabelColor: Colors.grey.shade600,
           indicatorColor: AppColors.primary,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          labelStyle: AppFonts.poppins(fontWeight: FontWeight.w600),
           tabs: [
             Tab(child: _buildTabText(context.tr('notification.tab_orders'), 0)),
             Tab(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'restaurant_card.dart';
 import 'image_skeleton_loader.dart';
 import 'view_all_icon_button.dart';
@@ -128,7 +128,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
                 children: [
                   Text(
                     context.tr('home.restaurants_nearby'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontWeight: FontWeight.w600,
                       fontSize: 18,
                       color: Colors.black,
@@ -170,7 +170,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
                           ? 'restaurants.empty_delivery'
                           : 'restaurants.empty_visit_only',
                     ),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[600],
                     ),
@@ -249,7 +249,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
             children: [
               Text(
                 context.tr('home.restaurants_nearby'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,

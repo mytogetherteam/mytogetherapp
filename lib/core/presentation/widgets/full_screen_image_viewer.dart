@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final List<String> imageUrls;
@@ -143,7 +143,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                     ),
                     child: Text(
                       "${_currentIndex + 1}/${widget.imageUrls.length}",
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

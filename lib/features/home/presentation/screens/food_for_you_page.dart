@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -54,7 +54,7 @@ class _FoodForYouPageState extends State<FoodForYouPage> {
       ),
       title: Text(
         context.tr('food.for_you'),
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: Colors.white,
           fontWeight: FontWeight.w600,
           fontSize: 18,

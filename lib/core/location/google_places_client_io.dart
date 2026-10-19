@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../config/google_maps_config.dart';
@@ -104,7 +105,9 @@ class GooglePlacesClient {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('google_places_client_io.dart: ignored error: $e');
+    }
     return null;
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'lost_item_card.dart';
 import 'view_all_icon_button.dart';
 import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
@@ -111,7 +111,7 @@ class _LostItemsNearbySectionState extends State<LostItemsNearbySection>
             children: [
               Text(
                 context.tr('home.lost_items_nearby'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/features/home/data/models/shop_dto.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/shop_myday_viewer.dart';
@@ -28,7 +28,7 @@ class ShopMyDayListSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             'Stories', // Fallback, could use context.tr('restaurant.stories') if it exists
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -86,7 +86,7 @@ class ShopMyDayListSection extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Story Background Image
-              CachedNetworkImage(
+              CachedNetworkImage(memCacheWidth: 1080, 
                 imageUrl: storyImg,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(color: Colors.grey[300]),

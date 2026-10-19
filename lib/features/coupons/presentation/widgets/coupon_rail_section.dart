@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -97,7 +97,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
                   Flexible(
                     child: Text(
                       widget.title,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
@@ -116,7 +116,7 @@ class _CouponRailSectionState extends State<CouponRailSection> {
                     ),
                     child: Text(
                       '${coupons.length}',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,

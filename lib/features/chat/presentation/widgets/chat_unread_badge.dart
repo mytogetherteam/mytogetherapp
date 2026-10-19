@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller.dart';
 
 /// Overlays a live unread-message count on top of an order's chat icon button.
@@ -48,7 +48,7 @@ class ChatUnreadBadge extends StatelessWidget {
                   child: Text(
                     count > 99 ? '99+' : '$count',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 9,
                       fontWeight: FontWeight.w700,

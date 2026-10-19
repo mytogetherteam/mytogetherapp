@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/features/wishlist/data/repositories/wishlist_repository.dart';
 import 'package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart';
@@ -117,7 +117,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
             children: [
               Text(
                 context.tr('home.top_places_nearby'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,

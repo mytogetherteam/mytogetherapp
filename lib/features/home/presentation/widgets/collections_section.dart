@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../data/models/collection_dto.dart';
@@ -162,7 +162,7 @@ class _CollectionsSectionState extends State<CollectionsSection> {
               Expanded(
                 child: Text(
                   collection.name,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,

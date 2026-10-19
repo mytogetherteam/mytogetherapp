@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
@@ -167,7 +167,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
               offset: const Offset(0, 4), // Nudge text down to align visually
               child: Text(
                 context.tr('orders.history'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.black,
                   fontSize: LocaleController.instance.language.code == 'mm'
                       ? 18
@@ -193,7 +193,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                   gradient: AppColors.primaryGradient,
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                labelStyle: AppFonts.poppins(fontWeight: FontWeight.w600),
                 tabs: [
                   Tab(
                     child: AnimatedBuilder(
@@ -204,7 +204,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                             ? GradientText(context.tr('orders.completed'))
                             : Text(
                                 context.tr('orders.completed'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: Colors.grey,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -221,7 +221,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                             ? GradientText(context.tr('orders.cancelled'))
                             : Text(
                                 context.tr('orders.cancelled'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: Colors.grey,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -304,7 +304,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             Text(
               context.tr('orders.guest_title'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[600],
@@ -314,7 +314,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             Text(
               context.tr('orders.guest_desc'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[500],
                 height: 1.5,
@@ -331,7 +331,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                   const SizedBox(width: 8),
                   Text(
                     context.tr('common.sign_in'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -431,7 +431,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             const SizedBox(height: 24),
             Text(
               context.tr('orders.no_orders'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[600],
@@ -441,7 +441,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
             Text(
               context.tr('orders.start_ordering_desc'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[500],
                 height: 1.5,
@@ -462,7 +462,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                   const SizedBox(width: 8),
                   Text(
                     context.tr('orders.start_ordering'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

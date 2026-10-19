@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 enum ImageUploadAction { gallery, camera, remove }
@@ -35,7 +35,7 @@ class ImageUploadBottomSheet {
                 const SizedBox(height: 20),
                 Text(
                   context.tr('review.upload_photo'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E293B),
@@ -49,7 +49,7 @@ class ImageUploadBottomSheet {
                   leading: Icon(Icons.photo_library_outlined, color: AppColors.primary),
                   title: Text(
                     context.tr('review.choose_gallery'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       color: Colors.black87,
                     ),
@@ -63,7 +63,7 @@ class ImageUploadBottomSheet {
                   leading: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
                   title: Text(
                     context.tr('review.take_photo'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       color: Colors.black87,
                     ),
@@ -78,7 +78,7 @@ class ImageUploadBottomSheet {
                     leading: const Icon(Icons.delete_outline, color: Colors.red),
                     title: Text(
                       context.tr('review.remove_photo'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         color: Colors.red,
                       ),
@@ -92,7 +92,7 @@ class ImageUploadBottomSheet {
                   onPressed: () => Navigator.pop(context, null),
                   child: Text(
                     context.tr('common.cancel'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       color: AppColors.primary,
                       fontWeight: FontWeight.w500,

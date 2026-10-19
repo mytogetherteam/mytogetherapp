@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
@@ -231,7 +231,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               Expanded(
                                 child: Text(
                                   _formatDate(item.createdAt),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.white.withValues(alpha: 0.9),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -245,7 +245,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                             item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
@@ -256,7 +256,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                             item.message,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white.withValues(alpha: 0.92),
                               fontSize: 13,
                               height: 1.35,
@@ -328,7 +328,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           const SizedBox(height: 24),
           Text(
             context.tr('announcement.empty_title'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -337,7 +337,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           const SizedBox(height: 8),
           Text(
             context.tr('announcement.empty_sub'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: Colors.grey.shade600,
             ),

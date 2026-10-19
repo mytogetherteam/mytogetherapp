@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
@@ -135,7 +135,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       try {
         const MethodChannel('secure_screen').invokeMethod('enable');
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('awaiting_payment_page.dart: ignored error: $e');
+      }
     }
 
     // When the shop has explicitly requested a new payment slip (Revise
@@ -251,7 +253,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       try {
         const MethodChannel('secure_screen').invokeMethod('disable');
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('awaiting_payment_page.dart: ignored error: $e');
+      }
     }
     _orderSubscription?.cancel();
     super.dispose();
@@ -329,7 +333,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           response = await ApiClient().dio.get(
             '${ApiClient.apiPrefix}/user/orders/$orderIdStr',
           );
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('awaiting_payment_page.dart: ignored error: $e');
+        }
       }
 
       // Fallback: list all active payment methods and pick the one matching
@@ -355,7 +361,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               );
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('awaiting_payment_page.dart: ignored error: $e');
+        }
       }
 
       if (response != null &&
@@ -475,7 +483,9 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         name: 'qr_${DateTime.now().millisecondsSinceEpoch}.png',
       );
 
-      await Share.shareXFiles([xFile], text: 'Payment QR Code');
+      await SharePlus.instance.share(
+        ShareParams(files: [xFile], text: 'Payment QR Code'),
+      );
     } catch (_) {
       if (mounted) {
         AppDialog.showToast(
@@ -550,20 +560,20 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               ),
               title: Text(
                 context.tr('payment.image_too_large'),
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                style: AppFonts.poppins(fontWeight: FontWeight.bold),
               ),
               content: Text(
                 context.trArgs('payment.image_too_large_msg', {
                   'size': sizeInMb.toStringAsFixed(1),
                 }),
-                style: GoogleFonts.poppins(fontSize: 13),
+                style: AppFonts.poppins(fontSize: 13),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: GradientText(
                     context.tr('common.confirm'),
-                    style: GoogleFonts.poppins(),
+                    style: AppFonts.poppins(),
                   ),
                 ),
               ],
@@ -598,16 +608,16 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           context.tr('payment.gallery_permission'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: AppFonts.poppins(fontWeight: FontWeight.bold),
         ),
         content: Text(
           context.tr('payment.gallery_denied'),
-          style: GoogleFonts.poppins(fontSize: 13),
+          style: AppFonts.poppins(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins()),
+            child: Text(context.tr('common.cancel'), style: AppFonts.poppins()),
           ),
           PrimaryGradientButton(
             onPressed: () {
@@ -619,7 +629,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             borderRadius: BorderRadius.circular(8),
             child: Text(
               context.tr('payment.open_settings'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
@@ -720,7 +730,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             const SizedBox(height: 24),
             Text(
               context.tr('order_tracking.cancel_title'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -730,7 +740,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             Text(
               context.tr('order_tracking.cancel_confirm'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+              style: AppFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 28),
             Row(
@@ -747,7 +757,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     ),
                     child: Text(
                       context.tr('order_tracking.keep_order'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
@@ -763,7 +773,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     },
                     child: Text(
                       context.tr('order_tracking.cancel_order'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         color: Colors.white,
@@ -849,7 +859,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         if (hasName) ...[
           Text(
             context.tr('payment.account_name'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.grey[600],
@@ -858,7 +868,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           const SizedBox(height: 4),
           Text(
             order.paymentAccountName!,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -869,7 +879,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         if (hasNumber) ...[
           Text(
             context.tr('payment.account_number'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.grey[600],
@@ -881,7 +891,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               Expanded(
                 child: Text(
                   order.paymentAccountNumber!,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,
@@ -953,7 +963,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           const SizedBox(height: 24),
           Text(
             context.tr('payment.verifying'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black,
@@ -963,7 +973,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           Text(
             context.tr('payment.verifying_desc'),
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.grey[600],
               height: 1.5,
@@ -973,7 +983,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           Text(
             '(ငွေလွှဲဖြတ်ပိုင်းကို စစ်ဆေးနေပါသည်။ ခေတ္တစောင့်ဆိုင်းပေးပါ။)',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.primary),
+            style: AppFonts.poppins(fontSize: 12, color: AppColors.primary),
           ),
         ],
       ),
@@ -1155,7 +1165,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         ),
         title: Text(
           pageTitle,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -1184,7 +1194,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 value: 'cancel',
                 child: Text(
                   context.tr('order_tracking.cancel_order'),
-                  style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.w500),
+                  style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -1274,7 +1284,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                               children: [
                                 Text(
                                   context.tr('payment.payment_details'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
@@ -1367,7 +1377,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 const SizedBox(width: 10),
                                 Text(
                                   context.tr('payment.upload_receipt'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
@@ -1388,7 +1398,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 },
                                 child: GradientText(
                                   context.tr('payment.back'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1401,7 +1411,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           padding: const EdgeInsets.only(left: 38),
                           child: Text(
                             context.tr('payment.upload_hint'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey[600],
                             ),
@@ -1443,7 +1453,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 isReupload
                                     ? context.tr('payment.receipt_requested')
                                     : context.tr('payment.receipt_visible_hint'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 11,
                                   height: 1.5,
                                 ),
@@ -1488,7 +1498,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           Expanded(
                             child: Text(
                               context.tr('payment.summary'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey[500],
@@ -1503,7 +1513,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                             children: [
                               Text(
                                 _isOrderSummaryExpanded ? 'Hide' : 'Details',
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.primary,
@@ -1530,7 +1540,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 if (item.imageUrl != null)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: CachedNetworkImage(
+                                    child: CachedNetworkImage(memCacheWidth: 120, 
                                       imageUrl: FileUrlUtil.resolve(item.imageUrl!),
                                       width: 40,
                                       height: 40,
@@ -1560,14 +1570,14 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                     children: [
                                       Text(
                                         item.title,
-                                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87),
+                                        style: AppFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       if (item.options != null && item.options!.isNotEmpty)
                                         Text(
                                           item.options!,
-                                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600),
+                                          style: AppFonts.poppins(fontSize: 11, color: Colors.grey.shade600),
                                         ),
                                     ],
                                   ),
@@ -1578,11 +1588,11 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                   children: [
                                     Text(
                                       '฿ ${item.total.toInt()}',
-                                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                                      style: AppFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
                                     ),
                                     Text(
                                       'x${item.quantity}',
-                                      style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600),
+                                      style: AppFonts.poppins(fontSize: 11, color: Colors.grey.shade600),
                                     ),
                                   ],
                                 ),
@@ -1652,7 +1662,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                             }
                             return o.deliveryFee!.toFormattedPrice();
                           }(),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: (order!.isFreeDelivery ||
@@ -1760,7 +1770,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                   const SizedBox(width: 12),
                                   Text(
                                     context.tr('order_confirm.chat'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF1E293B),
@@ -1803,13 +1813,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           children: [
                             Text(
                               order.usesPayNowTotal == true ? context.tr('cart.total_pay_now') : context.tr('cart.total'),
-                              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                              style: AppFonts.poppins(fontSize: 12, color: Colors.grey[600]),
                             ),
                             Text(
                               order.usesPayNowTotal == true
                                 ? order.resolvedPayNowTotal(fallbackDeliveryFee: widget.deliveryFee).toFormattedPrice()
                                 : (order.displayTotalAmount ?? order.resolvedGrandTotal(fallbackDeliveryFee: order.deliveryFee ?? widget.deliveryFee).toFormattedPrice()),
-                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: AppFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],
                         ),
@@ -1830,7 +1840,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 child: Text(
                                   context.tr('payment.done_payment'),
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
@@ -1845,7 +1855,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                                 isLoading: _isUploading,
                                 child: Text(
                                   context.tr('payment.submit_receipt'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
@@ -1874,7 +1884,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         if (isValue)
           GradientText(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
@@ -1882,7 +1892,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         else
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: Colors.black87,
               fontWeight: FontWeight.normal,
@@ -1893,7 +1903,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         else if (isValue)
           GradientText(
             value,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -1901,7 +1911,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         else
           Text(
             value,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: Colors.black87,
               fontWeight: FontWeight.normal,
@@ -1945,7 +1955,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               Expanded(
                 child: Text(
                   context.tr('payment.reupload_reason_title'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Colors.orange.shade900,
@@ -1959,7 +1969,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             (reason != null && reason.trim().isNotEmpty)
                 ? reason
                 : context.tr('payment.receipt_requested'),
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+            style: AppFonts.poppins(fontSize: 13, color: Colors.black87),
           ),
         ],
       ),
@@ -1991,7 +2001,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               const SizedBox(width: 8),
               Text(
                 context.tr('revise.banner_title'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.orange.shade900,
@@ -2005,7 +2015,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
             const SizedBox(height: 8),
             Text(
               context.tr('revise.reason_title'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.orange.shade900,
@@ -2015,7 +2025,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           ],
           Text(
             reasonText,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+            style: AppFonts.poppins(fontSize: 13, color: Colors.black87),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -2024,7 +2034,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               onPressed: _openReviseOrder,
               child: Text(
                 context.tr('revise.review_button'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
@@ -2129,7 +2139,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               children: [
                 Text(
                   name,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -2137,7 +2147,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                 ),
                 Text(
                   phone,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     color: Colors.grey[600],
                   ),
@@ -2148,7 +2158,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                     padding: const EdgeInsets.only(top: 2),
                     child: GradientText(
                       context.trArgs('payment.vehicle_no', {'number': order.riderVehicleNumber!}),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -2210,7 +2220,7 @@ class _UploadText extends StatelessWidget {
       children: [
         Text(
           context.tr('payment.tap_to_upload'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: Colors.black87,
@@ -2219,7 +2229,7 @@ class _UploadText extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           context.tr('payment.or_take_photo'),
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+          style: AppFonts.poppins(fontSize: 13, color: Colors.grey[500]),
         ),
       ],
     );
@@ -2240,7 +2250,7 @@ Widget _buildStepIndicator({required int stepNum, required String title, require
         child: Center(
           child: Text(
             stepNum.toString(),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: isActive ? AppColors.primary : Colors.white,
@@ -2251,7 +2261,7 @@ Widget _buildStepIndicator({required int stepNum, required String title, require
       const SizedBox(width: 8),
       Text(
         title,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.7),

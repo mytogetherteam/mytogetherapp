@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../data/models/call_chat_payload.dart';
 import 'dart:async';
 import 'dart:io';
@@ -7,7 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -632,7 +633,7 @@ class _ChatPageState extends State<ChatPage>
       builder: (ctx) => AlertDialog(
         title: Text(
           context.tr('chat.edit_title'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: editController,
@@ -675,7 +676,7 @@ class _ChatPageState extends State<ChatPage>
       builder: (ctx) => AlertDialog(
         title: Text(
           context.tr('chat.delete_title'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: Text(context.tr('chat.delete_body')),
         actions: [
@@ -980,7 +981,7 @@ class _ChatPageState extends State<ChatPage>
         children: [
           Text(
             context.tr('chat.load_failed'),
-            style: GoogleFonts.poppins(color: Colors.grey[600]),
+            style: AppFonts.poppins(color: Colors.grey[600]),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -1086,7 +1087,9 @@ class _ChatPageState extends State<ChatPage>
     }
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('chat_page.dart: ignored error: $e');
+    }
   }
 
   Widget _buildCallChatPill(ChatMessage message, CallChatPayload payload) {

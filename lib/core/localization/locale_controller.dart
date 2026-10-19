@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,7 +16,7 @@ import 'language_policy_client.dart';
 ///   final lang = LocaleController.instance.language;
 ///   final label = LocaleController.instance.tr('profile.edit_profile');
 ///   final name = LocaleController.instance.localized(en: ..., mm: ..., th: ...);
-class LocaleController extends ChangeNotifier {
+class LocaleController extends ChangeNotifier with WidgetsBindingObserver {
   LocaleController._internal();
 
   static final LocaleController instance = LocaleController._internal();
@@ -28,12 +29,14 @@ class LocaleController extends ChangeNotifier {
   bool _initialized = false;
   Timer? _policyTimer;
   int _policyGeneration = 0;
+  DateTime? _lastPolicyRefreshAt;
   static const String _forceTokenKey = 'language_force_token';
   static const String _beforeForceKey = 'language_before_force';
 
   /// Load the persisted language, then apply the admin language switch.
   Future<void> initialize() async {
     if (_initialized) return;
+    WidgetsBinding.instance.addObserver(this);
     try {
       final prefs = await SharedPreferences.getInstance();
       _language = AppLanguage.fromCode(prefs.getString(_prefsKey) ?? AppLanguage.mm.code);
@@ -42,9 +45,40 @@ class LocaleController extends ChangeNotifier {
     }
     _initialized = true;
     await refreshLanguagePolicy();
-    _policyTimer ??= Timer.periodic(const Duration(seconds: 45), (_) {
+    _startPolicyTimer();
+  }
+
+  void _startPolicyTimer() {
+    _policyTimer ??= Timer.periodic(const Duration(minutes: 3), (_) {
       refreshLanguagePolicy();
     });
+  }
+
+  void _stopPolicyTimer() {
+    _policyTimer?.cancel();
+    _policyTimer = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolicyTimer();
+      final now = DateTime.now();
+      if (_lastPolicyRefreshAt == null ||
+          now.difference(_lastPolicyRefreshAt!) > const Duration(seconds: 30)) {
+        refreshLanguagePolicy();
+      }
+    } else if (state == AppLifecycleState.paused ||
+               state == AppLifecycleState.detached) {
+      _stopPolicyTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopPolicyTimer();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// When an admin turns this app's switch on, remember the current language
@@ -52,6 +86,7 @@ class LocaleController extends ChangeNotifier {
   /// restores the language from before that switch was turned on.
   /// A failed request leaves the current language alone.
   Future<void> refreshLanguagePolicy() async {
+    _lastPolicyRefreshAt = DateTime.now();
     final generation = ++_policyGeneration;
     final push = await LanguagePolicyClient.fetch('customer');
     if (generation != _policyGeneration || push == null) return;
@@ -77,7 +112,9 @@ class LocaleController extends ChangeNotifier {
       }
       await prefs.setString(_prefsKey, AppLanguage.th.code);
       await prefs.setString(_forceTokenKey, token);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('locale_controller.dart: ignored error: $e');
+    }
   }
 
   Future<void> _restoreLanguage(SharedPreferences prefs) async {

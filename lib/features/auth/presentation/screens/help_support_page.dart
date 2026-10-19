@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -29,7 +29,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         ),
         title: Text(
           context.tr('help.title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -50,7 +50,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 context.tr('help.contact_us'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Colors.black,
@@ -140,7 +140,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           const SizedBox(height: 16),
           Text(
             context.tr('help.banner_title'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -149,7 +149,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
           const SizedBox(height: 4),
           Text(
             context.tr('help.subtitle'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.white.withValues(alpha: 0.85),
             ),
@@ -196,7 +196,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             const SizedBox(height: 10),
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -204,7 +204,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
             ),
             Text(
               sublabel,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 11,
                 color: Colors.grey[500],
               ),
@@ -224,7 +224,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text(context.tr('help.could_not_open'), style: GoogleFonts.poppins(color: Colors.white)),
+                Text(context.tr('help.could_not_open'), style: AppFonts.poppins(color: Colors.white)),
             backgroundColor: Colors.red.shade500,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),

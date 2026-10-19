@@ -259,6 +259,7 @@ class CallSession {
     try {
       await _dio.post('/api/call/user-accept/$_currentCallId');
     } catch (e) {
+      if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
     }
 
     _activeCallChannel.invokeMethod('start', {
@@ -275,7 +276,9 @@ class CallSession {
     if (_currentCallId == null) return;
     try {
       await _dio.post('/api/call/user-reject/$_currentCallId');
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
+    }
     state.value = CallState.idle;
     _cleanup();
   }
@@ -289,7 +292,9 @@ class CallSession {
     if (_currentCallId == null) return;
     try {
       await _dio.post('/api/call/end/$_currentCallId');
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
+    }
     _cleanup();
     state.value = CallState.idle;
   }
@@ -363,6 +368,7 @@ class CallSession {
               'sdp': answer.sdp,
             });
           } catch (e) {
+            if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
           }
         }
         break;
@@ -435,7 +441,9 @@ class CallSession {
             'sdpMLineIndex': candidate.sdpMLineIndex,
           }),
         });
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
+      }
     };
 
     _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {
@@ -466,6 +474,7 @@ class CallSession {
         'sdp': offer.sdp,
       });
     } catch (e) {
+      if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
     }
   }
 
@@ -508,7 +517,9 @@ class CallSession {
             'sdpMLineIndex': candidate.sdpMLineIndex,
           }),
         });
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('call_session.dart: ignored error: $e');
+      }
     };
 
     _peerConnection!.onIceConnectionState = (RTCIceConnectionState state) {

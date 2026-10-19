@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 
@@ -68,7 +68,7 @@ class CategoryCard extends StatelessWidget {
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: Colors.black87,

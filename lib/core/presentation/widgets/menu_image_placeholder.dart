@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
 class MenuImagePlaceholder extends StatelessWidget {
@@ -40,7 +40,7 @@ class MenuImagePlaceholder extends StatelessWidget {
                 child: Text(
                   title!,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,

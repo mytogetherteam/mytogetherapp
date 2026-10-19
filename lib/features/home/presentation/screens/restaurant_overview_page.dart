@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
@@ -95,7 +95,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
         SnackBar(
           content: Text(
             context.tr('help.could_not_open'),
-            style: GoogleFonts.poppins(color: Colors.white),
+            style: AppFonts.poppins(color: Colors.white),
           ),
           backgroundColor: Colors.red.shade500,
           behavior: SnackBarBehavior.floating,
@@ -118,7 +118,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
       borderRadius: BorderRadius.circular(8),
       child: Text(
         value,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 15,
           color: AppColors.primary,
           height: 1.5,
@@ -141,7 +141,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
         ),
         title: Text(
           context.tr('restaurant.overview_title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -204,7 +204,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                       isVerified: restaurant.isVerified,
                       badgeSize: MyTogetherVerifiedBadge.overviewSize,
                       centered: true,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -217,7 +217,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                       children: [
                         Text(
                           restaurant.category,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             color: Colors.grey[600],
                           ),
@@ -226,7 +226,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                           Text('  •  ', style: TextStyle(color: Colors.grey[400])),
                           Text(
                             '${restaurant.rating}',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.black,
@@ -247,7 +247,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                       _buildDot(),
                       Text(
                         openStatus.text,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14,
                           color: openStatus.color,
                           fontWeight: FontWeight.bold,
@@ -260,7 +260,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                     Text(
                       openStatus.nextOpenText!,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
@@ -272,7 +272,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                     Text(
                       restaurant.description.trim(),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         color: Colors.grey[800],
                         height: 1.5,
@@ -364,7 +364,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
           padding: const EdgeInsets.symmetric(vertical: 20.0),
           child: Text(
             context.tr('restaurant.hours_unavailable'),
-            style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[800]),
+            style: AppFonts.poppins(fontSize: 15, color: Colors.grey[800]),
           ),
         ),
       ];
@@ -441,7 +441,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                   children: [
                     Text(
                       formatDayName(h.dayOfWeek),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         color: isToday
                             ? AppColors.primary
@@ -455,7 +455,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                         h.isClosed
                             ? context.tr('restaurant.closed_today')
                             : context.tr('restaurant.open_today'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           color: h.isClosed ? Colors.red : const Color(0xFF10B981),
                           fontWeight: FontWeight.w500,
@@ -469,7 +469,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
                         ? context.tr('common.closed')
                         : h.displayTime.replaceAll('-', '–'),
                     textAlign: TextAlign.right,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: h.isClosed
                           ? AppColors.primary
@@ -500,7 +500,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
         const SizedBox(width: 4),
         Text(
           text,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+          style: AppFonts.poppins(fontSize: 14, color: Colors.grey[600]),
         ),
       ],
     );
@@ -548,7 +548,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
@@ -560,7 +560,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
           if (content != null)
             Text(
               content,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[800],
                 height: 1.5,
@@ -615,7 +615,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
               Expanded(
                 child: Text(
                   f.label,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.black,
@@ -697,7 +697,7 @@ class _RestaurantOverviewPageState extends State<RestaurantOverviewPage> {
       child: Center(
         child: Text(
           firstLetter,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -763,7 +763,7 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
         if (methods.isEmpty) {
           return Text(
             context.tr('restaurant.payment_unavailable'),
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+            style: AppFonts.poppins(fontSize: 14, color: Colors.grey[600]),
           );
         }
 
@@ -782,7 +782,7 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
                       Expanded(
                         child: Text(
                           method.displayName,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF2D3748),
@@ -814,7 +814,7 @@ class _PaymentMethodsSectionState extends State<_PaymentMethodsSection> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? CachedNetworkImage(
+          ? CachedNetworkImage(memCacheWidth: 72, 
               imageUrl: iconUrl,
               width: 24,
               height: 24,

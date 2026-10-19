@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
@@ -295,7 +295,7 @@ class _StatusCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: const Color(0xFF1A1A1A),
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -306,7 +306,7 @@ class _StatusCard extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: const Color(0xFF6B6B6B),
               fontSize: 13.5,
               height: 1.45,
@@ -339,7 +339,7 @@ class _StatusCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         actionLabel!,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -366,7 +366,7 @@ class _StatusCard extends StatelessWidget {
                 ),
                 child: Text(
                   secondaryActionLabel!,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),

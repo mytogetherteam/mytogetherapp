@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -142,7 +142,7 @@ class _LoginPinPageState extends State<LoginPinPage>
                   // Title
                   GradientText(
                     context.tr('auth.enter_passcode'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
                     ),
@@ -150,7 +150,7 @@ class _LoginPinPageState extends State<LoginPinPage>
                   const SizedBox(height: 8),
                   Text(
                     widget.phone,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
@@ -233,7 +233,7 @@ class _LoginPinPageState extends State<LoginPinPage>
                     },
                     child: Text(
                       context.tr('auth.forgot_passcode'), // We'll add this to translation or just use string
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,
@@ -290,7 +290,7 @@ class _LoginPinPageState extends State<LoginPinPage>
         child: Center(
           child: GradientText(
             digit,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w500,
             ),

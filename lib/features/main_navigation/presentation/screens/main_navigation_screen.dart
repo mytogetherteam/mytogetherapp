@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../features/home/presentation/screens/home_page.dart';
@@ -44,6 +45,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late List<Widget> _screens;
   String _screenLocaleKey = '';
   int _socialVisitCount = 0;
+
+  /// Tabs that have been opened at least once. Tabs are built lazily so that
+  /// Food/Social/News/Profile don't run initState + API calls at app start.
+  final Set<int> _builtTabs = {0};
+
 
   @override
   void initState() {
@@ -96,7 +102,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           _socialVisitCount = prefs.getInt('social_tab_visit_count') ?? 0;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('main_navigation_screen.dart: ignored error: $e');
+    }
   }
 
   void _onLanguageChanged() {
@@ -290,11 +298,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _rebuildScreens();
     }
 
+    _builtTabs.add(_currentIndex);
     final isSocial = _currentIndex == 2;
     return Scaffold(
       extendBody: isSocial,
       body: Stack(
-        children: [IndexedStack(index: _currentIndex, children: _screens)],
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              for (var i = 0; i < _screens.length; i++)
+                _builtTabs.contains(i) ? _screens[i] : const SizedBox.shrink(),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: _buildCartFab(),
       bottomNavigationBar: Column(
@@ -481,7 +498,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           const SizedBox(height: 4),
                           Text(
                             label,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -526,7 +543,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                             ).createShader(bounds),
                             child: Text(
                               label,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -556,7 +573,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     const SizedBox(height: 4),
                     Text(
                       label,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: inactiveColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

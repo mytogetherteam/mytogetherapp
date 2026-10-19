@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 
 /// Bullet list of menu items the shop marked unavailable during a revise.
@@ -23,7 +23,7 @@ class ReviseUnavailableItemsSection extends StatelessWidget {
         if (showHeading) ...[
           Text(
             context.tr('order_action.unavailable_items'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.grey[600],
@@ -41,7 +41,7 @@ class ReviseUnavailableItemsSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     name,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,

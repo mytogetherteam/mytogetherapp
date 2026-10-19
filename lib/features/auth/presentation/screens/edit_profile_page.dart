@@ -1,6 +1,6 @@
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -147,7 +147,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           context.tr('profile.edit_profile'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -278,7 +278,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             isLoading: _isSaving,
             child: Text(
               context.tr('auth.save_changes'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -311,7 +311,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
@@ -327,14 +327,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             maxLines: maxLines,
             readOnly: readOnly,
             textAlignVertical: TextAlignVertical.top,
-            style: GoogleFonts.poppins(fontSize: 14, color: readOnly ? Colors.grey[600] : Colors.black87),
+            style: AppFonts.poppins(fontSize: 14, color: readOnly ? Colors.grey[600] : Colors.black87),
             decoration: InputDecoration(
               isDense: true,
               filled: true,
               fillColor: Colors.white,
               hintText: hint ??
                   context.trArgs('common.enter_label', {'label': label}),
-              hintStyle: GoogleFonts.poppins(
+              hintStyle: AppFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey[400],
               ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -116,7 +116,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
               const SizedBox(height: 8),
               Text(
                 context.tr('common.no_image'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey[400],
                   fontWeight: FontWeight.w500,
@@ -188,7 +188,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                         widget.cancelledByUser
                             ? context.tr('order_cancel_user.title')
                             : context.tr('order_cancel.sorry'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -200,7 +200,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                         widget.cancelledByUser
                             ? context.tr('order_cancel_user.message')
                             : context.tr('order_cancel.message'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 15,
                           color: Colors.grey[600],
                         ),
@@ -249,7 +249,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                               Flexible(
                                 child: Text(
                                   localizedShopName,
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87,
@@ -289,7 +289,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                                   children: [
                                     Text(
                                       context.tr('order_cancel.reason_title'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: const Color(0xFF9F1239),
@@ -298,7 +298,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                                     const SizedBox(height: 4),
                                     Text(
                                       widget.reason!,
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         fontSize: 14,
                                         color: const Color(0xFFBE123C),
                                         fontWeight: FontWeight.w500,
@@ -325,7 +325,7 @@ class _OrderCancelPageState extends State<OrderCancelPage> {
                   onPressed: () => _onViewRestaurant(context),
                   child: Text(
                     context.tr('order_cancel.view_restaurant'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,

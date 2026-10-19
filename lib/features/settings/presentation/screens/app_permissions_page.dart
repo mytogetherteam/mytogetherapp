@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -98,7 +98,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
         ),
         title: Text(
           context.tr('permissions.title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: const Color(0xFF1E293B),
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -119,7 +119,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
                 children: [
                   Text(
                     context.tr('permissions.manage_access'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1E293B),
@@ -128,7 +128,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
                   const SizedBox(height: 8),
                   Text(
                     context.tr('permissions.control_desc'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: const Color(0xFF64748B),
                       height: 1.5,
@@ -216,7 +216,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF1E293B),
@@ -232,7 +232,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
           const SizedBox(height: 16),
           Text(
             description,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: const Color(0xFF64748B),
               height: 1.5,
@@ -247,7 +247,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
               isGranted
                   ? context.tr('permissions.open_settings')
                   : context.tr('permissions.allow_access'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -281,7 +281,7 @@ class _AppPermissionsPageState extends State<AppPermissionsPage>
             isGranted
                 ? context.tr('permissions.allowed')
                 : context.tr('permissions.not_allowed'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: isGranted

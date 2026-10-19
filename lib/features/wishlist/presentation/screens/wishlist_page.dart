@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/features/social/presentation/screens/social_page.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
@@ -183,7 +183,7 @@ class _WishlistPageState extends State<WishlistPage>
         centerTitle: false,
         title: Text(
           context.tr('profile.saved_items'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -196,7 +196,7 @@ class _WishlistPageState extends State<WishlistPage>
           unselectedLabelColor: Colors.grey,
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.tab,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          labelStyle: AppFonts.poppins(fontWeight: FontWeight.w600),
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: [
@@ -557,7 +557,7 @@ class _WishlistPageState extends State<WishlistPage>
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[700],
@@ -567,7 +567,7 @@ class _WishlistPageState extends State<WishlistPage>
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[500],
                     ),
@@ -579,7 +579,7 @@ class _WishlistPageState extends State<WishlistPage>
                       width: 220,
                       child: Text(
                         actionLabel,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -633,7 +633,7 @@ class _SavedPostCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (preview.isNotEmpty)
-              CachedNetworkImage(
+              CachedNetworkImage(memCacheWidth: 1080, 
                 imageUrl: preview,
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
@@ -683,7 +683,7 @@ class _SavedPostCard extends StatelessWidget {
                     author,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -695,7 +695,7 @@ class _SavedPostCard extends StatelessWidget {
                       caption,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 12,
                       ),
@@ -720,7 +720,7 @@ class _SavedPostCard extends StatelessWidget {
         maxLines: 6,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: AppColors.primary,
           fontSize: 13,
           fontWeight: FontWeight.w600,

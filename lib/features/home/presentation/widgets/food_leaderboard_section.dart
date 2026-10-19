@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/swipe_ranking_repository.dart';
@@ -129,7 +129,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                                 children: [
                                   Text(
                                     context.tr('food.leaderboard_title'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 17,
                                       color: Colors.white,
@@ -137,7 +137,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                                   ),
                                   Text(
                                     context.tr('food.leaderboard_sub'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 11,
                                       color: Colors.white.withValues(alpha: 0.55),
                                     ),
@@ -158,7 +158,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                             child: Text(
                               context.tr('food.leaderboard_empty_msg'),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.white70,
                                 height: 1.5,
@@ -183,7 +183,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                         Center(
                           child: Text(
                             context.tr('food.leaderboard_tap_hint'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.45),
                             ),
@@ -278,7 +278,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                       children: [
                         Text(
                           context.tr('food.swipe_promo_title'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF1A1A2E),
@@ -287,7 +287,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                         const SizedBox(height: 2),
                         Text(
                           context.tr('food.swipe_promo_sub'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11,
                             color: Colors.grey[600],
                           ),
@@ -310,7 +310,7 @@ class _FoodLeaderboardSectionState extends State<FoodLeaderboardSection> {
                       children: [
                         Text(
                           context.tr('food.swipe_start'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -417,7 +417,7 @@ class _MiniRankCardState extends State<_MiniRankCard> with SingleTickerProviderS
                 child: Center(
                   child: Text(
                     '${widget.rank}',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -444,7 +444,7 @@ class _MiniRankCardState extends State<_MiniRankCard> with SingleTickerProviderS
               const SizedBox(height: 6),
               Text(
                 widget.item.name,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -455,7 +455,7 @@ class _MiniRankCardState extends State<_MiniRankCard> with SingleTickerProviderS
               ),
               Text(
                 widget.item.displayPrice ?? '฿ ${widget.item.price.toStringAsFixed(0)}',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: medalColor,

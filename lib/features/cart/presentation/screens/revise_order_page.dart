@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -131,25 +131,25 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           ctx.tr('order_action.cancel_confirm_title'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+          style: AppFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         content: Text(
           ctx.tr('order_action.cancel_confirm_message'),
-          style: GoogleFonts.poppins(fontSize: 13, height: 1.45),
+          style: AppFonts.poppins(fontSize: 13, height: 1.45),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               ctx.tr('order_action.keep_order'),
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              style: AppFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               ctx.tr('order_action.revise_cancel'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFFEF4444),
               ),
@@ -230,7 +230,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
         ),
         title: Text(
           context.tr('revise.title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -272,7 +272,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                               )
                             : Text(
                                 context.tr('order_action.revise_cancel'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -289,7 +289,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 const SizedBox(height: 16),
                 Text(
                   context.tr('revise.items_title'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -314,7 +314,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                       context.trArgs('revise.resubmit', {
                         'total': _estimatedTotal.toStringAsFixed(2),
                       }),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -336,7 +336,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                             )
                           : Text(
                               context.tr('order_action.revise_cancel'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary,
                               ),
@@ -377,7 +377,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 ],
                 Text(
                   context.tr('revise.reason_title'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.orange.shade900,
@@ -386,7 +386,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 const SizedBox(height: 2),
                 Text(
                   reasonText,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     color: Colors.black87,
                   ),
@@ -410,7 +410,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: imageUrl.isNotEmpty
-                ? CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                ? CachedNetworkImage(memCacheWidth: 156, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                     imageUrl: imageUrl,
                     width: 52,
                     height: 52,
@@ -426,7 +426,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
               children: [
                 Text(
                   c.title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -436,7 +436,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 if (optionsText != null && optionsText.trim().isNotEmpty)
                   Text(
                     optionsText,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       color: Colors.black54,
                     ),
@@ -446,7 +446,7 @@ class _ReviseOrderPageState extends State<ReviseOrderPage> {
                 const SizedBox(height: 2),
                 Text(
                   (c.price * item.quantity).toFormattedPrice(),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -500,7 +500,7 @@ class _QuantityStepper extends StatelessWidget {
           child: Text(
             '$quantity',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),

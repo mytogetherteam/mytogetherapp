@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -8,7 +9,7 @@ import '../../../cart/data/cart_manager.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/delivery_fee_estimate.dart';
 import '../../../cart/presentation/screens/order_summary_page.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
@@ -231,7 +232,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           });
           _maybeShowUnavailableSheet();
         }
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('restaurant_detail_page.dart: ignored error: $e');
+      }
     });
 
     // Catch up after a dropped connection (e.g. mobile background).
@@ -312,7 +315,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       if (mounted) {
         setState(() => _promotionCount = coupons.length);
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('restaurant_detail_page.dart: ignored error: $e');
+    }
   }
 
   void _maybeShowUnavailableSheet() {
@@ -375,7 +380,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         try {
           await _fetchCategories(shopId);
           await _fetchMenu(isInitial: true, silent: true);
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('restaurant_detail_page.dart: ignored error: $e');
+        }
       }
 
       // Also re-fetch the shop detail itself
@@ -417,6 +424,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
         setState(() => _categories = cats);
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('restaurant_detail_page.dart: ignored error: $e');
     }
   }
 
@@ -801,7 +809,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           );
                                         }
                                       },
-                                      child: CachedNetworkImage(
+                                      child: CachedNetworkImage(memCacheWidth: 1080, 
                                         imageUrl: resolveMediaUrl(
                                           _currentRestaurant!.imagePath,
                                         ),
@@ -1040,7 +1048,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                           name: _currentRestaurant?.name ?? '',
                           isVerified: _currentRestaurant?.isVerified ?? false,
                           badgeSize: MyTogetherVerifiedBadge.detailSize,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -1177,7 +1185,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                     _currentRestaurant
                                                         ?.logoPath,
                                                   ).isNotEmpty
-                                              ? CachedNetworkImage(
+                                              ? CachedNetworkImage(memCacheWidth: 1080, 
                                                   fadeInDuration:
                                                       Duration.zero,
                                                   fadeOutDuration:
@@ -1254,7 +1262,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                 false,
                                         badgeSize:
                                             MyTogetherVerifiedBadge.detailSize,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.black,
@@ -1266,7 +1274,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         children: [
                                           Text(
                                             _currentRestaurant?.category ?? '',
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 13,
                                               color: Colors.grey[700],
                                             ),
@@ -1283,7 +1291,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                             ),
                                             Text(
                                               '${_currentRestaurant?.rating ?? 0.0}',
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                                 color: Colors.black,
@@ -1310,7 +1318,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           ),
                                           Text(
                                             _currentRestaurant?.distance ?? '',
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 12,
                                               color: Colors.grey[700],
                                             ),
@@ -1329,7 +1337,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           Text(
                                             _currentRestaurant?.deliveryTime ??
                                                 '',
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 12,
                                               color: Colors.grey[700],
                                             ),
@@ -1345,7 +1353,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                             ),
                                             Text(
                                               '${context.tr('common.free')} delivery',
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
                                                 color: const Color(0xFF10B981),
@@ -1368,7 +1376,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                   ? context.tr('common.free')
                                                   : _currentRestaurant!
                                                       .deliveryFee!,
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w500,
                                                 color: const Color(0xFF10B981),
@@ -1393,7 +1401,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                       _currentRestaurant?.status ??
                                                           '',
                                                     ),
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 fontSize: 12,
                                                 color: _currentRestaurant != null
                                                     ? RestaurantOpenStatus.of(
@@ -1491,7 +1499,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                       AppColors.primaryGradient.createShader(bounds),
                   child: Text(
                     context.tr('restaurant.add_more_no_fee'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -1545,7 +1553,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                       ? context.tr('restaurant.item')
                                       : context.tr('restaurant.items'),
                                 }),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -1554,7 +1562,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               const Spacer(),
                               Text(
                                 totalAmount.toFormattedPrice(),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -1582,7 +1590,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
       child: Center(
         child: Text(
           firstLetter,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -1723,7 +1731,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           const SizedBox(height: 12),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: const Color(
@@ -1857,7 +1865,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               _orderAvailability!.menuBrowseHint(context),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey.shade600,
@@ -2001,7 +2009,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
           Expanded(
             child: Text(
               title,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
@@ -2031,7 +2039,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             const SizedBox(height: 16),
             Text(
               context.tr('restaurant.no_menu'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black54,
@@ -2042,7 +2050,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             Text(
               context.tr('restaurant.no_menu_sub'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400]),
+              style: AppFonts.poppins(fontSize: 12, color: Colors.grey[400]),
             ),
           ],
         ),

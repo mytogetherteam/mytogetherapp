@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../config/env_config.dart';
 
 /// Resolves stored file keys / relative paths to loadable URLs.
@@ -29,7 +30,9 @@ class FileUrlUtil {
         final uri = Uri.parse(str);
         final path = uri.path.startsWith('/') ? uri.path.substring(1) : uri.path;
         return '$s3PublicBase/$path';
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('file_url_util.dart: ignored error: $e');
+      }
     }
 
     if (str.startsWith('http://') || str.startsWith('https://')) return str;

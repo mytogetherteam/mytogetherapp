@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
@@ -48,7 +48,7 @@ class LostItemCard extends StatelessWidget {
             // Item Image
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
+              child: CachedNetworkImage(memCacheWidth: 240, 
                 imageUrl: imageUrl,
                 width: 80,
                 height: 80,
@@ -74,7 +74,7 @@ class LostItemCard extends StatelessWidget {
                 children: [
                   Text(
                     description,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
@@ -90,7 +90,7 @@ class LostItemCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         timeAgo,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Colors.grey[500],

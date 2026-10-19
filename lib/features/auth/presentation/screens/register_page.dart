@@ -6,7 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
@@ -353,7 +353,7 @@ class _RegisterPageState extends State<RegisterPage>
                     const SizedBox(height: 8),
                     Text(
                       context.tr('auth.create_account'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
                         color: Colors.black,
@@ -364,7 +364,7 @@ class _RegisterPageState extends State<RegisterPage>
                       _showOtpView
                           ? context.tr('auth.otp_subtitle')
                           : context.tr('auth.join_subtitle'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[600],
                       ),
@@ -416,14 +416,14 @@ class _RegisterPageState extends State<RegisterPage>
                             child: Text.rich(
                               TextSpan(
                                 text: 'I agree to the ',
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 12,
                                   color: Colors.grey[600],
                                 ),
                                 children: [
                                   TextSpan(
                                     text: 'Terms of Use',
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,
@@ -437,7 +437,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   const TextSpan(text: ' and '),
                                   TextSpan(
                                     text: 'Privacy Policy',
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,
@@ -466,7 +466,7 @@ class _RegisterPageState extends State<RegisterPage>
                         isLoading: _isLoading,
                         child: Text(
                           context.tr('auth.register_account'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -488,7 +488,7 @@ class _RegisterPageState extends State<RegisterPage>
                         isLoading: _isLoading,
                         child: Text(
                           context.tr('auth.verify_otp_register'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -530,7 +530,7 @@ class _RegisterPageState extends State<RegisterPage>
                 const SizedBox(width: 8),
                 Text(
                   '+66',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
@@ -587,7 +587,7 @@ class _RegisterPageState extends State<RegisterPage>
     final defaultPinTheme = PinTheme(
       width: 52,
       height: 56,
-      textStyle: GoogleFonts.poppins(
+      textStyle: AppFonts.poppins(
         fontSize: 22,
         color: Colors.black,
         fontWeight: FontWeight.w600,
@@ -638,7 +638,7 @@ class _RegisterPageState extends State<RegisterPage>
                 ? Text(
                     context.trArgs('auth.resend_in', {'seconds': '$_resendSecondsRemaining'}),
                     key: const ValueKey('countdown'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
@@ -653,7 +653,7 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                     child: Text(
                       context.tr('auth.resend_code'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         decoration: TextDecoration.underline,
@@ -668,7 +668,7 @@ class _RegisterPageState extends State<RegisterPage>
 
   Widget _buildLabel(String text) => Text(
     text,
-    style: GoogleFonts.poppins(
+    style: AppFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
       color: Colors.black87,
@@ -692,10 +692,10 @@ class _RegisterPageState extends State<RegisterPage>
       validator: validator,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
-      style: GoogleFonts.poppins(fontSize: 15, color: Colors.black),
+      style: AppFonts.poppins(fontSize: 15, color: Colors.black),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
+        hintStyle: AppFonts.poppins(color: Colors.grey[400], fontSize: 14),
         prefixIcon: prefixWidget ?? (icon != null ? Icon(icon, color: Colors.grey[500], size: 20) : null),
         suffixIcon: suffixWidget,
         filled: true,
@@ -761,7 +761,7 @@ class _RegisterPageState extends State<RegisterPage>
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

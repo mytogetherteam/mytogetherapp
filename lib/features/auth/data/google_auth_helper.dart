@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -93,9 +94,13 @@ class GoogleAuthHelper {
   static Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('google_auth_helper.dart: ignored error: $e');
+    }
     try {
       await FirebaseAuth.instance.signOut();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('google_auth_helper.dart: ignored error: $e');
+    }
   }
 }

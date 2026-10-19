@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -76,7 +76,7 @@ class MapPickerAddressPanel extends StatelessWidget {
         children: [
           Text(
             context.tr('location.map_picker_hint'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               color: Colors.grey.shade500,
             ),
@@ -84,7 +84,7 @@ class MapPickerAddressPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             context.tr('location.street_address'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.grey.shade800,
@@ -97,7 +97,7 @@ class MapPickerAddressPanel extends StatelessWidget {
             maxLines: 3,
             minLines: 2,
             textInputAction: TextInputAction.done,
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+            style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
             decoration: InputDecoration(
               hintText: context.tr('location.street_address_hint'),
               filled: true,
@@ -147,7 +147,7 @@ class MapPickerAddressPanel extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               addressError!,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 color: Colors.red.shade600,
               ),
@@ -157,7 +157,7 @@ class MapPickerAddressPanel extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               context.tr('location.delivery_phone'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade800,
@@ -171,7 +171,7 @@ class MapPickerAddressPanel extends StatelessWidget {
               textInputAction: TextInputAction.done,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 9,
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
               decoration: InputDecoration(
                 counterText: '',
                 hintText: context.tr('location.delivery_phone_hint'),
@@ -190,7 +190,7 @@ class MapPickerAddressPanel extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         '+66',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -235,7 +235,7 @@ class MapPickerAddressPanel extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 phoneError!,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12,
                   color: Colors.red.shade600,
                 ),
@@ -248,7 +248,7 @@ class MapPickerAddressPanel extends StatelessWidget {
             isLoading: isSaving,
             child: Text(
               context.tr('location.confirm_location'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

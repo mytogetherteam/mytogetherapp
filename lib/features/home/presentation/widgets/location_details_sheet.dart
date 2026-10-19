@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -92,7 +92,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                     widget.isEdit
                         ? context.tr('location.edit')
                         : context.tr('location.create'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -119,7 +119,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 Expanded(
                   child: Text(
                     address ?? context.tr('location.unspecified_address'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[800],
                       height: 1.4,
@@ -199,7 +199,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 widget.isEdit
                     ? context.tr('location.update')
                     : context.tr('location.create'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -217,7 +217,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: Colors.grey[800],
@@ -243,10 +243,10 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        style: GoogleFonts.poppins(fontSize: 14),
+        style: AppFonts.poppins(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
+          hintStyle: AppFonts.poppins(color: Colors.grey[400], fontSize: 13),
           prefixIcon: Icon(icon, size: 18, color: Colors.grey[600]),
           border: InputBorder.none,
           contentPadding:
@@ -297,7 +297,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 const SizedBox(height: 4),
                 Text(
                   type,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected ? AppColors.primary : Colors.grey[600],

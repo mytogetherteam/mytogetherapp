@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/app_translations.dart';
@@ -107,7 +107,7 @@ class _ShopPromotionsSheetState extends State<ShopPromotionsSheet> {
                 children: [
                   Text(
                     context.tr('coupon.promotions_title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -116,7 +116,7 @@ class _ShopPromotionsSheetState extends State<ShopPromotionsSheet> {
                   if (widget.shopName.trim().isNotEmpty)
                     Text(
                       widget.shopName,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12.5,
                         color: Colors.grey.shade600,
                       ),
@@ -202,7 +202,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13.5,
                 color: Colors.grey.shade600,
               ),
@@ -270,7 +270,7 @@ class _PromoCard extends StatelessWidget {
                       quarterTurns: 3,
                       child: Text(
                         'COUPON',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 2,
@@ -299,7 +299,7 @@ class _PromoCard extends StatelessWidget {
                       children: [
                         Text(
                           coupon.name,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.black87,
@@ -312,7 +312,7 @@ class _PromoCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             coupon.description!,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade600,
@@ -331,7 +331,7 @@ class _PromoCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   context.trArgs('coupon.until_short', {'date': validity}),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.grey.shade500,
@@ -361,7 +361,7 @@ class _PromoCard extends StatelessWidget {
                     children: [
                       Text(
                         discountText,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,

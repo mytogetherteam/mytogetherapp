@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -47,7 +47,7 @@ class EmptyStateView extends StatelessWidget {
             Text(
               title ?? context.tr('common.no_data_title'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[700],
@@ -57,7 +57,7 @@ class EmptyStateView extends StatelessWidget {
             Text(
               subtitle ?? context.tr('common.no_data_sub'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[500],
                 height: 1.4,
@@ -71,7 +71,7 @@ class EmptyStateView extends StatelessWidget {
                     size: 18, color: AppColors.primary),
                 label: Text(
                   actionLabel ?? context.tr('common.retry'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,

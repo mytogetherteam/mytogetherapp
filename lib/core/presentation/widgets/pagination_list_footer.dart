@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 
@@ -40,7 +40,7 @@ class PaginationListFooter extends StatelessWidget {
             : showEndMessage
                 ? Text(
                     endMessage ?? context.tr('food.end_of_list'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey[400],
                       fontWeight: FontWeight.w500,

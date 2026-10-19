@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_player.dart';
 
 class AudioMessageBubble extends StatefulWidget {
@@ -107,7 +107,7 @@ class _AudioMessageBubbleState extends State<AudioMessageBubble> {
                         const SizedBox(height: 4),
                         Text(
                           '${formatVoiceDuration(_controller.position.value)} / ${formatVoiceDuration(total)}',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
                             color: widget.foreground.withValues(alpha: 0.85),
@@ -135,7 +135,7 @@ class _AudioMessageBubbleState extends State<AudioMessageBubble> {
                   ),
                   child: Text(
                     formatVoicePlaybackSpeed(speed),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: widget.foreground,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/localization/app_translations.dart';
@@ -56,7 +56,7 @@ class DiscountDealCard extends StatelessWidget {
             // Food image
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: CachedNetworkImage(
+              child: CachedNetworkImage(memCacheWidth: 390, 
                 fadeInDuration: Duration.zero,
                 fadeOutDuration: Duration.zero,
                 imageUrl: deal.imageUrl ?? '',
@@ -86,7 +86,7 @@ class DiscountDealCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         context.tr('common.no_image'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 10,
                           color: Colors.grey.shade400,
                           fontWeight: FontWeight.w500,
@@ -107,7 +107,7 @@ class DiscountDealCard extends StatelessWidget {
                         effectivePrice
                             .toStringAsFixed(0)
                             .toFormattedPrice(currency: deal.currency),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -118,7 +118,7 @@ class DiscountDealCard extends StatelessWidget {
                       deal.originalPrice!
                           .toStringAsFixed(0)
                           .toFormattedPrice(currency: deal.currency),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 11,
                         color: Colors.grey,
                         decoration: TextDecoration.lineThrough,
@@ -130,7 +130,7 @@ class DiscountDealCard extends StatelessWidget {
             // Food name
             Text(
               deal.name,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -142,7 +142,7 @@ class DiscountDealCard extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 deal.shopName,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 11,
                   color: Colors.grey[600],
                   fontWeight: FontWeight.w400,
@@ -155,7 +155,7 @@ class DiscountDealCard extends StatelessWidget {
             // Estimated time (delivery icon and fee intentionally omitted).
             Text(
               deal.estimatedTime ?? '20-30 min',
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 10,
                 color: Colors.grey.shade500,
               ),

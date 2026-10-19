@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/cart_manager.dart';
@@ -261,7 +261,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         SnackBar(
           content: Text(
             context.tr('coupon.none'),
-            style: GoogleFonts.poppins(),
+            style: AppFonts.poppins(),
           ),
           backgroundColor: AppColors.primary,
         ),
@@ -515,7 +515,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       padding: const EdgeInsets.only(top: 6),
       child: Text(
         context.tr('delivery.first_order_free'),
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: const Color(0xFF067647),
@@ -556,7 +556,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     if (loc == null || address == null || address.isEmpty) {
       return Text(
         context.tr('cart.no_address'),
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 14,
           color: Colors.black87,
           height: 1.5,
@@ -569,7 +569,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       children: [
         Text(
           address,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Colors.black87,
@@ -579,7 +579,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         if (subtitle != null)
           Text(
             subtitle,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               color: Colors.grey.shade600,
               height: 1.4,
@@ -661,7 +661,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     };
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.poppins()),
+        content: Text(message, style: AppFonts.poppins()),
         backgroundColor: const Color(0xFFEF4444),
       ),
     );
@@ -968,7 +968,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 SnackBar(
                   content: Text(
                     context.tr('cart.empty_now'),
-                    style: GoogleFonts.poppins(),
+                    style: AppFonts.poppins(),
                   ),
                   backgroundColor: AppColors.primary,
                   duration: const Duration(seconds: 2),
@@ -1032,7 +1032,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             titleSpacing: 0,
             title: Text(
               context.tr('cart.order_summary'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -1085,7 +1085,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   children: [
                                     Text(
                                       'FREE DELIVERY',
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: Colors.white,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
@@ -1097,7 +1097,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       context.tr('cart.free_delivery_saved').contains('cart.free_delivery_saved') 
                                           ? 'You saved delivery fee on this order!' 
                                           : context.tr('cart.free_delivery_saved'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: Colors.white.withValues(alpha: 0.9),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w400,
@@ -1136,7 +1136,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 const SizedBox(width: 8),
                                 Text(
                                   context.tr('cart.delivery_info'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black,
@@ -1170,7 +1170,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           context.tr('cart.delivery'),
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 15,
@@ -1201,7 +1201,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           context.tr('cart.pickup'),
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 15,
@@ -1253,7 +1253,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         padding: const EdgeInsets.only(top: 2),
                                         child: Text(
                                           context.tr('cart.edit_location'),
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             color: AppColors.primary,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -1279,7 +1279,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     const SizedBox(width: 6),
                                     Text(
                                       context.tr('cart.est_delivery_fee'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: _isFreeDelivery
                                             ? AppColors.primary
                                             : const Color(0xFF94A3B8),
@@ -1289,7 +1289,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     if (_isFreeDelivery)
                                       Text(
                                         'FREE',
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primary,
@@ -1298,7 +1298,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     else if (_draftDeliveryFee > 0)
                                       GradientText(
                                         _getEstimatedDeliveryFeeText(),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -1388,7 +1388,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         Expanded(
                                           child: Text(
                                             currentStore.name,
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
                                               color: Colors.black,
@@ -1417,7 +1417,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   },
                                   child: Text(
                                     context.tr('cart.add_items'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: const Color(0xFFF59E0B),
                                       fontWeight: FontWeight.w500,
                                       fontSize: 14,
@@ -1460,7 +1460,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           children: [
                             Text(
                               context.tr('cart.payment_options'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black,
@@ -1503,7 +1503,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     alignment: Alignment.center,
                                     child: Text(
                                       context.tr('cart.no_payment_methods'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: const Color(0xFF64748B),
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
@@ -1585,7 +1585,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                                 ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             color: AppColors.primary,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -1599,7 +1599,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                               context,
                                               _selectedCoupon!,
                                             ),
-                                            style: GoogleFonts.poppins(
+                                            style: AppFonts.poppins(
                                               color: const Color(0xFF94A3B8),
                                               fontSize: 11,
                                             ),
@@ -1612,7 +1612,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     couponDiscount > 0
                                         ? '- ${couponDiscount.toFormattedPrice()}'
                                         : context.tr('coupon.free'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: AppColors.primary,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -1638,7 +1638,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       const SizedBox(width: 6),
                                       Text(
                                         context.tr('cart.est_delivery_fee'),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           color: _isFreeDelivery
                                               ? AppColors.primary
                                               : const Color(0xFF64748B),
@@ -1654,7 +1654,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         : (_draftDeliveryFee > 0
                                             ? _getEstimatedDeliveryFeeText()
                                             : '—'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: _isFreeDelivery
                                           ? AppColors.primary
                                           : const Color(0xFF64748B),
@@ -1679,7 +1679,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   _isDelivery
                                       ? context.tr('cart.total_pay_now')
                                       : context.tr('cart.total'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: const Color(0xFF1E293B),
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
@@ -1687,7 +1687,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                                 GradientText(
                                   _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1747,7 +1747,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 Expanded(
                                   child: Text(
                                     context.tr('cart.ongoing_order_wait'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: Colors.white,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
@@ -1792,7 +1792,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         ? '${context.tr('cart.check_order_notice')} ဒီအော်ဒါအတွက် ပို့ဆောင်ခ အခမဲ့ ရရှိထားပါသည်။'
                                         : '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}')
                                     : context.tr('cart.check_order_notice'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: const Color(0xFF334155),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
@@ -1814,7 +1814,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 children: [
                                   Text(
                                     context.tr('cart.total'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: const Color(0xFF64748B),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -1822,7 +1822,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                   GradientText(
                                     _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1845,7 +1845,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   isShopClosed
                                       ? context.tr('cart.closed_now')
                                       : context.tr('cart.place_order'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -1903,7 +1903,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           e is CouponApplyException ? e.message : context.tr('coupon.apply_failed');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(message, style: GoogleFonts.poppins()),
+          content: Text(message, style: AppFonts.poppins()),
           backgroundColor: AppColors.primary,
         ),
       );
@@ -1986,7 +1986,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     children: [
                       Text(
                         context.tr('coupon.apply_title'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: isHighlighted ? AppColors.primary : Colors.black,
@@ -2005,7 +2005,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 : context.tr('coupon.apply_hint')),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12.5,
                           fontWeight:
                               isHighlighted ? FontWeight.w600 : FontWeight.w400,
@@ -2132,7 +2132,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? CachedNetworkImage(
+          ? CachedNetworkImage(memCacheWidth: 108, 
               imageUrl: iconUrl,
               width: 36,
               height: 36,
@@ -2172,7 +2172,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -2235,7 +2235,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   children: [
                     Text(
                       context.tr('cart.pickup_note_title'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
@@ -2244,7 +2244,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     const SizedBox(height: 4),
                     Text(
                       context.tr('cart.pickup_note_body'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: const Color(0xFF64748B),
                         height: 1.4,
@@ -2308,7 +2308,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -2336,7 +2336,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             const SizedBox(width: 4),
                             Text(
                               context.tr('cart.promotion'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -2359,14 +2359,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     const SizedBox(width: 6),
                     Text(
                       context.tr('cart.est_delivery_fee'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: const Color(0xFF94A3B8),
                         fontSize: 13,
                       ),
                     ),
                     GradientText(
                       fee.toFormattedPrice(),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -2384,14 +2384,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     const SizedBox(width: 6),
                     Text(
                       context.tr('cart.est_time'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: const Color(0xFF94A3B8),
                         fontSize: 13,
                       ),
                     ),
                     GradientText(
                       time,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -2422,7 +2422,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       child: ClipOval(
         child: logoPath.isEmpty
             ? Icon(PhosphorIcons.storefront, size: 24, color: Colors.grey)
-            : CachedNetworkImage(
+            : CachedNetworkImage(memCacheWidth: 144, 
                 imageUrl: logoPath,
                 fit: BoxFit.cover,
                 width: 48,
@@ -2460,7 +2460,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: const Color(0xFF94A3B8),
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -2468,7 +2468,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         ),
         Text(
           value,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: const Color(0xFF64748B),
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -2496,7 +2496,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
+              child: CachedNetworkImage(memCacheWidth: 210, 
                 imageUrl: item.imagePath,
                 fit: BoxFit.cover,
                 width: 70,
@@ -2525,7 +2525,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         ), // Align text baseline/top with image
                         child: Text(
                           item.title,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
@@ -2577,7 +2577,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     (item.options?.isNotEmpty ?? false))
                   Text(
                     '${item.variantName ?? item.variantNameMm ?? ''}${((item.variantName != null || item.variantNameMm != null) && item.options != null && item.options!.isNotEmpty) ? '\n' : ''}${item.options ?? ''}',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[600],
                       height: 1.4,
@@ -2590,7 +2590,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     const SizedBox(height: 4),
                   Text(
                     item.specialInstructions!,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color:
                           AppColors.primary, // Use brand color for visibility
@@ -2613,7 +2613,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           children: [
                             Text(
                               item.price.toStringAsFixed(0),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.black,
                                 fontWeight: FontWeight.w500,
@@ -2622,7 +2622,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             const SizedBox(width: 4),
                             Text(
                               'x${item.quantity}',
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.grey[500],
                               ),
@@ -2662,7 +2662,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               ),
                               child: Text(
                                 context.tr('common.edit'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 13,
                                   color: const Color(0xFFF59E0B),
                                   fontWeight: FontWeight.w500,
@@ -2680,7 +2680,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       children: [
                         Text(
                           itemTotalPrice.toFormattedPrice(),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -2742,7 +2742,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 alignment: Alignment.center,
                                 child: Text(
                                   '${item.quantity}',
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black,
@@ -2842,7 +2842,7 @@ class _FarDeliveryModal extends StatelessWidget {
         Text(
           context.tr('order.far_delivery_title'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF1E293B),
@@ -2855,7 +2855,7 @@ class _FarDeliveryModal extends StatelessWidget {
             'limit': limitStr,
           }),
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             color: const Color(0xFF475569),
             height: 1.5,
@@ -2868,7 +2868,7 @@ class _FarDeliveryModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Text(
             context.tr('order.far_delivery_continue'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -2888,7 +2888,7 @@ class _FarDeliveryModal extends StatelessWidget {
             ),
             child: Text(
               context.tr('common.cancel'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF64748B),

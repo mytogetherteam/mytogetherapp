@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -137,7 +137,7 @@ class _ShopPostsSectionState extends State<ShopPostsSection> {
               const SizedBox(width: 12),
               Text(
                 context.tr('social.shop_posts'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -156,7 +156,7 @@ class _ShopPostsSectionState extends State<ShopPostsSection> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Column(
                 children: [
-                  Text(_error!, style: GoogleFonts.poppins(fontSize: 14)),
+                  Text(_error!, style: AppFonts.poppins(fontSize: 14)),
                   TextButton(
                     onPressed: () => _load(reset: true),
                     child: Text(context.tr('social.retry')),
@@ -169,7 +169,7 @@ class _ShopPostsSectionState extends State<ShopPostsSection> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 context.tr('social.shop_posts_empty'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[700],
                 ),
@@ -245,7 +245,7 @@ class _ShopPostTile extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines: 5,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: AppColors.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -262,7 +262,7 @@ class _ShopPostTile extends StatelessWidget {
                 child: Icon(PhosphorIconsFill.play, color: Colors.white),
               )
             else
-              CachedNetworkImage(
+              CachedNetworkImage(memCacheWidth: 1080, 
                 imageUrl: media.isVideo ? media.previewUrl : media.url,
                 fit: BoxFit.cover,
                 errorWidget: (_, _, _) => const ColoredBox(

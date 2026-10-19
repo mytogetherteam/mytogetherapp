@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class OrderTrackerChannel {
@@ -16,7 +17,8 @@ class OrderTrackerChannel {
         'shopName': shopName,
         'shopLogoUrl': shopLogoUrl ?? '',
       });
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      if (kDebugMode) debugPrint('OrderTrackerChannel: startTracker error: $e');
     }
   }
 
@@ -24,7 +26,8 @@ class OrderTrackerChannel {
     if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod('stopTracker');
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      if (kDebugMode) debugPrint('OrderTrackerChannel: stopTracker error: $e');
     }
   }
 }

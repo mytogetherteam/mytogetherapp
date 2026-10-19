@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -583,14 +583,14 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                       onChanged: _onSearchChanged,
                       onSubmitted: _onSearchSubmitted,
                       textInputAction: TextInputAction.search,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         color: Colors.black87,
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: context.tr('food.search_hint'),
-                        hintStyle: GoogleFonts.poppins(
+                        hintStyle: AppFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[400],
                         ),
@@ -674,7 +674,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             Text(
               title,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[600],
               ),
@@ -703,7 +703,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             if (recent.isNotEmpty) ...[
               Text(
                 context.tr('food.recent_searches'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.blueGrey[400],
@@ -736,7 +736,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                           const SizedBox(width: 6),
                           Text(
                             term,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 13,
                               color: Colors.black87,
                               fontWeight: FontWeight.w500,
@@ -773,7 +773,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             else if (_popularCategories.isNotEmpty) ...[
               Text(
                 context.tr('food.popular_categories'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.blueGrey[400],
@@ -806,7 +806,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                           Expanded(
                             child: Text(
                               category.displayName,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
@@ -824,7 +824,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                                     size: 22,
                                     color: Colors.grey[400],
                                   )
-                                : CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                : CachedNetworkImage(memCacheWidth: 96, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                     imageUrl: imageUrl,
                                     width: 32,
                                     height: 32,
@@ -1022,7 +1022,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             ],
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: fg,
                 fontWeight: FontWeight.w500,
@@ -1079,7 +1079,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             const SizedBox(height: 16),
             Text(
               title,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
@@ -1119,12 +1119,12 @@ class _FoodSearchPageState extends State<FoodSearchPage>
           Expanded(
             child: TextField(
               onChanged: onChanged,
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
               decoration: InputDecoration(
                 isCollapsed: true,
                 border: InputBorder.none,
                 hintText: context.tr('food.filter_search_hint'),
-                hintStyle: GoogleFonts.poppins(
+                hintStyle: AppFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[400],
                 ),
@@ -1155,7 +1155,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected ? AppColors.primary : Colors.black87,
@@ -1200,7 +1200,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
@@ -1231,7 +1231,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             ),
             child: Text(
               context.tr('food.reset'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
@@ -1251,7 +1251,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             ),
             child: Text(
               context.tr('common.apply'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
@@ -1325,7 +1325,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                       child: Center(
                         child: Text(
                           this.context.tr('food.no_filter_results'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.grey.shade600,
                             fontSize: 14,
                           ),
@@ -1518,7 +1518,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
                   this.context.tr('food.no_cuisines'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey[600],
                   ),
@@ -1529,7 +1529,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
                   this.context.tr('food.no_filter_results'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey[600],
                   ),
@@ -1714,7 +1714,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                           children: [
                             Text(
                               shop.name,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
@@ -1732,7 +1732,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                                   const SizedBox(width: 4),
                                   Text(
                                     '${shop.rating.toStringAsFixed(1)} · ',
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 13,
                                       color: Colors.grey[600],
                                     ),
@@ -1742,7 +1742,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                                   context.trArgs('food.distance_km', {
                                     'distance': shop.distance.toStringAsFixed(1),
                                   }),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 13,
                                     color: Colors.grey[600],
                                   ),
@@ -1753,7 +1753,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
                               const SizedBox(height: 4),
                               Text(
                                 shop.category!,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 12,
                                   color: Colors.grey[500],
                                 ),
@@ -1899,7 +1899,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
           const SizedBox(height: 8),
           Text(
             '฿ ${item.price.toInt()}',
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
@@ -1910,7 +1910,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
               item.originalPrice! > item.price) ...[
             Text(
               '฿${item.originalPrice!.toInt()}',
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: Colors.grey[500],
@@ -1924,7 +1924,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
           Expanded(
             child: Text(
               item.name,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
@@ -1948,7 +1948,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
         child: MenuImagePlaceholder(title: title),
       );
     }
-    return CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+    return CachedNetworkImage(memCacheWidth: (width * 3).round(), fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
       imageUrl: url,
       width: width,
       height: h,

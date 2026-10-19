@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
@@ -276,7 +276,7 @@ class _SocialPageState extends State<SocialPage> {
                             child: Text(
                               context.tr('social.for_you'),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -319,7 +319,7 @@ class _SocialPageState extends State<SocialPage> {
                                     const SizedBox(width: 4),
                                     Text(
                                       context.tr('social.create_post'),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         color: Colors.white,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -587,7 +587,7 @@ class _OwnPostsPreviewPageState extends State<OwnPostsPreviewPage> {
                       ),
                       child: Text(
                         context.tr('social.hidden'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -950,21 +950,21 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           context.tr('social.delete_post'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           context.tr('social.delete_post_confirm'),
-          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+          style: AppFonts.poppins(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               context.tr('common.cancel'),
-              style: GoogleFonts.poppins(color: Colors.white70),
+              style: AppFonts.poppins(color: Colors.white70),
             ),
           ),
           TextButton(
@@ -974,7 +974,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
             },
             child: Text(
               context.tr('social.delete_post'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.red,
                 fontWeight: FontWeight.w600,
               ),
@@ -1024,14 +1024,14 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
         ),
         title: Text(
           context.tr('social.report_post'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           context.tr('social.report_post_confirm_desc'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.white70,
             fontSize: 14,
           ),
@@ -1041,7 +1041,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               context.tr('common.cancel'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.white70,
                 fontWeight: FontWeight.w500,
               ),
@@ -1054,7 +1054,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
             },
             child: Text(
               context.tr('social.report'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.red,
                 fontWeight: FontWeight.w600,
               ),
@@ -1143,7 +1143,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                 ),
                 child: Text(
                   '${_mediaIndex + 1}/${media.length}',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1243,7 +1243,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                       widget.post.author.handle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -1257,7 +1257,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                   const SizedBox(height: 6),
                   Text(
                     context.relativeTime(widget.post.createdAt),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.white60,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -1280,12 +1280,12 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
 
   Widget _buildCaption() {
     final caption = widget.post.caption;
-    final body = GoogleFonts.poppins(
+    final body = AppFonts.poppins(
       color: Colors.white.withValues(alpha: 0.95),
       fontSize: 14,
       height: 1.35,
     );
-    final action = GoogleFonts.poppins(
+    final action = AppFonts.poppins(
       color: Colors.white70,
       fontSize: 14,
       fontWeight: FontWeight.w600,
@@ -1594,7 +1594,7 @@ class _LikeRailButtonState extends State<_LikeRailButton>
           const SizedBox(height: 4),
           Text(
             widget.label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1634,7 +1634,7 @@ class _MoreTile extends StatelessWidget {
       leading: Icon(icon, color: iconColor),
       title: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           color: labelColor,
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -1671,7 +1671,7 @@ class _TextOnlyBackdrop extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 8,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -1781,7 +1781,7 @@ class _CreatorAvatar extends StatelessWidget {
           Center(
             child: Text(
               initials,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.white,
                 fontSize: isTwoLetters ? 15 : 19,
                 fontWeight: FontWeight.w700,
@@ -1909,7 +1909,7 @@ class _RailAction extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w600,

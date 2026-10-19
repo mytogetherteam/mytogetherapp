@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -44,7 +44,7 @@ class JobCard extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: shop.logo.isNotEmpty
-                            ? CachedNetworkImage(
+                            ? CachedNetworkImage(memCacheWidth: 108, 
                                 imageUrl: shop.logo,
                                 width: 36,
                                 height: 36,
@@ -57,7 +57,7 @@ class JobCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           shop.displayName,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: Colors.black54,
@@ -79,7 +79,7 @@ class JobCard extends StatelessWidget {
                         children: [
                           Text(
                             job.title,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
@@ -124,7 +124,7 @@ class JobCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         '${context.tr('jobs.deadline')}: ${dateFmt.format(job.closingDate!.toLocal())}',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           color: Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -160,7 +160,7 @@ class JobCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: textColor ?? Colors.white,

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -199,7 +199,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: amber700,
@@ -208,7 +208,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12.5,
                     height: 1.45,
                     color: amber700.withValues(alpha: 0.9),
@@ -229,7 +229,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
       appBar: AppBar(
         title: Text(
           context.tr('review.write_title'),
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontWeight: FontWeight.w600,
             fontSize: 18,
             color: Colors.black87,
@@ -259,7 +259,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                     child: Center(
                       child: Text(
                         widget.shopName!,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w500,
@@ -327,7 +327,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                         ),
                         child: Text(
                           tag,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             color: isSelected ? Colors.white : Colors.black87,
                             fontWeight:
@@ -343,7 +343,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
                 Text(
                   context.tr('review.experience_prompt'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey[800],
                     height: 1.5,
@@ -362,13 +362,13 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                     controller: _reviewController,
                     maxLines: 5,
                     maxLength: 500,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       color: Colors.black87,
                     ),
                     decoration: InputDecoration(
                       hintText: context.tr('review.share_hint'),
-                      hintStyle: GoogleFonts.poppins(
+                      hintStyle: AppFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[400],
                       ),
@@ -413,7 +413,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                         )
                       : Text(
                           context.tr('review.submit'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

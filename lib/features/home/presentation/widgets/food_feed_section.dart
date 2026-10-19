@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'image_skeleton_loader.dart';
 import '../../data/models/shop_feed_item_dto.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -134,7 +134,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
                         ? 'restaurants.empty_delivery'
                         : 'restaurants.empty_visit_only',
                   ),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     color: Colors.grey[600],
                   ),
@@ -156,7 +156,7 @@ class _FoodFeedSectionState extends State<FoodFeedSection> {
         children: [
           Text(
             widget.title,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontWeight: FontWeight.w600,
               fontSize: 18,
               color: Colors.black,

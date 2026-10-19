@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -210,7 +210,7 @@ class _SetupPinPageState extends State<SetupPinPage>
               _step == SetupPinStep.create
                   ? context.tr('auth.create_pin')
                   : context.tr('auth.confirm_pin'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
               ),
@@ -218,7 +218,7 @@ class _SetupPinPageState extends State<SetupPinPage>
             const SizedBox(height: 8),
             Text(
               widget.name,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
@@ -337,7 +337,7 @@ class _SetupPinPageState extends State<SetupPinPage>
         child: Center(
           child: GradientText(
             digit,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w500,
             ),

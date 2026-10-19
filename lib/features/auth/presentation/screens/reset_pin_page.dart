@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -188,7 +188,7 @@ class _ResetPinPageState extends State<ResetPinPage>
                   const SizedBox(height: 20),
                   GradientText(
                     titleText,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
                     ),
@@ -196,7 +196,7 @@ class _ResetPinPageState extends State<ResetPinPage>
                   const SizedBox(height: 8),
                   Text(
                     'Please enter a 6-digit PIN.',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 15,
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
@@ -316,7 +316,7 @@ class _ResetPinPageState extends State<ResetPinPage>
         child: Center(
           child: GradientText(
             digit,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w500,
             ),

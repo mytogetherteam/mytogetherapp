@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/media/image_crop_helper.dart';
@@ -80,7 +82,9 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
       if (address != null && _locationController.text.isEmpty) {
         _locationController.text = address.split(',').first;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('create_item_post_page.dart: ignored error: $e');
+    }
   }
 
   Future<void> _pickPhotos() async {
@@ -151,7 +155,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 'Select Category',
-                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                style: AppFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             ListTile(
@@ -405,7 +409,7 @@ class _CreateItemPostPageState extends State<CreateItemPostPage> {
       appBar: AppBar(
         title: Text(
           context.tr(_isEditing ? 'lost.edit_title' : 'lost.create_title'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 18),
+          style: AppFonts.poppins(fontWeight: FontWeight.w600, fontSize: 18),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,

@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/network/dio_error_message.dart';
@@ -77,7 +77,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
   void _showErrorSnackbar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: GoogleFonts.poppins(color: Colors.white)),
+        content: Text(msg, style: AppFonts.poppins(color: Colors.white)),
         backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -91,7 +91,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
       SnackBar(
         content: Text(
           message,
-          style: GoogleFonts.poppins(color: Colors.white),
+          style: AppFonts.poppins(color: Colors.white),
         ),
         backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
@@ -142,7 +142,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           children: [
             Text(
               context.tr('profile.delete_account'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
@@ -150,7 +150,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
             Text(
               context.tr('profile.delete_account_sub'),
-              style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
+              style: AppFonts.poppins(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -184,7 +184,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           const SizedBox(height: 20),
           Text(
             context.tr('delete.warning_heading'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Colors.red.shade600,
@@ -192,7 +192,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
           ),
           Text(
             context.tr('delete.before_title'),
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+            style: AppFonts.poppins(fontSize: 13, color: Colors.grey[500]),
           ),
           const SizedBox(height: 28),
 
@@ -266,7 +266,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                       children: [
                         Text(
                           context.tr('delete.agreement_primary'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             color: Colors.black87,
                             height: 1.5,
@@ -275,7 +275,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                         const SizedBox(height: 4),
                         Text(
                           context.tr('delete.confirm_checkbox'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11,
                             color: Colors.grey[500],
                           ),
@@ -305,7 +305,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               ),
               child: Text(
                 context.tr('delete.continue_button'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -326,7 +326,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               ),
               child: Text(
                 context.tr('common.cancel'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
@@ -364,7 +364,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             const SizedBox(height: 20),
             Text(
               context.tr('delete.verify_heading'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
@@ -372,13 +372,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
             ),
             Text(
               context.tr('delete.confirm_identity'),
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+              style: AppFonts.poppins(fontSize: 13, color: Colors.grey[500]),
             ),
             const SizedBox(height: 8),
             Text(
               context.tr('delete.password_prompt'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[600],
                 height: 1.6,
@@ -412,14 +412,14 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                         AuthService().currentUser?.fullName ??
                             AuthService().currentUser?.username ??
                             context.tr('common.user'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
                       Text(
                         AuthService().currentUser?.email ?? '',
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           color: Colors.grey[500],
                         ),
@@ -444,10 +444,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 }
                 return null;
               },
-              style: GoogleFonts.poppins(fontSize: 15),
+              style: AppFonts.poppins(fontSize: 15),
               decoration: InputDecoration(
                 labelText: context.tr('common.password'),
-                labelStyle: GoogleFonts.poppins(
+                labelStyle: AppFonts.poppins(
                   color: Colors.grey[600],
                   fontSize: 14,
                 ),
@@ -515,7 +515,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                       )
                     : Text(
                         context.tr('delete.confirm_button'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -536,7 +536,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 ),
                 child: Text(
                   context.tr('common.cancel'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
@@ -589,7 +589,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -597,7 +597,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage>
                 ),
                 Text(
                   subtitle,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey[500],
                   ),

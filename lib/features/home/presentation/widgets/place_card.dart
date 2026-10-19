@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -103,7 +103,7 @@ class PlaceCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             _formatActivity(primaryActivity!),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -151,7 +151,7 @@ class PlaceCard extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -165,7 +165,7 @@ class PlaceCard extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 category,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -194,7 +194,7 @@ class PlaceCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Text(
                                 distance,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -215,7 +215,7 @@ class PlaceCard extends StatelessWidget {
                               const SizedBox(width: 3),
                               Text(
                                 startingPrice!,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFFFFE082),

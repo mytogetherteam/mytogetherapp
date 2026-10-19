@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -172,7 +173,9 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
             shopId: shopId,
             rating: ratingValue.toDouble(),
           );
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('order_complete_page.dart: ignored error: $e');
+        }
       }
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -282,7 +285,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1E293B),
@@ -291,7 +294,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     const SizedBox(height: 3),
                     Text(
                       body,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         height: 1.4,
                         color: const Color(0xFF64748B),
@@ -334,7 +337,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     ? context.tr('chat.message_shop')
                     : context.tr('chat.view_messages'),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -422,7 +425,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     const SizedBox(height: 20),
                     Text(
                       context.tr('order_complete.title'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1E293B),
@@ -442,7 +445,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                           context.trArgs('order_complete.arrived_at', {
                             'time': arrivalTime,
                           }),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             color: const Color(0xFF64748B),
                           ),
@@ -500,7 +503,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                         context.trArgs('order_complete.rate_experience', {
                           'shop': storeName,
                         }),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1E293B),
@@ -510,7 +513,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                       const SizedBox(height: 10),
                       Text(
                         context.tr('order_complete.rate_subtitle'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 13,
                           color: const Color(0xFF64748B),
                         ),
@@ -615,7 +618,7 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                 const SizedBox(width: 8),
                 Text(
                   context.tr('order_complete.delivery_proof'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,

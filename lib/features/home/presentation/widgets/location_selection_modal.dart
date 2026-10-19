@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/location/location_enable_dialog.dart';
@@ -341,7 +341,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   children: [
                     Text(
                       context.tr('location.where_to'), // Fallback if missing
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Colors.black87,
@@ -380,7 +380,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                         const SizedBox(width: 12),
                         Text(
                           context.tr('location.search_hint'),
-                          style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+                          style: AppFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
                         ),
                       ],
                     ),
@@ -401,7 +401,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                           child: Text(
                             context.tr('guest.location_current_only'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey.shade600,
                               height: 1.4,
@@ -441,7 +441,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                                 Expanded(
                                   child: Text(
                                     context.tr('location.select_via_map'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.black87,
@@ -472,7 +472,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                               Expanded(
                                 child: Text(
                                   context.tr('location.saved_locations'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.grey.shade600,
@@ -488,7 +488,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                                         '${UserLocationRepository.maxSavedLocations}',
                                   },
                                 ),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: _isAtLocationLimit
@@ -580,7 +580,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           _currentLocationResult?.name ?? context.tr('location.current'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
@@ -599,7 +599,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           ),
                           child: Text(
                             context.tr('location.selected'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -612,7 +612,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   if (_isLoadingCurrent)
                     Text(
                       context.tr('location.detecting'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade400,
                       ),
@@ -620,7 +620,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   else if (_currentLocationResult == null)
                     Text(
                       context.tr('location.unavailable_short'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade500,
                       ),
@@ -631,7 +631,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                       null)
                     Text(
                       context.tr('location.pin_to_add_address'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         color: Colors.orange.shade700,
                         height: 1.4,
@@ -711,7 +711,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                       Expanded(
                         child: Text(
                           location.displayTitle(context.tr('location.saved')),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
@@ -732,7 +732,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                           ),
                           child: Text(
                             context.tr('location.selected'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -746,7 +746,7 @@ class _LocationSelectionModalState extends State<LocationSelectionModal> {
                   if (location.detailSubtitle != null)
                     Text(
                       location.detailSubtitle!,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey.shade500,
                       ),

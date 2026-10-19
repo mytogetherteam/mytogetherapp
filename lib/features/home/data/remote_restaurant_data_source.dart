@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
@@ -645,25 +646,33 @@ class RemoteRestaurantDataSource {
   Future<void> addShopFavorite(int shopId) async {
     try {
       await WishlistRepository.instance.addShop(shopId);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('remote_restaurant_data_source.dart: ignored error: $e');
+    }
   }
 
   Future<void> removeShopFavorite(int shopId) async {
     try {
       await WishlistRepository.instance.removeShop(shopId);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('remote_restaurant_data_source.dart: ignored error: $e');
+    }
   }
 
   Future<void> addMenuFavorite(int menuItemId) async {
     try {
       await WishlistRepository.instance.addMenuItem(menuItemId);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('remote_restaurant_data_source.dart: ignored error: $e');
+    }
   }
 
   Future<void> removeMenuFavorite(int menuItemId) async {
     try {
       await WishlistRepository.instance.removeMenuItem(menuItemId);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('remote_restaurant_data_source.dart: ignored error: $e');
+    }
   }
 
   // ── Reviews ───────────────────────────────────────────────────────────────

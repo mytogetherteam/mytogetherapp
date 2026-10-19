@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import '../../data/models/shop_feed_item_dto.dart';
@@ -225,7 +225,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
             children: [
               Text(
                 context.tr('food.swipe_rank_title'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -233,7 +233,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
               ),
               Text(
                 context.tr('food.swipe_rank_sub'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 11,
                   color: Colors.white38,
                 ),
@@ -329,7 +329,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
           const SizedBox(height: 24),
           Text(
             context.tr('food.swipe_done_title'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -338,7 +338,7 @@ class _FoodSwipeRankPageState extends State<FoodSwipeRankPage> with TickerProvid
           const SizedBox(height: 8),
           Text(
             'Come back tomorrow!',
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16,
               color: Colors.white54,
             ),
@@ -605,7 +605,7 @@ class _SwipeOverlay extends StatelessWidget {
                 ),
                 child: Text(
                   labelText,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: color,
@@ -796,7 +796,7 @@ class _FoodCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           item.shopName,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -828,7 +828,7 @@ class _FoodCard extends StatelessWidget {
                   ),
                   child: Text(
                     '🔥 HOT DEAL',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -849,7 +849,7 @@ class _FoodCard extends StatelessWidget {
                   // Food name
                   Text(
                     item.name,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -868,7 +868,7 @@ class _FoodCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           item.shopName,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             color: Colors.white60,
                           ),
@@ -885,7 +885,7 @@ class _FoodCard extends StatelessWidget {
                       if (item.hasDiscount && item.originalPrice != null) ...[
                         Text(
                           '฿ ${item.originalPrice!.toStringAsFixed(0)}',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             color: Colors.white38,
                             decoration: TextDecoration.lineThrough,
@@ -906,7 +906,7 @@ class _FoodCard extends StatelessWidget {
                         child: Text(
                           item.displayPrice ??
                               '฿ ${item.price.toStringAsFixed(0)}',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -971,7 +971,7 @@ class _StatChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.white70,

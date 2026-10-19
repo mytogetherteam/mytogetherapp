@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'food_menu_item_card.dart';
 import 'image_skeleton_loader.dart';
 import 'view_all_icon_button.dart';
@@ -158,7 +158,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             children: [
               Text(
                 context.tr('home.trending_nearby'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,
@@ -224,7 +224,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             children: [
               Text(
                 displayTitle,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,
@@ -305,7 +305,7 @@ class _TodaysOverviewSectionState extends State<TodaysOverviewSection> {
             children: [
               Text(
                 displayTitle,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                   color: Colors.black,

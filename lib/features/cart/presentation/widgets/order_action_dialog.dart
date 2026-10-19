@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -74,7 +74,7 @@ class OrderActionDialog extends StatelessWidget {
                       isSlip
                           ? context.tr('order_action.slip_title')
                           : context.tr('order_action.revise_title'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Colors.black87,
@@ -96,7 +96,7 @@ class OrderActionDialog extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   context.tr('revise.reason_title'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[600],
@@ -106,7 +106,7 @@ class OrderActionDialog extends StatelessWidget {
               ],
               Text(
                 reasonText,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   color: Colors.black87,
                   height: 1.45,
@@ -125,7 +125,7 @@ class OrderActionDialog extends StatelessWidget {
                   isSlip
                       ? context.tr('order_action.slip_upload_now')
                       : context.tr('order_action.revise_review'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -147,7 +147,7 @@ class OrderActionDialog extends StatelessWidget {
                     ),
                     child: Text(
                       context.tr('order_action.revise_cancel'),
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      style: AppFonts.poppins(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -161,7 +161,7 @@ class OrderActionDialog extends StatelessWidget {
                   ),
                   child: Text(
                     context.tr('order_action.later'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
                     ),

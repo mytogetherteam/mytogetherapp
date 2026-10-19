@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -136,7 +136,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                     children: [
                       Text(
                         context.tr('coupon.sheet_title'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1E293B),
@@ -144,7 +144,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                       ),
                       Text(
                         context.tr('coupon.sheet_subtitle'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12.5,
                           color: const Color(0xFF94A3B8),
                         ),
@@ -215,7 +215,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                 ),
                 child: Text(
                   context.tr('coupon.skip'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF64748B),
@@ -245,7 +245,7 @@ class _CouponTicketSheetState extends State<CouponTicketSheet>
                     ),
                     child: Text(
                       context.tr('coupon.use_coupon'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -320,7 +320,7 @@ class CouponTicket extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         context.tr('coupon.selected'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -467,7 +467,7 @@ class CouponTicket extends StatelessWidget {
             children: [
               Text(
                 context.tr('coupon.label'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
@@ -496,7 +496,7 @@ class CouponTicket extends StatelessWidget {
             coupon.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 16.5,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1E293B),
@@ -508,7 +508,7 @@ class CouponTicket extends StatelessWidget {
             _subtitleText(context),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 11.5,
               color: const Color(0xFF94A3B8),
               height: 1.25,
@@ -525,7 +525,7 @@ class CouponTicket extends StatelessWidget {
                   _footerHint(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF64748B),
@@ -570,7 +570,7 @@ class CouponTicket extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 8.5,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
@@ -590,7 +590,7 @@ class CouponTicket extends StatelessWidget {
         children: [
           Text(
             context.tr('coupon.voucher'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
@@ -602,7 +602,7 @@ class CouponTicket extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               coupon.stubHeadline,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -617,7 +617,7 @@ class CouponTicket extends StatelessWidget {
                     ? context.tr('coupon.bogo_stub')
                     : context.tr('coupon.item'))
                 : context.tr('coupon.off'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/utils/delivery_fee_estimate.dart';
 
@@ -42,7 +42,7 @@ class ShopItemMetadataRow extends StatelessWidget {
              const SizedBox(width: 2),
              Text(
                rating!.toStringAsFixed(1),
-               style: GoogleFonts.poppins(
+               style: AppFonts.poppins(
                  fontSize: fontSize + 1,
                  fontWeight: FontWeight.w600,
                  color: Colors.black,
@@ -53,7 +53,7 @@ class ShopItemMetadataRow extends StatelessWidget {
                const SizedBox(width: 4),
                Text(
                  '($reviewCount)',
-                 style: GoogleFonts.poppins(
+                 style: AppFonts.poppins(
                    fontSize: fontSize,
                    fontWeight: FontWeight.w400,
                    color: Colors.grey[500],
@@ -74,7 +74,7 @@ class ShopItemMetadataRow extends StatelessWidget {
       elements.add(
         Text(
           distStr,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: fontSize,
             fontWeight: FontWeight.w400,
             color: Colors.grey[500],
@@ -90,7 +90,7 @@ class ShopItemMetadataRow extends StatelessWidget {
       elements.add(
         Text(
           timeStr,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: fontSize,
             fontWeight: FontWeight.w400,
             color: Colors.grey[500],
@@ -112,7 +112,7 @@ class ShopItemMetadataRow extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               feeLabel,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFF10B981), // Teal color from design
@@ -123,7 +123,7 @@ class ShopItemMetadataRow extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 originalDeliveryFee!,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: fontSize - 1,
                   fontWeight: FontWeight.w400,
                   color: Colors.grey[400],
@@ -147,7 +147,7 @@ class ShopItemMetadataRow extends StatelessWidget {
           if (i < elements.length - 1)
             Text(
               '|',
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: fontSize,
                 color: Colors.grey[500],
                 fontWeight: FontWeight.w400,

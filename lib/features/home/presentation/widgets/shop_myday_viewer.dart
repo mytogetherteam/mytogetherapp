@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
@@ -294,7 +294,7 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
                                                     ? widget.shopName[0]
                                                         .toUpperCase()
                                                     : '?',
-                                                style: GoogleFonts.poppins(
+                                                style: AppFonts.poppins(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w600,
                                                 ),
@@ -310,7 +310,7 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
                                                   ? widget.shopName[0]
                                                       .toUpperCase()
                                                   : '?',
-                                              style: GoogleFonts.poppins(
+                                              style: AppFonts.poppins(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -328,7 +328,7 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
                                         widget.shopName,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 14,
@@ -336,7 +336,7 @@ class _ShopMyDayViewerState extends State<ShopMyDayViewer>
                                       ),
                                       Text(
                                         _relativeTime(story.createdAt),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           color: Colors.white70,
                                           fontSize: 11,
                                         ),

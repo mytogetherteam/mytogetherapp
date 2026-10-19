@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/location/location_display_util.dart';
 
 /// Shows a location address with optional coordinates beneath it.
@@ -31,12 +31,12 @@ class LocationAddressDisplay extends StatelessWidget {
         ? LocationDisplayUtil.formatCoordinates(latitude!, longitude!)
         : null;
 
-    final defaultAddressStyle = GoogleFonts.poppins(
+    final defaultAddressStyle = AppFonts.poppins(
       fontSize: 12,
       color: Colors.grey.shade600,
       height: 1.4,
     );
-    final defaultCoordsStyle = GoogleFonts.poppins(
+    final defaultCoordsStyle = AppFonts.poppins(
       fontSize: 11,
       color: Colors.grey.shade400,
       height: 1.3,

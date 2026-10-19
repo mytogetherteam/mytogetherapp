@@ -89,7 +89,9 @@ class WebSocketService {
         try {
           _intentionalTeardown = true;
           _stompClient?.deactivate();
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('websocket_service.dart: ignored error: $e');
+        }
         _intentionalTeardown = false;
         _stompClient = null;
         // deactivate() may fire onWebSocketDone; drop any timer it scheduled.

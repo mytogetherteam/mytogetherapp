@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import '../restaurant_data.dart';
@@ -842,7 +843,9 @@ class RestaurantRepository {
             operatingHours: dto.operatingHours,
             status: dto.isOpen ? 'Open' : 'Closed',
           );
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('restaurant_repository.dart: ignored error: $e');
+        }
       }),
     );
   }
@@ -866,7 +869,9 @@ class RestaurantRepository {
             status: dto.isOpen ? 'Open' : 'Closed',
           );
           clearCache(shopId: shopId);
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('restaurant_repository.dart: ignored error: $e');
+        }
       }),
     );
   }

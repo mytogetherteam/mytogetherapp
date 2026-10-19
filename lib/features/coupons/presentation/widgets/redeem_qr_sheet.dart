@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 import '../../../../core/localization/app_translations.dart';
@@ -117,7 +117,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             ),
             Text(
               context.tr('coupon.redeem_title'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
@@ -127,7 +127,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             Text(
               context.tr('coupon.redeem_hint'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12.5,
                 color: Colors.grey.shade600,
               ),
@@ -144,7 +144,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
                 ),
                 child: Text(
                   widget.couponName!,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -181,7 +181,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
             Text(
               _error ?? context.tr('coupon.redeem_error'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey.shade600,
               ),
@@ -255,7 +255,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
                     const SizedBox(height: 8),
                     Text(
                       context.tr('coupon.redeem_expired'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -283,7 +283,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: Text(
                 context.tr('coupon.redeem_refresh'),
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                style: AppFonts.poppins(fontWeight: FontWeight.w600),
               ),
             ),
           )
@@ -298,7 +298,7 @@ class _RedeemQrSheetState extends State<RedeemQrSheet> {
                 context.trArgs('coupon.redeem_expires_in', {
                   'time': _countdownLabel,
                 }),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12.5,
                   color: Colors.grey.shade600,
                   fontWeight: FontWeight.w500,

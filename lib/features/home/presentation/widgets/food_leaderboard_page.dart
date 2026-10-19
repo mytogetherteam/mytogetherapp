@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
@@ -35,7 +36,9 @@ class _FoodLeaderboardPageState extends State<FoodLeaderboardPage> {
       setState(() {
         items = newItems;
       });
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('food_leaderboard_page.dart: ignored error: $e');
+    }
   }
 
   @override
@@ -68,7 +71,7 @@ class _FoodLeaderboardPageState extends State<FoodLeaderboardPage> {
                 children: [
                   Text(
                     context.tr('food.leaderboard_title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -76,7 +79,7 @@ class _FoodLeaderboardPageState extends State<FoodLeaderboardPage> {
                   ),
                   Text(
                     context.tr('food.leaderboard_sub'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       color: Colors.white54,
                     ),
@@ -119,7 +122,7 @@ class _FoodLeaderboardPageState extends State<FoodLeaderboardPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         context.tr('food.leaderboard_rest_title'),
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 12,
                           color: Colors.white38,
                           fontWeight: FontWeight.w500,
@@ -182,7 +185,7 @@ class _PodiumSection extends StatelessWidget {
         child: Text(
           context.tr('food.leaderboard_empty_msg'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 14,
             color: Colors.white70,
             height: 1.5,
@@ -361,7 +364,7 @@ class _PodiumAvatarCol extends StatelessWidget {
                 child: Center(
                   child: Text(
                     '$rank',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -374,7 +377,7 @@ class _PodiumAvatarCol extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             item.name,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: isFirst ? 12 : 11,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -430,7 +433,7 @@ class _PodiumBlock extends StatelessWidget {
             children: [
               Text(
                 '$rank',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: rank == 1 ? 32 : 24,
                   fontWeight: FontWeight.w700,
                   color: Colors.white.withValues(alpha: 0.9),
@@ -489,7 +492,7 @@ class _RankListTile extends StatelessWidget {
                       color: Colors.white24, size: 14),
                   Text(
                     '$rank',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Colors.white54,
@@ -535,7 +538,7 @@ class _RankListTile extends StatelessWidget {
                 children: [
                   Text(
                     item.name,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -546,7 +549,7 @@ class _RankListTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     item.shopName,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       color: Colors.white38,
                     ),
@@ -564,7 +567,7 @@ class _RankListTile extends StatelessWidget {
                 if (item.hasDiscount && item.originalPrice != null)
                   Text(
                     '฿ ${item.originalPrice!.toStringAsFixed(0)}',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 10,
                       color: Colors.white30,
                       decoration: TextDecoration.lineThrough,
@@ -573,7 +576,7 @@ class _RankListTile extends StatelessWidget {
                   ),
                 GradientText(
                   item.displayPrice ?? '฿ ${item.price.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -609,7 +612,7 @@ class _PriceTag extends StatelessWidget {
         if (item.hasDiscount && item.originalPrice != null)
           Text(
             '฿ ${item.originalPrice!.toStringAsFixed(0)}',
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: fontSize - 1,
               color: Colors.white30,
               decoration: TextDecoration.lineThrough,
@@ -618,7 +621,7 @@ class _PriceTag extends StatelessWidget {
           ),
         GradientText(
           item.displayPrice ?? '฿ ${item.price.toStringAsFixed(0)}',
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: fontSize,
             fontWeight: FontWeight.w700,
           ),
@@ -720,7 +723,7 @@ class _SwipePromoBanner extends StatelessWidget {
                 children: [
                   Text(
                     context.tr('food.swipe_promo_title'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1A1A2E),
@@ -729,7 +732,7 @@ class _SwipePromoBanner extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     context.tr('food.swipe_promo_sub'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       color: Colors.grey[600],
                       height: 1.3,
@@ -760,7 +763,7 @@ class _SwipePromoBanner extends StatelessWidget {
                 children: [
                   Text(
                     context.tr('food.swipe_start'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,

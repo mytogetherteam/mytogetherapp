@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -195,7 +195,7 @@ class _FoodDiscountSelectionSectionState
                     Flexible(
                       child: Text(
                         headerTitle,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
@@ -233,7 +233,7 @@ class _FoodDiscountSelectionSectionState
                 return FilterChip(
                   label: Text(
                     _sectionChipLabel(context, section),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: selected ? Colors.white : Colors.black87,
@@ -390,7 +390,7 @@ class _UpToBadge extends StatelessWidget {
       ),
       child: Text(
         context.trArgs('home.up_to_off_pct', {'percent': '$percent'}).trim(),
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: Colors.white,

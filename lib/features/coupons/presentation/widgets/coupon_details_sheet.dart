@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
@@ -149,7 +149,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                 const SizedBox(width: 8),
                 Text(
                   context.tr('coupon.details_title'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -190,7 +190,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                         children: [
                           Text(
                             shopName.isNotEmpty ? shopName : context.tr('coupon.all_shops'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade700,
@@ -199,7 +199,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                           const SizedBox(height: 4),
                           Text(
                             coupon.name,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Colors.black87,
@@ -225,7 +225,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                   const SizedBox(height: 10),
                   Text(
                     context.tr('coupon.bogo_on_order'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13,
                       color: Colors.black.withValues(alpha: 0.72),
                     ),
@@ -235,7 +235,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                   const SizedBox(height: 14),
                   Text(
                     coupon.description!.trim(),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 13.5,
                       height: 1.45,
                       color: Colors.black.withValues(alpha: 0.72),
@@ -335,7 +335,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
                 icon: const Icon(Icons.shopping_bag_outlined, size: 20),
                 label: Text(
                   'Order Online',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
@@ -356,7 +356,7 @@ class _CouponDetailsViewState extends State<CouponDetailsView> {
               icon: const Icon(Icons.qr_code_2_rounded, size: 20),
               label: Text(
                 'Scan QR at Shop',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
                 ),
@@ -387,7 +387,7 @@ class _ReferralTag extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             context.tr('coupon.referral'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF0F7A45),
@@ -417,7 +417,7 @@ class _EarlyBirdTag extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             context.tr('coupon.early_bird'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFFB26A00),
@@ -456,7 +456,7 @@ class _OfferBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -499,7 +499,7 @@ class _ItemsBlock extends StatelessWidget {
         children: [
           Text(
             title,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.grey.shade700,
@@ -519,7 +519,7 @@ class _ItemsBlock extends StatelessWidget {
                   Expanded(
                     child: Text(
                       i.name,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: Colors.black87,
                       ),
@@ -527,7 +527,7 @@ class _ItemsBlock extends StatelessWidget {
                   ),
                   Text(
                     'x${i.quantity}',
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey.shade600,
@@ -565,7 +565,7 @@ class _HowToUse extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 context.tr('coupon.how_to_use'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey.shade700,
@@ -576,7 +576,7 @@ class _HowToUse extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             "Tap 'Order Online' to use it on a delivery order, or 'Scan QR at Shop' to redeem it in-store.",
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               height: 1.4,
               color: Colors.grey.shade600,
@@ -728,7 +728,7 @@ class _InfoRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 12.5,
             color: Colors.grey.shade600,
           ),
@@ -745,7 +745,7 @@ class _InfoRow extends StatelessWidget {
                   child: Text(
                     value,
                     textAlign: TextAlign.right,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -757,7 +757,7 @@ class _InfoRow extends StatelessWidget {
               : Text(
                   value,
                   textAlign: TextAlign.right,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,

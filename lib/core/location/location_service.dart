@@ -155,7 +155,9 @@ class LocationService {
       if (result != null) {
         _currentAddress = result.displayName;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('location_service.dart: ignored error: $e');
+    }
   }
 
   Future<Position> _useFallback(LocationUnavailableReason reason) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/utils/price_formatter.dart';
@@ -357,7 +357,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                       children: [
                         Text(
                           widget.title,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                             color: Colors.black87,
@@ -382,7 +382,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                     effectivePrice
                                         .toStringAsFixed(0)
                                         .toFormattedPrice(currency: widget.currency),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                 ),
@@ -393,7 +393,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                                   widget.originalPrice!
                                       .toStringAsFixed(0)
                                       .toFormattedPrice(currency: widget.currency),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.grey[500],
                                     fontWeight: FontWeight.w400,
                                     fontSize: 11,
@@ -418,7 +418,7 @@ class _FoodMenuItemCardState extends State<FoodMenuItemCard> with TickerProvider
                               Expanded(
                                 child: Text(
                                   widget.restaurantName,
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 11,
                                     color: Colors.grey[600],
                                     fontWeight: FontWeight.w500,
@@ -575,7 +575,7 @@ class _OutOfStockWrapper extends StatelessWidget {
                         ),
                         child: Text(
                           context.tr('common.unavailable'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

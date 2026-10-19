@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/image_skeleton_loader.dart';
@@ -185,7 +186,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       if (mounted) {
         setState(() => _shopContext = restaurant);
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+    }
   }
 
   void _initializeSelections() {
@@ -199,7 +202,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
     for (final id in _selectedVariantByGroup.values) {
       try {
         out.add(food.variants.firstWhere((v) => v.id == id));
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+      }
     }
     out.sort((a, b) {
       final g = (a.variantGroupDisplayOrder ?? 0)
@@ -317,7 +322,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         for (final optId in _selectedOptions[group.id] ?? const <int>[]) {
           try {
             price += group.options.firstWhere((o) => o.id == optId).price;
-          } catch (_) {}
+          } catch (e) {
+            if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+          }
         }
       }
       return price;
@@ -333,7 +340,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
       for (final optId in _selectedOptions[group.id] ?? const <int>[]) {
         try {
           names.add(group.options.firstWhere((o) => o.id == optId).name);
-        } catch (_) {}
+        } catch (e) {
+          if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+        }
       }
     }
     return names;
@@ -388,7 +397,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                 final v = food.variants
                     .firstWhere((x) => x.id == widget.initialVariantId);
                 _selectedVariantByGroup[v.variantGroupId ?? 0] = v.id;
-              } catch (_) {}
+              } catch (e) {
+                if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+              }
             }
             final extras = widget.initialAdditionalVariantIds;
             if (extras != null) {
@@ -396,7 +407,9 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                 try {
                   final v = food.variants.firstWhere((x) => x.id == id);
                   _selectedVariantByGroup[v.variantGroupId ?? 0] = v.id;
-                } catch (_) {}
+                } catch (e) {
+                  if (kDebugMode) debugPrint('menu_detail_page.dart: ignored error: $e');
+                }
               }
             }
 
@@ -586,7 +599,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         // Title
                         Text(
                           _currentFood?.name ?? widget.title,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -600,7 +613,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             .isNotEmpty) ...[
                           Text(
                             _currentFood?.description ?? widget.description,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 13,
                               color: Colors.grey[600],
                               height: 1.5,
@@ -627,7 +640,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                           widget.currency,
                                     );
                               })(),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -642,7 +655,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             Flexible(
                               child: Text(
                                 _currentFood?.shopName ?? widget.restaurantName,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 14,
                                   color: Colors.grey[600],
                                 ),
@@ -660,7 +673,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               const SizedBox(width: 8),
                               Text(
                                 '${widget.rating}',
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black,
@@ -674,7 +687,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               const SizedBox(width: 4),
                               Text(
                                 '(${widget.reviewCount} Reviews)',
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 14,
                                   color: Colors.grey[600],
                                 ),
@@ -691,7 +704,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             _currentFood!.variants.isNotEmpty) ...[
                           Text(
                             context.tr('menu.variants'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
@@ -707,7 +720,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             _currentFood!.optionGroups.isNotEmpty) ...[
                           Text(
                             context.tr('menu.add_on'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
@@ -722,7 +735,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                 if (showGroupTitle) ...[
                                   Text(
                                     group.name,
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.grey[800],
@@ -801,7 +814,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         // Special Instructions
                         Text(
                           context.tr('menu.special_instructions'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -823,7 +836,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             filled: true,
                             fillColor: const Color(0xFFEAEFF5),
                             hintText: context.tr('menu.special_instructions_hint'),
-                            hintStyle: GoogleFonts.poppins(
+                            hintStyle: AppFonts.poppins(
                               color: Colors.grey[500],
                               fontSize: 14,
                             ),
@@ -845,7 +858,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             ),
                             counterText: '',
                           ),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             height: 1.4,
                           ),
@@ -855,7 +868,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                           alignment: Alignment.centerRight,
                           child: Text(
                             '${_instructionsController.text.length}/200',
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.grey[500],
                               fontSize: 12,
                             ),
@@ -870,7 +883,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                             children: [
                               Text(
                                 context.tr('menu.recommended_with'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black,
@@ -953,7 +966,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         opacity: _isScrolled ? 1.0 : 0.0,
                         child: Text(
                           _currentFood?.name ?? widget.title,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -1075,7 +1088,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                         alignment: Alignment.center,
                         child: Text(
                           '$_quantity',
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -1124,7 +1137,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                           'menu.required_addon',
                                           {'group': missingGroup},
                                         ),
-                                        style: GoogleFonts.poppins(),
+                                        style: AppFonts.poppins(),
                                       ),
                                       backgroundColor: Colors.redAccent,
                                     ),
@@ -1340,7 +1353,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                               ? Center(
                                   child: Text(
                                     context.tr('order.add_to_cart_unavailable'),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       color: Colors.white,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
@@ -1368,7 +1381,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
                                                   widget.currency,
                                             );
                                       })(),
-                                      style: GoogleFonts.poppins(
+                                      style: AppFonts.poppins(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -1442,7 +1455,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
         widgets.addAll([
           Text(
             groupName,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Colors.grey[800],
@@ -1536,7 +1549,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   color: Colors.grey[600],
                   height: 1.0,
@@ -1548,7 +1561,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             const SizedBox(width: 8),
             GradientText(
               price,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 height: 1.0,
@@ -1587,7 +1600,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: CachedNetworkImage(
+                  child: CachedNetworkImage(memCacheWidth: 450, 
                     imageUrl: imageUrl,
                     height: 150,
                     width: 150,
@@ -1615,7 +1628,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             const SizedBox(height: 8),
             Text(
               title,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -1625,7 +1638,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             ),
             GradientText(
               price.toStringAsFixed(0),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -1676,7 +1689,7 @@ class _MenuDetailPageState extends State<MenuDetailPage> {
             Expanded(
               child: Text(
                 context.trArgs('menu.customer_reviews', {'count': '11.4K'}),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -58,7 +58,7 @@ class FlexibleDeliveryNote extends StatelessWidget {
                       isActualFee 
                           ? context.tr('payment.actual_delivery_fee')
                           : context.tr('payment.est_delivery_fee'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -67,7 +67,7 @@ class FlexibleDeliveryNote extends StatelessWidget {
                   ),
                   Text(
                     estimatedFee!,
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
@@ -97,7 +97,7 @@ class FlexibleDeliveryNote extends StatelessWidget {
           Expanded(
             child: GradientText(
               context.tr('cart.flexible_delivery_note'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 height: 1.5,

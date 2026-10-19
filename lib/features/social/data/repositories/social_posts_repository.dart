@@ -210,7 +210,9 @@ class SocialPostsRepository {
   Future<void> recordView(int id) async {
     try {
       await _dio.post('${ApiClient.apiPrefix}/user/posts/$id/view');
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('social_posts_repository.dart: ignored error: $e');
+    }
   }
 
   Future<({bool liked, int likeCount})> toggleLike(int id) async {

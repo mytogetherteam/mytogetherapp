@@ -8,7 +8,7 @@ import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/notification_bell.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/utils/navigation_controller.dart';
 
@@ -107,7 +107,7 @@ class _NewsPageState extends State<NewsPage> {
                     offset: const Offset(0, 4),
                     child: Text(
                       context.tr('nav.news'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.black,
                         fontSize:
                             LocaleController.instance.language.code == 'mm'

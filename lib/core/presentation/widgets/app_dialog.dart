@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -54,7 +54,7 @@ class AppDialog {
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1E293B),
@@ -64,7 +64,7 @@ class AppDialog {
                     Text(
                       content,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         color: const Color(0xFF475569),
                         height: 1.5,
@@ -78,7 +78,7 @@ class AppDialog {
                         borderRadius: BorderRadius.circular(16),
                         child: Text(
                           buttonText,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -98,7 +98,7 @@ class AppDialog {
                           ),
                           child: Text(
                             secondaryButtonText,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF64748B),
@@ -113,7 +113,7 @@ class AppDialog {
                         borderRadius: BorderRadius.circular(16),
                         child: Text(
                           buttonText,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -156,7 +156,7 @@ class AppDialog {
             Text(
               context.tr('demo.feature_unavailable'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -166,7 +166,7 @@ class AppDialog {
         content: Text(
           context.tr('demo.feature_unavailable_body'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.grey[600],
             fontSize: 14,
           ),
@@ -178,7 +178,7 @@ class AppDialog {
               shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
               child: Text(
                 context.tr('common.got_it'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
@@ -227,7 +227,7 @@ class AppDialog {
               Expanded(
                 child: Text(
                   message,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -252,7 +252,7 @@ class AppDialog {
                     ),
                     child: Text(
                       actionLabel,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -304,7 +304,7 @@ class AppDialog {
               Expanded(
                 child: Text(
                   'QR Saved',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -372,7 +372,7 @@ class AppDialog {
         child: Center(
           child: Text(
             text,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               color: color,
               fontWeight: FontWeight.bold,
               fontSize: 16,

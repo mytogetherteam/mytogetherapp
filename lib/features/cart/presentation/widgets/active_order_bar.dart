@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/notifications/order_tracker_channel.dart';
 import 'package:mytogetherapp/core/network/media_url.dart';
@@ -168,7 +168,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
 
         return SizeTransition(
           sizeFactor: _slideCtrl,
-          axisAlignment: 1.0,
+          alignment: Alignment.bottomCenter,
           child: SlideTransition(
             position: _slideAnim,
             child: Container(
@@ -262,7 +262,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                           order.displayShopName.isNotEmpty
                               ? order.displayShopName
                               : context.tr('common.restaurant'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -272,7 +272,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                         ),
                         Text(
                           _getStatusText(context, order),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[600],
                           ),
@@ -461,7 +461,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         children: [
           Text(
             context.tr('active_order.track'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.white,

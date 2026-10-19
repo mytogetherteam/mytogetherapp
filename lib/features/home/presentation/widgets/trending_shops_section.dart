@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../data/repositories/restaurant_repository.dart';
@@ -94,7 +94,7 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
                   Expanded(
                     child: Text(
                       context.tr('food.trending_now'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
                         color: Colors.black87,
@@ -137,7 +137,7 @@ class _TrendingShopsSectionState extends State<TrendingShopsSection> {
                         ? 'restaurants.empty_delivery'
                         : 'restaurants.empty_visit_only',
                   ),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     color: Colors.grey[600],
                   ),

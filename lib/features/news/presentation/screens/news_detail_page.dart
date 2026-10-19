@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -126,7 +128,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           _syncCommentCount();
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('news_detail_page.dart: ignored error: $e');
+    }
   }
 
   /// Keeps the feed item's comment counter in sync with the comments actually
@@ -191,6 +195,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
         }
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('news_detail_page.dart: ignored error: $e');
     }
   }
 
@@ -291,7 +296,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
         ),
         title: Text(
           context.tr('comment.edit'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: controller,
@@ -469,7 +474,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     children: [
                       Text(
                         widget.item.authorName,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
@@ -478,7 +483,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       ),
                       Text(
                         widget.item.timeAgo,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 11,
                           color: Colors.black45,
                           fontWeight: FontWeight.w400,
@@ -512,7 +517,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             const SizedBox(width: 4),
                             Text(
                               context.tr('news.connect'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -564,7 +569,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         Expanded(
                           child: Text(
                             widget.item.location!,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 14,
                               color: const Color(0xFF7B8794),
                               fontWeight: FontWeight.w500,
@@ -619,7 +624,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             tag: widget.item.imageUrls[0],
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                              child: CachedNetworkImage(memCacheWidth: 1080, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                 imageUrl: widget.item.imageUrls[0],
                                 fit: BoxFit.cover,
                                 width: double.infinity,
@@ -682,7 +687,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                   tag: imageUrl,
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                    child: CachedNetworkImage(memCacheWidth: 1080, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
@@ -734,7 +739,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         const SizedBox(width: 8),
                         Text(
                           _formatCount(_likesCount),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 13,
                             color: Colors.black54,
                             fontWeight: FontWeight.w500,
@@ -753,7 +758,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               const SizedBox(width: 8),
                               Text(
                                 _formatCount(_displayCommentCount),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 13,
                                   color: Colors.black54,
                                   fontWeight: FontWeight.w500,
@@ -773,7 +778,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   const SizedBox(height: 20),
                   Text(
                     context.tr('news.comments'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -813,7 +818,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             children: [
                               Text(
                                 comment.authorName,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black,
@@ -822,7 +827,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               const SizedBox(width: 8),
                               Text(
                                 comment.timeAgo,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 11,
                                   color: Colors.black45,
                                 ),
@@ -833,7 +838,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           if (comment.content.isNotEmpty)
                             Text(
                               comment.content,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.black87,
                                 height: 1.4,
@@ -915,7 +920,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       focusNode: _commentFocusNode,
                       decoration: InputDecoration(
                         hintText: context.tr('news.add_comment'),
-                        hintStyle: GoogleFonts.poppins(
+                        hintStyle: AppFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[500],
                         ),
@@ -925,7 +930,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           vertical: 12,
                         ),
                       ),
-                      style: GoogleFonts.poppins(fontSize: 14),
+                      style: AppFonts.poppins(fontSize: 14),
                     ),
                   ),
                 ),

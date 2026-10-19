@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -139,6 +141,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
         }
       }
     } catch (e) {
+      if (kDebugMode) debugPrint('news_feed_item.dart: ignored error: $e');
     }
   }
 
@@ -168,7 +171,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                 leading: const Icon(PhosphorIcons.warningCircle, color: Colors.orange),
                 title: Text(
                   context.tr('news.report_post'),
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  style: AppFonts.poppins(fontWeight: FontWeight.w500),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -180,7 +183,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                   leading: const Icon(PhosphorIcons.userMinus, color: Colors.red),
                   title: Text(
                     context.tr('news.block_user'),
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
+                    style: AppFonts.poppins(fontWeight: FontWeight.w500, color: Colors.red),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -205,22 +208,22 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
           children: [
             Image.asset('assets/images/app_icon_small.png', width: 28, height: 28),
             const SizedBox(width: 10),
-            Expanded(child: Text(context.tr('news.report_post'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17))),
+            Expanded(child: Text(context.tr('news.report_post'), style: AppFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17))),
           ],
         ),
-        content: Text(context.tr('news.report_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
+        content: Text(context.tr('news.report_confirm'), style: AppFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: AppFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               AppDialog.showToast(context, context.tr('news.reported_success'));
             },
-            child: Text(context.tr('news.report_action'), style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.report_action'), style: AppFonts.poppins(color: Colors.orange, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -236,15 +239,15 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
           children: [
             Image.asset('assets/images/app_icon_small.png', width: 28, height: 28),
             const SizedBox(width: 10),
-            Expanded(child: Text(context.tr('news.block_user'), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.red))),
+            Expanded(child: Text(context.tr('news.block_user'), style: AppFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.red))),
           ],
         ),
-        content: Text(context.tr('news.block_confirm'), style: GoogleFonts.poppins(fontSize: 14)),
+        content: Text(context.tr('news.block_confirm'), style: AppFonts.poppins(fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('common.cancel'), style: GoogleFonts.poppins(color: Colors.grey[600])),
+            child: Text(context.tr('common.cancel'), style: AppFonts.poppins(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () {
@@ -254,7 +257,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               });
               AppDialog.showToast(context, context.tr('news.blocked_success'));
             },
-            child: Text(context.tr('news.block_action'), style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('news.block_action'), style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -356,7 +359,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                             ),
                             child: ClipOval(
                               child: widget.item.authorAvatar.isNotEmpty
-                                  ? CachedNetworkImage(
+                                  ? CachedNetworkImage(memCacheWidth: 1080, 
                                       imageUrl: widget.item.authorAvatar,
                                       fit: BoxFit.cover,
                                       placeholder: (context, url) => Container(color: Colors.grey[200]),
@@ -377,7 +380,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               child: Text(
                                 widget.item.authorName,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black,
@@ -399,7 +402,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                           children: [
                             Text(
                               widget.item.timeAgo,
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.black45,
                                 fontWeight: FontWeight.w400,
@@ -420,7 +423,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                               Expanded(
                                 child: Text(
                                   widget.item.location!,
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 13,
                                     color: const Color(0xFF7B8794),
                                     fontWeight: FontWeight.w500,
@@ -472,7 +475,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                         },
                                         child: GradientText(
                                           context.tr('news.see_less') == 'news.see_less' ? 'See less' : context.tr('news.see_less'),
-                                          style: GoogleFonts.poppins(
+                                          style: AppFonts.poppins(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             color: Colors.white,
@@ -518,7 +521,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                       },
                                       child: GradientText(
                                         context.tr('news.see_more'),
-                                        style: GoogleFonts.poppins(
+                                        style: AppFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: Colors.white,
@@ -572,7 +575,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                    child: CachedNetworkImage(memCacheWidth: 1080, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                       imageUrl: widget.item.imageUrls[0],
                                       fit: BoxFit.cover,
                                       width: double.infinity,
@@ -637,7 +640,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                         tag: imageUrl,
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(16),
-                                          child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                                          child: CachedNetworkImage(memCacheWidth: 1080, fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
                                             imageUrl: imageUrl,
                                             fit: BoxFit.cover,
                                             width: double.infinity,
@@ -714,7 +717,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                         const SizedBox(width: 4),
                         Text(
                           context.tr('news.connect'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -752,7 +755,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
               const SizedBox(width: 8),
               Text(
                 _formatCount(_likesCount),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 13,
                   color: Colors.black54,
                   fontWeight: FontWeight.w500,
@@ -772,7 +775,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                     const SizedBox(width: 8),
                     Text(
                       _formatCount(widget.item.commentsCount),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: Colors.black54,
                         fontWeight: FontWeight.w500,
@@ -823,7 +826,7 @@ class _ItemPostTypeBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: color,

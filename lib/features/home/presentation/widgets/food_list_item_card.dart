@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -180,7 +180,7 @@ class FoodListItemCard extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
@@ -204,7 +204,7 @@ class FoodListItemCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             description,
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey[600],
                             ),
@@ -223,7 +223,7 @@ class FoodListItemCard extends StatelessWidget {
                                   padding: const EdgeInsets.only(top: 2.0),
                                   child: Text(
                                     originalPrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
-                                    style: GoogleFonts.poppins(
+                                    style: AppFonts.poppins(
                                       fontSize: 14,
                                       color: Colors.grey[500],
                                       decoration: TextDecoration.lineThrough,
@@ -234,7 +234,7 @@ class FoodListItemCard extends StatelessWidget {
                               ],
                               GradientText(
                                 displayPrice ?? effectivePrice.toStringAsFixed(0).toFormattedPrice(currency: currency),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -301,7 +301,7 @@ class _OutOfStockListWrapper extends StatelessWidget {
               ),
               child: Text(
                 context.tr('common.out_of_stock'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,

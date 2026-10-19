@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
 import 'package:mytogetherapp/core/network/api_client.dart';
@@ -205,7 +206,9 @@ class OrderRepository {
               : <String, dynamic>{};
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('order_repository.dart: ignored error: $e');
+    }
     return null;
   }
 
@@ -230,7 +233,9 @@ class OrderRepository {
               : <String, dynamic>{};
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('order_repository.dart: ignored error: $e');
+    }
     return null;
   }
 }

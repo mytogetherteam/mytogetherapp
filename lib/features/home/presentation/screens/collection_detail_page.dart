@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/collection_dto.dart';
@@ -54,7 +54,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         iconTheme: const IconThemeData(color: Colors.black87),
         title: Text(
           widget.collectionName,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -75,7 +75,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
             return Center(
               child: Text(
                 context.tr('collection.empty'),
-                style: GoogleFonts.poppins(color: Colors.grey[600]),
+                style: AppFonts.poppins(color: Colors.grey[600]),
               ),
             );
           }
@@ -89,7 +89,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Text(
                       collection.description!,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: Colors.grey[600],
                       ),

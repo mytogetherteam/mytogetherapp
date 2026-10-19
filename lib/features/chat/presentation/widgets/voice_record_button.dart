@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_player.dart';
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
@@ -240,7 +240,7 @@ class VoiceRecordingStrip extends StatelessWidget {
                   status,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF334155),
@@ -254,7 +254,7 @@ class VoiceRecordingStrip extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       'Cancel',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFFEF4444),
@@ -268,7 +268,7 @@ class VoiceRecordingStrip extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 8),
                     child: Text(
                       'Send',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,

@@ -49,6 +49,7 @@ class LockScreenWidgetManager {
           _currentLiveActivityId = activities.first;
         }
       } catch (e) {
+        if (kDebugMode) debugPrint('lock_screen_widget_manager.dart: ignored error: $e');
       }
     } else if (_isAndroid) {
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -137,6 +138,7 @@ class LockScreenWidgetManager {
               data['shopLogoPath'] = _lastLogoFile;
             }
           } catch (e) {
+            if (kDebugMode) debugPrint('lock_screen_widget_manager.dart: ignored error: $e');
           }
         }
       }
@@ -154,6 +156,7 @@ class LockScreenWidgetManager {
           );
         }
       } catch (e) {
+        if (kDebugMode) debugPrint('lock_screen_widget_manager.dart: ignored error: $e');
       }
     } else if (_isAndroid) {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -198,7 +201,9 @@ class LockScreenWidgetManager {
     if (_isIOS) {
       try {
         await _liveActivitiesPlugin.endAllActivities();
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('lock_screen_widget_manager.dart: ignored error: $e');
+      }
       _currentLiveActivityId = null;
     } else if (_isAndroid) {
       await _flutterLocalNotificationsPlugin.cancel(id: _notificationId);

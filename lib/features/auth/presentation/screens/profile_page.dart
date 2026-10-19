@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
@@ -103,7 +104,9 @@ class _ProfilePageState extends State<ProfilePage> {
           _bgImageUrl = bgThemeData['url'];
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('profile_page.dart: ignored error: $e');
+    }
   }
 
   String _getImageUrl(String? path) {
@@ -206,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               Text(
                                 context.tr('profile.logout'),
-                                style: GoogleFonts.poppins(
+                                style: AppFonts.poppins(
                                   color: blocked
                                       ? Colors.grey.shade400
                                       : Colors.red,
@@ -220,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   context.tr(
                                       'profile.logout_active_order_hint'),
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     color: Colors.grey.shade500,
                                     fontWeight: FontWeight.w400,
                                     fontSize: 12,
@@ -240,7 +243,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.only(bottom: 40),
                 child: Text(
                   '${context.tr('profile.app_version')} $_appVersion',
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[500],
                   ),
@@ -311,7 +314,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           isGuest
                               ? context.tr('nav.settings')
                               : context.tr('nav.profile'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             color: Colors.black,
                             fontSize: LocaleController.instance.language.code == 'mm' ? 18 : 24,
                             fontWeight: FontWeight.bold,
@@ -369,7 +372,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 16),
           Text(
             context.tr('nav.settings'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.black,
@@ -379,7 +382,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Text(
             context.tr('guest.settings_subtitle'),
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 14,
               color: Colors.grey[600],
               height: 1.4,
@@ -458,7 +461,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 user?.fullName ?? user?.username ?? context.tr('common.user_name'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
@@ -466,7 +469,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               Text(
                 user?.email ?? 'email@example.com',
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[600],
                 ),
@@ -559,7 +562,7 @@ class _ProfilePageState extends State<ProfilePage> {
           leading: GradientIcon(icon: PhosphorIcons.gift),
           title: Text(
             context.tr('profile.referral_promote'),
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
@@ -569,7 +572,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ? _referralProgress(code.usedCount, goal, earned)
               : Text(
                   context.tr('profile.referral_promote_sub'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey[500],
                   ),
@@ -604,7 +607,7 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: earned ? accent : Colors.black87,
@@ -643,7 +646,7 @@ class _ProfilePageState extends State<ProfilePage> {
           leading: GradientIcon(icon: icon),
           title: Text(
             title,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
@@ -652,7 +655,7 @@ class _ProfilePageState extends State<ProfilePage> {
           subtitle: subtitle != null
               ? Text(
                   subtitle,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey[500],
                   ),
@@ -718,7 +721,7 @@ class _ProfilePageState extends State<ProfilePage> {
           SnackBar(
             content: Text(
               context.tr('common.link_open_failed'),
-              style: GoogleFonts.poppins(color: Colors.white),
+              style: AppFonts.poppins(color: Colors.white),
             ),
             backgroundColor: Colors.red.shade500,
             behavior: SnackBarBehavior.floating,

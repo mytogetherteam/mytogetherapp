@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../data/models/news_item.dart';
@@ -193,7 +193,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                     ),
                     child: Text(
                       "${_currentIndex + 1}/${widget.imageUrls.length}",
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -242,7 +242,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                           const SizedBox(width: 8),
                           Text(
                             _formatCount(_likesCount),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -274,7 +274,7 @@ class _NewsImageViewerState extends State<NewsImageViewer> {
                           const SizedBox(width: 8),
                           Text(
                             _formatCount(widget.item.commentsCount),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,

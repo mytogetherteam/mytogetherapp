@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
@@ -246,7 +246,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
         ),
         title: Text(
           context.tr('comment.edit'),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: controller,
@@ -402,7 +402,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                 children: [
                   Text(
                     context.tr('news.comments'),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -420,7 +420,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                     ),
                     child: Text(
                       '${_comments.length}',
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[700],
@@ -458,7 +458,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
           children: [
             Text(
               _error!,
-              style: GoogleFonts.poppins(color: Colors.black54, fontSize: 14),
+              style: AppFonts.poppins(color: Colors.black54, fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -482,7 +482,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
             const SizedBox(height: 10),
             Text(
               context.tr('social.no_comments'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 color: Colors.grey[500],
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -531,7 +531,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                     children: [
                       Text(
                         comment.authorName,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
@@ -540,7 +540,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                       const SizedBox(width: 8),
                       Text(
                         comment.timeAgo,
-                        style: GoogleFonts.poppins(
+                        style: AppFonts.poppins(
                           fontSize: 11,
                           color: Colors.black45,
                         ),
@@ -551,7 +551,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                   if (comment.content.isNotEmpty)
                     Text(
                       comment.content,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 13,
                         color: Colors.black87,
                         height: 1.4,
@@ -631,7 +631,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                 onSubmitted: (_) => _postComment(),
                 decoration: InputDecoration(
                   hintText: context.tr('news.add_comment'),
-                  hintStyle: GoogleFonts.poppins(
+                  hintStyle: AppFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey[500],
                   ),
@@ -639,7 +639,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                style: GoogleFonts.poppins(fontSize: 14),
+                style: AppFonts.poppins(fontSize: 14),
               ),
             ),
           ),

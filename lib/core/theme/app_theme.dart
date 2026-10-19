@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   /// Enables the platform-native "swipe to go back" gesture on every pushed
@@ -24,10 +23,9 @@ class AppTheme {
       primary: const Color(0xFFED3A72),
       brightness: Brightness.light,
     ),
-    fontFamily: GoogleFonts.poppins().fontFamily,
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData.light().textTheme,
-    ),
+    // Poppins is bundled in assets/fonts and declared in pubspec.yaml.
+    fontFamily: 'Poppins',
+    textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
@@ -48,10 +46,8 @@ class AppTheme {
       primary: const Color(0xFFED3A72),
       brightness: Brightness.dark,
     ),
-    fontFamily: GoogleFonts.poppins().fontFamily,
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData.dark().textTheme,
-    ),
+    fontFamily: 'Poppins',
+    textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,

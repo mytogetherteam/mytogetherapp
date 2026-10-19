@@ -1,6 +1,6 @@
 ﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -153,7 +153,7 @@ class CouponBrowseCard extends StatelessWidget {
                   shopName.isNotEmpty
                       ? shopName
                       : context.tr('coupon.all_shops'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -180,7 +180,7 @@ class CouponBrowseCard extends StatelessWidget {
                   ),
                   child: Text(
                     coupon.name.toUpperCase(),
-                    style: GoogleFonts.poppins(
+                    style: AppFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -194,7 +194,7 @@ class CouponBrowseCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   context.trArgs('coupon.until_short', {'date': validity}),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey.shade500,
                     fontWeight: FontWeight.w500,
@@ -236,7 +236,7 @@ class CouponShopLogo extends StatelessWidget {
         final url = snapshot.data;
         if (url == null || url.isEmpty) return _fallback();
         return ClipOval(
-          child: CachedNetworkImage(
+          child: CachedNetworkImage(memCacheWidth: (size * 3).round(), 
             imageUrl: url,
             width: size,
             height: size,
@@ -262,7 +262,7 @@ class CouponShopLogo extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letter,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: size * 0.42,
           fontWeight: FontWeight.w700,
           color: AppColors.primary,
@@ -317,7 +317,7 @@ class CouponHeadlineBadge extends StatelessWidget {
           FittedBox(
             child: Text(
               big,
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,

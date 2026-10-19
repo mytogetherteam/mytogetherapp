@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/utils/pagination_scroll.dart';
@@ -129,7 +129,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
           child: Center(
             child: Text(
               context.tr('food.end_of_list'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 color: Colors.grey[400],
                 fontWeight: FontWeight.w500,
@@ -153,7 +153,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
                   widget.title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.black,
@@ -231,7 +231,7 @@ class _ExploreMenuSectionState extends State<ExploreMenuSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
                   widget.title,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.black,

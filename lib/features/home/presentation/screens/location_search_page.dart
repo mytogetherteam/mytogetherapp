@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/google_maps_config.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -458,7 +458,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             Expanded(
               child: Text(
                 context.tr('location.saved_locations'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -500,10 +500,10 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 controller: _searchController,
                 focusNode: _searchFocus,
                 onChanged: _onSearchChanged,
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+                style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: context.tr('location.search_hint'),
-                  hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
+                  hintStyle: AppFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
                   border: InputBorder.none,
                   prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, color: Colors.grey, size: 20),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -538,7 +538,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           Padding(
             padding: const EdgeInsets.all(32),
             child: Center(
-              child: Text(context.tr('location.no_saved'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)),
+              child: Text(context.tr('location.no_saved'), style: AppFonts.poppins(fontSize: 14, color: Colors.grey.shade400)),
             ),
           )
         else
@@ -552,7 +552,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
       return const Center(child: CustomLoadingIndicator(size: 30));
     }
     if (_searchResults.isEmpty) {
-      return Center(child: Text(context.tr('location.no_results'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400)));
+      return Center(child: Text(context.tr('location.no_results'), style: AppFonts.poppins(fontSize: 14, color: Colors.grey.shade400)));
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -579,7 +579,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               Expanded(
                 child: Text(
                   context.tr('location.saved_locations'),
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey.shade600,
@@ -591,7 +591,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                   'location.slots_used',
                   {'current': '$count', 'max': '$max'},
                 ),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: _isAtLocationLimit
@@ -635,7 +635,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
             Expanded(
               child: Text(
                 context.tr('location.select_via_map'),
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -666,7 +666,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           Expanded(
             child: Text(
               context.tr('location.limit_full_hint'),
-              style: GoogleFonts.poppins(
+              style: AppFonts.poppins(
                 fontSize: 12,
                 height: 1.45,
                 color: Colors.orange.shade900,
@@ -698,12 +698,12 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.tr('location.current'), style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                  Text(context.tr('location.current'), style: AppFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 2),
                   _isLoadingCurrent
                       ? Text(
                           context.tr('location.detecting'),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey.shade500,
                           ),
@@ -711,7 +711,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                       : _currentLocationResult == null
                           ? Text(
                               context.tr('location.unavailable'),
-                              style: GoogleFonts.poppins(
+                              style: AppFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
                               ),
@@ -722,7 +722,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                                 null
                               ? Text(
                                   context.tr('location.pin_to_add_address'),
-                                  style: GoogleFonts.poppins(
+                                  style: AppFonts.poppins(
                                     fontSize: 12,
                                     color: Colors.orange.shade700,
                                     height: 1.4,
@@ -783,7 +783,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                       Expanded(
                         child: Text(
                           location.displayTitle(context.tr('location.saved')),
-                          style: GoogleFonts.poppins(
+                          style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
@@ -801,7 +801,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                           ),
                           child: Text(
                             context.tr('location.selected'),
-                            style: GoogleFonts.poppins(
+                            style: AppFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -813,7 +813,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                   if (location.detailSubtitle != null)
                     Text(
                       location.detailSubtitle!,
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 11,
                         color: Colors.grey.shade500,
                       ),
@@ -890,9 +890,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(place.name, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(place.name, style: AppFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(place.displayName, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(place.displayName, style: AppFonts.poppins(fontSize: 12, color: Colors.grey.shade500), maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

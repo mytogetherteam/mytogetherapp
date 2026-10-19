@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -112,7 +112,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
               ? Center(
                   child: Text(
                     _error!,
-                    style: GoogleFonts.poppins(color: Colors.grey.shade600),
+                    style: AppFonts.poppins(color: Colors.grey.shade600),
                   ),
                 )
               : job == null
@@ -168,7 +168,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                                           child: ClipRRect(
                                             borderRadius: BorderRadius.circular(12),
                                             child: job.shop!.logo.isNotEmpty
-                                                ? CachedNetworkImage(
+                                                ? CachedNetworkImage(memCacheWidth: 192, 
                                                     imageUrl: job.shop!.logo,
                                                     width: 64,
                                                     height: 64,
@@ -214,7 +214,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
               child: Text(
                 shop.displayName,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: AppFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -226,7 +226,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
         ],
         Text(
           job.title,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -253,7 +253,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
         const SizedBox(height: 20),
         Text(
           job.description,
-          style: GoogleFonts.poppins(
+          style: AppFonts.poppins(
             fontSize: 15,
             color: Colors.black54,
             height: 1.6,
@@ -327,7 +327,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     const SizedBox(width: 8),
                     Text(
                       context.tr('jobs.apply_link'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -360,7 +360,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: textColor ?? Colors.white,
@@ -377,7 +377,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.grey.shade600,
             ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'image_skeleton_loader.dart';
 
@@ -39,7 +39,7 @@ class ReviewCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
+                child: CachedNetworkImage(memCacheWidth: 108, 
                   imageUrl: userAvatar,
                   width: 36,
                   height: 36,
@@ -57,7 +57,7 @@ class ReviewCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   userName,
-                  style: GoogleFonts.poppins(
+                  style: AppFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -76,7 +76,7 @@ class ReviewCard extends StatelessWidget {
           if (image != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
-              child: CachedNetworkImage(
+              child: CachedNetworkImage(memCacheWidth: 1080, 
                 imageUrl: image!,
                 width: double.infinity,
                 height: 200,
@@ -94,7 +94,7 @@ class ReviewCard extends StatelessWidget {
           ],
           Text(
             comment,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 13,
               color: Colors.grey[600],
               height: 1.5,
@@ -108,7 +108,7 @@ class ReviewCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             date,
-            style: GoogleFonts.poppins(
+            style: AppFonts.poppins(
               fontSize: 12,
               color: Colors.grey[400],
             ),
@@ -127,7 +127,7 @@ class ReviewCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(
+        style: AppFonts.poppins(
           fontSize: 11,
           color: Colors.black87,
           fontWeight: FontWeight.w500,

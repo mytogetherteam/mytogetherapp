@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
@@ -82,7 +82,7 @@ class GuestWelcomeBanner extends StatelessWidget {
                 Expanded(
                   child: Text.rich(
                     TextSpan(
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 12,
                         height: 1.35,
                         color: Colors.white.withValues(alpha: 0.92),
@@ -128,7 +128,7 @@ class GuestWelcomeBanner extends StatelessWidget {
                     ),
                     child: Text(
                       context.tr('guest.welcome_banner_cta'),
-                      style: GoogleFonts.poppins(
+                      style: AppFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: dark ? Colors.white : AppColors.primary,

@@ -71,7 +71,9 @@ class PinnedMapViewState extends State<PinnedMapView> {
         await controller.moveCamera(
           CameraUpdate.newLatLngZoom(widget.initialPosition, 16),
         );
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('pinned_map_view.dart: ignored error: $e');
+      }
     }
 
     if (!_initialLookupSent) {

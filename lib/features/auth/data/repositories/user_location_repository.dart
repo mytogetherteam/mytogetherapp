@@ -295,7 +295,9 @@ class UserLocationRepository extends ChangeNotifier {
         if (LocationService().hasRealPosition) {
           return (lat: pos.latitude, lon: pos.longitude);
         }
-      } catch (_) {}
+      } catch (e) {
+        if (kDebugMode) debugPrint('user_location_repository.dart: ignored error: $e');
+      }
     }
     return (
       lat: LocationService.defaultLat,
